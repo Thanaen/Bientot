@@ -39,8 +39,9 @@ fi
 [[ ! -e $output || -z $(ls -A "$output") ]] || fail "$output is not empty: publish-release.ts would upload what it holds"
 
 # Every commit of main gets a higher version than the one before.
+# tr: jq.exe ends its lines with CRLF under Git Bash on Windows.
 base=$(cargo metadata --no-deps --format-version 1 --manifest-path "$root/Cargo.toml" |
-    jq -r '.packages[] | select(.name == "worktime-app") | .version')
+    jq -r '.packages[] | select(.name == "worktime-app") | .version' | tr -d '\r')
 version="$base-alpha.$(git -C "$root" rev-list --count HEAD)"
 # The version the usage ping accepts (services/worktime/src/ping.ts), which the app parses.
 [[ $version =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(-[0-9A-Za-z.]{1,20})?$ ]] || fail "unexpected version $version"
@@ -67,7 +68,7 @@ if ! build; then
     [[ -n ${FXC:-} && -n ${GEN_SHADERS:-} ]] ||
         fail "the build needs gpui-pre-windows' shaders: set FXC and GEN_SHADERS"
     manifest=$(cargo metadata --format-version 1 --locked --manifest-path "$root/Cargo.toml" |
-        jq -r '.packages[] | select(.name == "gpui-pre-windows") | .manifest_path')
+        jq -r '.packages[] | select(.name == "gpui-pre-windows") | .manifest_path' | tr -d '\r')
     "$python" "$GEN_SHADERS" "$(dirname "$manifest")/src" "$out" "$FXC"
     build
 fi

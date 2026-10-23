@@ -73,6 +73,11 @@ jobs:
       CARGO_TERM_COLOR: always
 
     steps:
+      # The runner's Git checks out CRLF, which Bash cannot run and which would change the bits
+      # that the files compiled into the exe give.
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -105,7 +110,7 @@ jobs:
         env:
           PYTHON: python
           RELEASE_NO_FETCH: "1"
-        run: scripts/release-direct.sh "$RUNNER_TEMP/release"
+        run: scripts/release-direct.sh "$(cygpath -u "$RUNNER_TEMP")/release"
 
       # The previous full package, downloaded for the delta, belongs to its own release.
       - name: Keep this release's files
@@ -114,15 +119,16 @@ jobs:
           VERSION: ${{ needs.plan.outputs.version }}
         run: |
           set -euo pipefail
-          mkdir -p dist
-          cd "$RUNNER_TEMP/release"
+          dist=$PWD/dist
+          mkdir -p "$dist"
+          cd "$(cygpath -u "$RUNNER_TEMP")/release"
           for file in *; do
             case "$file" in
               *.nupkg) [[ $file == *"-${VERSION}-"* ]] || continue ;;
             esac
-            cp "$file" "$GITHUB_WORKSPACE/dist/"
+            cp "$file" "$dist/"
           done
-          ls -l "$GITHUB_WORKSPACE/dist"
+          ls -l "$dist"
 
       - name: Upload the release
         uses: actions/upload-artifact@v7
