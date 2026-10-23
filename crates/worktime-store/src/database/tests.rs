@@ -1150,6 +1150,29 @@ fn a_scope_inside_another_commits_or_rolls_back_with_it() {
 }
 
 #[test]
+fn an_inner_scope_that_cannot_roll_back_fails_the_transaction_around_it() {
+    let connection = Connection::open_in_memory().unwrap();
+    connection
+        .execute_batch("CREATE TABLE T (V INTEGER);")
+        .unwrap();
+    let outer = scope(&connection, TransactionBehavior::Immediate).unwrap();
+    outer.execute("INSERT INTO T VALUES (1);", []).unwrap();
+    {
+        let inner = scope(&outer, TransactionBehavior::Immediate).unwrap();
+        inner.execute("INSERT INTO T VALUES (2);", []).unwrap();
+        // Its savepoint gone, the inner scope's rollback fails.
+        inner.execute_batch("RELEASE worktime_scope;").unwrap();
+    }
+
+    assert!(outer.commit().is_err());
+    let rows: i64 = connection
+        .query_row("SELECT COUNT(*) FROM T;", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(rows, 0);
+    assert!(connection.is_autocommit());
+}
+
+#[test]
 fn a_scope_does_not_join_a_transaction_it_did_not_open() {
     let connection = Connection::open_in_memory().unwrap();
     connection.execute_batch("BEGIN;").unwrap();
