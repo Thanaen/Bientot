@@ -14,7 +14,7 @@ A successful `CI` run requires every job that runs to pass.
 
 `Rust` runs for a pull request only when it changes a Rust file (`crates/`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`), `packaging/` (the MSIX manifest and the license texts the tests read) or `.github/workflows/ci.yml`. A pull request that changes only documentation or the web service runs no Rust job.
 
-`Rust on Windows` runs only when a pull request changes `crates/worktime-app/`, `crates/worktime-windows/`, the Windows code of `crates/worktime-store/` (`Cargo.toml`, `src/secrets`, `src/data_directory`), `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `scripts/measure-performance.ps1` or `.github/workflows/ci.yml`, and only after `Rust` passed. Both Rust jobs cache their dependency builds with `Swatinem/rust-cache`; a pull request's cache serves only that pull request's later pushes.
+`Rust on Windows` runs only when a pull request changes `crates/worktime-app/`, `crates/worktime-windows/`, `crates/worktime-store/` (its file handling behaves differently on Windows), `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `scripts/measure-performance.ps1` or `.github/workflows/ci.yml`, and only after `Rust` passed. Both Rust jobs cache their dependency builds with `Swatinem/rust-cache`; a pull request's cache serves only that pull request's later pushes.
 
 `Rust` renders screenshots, and `Publish screenshots` publishes them, only when a pull request changes `crates/worktime-app/` or `.github/workflows/ci.yml`. Pull requests from forks still render them, but do not publish.
 
