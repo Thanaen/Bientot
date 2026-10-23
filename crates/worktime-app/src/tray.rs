@@ -7,7 +7,7 @@ use std::sync::Mutex;
 
 use futures::StreamExt;
 use futures::channel::mpsc;
-use gpui::{App, Bounds, Global, Pixels, Size, Window, point};
+use gpui::{App, Bounds, DisplayId, Global, Pixels, Size, Window, point};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tray_icon::menu::{
     ContextMenu as _, IsMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu,
@@ -21,9 +21,10 @@ use windows::Win32::Graphics::Dwm::{
 use windows::Win32::Graphics::Gdi::{
     ClientToScreen, GetMonitorInfoW, MONITOR_DEFAULTTOPRIMARY, MONITORINFO, MonitorFromPoint,
 };
+use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::WindowsAndMessaging::{
     GetClientRect, GetWindowRect, HMENU, SWP_NOACTIVATE, SWP_NOZORDER, SetMenuDefaultItem,
-    SetWindowPos,
+    SetWindowPos, USER_DEFAULT_SCREEN_DPI,
 };
 
 use crate::host::{self, Today};
@@ -182,28 +183,50 @@ pub fn window_handle(cx: &App) -> Option<NonZeroIsize> {
     NonZeroIsize::new(cx.try_global::<Tray>()?.icon.window_handle() as isize)
 }
 
-/// The work area of the monitor the icon was last clicked on, in physical pixels. `None` when
-/// Windows does not tell it.
-pub(crate) fn work_area() -> Option<Bounds<i32>> {
+/// The monitor the icon was last clicked on, where the flyout opens.
+pub(crate) struct ClickedMonitor {
+    pub display: DisplayId,
+    /// In physical pixels.
+    pub work_area: Bounds<i32>,
+    pub scale: f32,
+}
+
+/// The monitor the icon was last clicked on, or the primary one before any click. `None` when
+/// Windows does not tell its work area or its scale.
+pub(crate) fn clicked_monitor() -> Option<ClickedMonitor> {
     let (x, y) = LAST_CLICK.lock().unwrap().unwrap_or((0, 0));
     let mut info = MONITORINFO {
         cbSize: size_of::<MONITORINFO>() as u32,
         ..Default::default()
     };
-    let read = unsafe {
+    let (mut dpi, mut dpi_y) = (0, 0);
+    // SAFETY: each out pointer is a local.
+    let monitor = unsafe {
         let monitor = MonitorFromPoint(POINT { x, y }, MONITOR_DEFAULTTOPRIMARY);
-        GetMonitorInfoW(monitor, &mut info)
+        if !GetMonitorInfoW(monitor, &mut info).as_bool() {
+            return None;
+        }
+        GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi, &mut dpi_y).ok()?;
+        monitor
     };
-    if !read.as_bool() {
-        return None;
-    }
     let RECT {
         left,
         top,
         right,
         bottom,
     } = info.rcWork;
-    Some(Bounds::from_corners(point(left, top), point(right, bottom)))
+    Some(ClickedMonitor {
+        // GPUI's id for a monitor is its handle.
+        display: DisplayId::new(monitor.0 as u64),
+        work_area: Bounds::from_corners(point(left, top), point(right, bottom)),
+        scale: dpi as f32 / USER_DEFAULT_SCREEN_DPI as f32,
+    })
+}
+
+/// The work area of the monitor the icon was last clicked on, in physical pixels. `None` when
+/// Windows does not tell it.
+pub(crate) fn work_area() -> Option<Bounds<i32>> {
+    clicked_monitor().map(|monitor| monitor.work_area)
 }
 
 /// Sizes the flyout to its content and puts it in the corner of the work area next to the
