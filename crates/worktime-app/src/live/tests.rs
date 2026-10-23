@@ -300,9 +300,8 @@ fn a_day_off_says_no_work_is_scheduled_whatever_the_tracking() {
                 shown.status.as_ref(),
                 shown.headline.label.as_deref(),
                 shown.headline.value.as_ref(),
-                day.status_bar_tracking(Tracking::new(tracking, false)),
             ),
-            ("Non-working day", None, "No work scheduled", None),
+            ("Non-working day", None, "No work scheduled"),
             "{tracking:?}"
         );
     }
@@ -331,7 +330,7 @@ fn a_day_off_shows_the_time_worked_without_a_target() {
     assert_eq!(
         shown(Language::English),
         (
-            "Worked".to_owned(),
+            "Time worked".to_owned(),
             "0m".to_owned(),
             None,
             "Non-working day · 0m · No work scheduled".to_owned()

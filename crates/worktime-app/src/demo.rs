@@ -355,13 +355,7 @@ impl DemoHost {
             .environment
             .refresh(&accounting, &weekly, self.state.as_ref())
             .map_err(|error| anyhow::anyhow!("cannot refresh the demo day: {error}"))?;
-        let view = DayView::present(
-            &state,
-            &self.settings,
-            &TimeZone::UTC,
-            self.environment.now(),
-            language,
-        );
+        let view = DayView::present(&state, &self.settings, &TimeZone::UTC, language);
         self.state = Some(state);
         Ok(view)
     }

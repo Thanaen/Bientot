@@ -1,5 +1,5 @@
 //! The flyout's body, between the header and the actions: the notices, the day, the
-//! announcements, the Store update on offer and the privacy line.
+//! announcements and the Store update on offer.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -16,7 +16,7 @@ use crate::strings::Key;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, motion, radius, size, tabular_figures, text};
 use crate::updates::{UpdateCallout, Updates};
-use crate::widgets::{Hue, Notice, NoticeKind, callout_box, footnote, icon, notice_box, small};
+use crate::widgets::{Hue, Notice, NoticeKind, callout_box, icon, notice_box, small};
 use crate::workday::Worked;
 
 /// Where a notice that arrives in the open flyout stands at `time`, a share of its entrance: it
@@ -230,15 +230,21 @@ impl Flyout {
                     .role(Role::Status)
                     .aria_label(SharedString::from(name))
                     .font_features(tabular_figures())
+                    // Sets the hero apart from the lines that explain it.
+                    .when(headline.emphasized, |value| value.mb(BASE_02))
                     .child(headline.value.clone()),
             )
             .children(
-                [("hint", &headline.hint), ("qualifier", &headline.qualifier)]
-                    .into_iter()
-                    .filter_map(|(id, text)| {
-                        let text = text.clone()?;
-                        Some(small(readable(id, text), theme.text_muted))
-                    }),
+                [
+                    ("hint", &headline.hint),
+                    ("lunch", &headline.lunch),
+                    ("qualifier", &headline.qualifier),
+                ]
+                .into_iter()
+                .filter_map(|(id, text)| {
+                    let text = text.clone()?;
+                    Some(small(readable(id, text), theme.text_muted))
+                }),
             )
     }
 
@@ -321,13 +327,13 @@ impl Flyout {
                     .child(
                         div()
                             .font_features(tabular_figures())
-                            .child(small(credit.value.clone(), theme.text)),
+                            .child(small(credit.value.clone(), theme.text_muted)),
                     )
             }))
     }
 
     /// What scrolls between the header and the actions: the notices, the day and the callouts,
-    /// down to the privacy line. After Tab, it scrolls the part that took the focus into view, or
+    /// down to the update. After Tab, it scrolls the part that took the focus into view, or
     /// the control that took it in a part taller than the body.
     pub(super) fn body(
         &mut self,
@@ -349,7 +355,6 @@ impl Flyout {
         );
         parts.extend(self.announcements(theme));
         parts.extend(self.update_callout(theme, cx));
-        parts.push(footnote(self.text(Key::FlyoutPrivacy), theme).into_any_element());
         while self.body_parts.len() < parts.len() {
             self.body_parts.push(cx.focus_handle());
         }

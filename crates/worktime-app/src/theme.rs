@@ -382,7 +382,7 @@ pub mod text {
     pub const LABEL_XS: TypeStyle = style(Sans, 10., 14., 500.);
     pub const WT_HERO: TypeStyle = TypeStyle {
         tabular: true,
-        ..style(Sans, 32., 40., 600.)
+        ..style(Sans, 40., 48., 600.)
     };
     pub const WT_PRIMARY: TypeStyle = TypeStyle {
         tabular: true,

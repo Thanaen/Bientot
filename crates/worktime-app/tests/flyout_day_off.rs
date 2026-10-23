@@ -1,5 +1,5 @@
-//! A day off greys the flyout's pause toggle, « Corriger le temps… » and « Terminer », as
-//! `MainWindow.UpdateCommands` of the .NET app disables them: Tab skips them. It needs the
+//! A day off leaves out the flyout's pause toggle, « Corriger… » and « Fin de journée », which
+//! `MainWindow.UpdateCommands` of the .NET app disabled: Tab skips them. It needs the
 //! headless GPUI of the `screenshots` feature.
 #![cfg(all(feature = "screenshots", target_os = "linux"))]
 
@@ -77,7 +77,7 @@ fn tab_stops(tracking: Tracking) -> usize {
 }
 
 #[test]
-fn a_day_off_takes_the_three_commands_out_of_the_tab_order() {
+fn a_day_off_leaves_the_three_commands_out_of_the_tab_order() {
     let running = |working_day| tab_stops(Tracking::new(TrackingState::Running, working_day));
     assert_eq!((running(true), running(false)), (5, 2));
 }

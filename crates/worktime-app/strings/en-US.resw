@@ -4,7 +4,7 @@
     <value>Today</value>
   </data>
   <data name="WorkdayFlyoutWorkedLabel.Text" xml:space="preserve">
-    <value>Worked</value>
+    <value>Time worked</value>
   </data>
   <data name="WorkdayFlyoutTargetLabel.Text" xml:space="preserve">
     <value>Target</value>
@@ -13,14 +13,11 @@
     <value>Credit applied today</value>
   </data>
   <data name="WorkdayFlyoutCreditAvailableLabel.Text" xml:space="preserve">
-    <value>Credit still available</value>
+    <value>Weekly credit</value>
   </data>
-  <data name="WorkdayFlyoutCreditDebtLabel.Text" xml:space="preserve"><value>Debt</value></data>
+  <data name="WorkdayFlyoutCreditDebtLabel.Text" xml:space="preserve"><value>Weekly debt</value></data>
   <data name="WorkdayFlyoutProjectionLabel.Text" xml:space="preserve">
     <value>Projected departure</value>
-  </data>
-  <data name="WorkdayFlyoutProjectionHint.Text" xml:space="preserve">
-    <value>Available after lunch</value>
   </data>
   <data name="WorkdayFlyoutOvertimeLabel.Text" xml:space="preserve">
     <value>Credited overtime</value>
@@ -45,15 +42,6 @@
   </data>
   <data name="WorkdayDegradedStatusFormat" xml:space="preserve">
     <value>{0}, {1}</value>
-  </data>
-  <data name="WorkdayProjectionPendingComfortable" xml:space="preserve">
-    <value>Comfortable margin with planned lunch, if you keep working outside the pause</value>
-  </data>
-  <data name="WorkdayProjectionPendingTight" xml:space="preserve">
-    <value>Little margin with planned lunch, if you keep working outside the pause</value>
-  </data>
-  <data name="WorkdayProjectionPendingLate" xml:space="preserve">
-    <value>Past preferred departure with planned lunch, even if you work outside the pause</value>
   </data>
   <data name="DemoMorningWarning" xml:space="preserve"><value>Morning · little margin</value></data>
   <data name="DemoMorningLate" xml:space="preserve"><value>Morning · late</value></data>
@@ -237,7 +225,6 @@
   <data name="ShellRefresh.ToolTipService.ToolTip" xml:space="preserve"><value>Refresh the day</value></data>
   <data name="ShellHide.Content" xml:space="preserve"><value>Hide</value></data>
   <data name="ShellPrivacy.Text" xml:space="preserve"><value>Local data · Close to keep running in the tray</value></data>
-  <data name="FlyoutPrivacy" xml:space="preserve"><value>Your working time stays on this PC.</value></data>
   <data name="WorkdayProgress.AutomationProperties.Name" xml:space="preserve"><value>Daily target progress</value></data>
   <data name="ShellLoading" xml:space="preserve"><value>Connecting to your workday…</value></data>
   <data name="ShellRunning" xml:space="preserve"><value>Tracking active</value></data>
@@ -323,12 +310,8 @@
   <data name="NotificationFailed" xml:space="preserve"><value>WorkTime could not show a notification. Workday tracking continues.</value></data>
   <data name="NotificationRegistrationFailed" xml:space="preserve"><value>Windows notifications are unavailable. Workday tracking continues.</value></data>
   <data name="NotificationSmokeBody" xml:space="preserve"><value>Notification smoke test. No workday data was used.</value></data>
-  <data name="WorkdayProjectionPendingStatus" xml:space="preserve"><value>Day in progress</value></data>
   <data name="TrayStatusOrange" xml:space="preserve"><value>Departure near limit</value></data>
   <data name="TrayStatusRed" xml:space="preserve"><value>Departure after limit</value></data>
-  <data name="TrayProjectionPendingComfortable" xml:space="preserve"><value>Planned lunch: comfortable margin</value></data>
-  <data name="TrayProjectionPendingTight" xml:space="preserve"><value>Planned lunch: little margin</value></data>
-  <data name="TrayProjectionPendingLate" xml:space="preserve"><value>Planned lunch: late departure</value></data>
   <data name="TrayProjectionFormat" xml:space="preserve"><value>Departure {0}</value></data>
   <data name="TrayOvertimeFormat" xml:space="preserve"><value>Overtime {0}</value></data>
   <data name="TraySourceFailureFormat" xml:space="preserve"><value>{0} · Open WorkTime</value></data>
@@ -795,18 +778,21 @@
   <data name="FlyoutStatusNearLimit" xml:space="preserve"><value>Near the limit</value></data>
   <data name="FlyoutStatusLate" xml:space="preserve"><value>Late</value></data>
   <data name="FlyoutOvertimeLabel" xml:space="preserve"><value>Overtime</value></data>
-  <data name="FlyoutMarginHintFormat" xml:space="preserve"><value>{0} to spare before your latest departure ({1}).</value></data>
-  <data name="FlyoutOverrunHintFormat" xml:space="preserve"><value>{0} past your latest departure ({1}).</value></data>
-  <data name="FlyoutOvertimeHint" xml:space="preserve"><value>This time is added to your weekly credit.</value></data>
-  <data name="FlyoutDegradedHint" xml:space="preserve"><value>Recalculated once tracking resumes.</value></data>
+  <data name="FlyoutLunchPlannedFormat" xml:space="preserve"><value>Lunch break planned until {0}</value></data>
+  <data name="FlyoutPauseButton" xml:space="preserve"><value>Pause tracking</value></data>
+  <data name="FlyoutResumeButton" xml:space="preserve"><value>Resume</value></data>
+  <data name="FlyoutAdjustButton" xml:space="preserve"><value>Adjust time…</value></data>
+  <data name="FlyoutFinishButton" xml:space="preserve"><value>Finish day</value></data>
+  <data name="FlyoutMarginHintFormat" xml:space="preserve"><value>{0} to spare before your latest departure ({1})</value></data>
+  <data name="FlyoutOverrunHintFormat" xml:space="preserve"><value>{0} past your latest departure ({1})</value></data>
+  <data name="FlyoutOvertimeHint" xml:space="preserve"><value>This time is added to your weekly credit</value></data>
+  <data name="FlyoutDegradedHint" xml:space="preserve"><value>Recalculated once tracking resumes</value></data>
   <data name="FlyoutWeek" xml:space="preserve"><value>Open week</value></data>
   <data name="FlyoutAdjustTime" xml:space="preserve"><value>Adjust time…</value></data>
   <data name="FlyoutDeclareWork" xml:space="preserve"><value>Record time worked…</value></data>
   <data name="FlyoutPaused" xml:space="preserve"><value>Paused</value></data>
   <data name="FlyoutFinished" xml:space="preserve"><value>Day finished</value></data>
-  <data name="FlyoutCommands" xml:space="preserve"><value>Commands</value></data>
   <data name="FlyoutShortcutNameFormat" xml:space="preserve"><value>{0}, {1}</value></data>
-  <data name="FlyoutDateFormat" xml:space="preserve"><value>{0}, {2} {1} · {3}</value></data>
   <data name="FlyoutWorkedAccessibleFormat" xml:space="preserve"><value>{0}: {1} of {2}</value></data>
   <data name="KeyControl" xml:space="preserve"><value>Ctrl</value></data>
   <data name="KeyShift" xml:space="preserve"><value>Shift</value></data>

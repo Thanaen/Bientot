@@ -18,7 +18,6 @@ use worktime_domain::summaries::{DailySummary, IndicatorState};
 use worktime_windows::activity::BuiltInActivitySource;
 
 use crate::adjust::{Stretch, Unrecorded};
-use crate::live::Tracking;
 use crate::strings::{Key, Language, keep_together};
 use crate::tray_model::ClosedReview;
 use crate::week;
@@ -36,8 +35,6 @@ pub enum Tone {
     NearLimit,
     Late,
     Complete,
-    /// A forecast that waits for the end of lunch.
-    Pending,
     NonWorkingDay,
     SourceProblem,
     /// Tracking paused on a working day.
@@ -85,6 +82,8 @@ pub struct Headline {
     /// A departure time or a duration, shown large; a message otherwise.
     pub emphasized: bool,
     pub hint: Option<SharedString>,
+    /// Until the lunch window ends, that the departure leaves all of it free.
+    pub lunch: Option<SharedString>,
     /// How far the forecast can be trusted, when it is only estimated.
     pub qualifier: Option<SharedString>,
 }
@@ -212,8 +211,6 @@ impl SourceHint {
 pub struct DayView {
     pub tone: Tone,
     pub status: SharedString,
-    /// The short date and the time of the refresh, for example « Jeu. 8 oct. · 15:30 ».
-    pub date_line: SharedString,
     pub headline: Headline,
     /// `None` on a day off and until a refresh produced a summary.
     pub stopped: Option<Stopped>,
@@ -255,35 +252,14 @@ impl DayView {
         }
     }
 
-    /// What the flyout's status bar says about `tracking`: nothing when the header already
-    /// says it, in place of the forecast, nor on a day off.
-    pub fn status_bar_tracking(&self, tracking: Tracking) -> Option<TrackingStatus> {
-        let tone = self.shown_while(tracking.state()).tone;
-        let said = matches!(tone, Tone::Paused | Tone::Finished | Tone::NonWorkingDay);
-        (!said && tracking.is_working_day()).then_some(TrackingStatus::Tracking(tracking.state()))
-    }
-
-    /// `now` and `zone` are those of the refresh; `settings` give the latest departure time.
+    /// `zone` is that of the refresh; `settings` give the latest departure and the lunch end.
     pub fn present(
         state: &WorkdayRefreshState,
         settings: &WorkTimeSettings,
         zone: &TimeZone,
-        now: Timestamp,
         language: Language,
     ) -> Self {
         let text = |key| SharedString::from(language.text(key));
-        let local = now.to_zoned(zone.clone());
-        let date_line = language
-            .format(
-                Key::FlyoutDateFormat,
-                &[
-                    &language.weekday_abbreviation(local.weekday()),
-                    &local.day(),
-                    &language.month_abbreviation(local.month()),
-                    &language.short_time(local.time()),
-                ],
-            )
-            .into();
 
         let health = match (&state.source_failure, &state.summary) {
             (Some(failure), _) => Some(failure.diagnostics.operation()),
@@ -328,7 +304,6 @@ impl DayView {
             return Self {
                 tone: Tone::SourceProblem,
                 status: text(Key::WorkdayStatusDegraded),
-                date_line,
                 headline: degraded_headline(language),
                 stopped: None,
                 worked: None,
@@ -348,24 +323,13 @@ impl DayView {
 
         let duration = |duration| flyout_duration(duration, language);
         let degraded = state.source_failure.is_some() || !summary.can_show_forecast();
-        let projection = summary.departure_projection();
-        let pending = projection.is_some_and(|projection| !projection.is_visible);
-        // `TrayViewModel.CreateUpdate`: a departure still waiting for lunch shows green whatever
-        // the indicator, and a source in trouble adds its badge to the day's colour.
+        // A source in trouble adds its badge to the day's colour.
         let tray_icon = TrayIcon {
-            colour: if summary.workday().is_working_day()
-                && summary.can_show_forecast()
-                && !summary.is_complete()
-                && pending
-            {
-                TrayColour::Green
-            } else {
-                match summary.indicator_state() {
-                    IndicatorState::Green => TrayColour::Green,
-                    IndicatorState::Orange => TrayColour::Orange,
-                    IndicatorState::Red => TrayColour::Red,
-                    IndicatorState::Blue => TrayColour::Blue,
-                }
+            colour: match summary.indicator_state() {
+                IndicatorState::Green => TrayColour::Green,
+                IndicatorState::Orange => TrayColour::Orange,
+                IndicatorState::Red => TrayColour::Red,
+                IndicatorState::Blue => TrayColour::Blue,
             },
             degraded: explicit_failure || summary.has_source_warning(),
         };
@@ -376,8 +340,6 @@ impl DayView {
             (Tone::NonWorkingDay, Key::WorkdayNonWorkingDayStatus)
         } else if degraded {
             (Tone::SourceProblem, Key::WorkdayStatusDegraded)
-        } else if pending {
-            (Tone::Pending, Key::WorkdayProjectionPendingStatus)
         } else {
             match summary.indicator_state() {
                 IndicatorState::Green => (Tone::OnTrack, Key::WorkdayStatusGreen),
@@ -405,38 +367,16 @@ impl DayView {
                             && credit.credit_expiring_after_friday().is_zero()
                     })
                     .then(|| text(Key::FlyoutOvertimeHint)),
+                lunch: None,
                 qualifier: None,
             };
             let tray = language.format(Key::TrayOvertimeFormat, &[&overtime]);
             (headline, tray.into())
-        } else if pending {
-            let (hint, tray) = match summary.indicator_state() {
-                IndicatorState::Orange => (
-                    Key::WorkdayProjectionPendingTight,
-                    Key::TrayProjectionPendingTight,
-                ),
-                IndicatorState::Red => (
-                    Key::WorkdayProjectionPendingLate,
-                    Key::TrayProjectionPendingLate,
-                ),
-                IndicatorState::Green | IndicatorState::Blue => (
-                    Key::WorkdayProjectionPendingComfortable,
-                    Key::TrayProjectionPendingComfortable,
-                ),
-            };
-            let headline = Headline {
-                qualifier,
-                ..message_headline(
-                    Some(text(Key::WorkdayProjectionLabel)),
-                    text(Key::WorkdayFlyoutProjectionHintText),
-                    Some(text(hint)),
-                )
-            };
-            (headline, text(tray))
         } else {
-            let departure = projection
-                .expect("an incomplete day has a departure projection")
-                .projected_departure;
+            let projection = summary
+                .departure_projection()
+                .expect("an incomplete day has a departure projection");
+            let departure = projection.projected_departure;
             let latest = summary
                 .workday()
                 .date
@@ -462,6 +402,14 @@ impl DayView {
                 value: value.into(),
                 emphasized: true,
                 hint: Some(hint.into()),
+                lunch: (!projection.lunch_over).then(|| {
+                    language
+                        .format(
+                            Key::FlyoutLunchPlannedFormat,
+                            &[&language.short_time(settings.lunch_end)],
+                        )
+                        .into()
+                }),
                 qualifier,
             };
             (headline, tray.into())
@@ -484,7 +432,9 @@ impl DayView {
         };
         let balance = summary
             .credit_result()
-            .map(|credit| credit.net_closing_balance());
+            .map(|credit| credit.net_closing_balance())
+            // A week with neither debt nor credit has nothing to say.
+            .filter(|balance| !balance.is_zero());
         let in_debt = balance.is_some_and(|balance| balance.is_negative());
         let credit = balance.map(|balance| {
             if in_debt {
@@ -539,10 +489,9 @@ impl DayView {
         Self {
             tone,
             status: text(status),
-            date_line,
             headline,
             stopped: summary.workday().is_working_day().then(|| {
-                // A source problem keeps the header: the status bar says the tracking state.
+                // A source problem keeps the header: the first button says the tracking state.
                 let replaced = |state, key, message| {
                     let (tone, key) = if degraded {
                         (tone, status)
@@ -596,6 +545,7 @@ fn message_headline(
         value: message,
         emphasized: false,
         hint,
+        lunch: None,
         qualifier: None,
     }
 }

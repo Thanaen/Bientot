@@ -311,7 +311,7 @@ fn forecasts_match_dotnet() {
                     format!(
                         "{},{}",
                         relative(p.projected_departure, origin),
-                        bit(p.is_visible)
+                        bit(p.lunch_over)
                     )
                 })
             },
@@ -554,7 +554,7 @@ fn render_summary(summary: &DailySummary, origin: Timestamp) -> String {
         format!(
             "{},{}",
             relative(p.projected_departure, origin),
-            bit(p.is_visible)
+            bit(p.lunch_over)
         )
     });
     let assessment = summary.assessment();
