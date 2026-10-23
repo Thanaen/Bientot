@@ -3,7 +3,7 @@
 //! source router, the weekly recalculation and the tracking commands. Everything here runs on
 //! the thread that owns the ledger connection; the Windows notifications reach it as calls.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::path::Path;
 
@@ -29,6 +29,7 @@ use worktime_core::weekly::{WeeklyRecalculation, WorkdayRefreshState};
 use worktime_domain::accounting::{AdjustmentId, OperationKey, SessionState, TrackingState};
 use worktime_domain::adjustments::ManualAdjustment;
 use worktime_domain::configuration::{AppointmentProposal, WorkTimeSettings};
+use worktime_domain::history::DailySummarySnapshot;
 use worktime_domain::intervals::UtcInterval;
 use worktime_domain::sources::ActivitySourceKind;
 use worktime_domain::summaries::DailySummary;
@@ -40,6 +41,7 @@ use worktime_store::adjustments::ManualAdjustmentRepository;
 use worktime_store::app_state::AppStateStore;
 use worktime_store::credit::WeeklyCreditRepository;
 use worktime_store::data_directory::DataDirectory;
+use worktime_store::history::DailySummaryRepository;
 use worktime_store::notifications::NotificationReceiptRepository;
 use worktime_store::reviews::LongLockResolutionRepository;
 use worktime_store::sessions::SessionEventRepository;
@@ -221,6 +223,8 @@ pub struct LiveHost<'a> {
     hidden_offers: HashSet<String>,
     /// The automatic counts whose save failed, not retried before WorkTime starts again.
     failed_counts: HashSet<AdjustmentId>,
+    /// The earlier days of the week read for automatic counts, by the stored summary they had.
+    scanned_days: HashMap<Date, String>,
 }
 
 /// What a catch-up compares to tell whether the day shown changed.
@@ -331,6 +335,7 @@ impl<'a> LiveHost<'a> {
             hidden_counts: HashSet::new(),
             hidden_offers: HashSet::new(),
             failed_counts: HashSet::new(),
+            scanned_days: HashMap::new(),
         };
         host.tracking = host.with_tracking(|tracking| tracking.reconcile_current_state())?;
         Ok(host)
@@ -414,6 +419,8 @@ impl<'a> LiveHost<'a> {
             _ => self.store.save(settings)?,
         }
         self.settings = settings.clone();
+        // Turning an appointment automatic counts the absences already in its week.
+        self.scanned_days.clear();
         // The reminders read the settings they were enabled with.
         if let Some(sink) = self.notification_sink {
             self.enable_notifications(sink);
@@ -633,17 +640,22 @@ impl<'a> LiveHost<'a> {
         }
     }
 
-    /// « Compter automatiquement »: records the counts of the published day, see
-    /// [`automatic::counts`]. True when one was recorded.
+    /// « Compter automatiquement »: records the counts of the published day and of the earlier
+    /// days of its week, where an absence that ended after its day or while WorkTime was not
+    /// running waits, see [`automatic::counts`]. True when one was recorded.
     fn count_automatically(&mut self) -> bool {
-        let counts = match self.published_summary() {
+        let mut counts = match self.published_summary() {
             Some(summary) if summary.workday().is_working_day() => {
                 match ManualAdjustmentRepository::new(self.connection)
                     .read_for_workday(summary.workday())
                 {
-                    Ok(recorded) => {
-                        automatic::counts(summary, &self.settings.recurring_appointments, &recorded)
-                    }
+                    Ok(recorded) => automatic::counts(
+                        summary.workday(),
+                        summary.accounting(),
+                        summary.computed_at(),
+                        &self.settings.recurring_appointments,
+                        &recorded,
+                    ),
                     Err(error) => {
                         log_failure(&mut self.logger, "automatic_count.failed", &error);
                         Vec::new()
@@ -652,6 +664,7 @@ impl<'a> LiveHost<'a> {
             }
             _ => Vec::new(),
         };
+        counts.extend(self.earlier_counts());
         let mut recorded = false;
         for count in counts {
             if self.failed_counts.contains(count.id()) {
@@ -664,6 +677,76 @@ impl<'a> LiveHost<'a> {
             }
         }
         recorded
+    }
+
+    /// The counts of the days of the week before the published one. A day is read again only
+    /// once its stored summary changed, or the appointments did.
+    fn earlier_counts(&mut self) -> Vec<ManualAdjustment> {
+        let appointments = &self.settings.recurring_appointments;
+        let Some(today) = self
+            .published_summary()
+            .map(|summary| summary.workday().date)
+        else {
+            return Vec::new();
+        };
+        if !appointments.iter().any(|appointment| appointment.automatic) {
+            return Vec::new();
+        }
+        let revisions = match DailySummaryRepository::new(self.connection).read_latest_week(today) {
+            Ok(revisions) => revisions,
+            Err(error) => {
+                log_failure(&mut self.logger, "automatic_count.failed", &error);
+                return Vec::new();
+            }
+        };
+        let read = |snapshot: &DailySummarySnapshot| {
+            self.with_accounting(|accounting| {
+                let context = accounting.capture_context();
+                let calculation = accounting.calculate(snapshot.workday().date, &context)?;
+                let current = calculation.summary_input.accounting();
+                if current.timeline().window().workday != *snapshot.workday() {
+                    return Ok(Vec::new());
+                }
+                let recorded = ManualAdjustmentRepository::new(self.connection)
+                    .read_for_workday(snapshot.workday())?;
+                anyhow::Ok(automatic::counts(
+                    snapshot.workday(),
+                    current,
+                    context.observed_at,
+                    appointments,
+                    &recorded,
+                ))
+            })
+        };
+        let mut counts = Vec::new();
+        let mut scanned = HashMap::new();
+        let mut failures = Vec::new();
+        for revision in &revisions {
+            let snapshot = revision.snapshot();
+            let date = snapshot.workday().date;
+            if date >= today || !snapshot.workday().is_working_day() {
+                continue;
+            }
+            let fingerprint = snapshot.input_fingerprint();
+            if !snapshot.has_pending_review()
+                || self.scanned_days.get(&date).map(String::as_str) == Some(fingerprint)
+            {
+                scanned.insert(date, fingerprint.to_owned());
+                continue;
+            }
+            match read(snapshot) {
+                Ok(found) => {
+                    counts.extend(found);
+                    scanned.insert(date, fingerprint.to_owned());
+                }
+                Err(error) => failures.push(error),
+            }
+        }
+        for error in failures {
+            log_failure(&mut self.logger, "automatic_count.failed", &error);
+        }
+        self.scanned_days = scanned;
+        counts
     }
 
     fn recalculate_once(&mut self, failure_event: &str, mut failed: bool) {
