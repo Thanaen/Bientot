@@ -62,7 +62,7 @@ jobs:
           fi
 
           rust_windows=false
-          if grep -qE '^crates/worktime-(app|windows)/|^crates/worktime-store/(Cargo\.toml|src/(secrets|data_directory)(/|\.rs$))|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/measure-performance\.ps1$|^\.github/workflows/ci\.yml$' <<< "$files"; then
+          if grep -qE '^crates/worktime-(app|windows|store)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/measure-performance\.ps1$|^\.github/workflows/ci\.yml$' <<< "$files"; then
             rust_windows=true
           fi
 
