@@ -38,6 +38,9 @@ export const STATISTICS: Page = {
 
 const DAY = 86400;
 
+// PostHog's managed proxy for the WorkTime project (README.md, "Pages").
+export const ANALYTICS = "https://e.worktime.thanaen.dev";
+
 const FILES: Record<string, { url: URL; type: string; maxAge: number }> = {
   "/fonts/IBMPlexSans-Regular.woff2": { url: new URL("../site/fonts/IBMPlexSans-Regular.woff2", import.meta.url), type: "font/woff2", maxAge: 7 * DAY },
   "/fonts/IBMPlexSans-Medium.woff2": { url: new URL("../site/fonts/IBMPlexSans-Medium.woff2", import.meta.url), type: "font/woff2", maxAge: 7 * DAY },
@@ -47,6 +50,7 @@ const FILES: Record<string, { url: URL; type: string; maxAge: number }> = {
   "/favicon.svg": { url: new URL("../site/favicon.svg", import.meta.url), type: "image/svg+xml", maxAge: DAY },
   "/favicon.ico": { url: new URL("../site/favicon.ico", import.meta.url), type: "image/x-icon", maxAge: DAY },
   "/apple-touch-icon.png": { url: new URL("../site/apple-touch-icon.png", import.meta.url), type: "image/png", maxAge: DAY },
+  "/analytics.js": { url: new URL("../site/analytics.js", import.meta.url), type: "text/javascript", maxAge: 3600 },
   "/og/home.png": { url: new URL("../site/og/home.png", import.meta.url), type: "image/png", maxAge: DAY },
 };
 
@@ -78,10 +82,10 @@ export function head(page: Page): string {
     `<link rel="apple-touch-icon" href="/apple-touch-icon.png">`,
     `<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">`,
     `<meta name="theme-color" content="#282c33" media="(prefers-color-scheme: dark)">`,
-    // Vercel Web Analytics and Speed Insights, served by Vercel on the site's own origin. They set
-    // no cookie; outside Vercel (bun run dev) the scripts are missing and nothing is measured.
-    `<script defer src="/_vercel/insights/script.js"></script>`,
-    `<script defer src="/_vercel/speed-insights/script.js"></script>`,
+    // PostHog's library through its proxy on our domain, then its settings (site/analytics.js). Both
+    // are deferred, so they run in this order once the page is parsed.
+    `<script defer crossorigin="anonymous" src="${ANALYTICS}/static/array.js"></script>`,
+    `<script defer src="/analytics.js"></script>`,
   ].join("\n");
 }
 

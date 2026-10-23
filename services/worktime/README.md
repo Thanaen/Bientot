@@ -9,24 +9,26 @@ their updates.
 | `GET /` | The homepage, `site/index.html` |
 | `GET /statistiques` | The public statistics page, built from `site/statistiques.html` |
 | `GET /statistiques/<name>.<csv\|json>` | The open data files: `mensuel`, `quotidien`, `details` |
-| `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png` | The files listed in `src/site.ts`; `404` for any other path |
+| `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png`, `/analytics.js` | The files listed in `src/site.ts`; `404` for any other path |
 | `GET /robots.txt`, `/sitemap.xml` | Generated from the pages listed in `src/site.ts` |
 | `POST /v1/ping` | `204`; `400` for any other shape, `413` above 256 bytes |
-| `GET /v1/stats` | The last 12 calendar months, with `Authorization: Bearer $STATS_TOKEN` |
 | `GET /updates/<file>` | `302` to that file of the Velopack release in the Blob store; `404` for a name vpk never writes |
 | `GET /download` | `302` to the latest `Setup.exe` |
 
 ## Pages
 
 `site/index.html` is a static page in French, in the app's WorkTime One theme. It sets no
-cookie and makes no third-party request: the fonts are Latin subsets of the app's IBM Plex
-fonts, made with `pyftsubset`. Its only scripts are Vercel Web Analytics and Speed Insights,
-served by Vercel from `/_vercel/` on the same origin (see `docs/privacy.md`); they are absent
-under `bun run dev`.
+cookie: the fonts are Latin subsets of the app's IBM Plex fonts, made with `pyftsubset`. Its
+only scripts measure the audience and the loading speed with PostHog (see `docs/privacy.md`):
+PostHog's library from `https://e.worktime.thanaen.dev`, then `site/analytics.js`, which starts
+it in cookieless mode with Web Vitals and nothing else (no autocapture, no session recording, no
+surveys, no feature flags). `e.worktime.thanaen.dev` is PostHog's managed reverse proxy for the
+WorkTime project (a CNAME on Cloudflare, DNS only), so ad blockers that block PostHog's own
+domains still let the page load.
 
 `src/site.ts` lists the pages and the files they use. Each page has `<!-- head -->` in its
 `<head>`; the service fills it with the title, description, canonical URL, link-preview tags
-(Open Graph, `summary_large_image`), icons, theme colours and the two Vercel scripts, and adds the page to
+(Open Graph, `summary_large_image`), icons, theme colours and the two analytics scripts, and adds the page to
 `/sitemap.xml`. A new page or file must be listed there.
 
 Each page has a 1200 × 630 share image, drawn from an HTML source next to it. After changing
@@ -44,13 +46,13 @@ Once a day, WorkTime sends:
 {"version":"1.0.0","channel":"store","first_this_month":false}
 ```
 
-`channel` is `store`, `direct` (installed by `Setup.exe`) or `zip`. The service keeps one
-counter per UTC day, version and channel in Turso. It stores no address, no identifier and no
-request body, and logs nothing.
-
-`activeThisMonth` counts first-of-month signals. `averageDaily` and
-`peakDaily` count every signal of a day; the average, to one decimal, spreads them over every
-day of the month, or every day so far for the current month.
+`channel` is `store`, `direct` (installed by `Setup.exe`) or `zip`. The service checks the shape,
+then sends the signal to the WorkTime project in PostHog EU as a `usage_ping` event
+(`src/store.ts`): the three fields, a random id used once, no person profile
+(`$process_person_profile: false`), no IP address and no GeoIP lookup, and the UTC day's midnight
+as its time, so that the signals of one day cannot be told apart. The project also discards IP
+addresses. The service stores nothing and logs nothing. When PostHog refuses the event, the
+service answers `500` and the app tries again within the hour.
 
 ## Statistics
 
@@ -69,9 +71,29 @@ day of the month, or every day so far for the current month.
   signal is also a day's signal, so the excess would tell what the hidden days hold;
 - the last 12 finished months.
 
+The figures come from the `usage_daily` endpoint of the PostHog project, a saved SQL query
+pinned to its version in `src/store.ts` (`ENDPOINT`). It answers one row per UTC day, version and
+channel over the last 400 days: the signals, and the first-of-month signals among them. PostHog
+caches its answer for a day. The service calls it with a project secret API key limited to
+`endpoint:read`, `POSTHOG_PERSONAL_API_KEY`; without it, the page and the files answer `500`.
+
+```sql
+SELECT
+  toString(toDate(timestamp)) AS day,
+  toString(properties.version) AS version,
+  toString(properties.channel) AS channel,
+  count() AS pings,
+  countIf(properties.first_this_month = true) AS first_of_month
+FROM events
+WHERE event = 'usage_ping'
+  AND timestamp >= now() - INTERVAL 400 DAY
+GROUP BY day, version, channel
+ORDER BY day, version, channel
+LIMIT 10000
+```
+
 The figures change once a day, so they cost almost nothing to serve. On a cache miss the function
-runs two `GROUP BY` queries over the primary key, a few hundred rows, and keeps the result in memory
-until the day changes. Each answer carries `Cache-Control: public, max-age=600` for browsers,
+calls the endpoint once and keeps the result in memory until the day changes. Each answer carries `Cache-Control: public, max-age=600` for browsers,
 `Vercel-CDN-Cache-Control` up to 00:05 UTC the next day with an hour of `stale-while-revalidate`,
 and an `ETag` named after the last day it covers. The page is drawn on the server as HTML and CSS,
 with no script.
@@ -95,17 +117,17 @@ cached for a minute at most in the store.
 ```sh
 bun install
 bun test
-bun run dev        # http://localhost:3000, data in ./usage-ping.db
+bun run dev        # http://localhost:3000, signals kept in memory
 ```
 
 ## Deploy
 
 Vercel project `worktime`, root directory `services/worktime`, Bun runtime (`vercel.json`),
-function region `dub1` (a project setting, next to the Turso database), domain
-`worktime.thanaen.dev`. Variables: `TURSO_DATABASE_URL`,
-`TURSO_AUTH_TOKEN`, `STATS_TOKEN`, and `RELEASES_URL`, the public URL of the
+function region `dub1` (a project setting), domain `worktime.thanaen.dev`. Variables:
+`POSTHOG_PERSONAL_API_KEY` (above), and `RELEASES_URL`, the public URL of the
 `worktime-releases` Blob store (`https://<store>.public.blob.vercel-storage.com`), which
-publish-release.ts prints. The table is created on the first request.
+publish-release.ts prints. The PostHog project token and id are in `server.ts`: the token only
+lets one send events. Outside Vercel, the signals stay in memory.
 
 The `worktime-releases` store is not connected to the project, and its read-write token stays
 with whoever publishes: the packages are unsigned, so whoever can write to the store chooses

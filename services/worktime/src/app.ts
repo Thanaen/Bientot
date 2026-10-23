@@ -7,16 +7,15 @@ import type { UsageStore } from "./store";
 
 export interface AppOptions {
   store: UsageStore;
-  statsToken: string | undefined;
   // The public URL of the Blob store that holds the releases; without it, they are not found.
   releasesUrl?: string;
   now?: () => Date;
 }
 
 // Nothing here logs the request, its body or the caller's address.
-export function createApp({ store, statsToken, releasesUrl, now = () => new Date() }: AppOptions) {
+export function createApp({ store, releasesUrl, now = () => new Date() }: AppOptions) {
   // The public figures only change when a UTC day ends: a warm function computes them once per day,
-  // and the CDN keeps each answer until the next day (statsHeaders), so the database is rarely read.
+  // and the CDN keeps each answer until the next day (statsHeaders), so PostHog is rarely asked.
   let cached: { through: string; stats: Promise<PublicStats> } | undefined;
   const publicStats = () => {
     const through = lastFinishedDay(now());
@@ -54,14 +53,6 @@ export function createApp({ store, statsToken, releasesUrl, now = () => new Date
 
         await store.record(ping, utcDay(now()));
         return new Response(null, { status: 204 });
-      },
-    },
-    "/v1/stats": {
-      async GET(request: Request): Promise<Response> {
-        if (!statsToken || request.headers.get("authorization") !== `Bearer ${statsToken}`) {
-          return new Response(null, { status: 401 });
-        }
-        return Response.json(await store.months(now(), 12), { headers: { "cache-control": "no-store" } });
       },
     },
     "/statistiques": {
