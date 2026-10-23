@@ -174,9 +174,12 @@ jobs:
         run: |
           set -euo pipefail
           tag="v${VERSION}"
-          # The notes cover the app since the latest published release (scripts/release-notes.sh).
+          # GitHub's notes since the latest published release, without the pull requests that leave
+          # the app as it is (scripts/release-notes.sh).
           previous=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
-          scripts/release-notes.sh "$previous" "$SHA" > "$RUNNER_TEMP/notes.md"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$tag" -f target_commitish="$SHA" \
+            ${previous:+-f previous_tag_name="$previous"} --jq .body |
+            scripts/release-notes.sh "$previous" "$SHA" > "$RUNNER_TEMP/notes.md"
           cat "$RUNNER_TEMP/notes.md" >> "$GITHUB_STEP_SUMMARY"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes

@@ -145,9 +145,8 @@ its no-break space, or when a text uses a straight apostrophe.
   `test`, `chore`, `revert`. For example `feat(app): …`, `fix(site): …`,
   `ci(repo): …`. A change to several parts takes the scope of the one a user
   notices.
-- The release notes list the `feat`, `fix`, `perf`, `build` and `revert`
-  commits scoped `app`, by type (`scripts/release-notes.sh`). Commits scoped
-  `site` or `repo` are not listed.
+- The release notes are the ones GitHub generates, without the pull requests
+  scoped `site` or `repo` (`scripts/release-notes.sh`).
 - Write the subject in the imperative, lower case after the colon, without a
   final period.
 - Explain the why in the body. Name the task ID when the commit completes one
