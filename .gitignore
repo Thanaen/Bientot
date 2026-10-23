@@ -1,0 +1,27 @@
+# Build output
+[Aa]rtifacts/
+
+# Editors
+.vs/
+.vscode/
+.idea/
+
+# Coverage output
+coverage/
+
+# Packaging
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+
+# Local settings and diagnostics
+logs/
+.tmp/
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Rust build output
+/target/

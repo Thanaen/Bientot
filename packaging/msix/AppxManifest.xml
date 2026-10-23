@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The MSIX manifest of worktime.exe. It has no Windows App SDK runtime to depend on, and
+  crates/worktime-app/tests/msix_manifest.rs holds it to the Rust constants.
+
+  The identity is the .NET package's, for the unsigned alpha. The Store build replaces Name,
+  Publisher and PublisherDisplayName with the values Partner Center assigns, which are not known
+  yet (ROADMAP R8). Version follows the workspace version in Cargo.toml.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap desktop com rescap">
+
+  <Identity
+    Name="Thanaen.WorkTime"
+    Publisher="CN=Thanaen"
+    Version="0.2.0.0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>WorkTime</DisplayName>
+    <PublisherDisplayName>Thanaen</PublisherDisplayName>
+    <Logo>Images\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily
+      Name="Windows.Desktop"
+      MinVersion="10.0.22000.0"
+      MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US" />
+    <Resource Language="fr-FR" />
+  </Resources>
+
+  <Applications>
+    <Application
+      Id="App"
+      Executable="worktime.exe"
+      EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="WorkTime"
+        Description="Local-first workday indicator"
+        BackgroundColor="transparent"
+        Square150x150Logo="Images\Square150x150Logo.png"
+        Square44x44Logo="Images\Square44x44Logo.png" />
+      <Extensions>
+        <desktop:Extension
+          Category="windows.startupTask"
+          Executable="worktime.exe"
+          EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask
+            TaskId="WorkTimeStartupTask"
+            Enabled="false"
+            DisplayName="WorkTime" />
+        </desktop:Extension>
+        <desktop:Extension Category="windows.toastNotificationActivation">
+          <desktop:ToastNotificationActivation ToastActivatorCLSID="6CB667AA-56D8-4F29-B21C-7D6F329B4463" />
+        </desktop:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:ExeServer Executable="worktime.exe" Arguments="--toast-activated" DisplayName="WorkTime">
+              <com:Class Id="6CB667AA-56D8-4F29-B21C-7D6F329B4463" DisplayName="WorkTime" />
+            </com:ExeServer>
+          </com:ComServer>
+        </com:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

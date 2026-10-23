@@ -1,0 +1,4 @@
+{"timestampUtc":"2026-09-10T12:33:00+00:00","level":"Warning","event":"update_check.failed","failureCategory":"Other","hresult":-2147012867}
+{"timestampUtc":"2026-09-10T12:32:00+00:00","level":"Warning","event":"update_check.unavailable","failureCategory":"InvalidOperation"}
+{"timestampUtc":"2026-09-10T12:31:00+00:00","level":"Information","event":"startup.tray_ready"}
+{"timestampUtc":"2026-09-10T12:30:00+00:00","level":"Error","event":"periodic_refresh.failed","failureCategory":"Io"}

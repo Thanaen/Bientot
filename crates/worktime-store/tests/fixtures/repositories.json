@@ -1,0 +1,964 @@
+{
+  "sessionEvents": {
+    "results": [
+      "Inserted 1",
+      "Inserted 2",
+      "NoStateChange 3",
+      "Inserted 4",
+      "Inserted 5",
+      "Inserted 6",
+      "Inserted 7",
+      "Inserted 8",
+      "Inserted 9",
+      "Inserted 10",
+      "AlreadyRecorded 2",
+      "conflict s-lock",
+      "conflict s-unlock"
+    ],
+    "history": [
+      "before session 2 2026-08-29T22:00:00.0000001+00:00 Locked windows-session",
+      "in power 4 2026-08-30T06:00:00.0000000+00:00 Unknown windows-power",
+      "in power 5 2026-08-30T06:00:00.0000000+00:00 Suspended windows-power",
+      "in power 6 2026-08-30T07:15:30.5000000+00:00 Active windows-power",
+      "in session 7 2026-08-30T07:20:00.9999999+00:00 Unlocked windows-session",
+      "in tracking 8 2026-08-30T12:00:00.0000000+00:00 Paused user",
+      "in tracking 9 2026-08-30T12:45:00.0000000+00:00 Running user",
+      "in tracking 10 2026-08-30T17:30:00.0000000+00:00 Finished user"
+    ],
+    "rows": {
+      "SessionEvent": [
+        [
+          1,
+          "2026-08-29T21:00:00.0000000+00:00",
+          "Romance Standard Time",
+          "session-unknown",
+          "windows-session",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "s-unknown"
+        ],
+        [
+          2,
+          "2026-08-29T22:00:00.0000001+00:00",
+          "Romance Standard Time",
+          "locked",
+          "windows-session",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "s-lock"
+        ],
+        [
+          3,
+          "2026-08-29T23:30:00.0000000+00:00",
+          "Romance Standard Time",
+          "locked",
+          "windows-session",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "s-lock-again"
+        ],
+        [
+          4,
+          "2026-08-30T06:00:00.0000000+00:00",
+          "Romance Standard Time",
+          "power-unknown",
+          "windows-power",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "p-unknown"
+        ],
+        [
+          5,
+          "2026-08-30T06:00:00.0000000+00:00",
+          "Romance Standard Time",
+          "suspend",
+          "windows-power",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "p-suspend"
+        ],
+        [
+          6,
+          "2026-08-30T07:15:30.5000000+00:00",
+          "Romance Standard Time",
+          "resume",
+          "windows-power",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "p-resume"
+        ],
+        [
+          7,
+          "2026-08-30T07:20:00.9999999+00:00",
+          "Romance Standard Time",
+          "unlocked",
+          "windows-session",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "s-unlock"
+        ],
+        [
+          8,
+          "2026-08-30T12:00:00.0000000+00:00",
+          "Romance Standard Time",
+          "tracking-paused",
+          "user",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "t-pause"
+        ],
+        [
+          9,
+          "2026-08-30T12:45:00.0000000+00:00",
+          "Romance Standard Time",
+          "tracking-resumed",
+          "user",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "t-resume"
+        ],
+        [
+          10,
+          "2026-08-30T17:30:00.0000000+00:00",
+          "Romance Standard Time",
+          "day-finished",
+          "user",
+          "2026-08-30T12:00:00.1234567+00:00",
+          "t-finish"
+        ]
+      ]
+    }
+  },
+  "manualAdjustments": {
+    "results": [
+      "Inserted duration",
+      "Inserted interval",
+      "Inserted exclude",
+      "Inserted confirm",
+      "Inserted reclassify-excluded",
+      "Inserted revoke",
+      "AlreadyRecorded duration",
+      "id-conflict duration",
+      "parent-conflict missing NotFound",
+      "supersession-conflict interval revoke",
+      "Inserted other-zone"
+    ],
+    "read": [
+      "duration",
+      "interval",
+      "exclude",
+      "confirm",
+      "reclassify-excluded",
+      "revoke"
+    ],
+    "rows": {
+      "ManualAdjustment": [
+        [
+          "duration",
+          "2026-08-28",
+          "add-work",
+          null,
+          null,
+          35,
+          null,
+          null,
+          "Missing meeting",
+          "2026-08-28T12:00:00.1234567+00:00",
+          null,
+          "Romance Standard Time",
+          null
+        ],
+        [
+          "interval",
+          "2026-08-28",
+          "add-work",
+          "2026-08-28T07:00:00.0000000+00:00",
+          "2026-08-28T08:00:00.0000000+00:00",
+          null,
+          null,
+          null,
+          "Early start",
+          "2026-08-28T12:00:00.5000000+00:00",
+          null,
+          "Romance Standard Time",
+          null
+        ],
+        [
+          "exclude",
+          "2026-08-28",
+          "exclude-time",
+          "2026-08-28T08:00:00.0000000+00:00",
+          "2026-08-28T09:00:00.0000001+00:00",
+          null,
+          null,
+          null,
+          null,
+          "2026-08-28T12:01:00.0000000+00:00",
+          null,
+          "Romance Standard Time",
+          null
+        ],
+        [
+          "confirm",
+          "2026-08-28",
+          "reclassify",
+          "2026-08-28T09:00:00.0000000+00:00",
+          "2026-08-28T10:00:00.0000000+00:00",
+          null,
+          null,
+          "credited",
+          "Confirmed",
+          "2026-08-28T12:02:00.0000000+00:00",
+          "exclude",
+          "Romance Standard Time",
+          "session-lock:42"
+        ],
+        [
+          "reclassify-excluded",
+          "2026-08-28",
+          "reclassify",
+          "2026-08-28T10:00:00.0000000+00:00",
+          "2026-08-28T11:00:00.0000000+00:00",
+          null,
+          null,
+          "excluded",
+          null,
+          "2026-08-28T12:03:00.0000000+00:00",
+          null,
+          "Romance Standard Time",
+          null
+        ],
+        [
+          "revoke",
+          "2026-08-28",
+          "revoke",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "Mistake",
+          "2026-08-28T12:04:00.0000000+00:00",
+          "interval",
+          "Romance Standard Time",
+          null
+        ],
+        [
+          "other-zone",
+          "2026-08-28",
+          "add-work",
+          null,
+          null,
+          15,
+          null,
+          null,
+          null,
+          "2026-08-28T12:07:00.0000000+00:00",
+          null,
+          "UTC",
+          null
+        ]
+      ]
+    }
+  },
+  "activity": {
+    "results": [
+      "append 1",
+      "append 2",
+      "append 2",
+      "append 4",
+      "legacy true",
+      "legacy false"
+    ],
+    "settled": [
+      "1 Active 2026-10-12T09:00:00.0000000+00:00 2026-10-12T09:00:12.0000000+00:00",
+      "2 Idle 2026-10-12T09:00:12.0000000+00:00 2026-10-12T09:00:15.0000000+00:00",
+      "4 Active 2026-10-12T09:30:00.0000001+00:00 2026-10-12T09:31:00.0000000+00:00"
+    ],
+    "timeline": [
+      "1970-01-01T00:00:00.0000000+00:00 ActivityWatch",
+      "2026-10-12T08:00:00.0000000+00:00 BuiltIn",
+      "2026-10-12T10:00:00.0000001+00:00 ActivityWatch"
+    ],
+    "window": [
+      "2026-10-12T08:00:00.0000000+00:00 BuiltIn"
+    ],
+    "rows": {
+      "ActivitySpan": [
+        [
+          1,
+          "active",
+          "2026-10-12T09:00:00.0000000+00:00",
+          "2026-10-12T09:00:12.0000000+00:00",
+          "2026-10-12T09:00:00.2500000+00:00"
+        ],
+        [
+          2,
+          "idle",
+          "2026-10-12T09:00:12.0000000+00:00",
+          "2026-10-12T09:00:15.0000000+00:00",
+          "2026-10-12T09:00:00.2500000+00:00"
+        ],
+        [
+          4,
+          "active",
+          "2026-10-12T09:30:00.0000001+00:00",
+          "2026-10-12T09:31:00.0000000+00:00",
+          "2026-10-12T09:00:00.2500000+00:00"
+        ]
+      ],
+      "ActivitySourceSelection": [
+        [
+          1,
+          "1970-01-01T00:00:00.0000000+00:00",
+          "activitywatch",
+          "2026-10-12T09:00:00.2500000+00:00"
+        ],
+        [
+          2,
+          "2026-10-12T08:00:00.0000000+00:00",
+          "built-in",
+          "2026-10-12T09:00:00.2500000+00:00"
+        ],
+        [
+          3,
+          "2026-10-12T10:00:00.0000001+00:00",
+          "activitywatch",
+          "2026-10-12T09:00:00.2500000+00:00"
+        ]
+      ]
+    }
+  },
+  "longLockResolutions": {
+    "results": [
+      "Acquired 2026-08-24T12:00:00.1234567+00:00",
+      "AlreadyClaimed 2026-08-24T12:00:00.1234567+00:00",
+      "conflict ConfirmWork confirm-42",
+      "Acquired 2026-08-25T12:00:00.0000000+00:00",
+      "released false",
+      "released true",
+      "Acquired 2026-08-26T12:00:00.0000000+00:00"
+    ],
+    "rows": {
+      "LongLockResolution": [
+        [
+          "2026-08-24",
+          "UTC",
+          "session-lock:42",
+          "confirm-work",
+          "confirm-42",
+          "2026-08-24T12:00:00.1234567+00:00"
+        ],
+        [
+          "2026-08-26",
+          "UTC",
+          "session-lock:42",
+          "exclude",
+          "exclude-44",
+          "2026-08-26T12:00:00.0000000+00:00"
+        ]
+      ]
+    }
+  },
+  "notificationReceipts": {
+    "results": [
+      "CompletionApproach LatestDepartureApproach",
+      "DayComplete"
+    ],
+    "rows": {
+      "NotificationReceipt": [
+        [
+          "2026-09-07",
+          "completion-approach",
+          "2026-09-07T17:45:00.0000000+00:00",
+          "2026-09-07T17:45:00.5000000+00:00",
+          "delivery-1"
+        ],
+        [
+          "2026-09-07",
+          "latest-departure-approach",
+          "2026-09-07T18:00:00.0000000+00:00",
+          "2026-09-07T17:45:00.5000000+00:00",
+          "delivery-1"
+        ],
+        [
+          "2026-09-07",
+          "day-complete",
+          "2026-09-07T19:00:00.0000000+00:00",
+          "2026-09-07T19:00:00.0000000+00:00",
+          "delivery-2"
+        ]
+      ]
+    }
+  },
+  "dailySummaries": {
+    "results": [
+      "Inserted 1",
+      "AlreadyRecorded 1",
+      "conflict 2026-09-07 1",
+      "sequence 2026-09-07 2 3",
+      "Inserted 2",
+      "sequence 2026-09-08 1 2",
+      "Inserted 1",
+      "Inserted 1",
+      "Inserted 1"
+    ],
+    "latest": [
+      {
+        "workday": "2026-09-07 Romance Standard Time",
+        "revision": 2,
+        "computedAt": "2026-09-07T12:00:00.0000017+00:00",
+        "inputFingerprint": "monday-second",
+        "ticks": [
+          21,
+          11,
+          11,
+          1001,
+          1000,
+          29,
+          1,
+          31,
+          37,
+          41
+        ],
+        "projectedDeparture": "2026-09-07T18:00:00.0000019+00:00",
+        "indicatorState": "Red",
+        "sourceQuality": "Ambiguous",
+        "hasPendingReview": true,
+        "debtPending": true,
+        "breakdown": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-07T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-07T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-07T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}"
+      },
+      null,
+      {
+        "workday": "2026-09-09 Romance Standard Time",
+        "revision": 1,
+        "computedAt": "2026-09-09T12:00:00.0000017+00:00",
+        "inputFingerprint": "wednesday",
+        "ticks": [
+          21,
+          11,
+          11,
+          22,
+          21,
+          29,
+          1,
+          31,
+          37,
+          41
+        ],
+        "projectedDeparture": null,
+        "indicatorState": "Blue",
+        "sourceQuality": "Complete",
+        "hasPendingReview": false,
+        "debtPending": false,
+        "breakdown": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-09T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-09T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-09T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-09T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-09T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}"
+      }
+    ],
+    "week": [
+      {
+        "workday": "2026-09-07 Romance Standard Time",
+        "revision": 2,
+        "computedAt": "2026-09-07T12:00:00.0000017+00:00",
+        "inputFingerprint": "monday-second",
+        "ticks": [
+          21,
+          11,
+          11,
+          1001,
+          1000,
+          29,
+          1,
+          31,
+          37,
+          41
+        ],
+        "projectedDeparture": "2026-09-07T18:00:00.0000019+00:00",
+        "indicatorState": "Red",
+        "sourceQuality": "Ambiguous",
+        "hasPendingReview": true,
+        "debtPending": true,
+        "breakdown": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-07T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-07T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-07T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}"
+      },
+      {
+        "workday": "2026-09-09 Romance Standard Time",
+        "revision": 1,
+        "computedAt": "2026-09-09T12:00:00.0000017+00:00",
+        "inputFingerprint": "wednesday",
+        "ticks": [
+          21,
+          11,
+          11,
+          22,
+          21,
+          29,
+          1,
+          31,
+          37,
+          41
+        ],
+        "projectedDeparture": null,
+        "indicatorState": "Blue",
+        "sourceQuality": "Complete",
+        "hasPendingReview": false,
+        "debtPending": false,
+        "breakdown": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-09T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-09T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-09T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-09T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-09T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}"
+      },
+      {
+        "workday": "2026-09-11 Romance Standard Time",
+        "revision": 1,
+        "computedAt": "2026-09-11T12:00:00.0000017+00:00",
+        "inputFingerprint": "friday",
+        "ticks": [
+          21,
+          11,
+          11,
+          1001,
+          1000,
+          29,
+          1,
+          31,
+          37,
+          41
+        ],
+        "projectedDeparture": "2026-09-11T18:00:00.0000019+00:00",
+        "indicatorState": "Orange",
+        "sourceQuality": "Ambiguous",
+        "hasPendingReview": true,
+        "debtPending": true,
+        "breakdown": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-11T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-11T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-11T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-11T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-11T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}"
+      }
+    ],
+    "rows": {
+      "DailySummaryRevision": [
+        [
+          "2026-09-07",
+          2,
+          "2026-09-07T12:00:00.0000017+00:00",
+          "Romance Standard Time",
+          "monday-second",
+          21,
+          11,
+          11,
+          1001,
+          1000,
+          29,
+          1,
+          31,
+          37,
+          "2026-09-07T18:00:00.0000019+00:00",
+          "red",
+          "ambiguous",
+          1,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-07T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-07T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-07T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}",
+          41,
+          1
+        ],
+        [
+          "2026-09-09",
+          1,
+          "2026-09-09T12:00:00.0000017+00:00",
+          "Romance Standard Time",
+          "wednesday",
+          21,
+          11,
+          11,
+          22,
+          21,
+          29,
+          1,
+          31,
+          37,
+          null,
+          "blue",
+          "complete",
+          0,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-09T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-09T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-09T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-09T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-09T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}",
+          41,
+          0
+        ],
+        [
+          "2026-09-11",
+          1,
+          "2026-09-11T12:00:00.0000017+00:00",
+          "Romance Standard Time",
+          "friday",
+          21,
+          11,
+          11,
+          1001,
+          1000,
+          29,
+          1,
+          31,
+          37,
+          "2026-09-11T18:00:00.0000019+00:00",
+          "orange",
+          "ambiguous",
+          1,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-11T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-11T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-11T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-11T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-11T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}",
+          41,
+          1
+        ],
+        [
+          "2026-09-14",
+          1,
+          "2026-09-14T12:00:00.0000017+00:00",
+          "Romance Standard Time",
+          "next-monday",
+          21,
+          11,
+          11,
+          22,
+          21,
+          29,
+          1,
+          31,
+          37,
+          null,
+          "blue",
+          "complete",
+          0,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-14T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-14T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-14T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-14T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-14T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-14T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-14T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-14T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-14T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}",
+          41,
+          0
+        ]
+      ]
+    }
+  },
+  "credit": {
+    "results": [
+      "done",
+      "argument weekStartDate",
+      "argument entries",
+      "done",
+      "stale 0,0,0,0,0 1,1,1,0,1",
+      "done",
+      "conflict 2026-09-21 1",
+      "inconsistent The expired ledger total for 2026-09-25 is 0 ticks; the selected summary stores 12000000000 ticks.",
+      "inconsistent Credit movement apply-monday does not reference the selected durable origin revision.",
+      "inconsistent Friday expiry must consume every remaining earned lot.",
+      "inconsistent The available credit for 2026-09-23 is 12000000000 ticks; the selected summary stores 15000000000 ticks.",
+      "inconsistent A canonical weekly replacement cannot contain reversed movements.",
+      "inconsistent Applied movement early must consume an earlier earned lot.",
+      "inconsistent Credit movement thursday-expiry belongs to a day without a durable summary.",
+      "inconsistent Earned movement earn-monday must originate from its own workday.",
+      "inconsistent Credit movement no-summary belongs to a day without a durable summary.",
+      "inconsistent Credit movement earn-monday does not reference the selected durable origin revision.",
+      "inconsistent The applied credit for 2026-09-23 does not consume earned lots FIFO.",
+      "inconsistent The applied ledger total for 2026-09-23 is 42000000000 ticks; the selected summary stores 24000000000 ticks.",
+      "argument revisions",
+      "argument revisions",
+      "argument entries",
+      "argument weekStartDate",
+      "argument expectedRevisions"
+    ],
+    "ledger": [
+      "a-earned|2026-10-05|Earned|2|2026-10-05|10|2026-10-05T16:00:00.0000002+00:00",
+      "z-earned|2026-10-05|Earned|2|2026-10-05|11|2026-10-05T16:00:00.0000002+00:00",
+      "applied|2026-10-06|Applied|1|2026-10-05|12|2026-10-06T16:00:00.0000001+00:00",
+      "reversed|2026-10-07|Reversed|3|2026-10-06|13|2026-10-07T16:00:00.0000003+00:00",
+      " expired |2026-10-09|Expired|4|2026-10-05|14|2026-10-09T16:00:00.0000004+00:00"
+    ],
+    "vector": "1,1,1,0,1",
+    "latestRevisions": [
+      "2026-09-21 1 18000000000",
+      "2026-09-22 1 36000000000",
+      "2026-09-23 1 12000000000",
+      "2026-09-25 1 0"
+    ],
+    "weekLedger": [
+      "earn-monday|2026-09-21|Earned|18000000000|2026-09-21|1|2026-09-21T16:00:00.0000000+00:00",
+      "earn-tuesday|2026-09-22|Earned|18000000000|2026-09-22|1|2026-09-22T16:00:00.0000000+00:00",
+      "apply-monday|2026-09-23|Applied|18000000000|2026-09-21|1|2026-09-23T16:00:00.0000000+00:00",
+      "apply-tuesday|2026-09-23|Applied|6000000000|2026-09-22|1|2026-09-23T16:00:00.0000000+00:00",
+      "expire|2026-09-25|Expired|12000000000|2026-09-22|1|2026-09-25T16:00:00.0000000+00:00"
+    ],
+    "pendingExpiry": [
+      "",
+      "2026-09-07 2026-09-14",
+      "2026-09-07 2026-09-14",
+      "2026-09-07 2026-09-14"
+    ],
+    "rows": {
+      "DailySummaryRevision": [
+        [
+          "2026-09-07",
+          2,
+          "2026-09-07T12:00:00.0000017+00:00",
+          "Romance Standard Time",
+          "monday-second",
+          21,
+          11,
+          11,
+          1001,
+          1000,
+          29,
+          1,
+          31,
+          37,
+          "2026-09-07T18:00:00.0000019+00:00",
+          "red",
+          "ambiguous",
+          1,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-07T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-07T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-07T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-07T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}",
+          41,
+          1
+        ],
+        [
+          "2026-09-09",
+          1,
+          "2026-09-09T12:00:00.0000017+00:00",
+          "Romance Standard Time",
+          "wednesday",
+          21,
+          11,
+          11,
+          22,
+          21,
+          29,
+          1,
+          31,
+          37,
+          null,
+          "blue",
+          "complete",
+          0,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-09T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-09T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-09T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-09T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-09T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-09T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-09T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}",
+          41,
+          0
+        ],
+        [
+          "2026-09-11",
+          1,
+          "2026-09-11T12:00:00.0000017+00:00",
+          "Romance Standard Time",
+          "friday",
+          21,
+          11,
+          11,
+          1001,
+          1000,
+          29,
+          1,
+          31,
+          37,
+          "2026-09-11T18:00:00.0000019+00:00",
+          "orange",
+          "ambiguous",
+          1,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-11T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-11T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-11T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-11T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-11T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-11T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-11T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}",
+          41,
+          1
+        ],
+        [
+          "2026-09-14",
+          1,
+          "2026-09-14T12:00:00.0000017+00:00",
+          "Romance Standard Time",
+          "next-monday",
+          21,
+          11,
+          11,
+          22,
+          21,
+          29,
+          1,
+          31,
+          37,
+          null,
+          "blue",
+          "complete",
+          0,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-14T08:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T08:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":3,\"startUtc\":\"2026-09-14T09:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T09:00:00.0000004\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"review\\u0001\\t\\n\\r\\b\\f\\u001F \\u00A0\\uFEFF\"},{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":\"2026-09-14T10:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T10:00:00.0000006\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":11,\"startUtc\":\"2026-09-14T11:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T11:00:00.0000012\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":2,\"startUtc\":\"2026-09-14T12:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T12:00:00.0000003\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-14T13:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T13:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":1,\"startUtc\":\"2026-09-14T14:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T14:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":1,\"startUtc\":\"2026-09-14T15:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T15:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":1,\"startUtc\":\"2026-09-14T16:00:00.0000001\\u002B00:00\",\"endUtc\":\"2026-09-14T16:00:00.0000002\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":13,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"adjustment \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060 back\\\\slash /slash \\u00E9 \\uD83D\\uDE00 \\u2028 \\u007F\",\"reviewId\":null}]}",
+          41,
+          0
+        ],
+        [
+          "2026-09-21",
+          1,
+          "2026-09-21T16:00:00.0000000+00:00",
+          "Europe/Paris",
+          "facts",
+          270000000000,
+          0,
+          0,
+          252000000000,
+          252000000000,
+          18000000000,
+          0,
+          18000000000,
+          0,
+          null,
+          "blue",
+          "complete",
+          0,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":270000000000,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+          0,
+          0
+        ],
+        [
+          "2026-09-22",
+          1,
+          "2026-09-22T16:00:00.0000000+00:00",
+          "Europe/Paris",
+          "facts",
+          270000000000,
+          0,
+          0,
+          252000000000,
+          252000000000,
+          36000000000,
+          0,
+          18000000000,
+          0,
+          null,
+          "blue",
+          "complete",
+          0,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":270000000000,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+          0,
+          0
+        ],
+        [
+          "2026-09-23",
+          1,
+          "2026-09-23T16:00:00.0000000+00:00",
+          "Europe/Paris",
+          "facts",
+          228000000000,
+          0,
+          0,
+          252000000000,
+          228000000000,
+          12000000000,
+          24000000000,
+          0,
+          0,
+          null,
+          "blue",
+          "complete",
+          0,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":228000000000,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+          0,
+          0
+        ],
+        [
+          "2026-09-25",
+          1,
+          "2026-09-25T16:00:00.0000000+00:00",
+          "Europe/Paris",
+          "facts",
+          252000000000,
+          0,
+          0,
+          252000000000,
+          252000000000,
+          0,
+          0,
+          0,
+          12000000000,
+          null,
+          "blue",
+          "complete",
+          0,
+          "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":252000000000,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+          0,
+          0
+        ]
+      ],
+      "CreditLedgerEntry": [
+        [
+          " expired ",
+          "2026-10-09",
+          "2026-10-05",
+          "expired",
+          4,
+          "2026-10-05",
+          14,
+          "2026-10-09T16:00:00.0000004+00:00"
+        ],
+        [
+          "applied",
+          "2026-10-06",
+          "2026-10-05",
+          "applied",
+          1,
+          "2026-10-05",
+          12,
+          "2026-10-06T16:00:00.0000001+00:00"
+        ],
+        [
+          "reversed",
+          "2026-10-07",
+          "2026-10-05",
+          "reversed",
+          3,
+          "2026-10-06",
+          13,
+          "2026-10-07T16:00:00.0000003+00:00"
+        ],
+        [
+          "z-earned",
+          "2026-10-05",
+          "2026-10-05",
+          "earned",
+          2,
+          "2026-10-05",
+          11,
+          "2026-10-05T16:00:00.0000002+00:00"
+        ],
+        [
+          "a-earned",
+          "2026-10-05",
+          "2026-10-05",
+          "earned",
+          2,
+          "2026-10-05",
+          10,
+          "2026-10-05T16:00:00.0000002+00:00"
+        ],
+        [
+          "expire",
+          "2026-09-25",
+          "2026-09-21",
+          "expired",
+          12000000000,
+          "2026-09-22",
+          1,
+          "2026-09-25T16:00:00.0000000+00:00"
+        ],
+        [
+          "apply-tuesday",
+          "2026-09-23",
+          "2026-09-21",
+          "applied",
+          6000000000,
+          "2026-09-22",
+          1,
+          "2026-09-23T16:00:00.0000000+00:00"
+        ],
+        [
+          "earn-tuesday",
+          "2026-09-22",
+          "2026-09-21",
+          "earned",
+          18000000000,
+          "2026-09-22",
+          1,
+          "2026-09-22T16:00:00.0000000+00:00"
+        ],
+        [
+          "apply-monday",
+          "2026-09-23",
+          "2026-09-21",
+          "applied",
+          18000000000,
+          "2026-09-21",
+          1,
+          "2026-09-23T16:00:00.0000000+00:00"
+        ],
+        [
+          "earn-monday",
+          "2026-09-21",
+          "2026-09-21",
+          "earned",
+          18000000000,
+          "2026-09-21",
+          1,
+          "2026-09-21T16:00:00.0000000+00:00"
+        ]
+      ]
+    }
+  }
+}

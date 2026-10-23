@@ -1,0 +1,108 @@
+[
+  {
+    "version": 1,
+    "name": "Initial WorkTime ledger",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "CREATE TABLE SessionEvent (\n    Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,\n    OccurredAtUtc TEXT NOT NULL,\n    TimezoneId TEXT NOT NULL,\n    Kind TEXT NOT NULL,\n    Source TEXT NOT NULL,\n    CreatedAtUtc TEXT NOT NULL\n);\n\nCREATE INDEX IX_SessionEvent_OccurredAtUtc\n    ON SessionEvent (OccurredAtUtc, Id);\n\nCREATE TABLE ManualAdjustment (\n    Id TEXT NOT NULL PRIMARY KEY,\n    WorkdayDate TEXT NOT NULL,\n    Kind TEXT NOT NULL,\n    StartUtc TEXT NULL,\n    EndUtc TEXT NULL,\n    DurationMinutes INTEGER NULL,\n    FromLabel TEXT NULL,\n    ToLabel TEXT NULL,\n    Reason TEXT NULL,\n    CreatedAtUtc TEXT NOT NULL,\n    SupersedesId TEXT NULL REFERENCES ManualAdjustment (Id),\n    CHECK (\n        (StartUtc IS NOT NULL AND EndUtc IS NOT NULL AND DurationMinutes IS NULL)\n        OR (StartUtc IS NULL AND EndUtc IS NULL AND DurationMinutes > 0)\n    )\n);\n\nCREATE INDEX IX_ManualAdjustment_WorkdayDate\n    ON ManualAdjustment (WorkdayDate, CreatedAtUtc);\n\nCREATE TABLE CreditLedgerEntry (\n    Id TEXT NOT NULL PRIMARY KEY,\n    WorkdayDate TEXT NOT NULL,\n    WeekStartDate TEXT NOT NULL,\n    Kind TEXT NOT NULL,\n    Minutes INTEGER NOT NULL CHECK (Minutes > 0),\n    OriginWorkdayDate TEXT NOT NULL,\n    OriginRevision INTEGER NOT NULL,\n    CreatedAtUtc TEXT NOT NULL\n);\n\nCREATE INDEX IX_CreditLedgerEntry_Week\n    ON CreditLedgerEntry (WeekStartDate, WorkdayDate, CreatedAtUtc);\n\nCREATE TABLE NotificationReceipt (\n    WorkdayDate TEXT NOT NULL,\n    Trigger TEXT NOT NULL,\n    EligibleAtUtc TEXT NOT NULL,\n    DeliveredAtUtc TEXT NOT NULL,\n    CombinedDeliveryId TEXT NULL,\n    PRIMARY KEY (WorkdayDate, Trigger)\n);\n\nCREATE TABLE DailySummaryRevision (\n    WorkdayDate TEXT NOT NULL,\n    Revision INTEGER NOT NULL,\n    ComputedAtUtc TEXT NOT NULL,\n    TimezoneId TEXT NOT NULL,\n    SourceFingerprint TEXT NOT NULL,\n    CreditedMinutes INTEGER NOT NULL,\n    ExcludedMinutes INTEGER NOT NULL,\n    UnknownMinutes INTEGER NOT NULL,\n    NominalTargetMinutes INTEGER NOT NULL,\n    EffectiveTargetMinutes INTEGER NOT NULL,\n    CarryAvailableMinutes INTEGER NOT NULL,\n    CarryAppliedMinutes INTEGER NOT NULL,\n    CarryEarnedMinutes INTEGER NOT NULL,\n    CarryExpiredMinutes INTEGER NOT NULL,\n    ProjectedDepartureUtc TEXT NULL,\n    IndicatorState TEXT NOT NULL,\n    SourceQuality TEXT NOT NULL,\n    HasPendingReview INTEGER NOT NULL,\n    BreakdownJson TEXT NOT NULL,\n    PRIMARY KEY (WorkdayDate, Revision)\n);"
+    ]
+  },
+  {
+    "version": 2,
+    "name": "Retry-safe workday events and adjustments",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "ALTER TABLE SessionEvent ADD COLUMN OperationKey TEXT NULL;",
+      "CREATE UNIQUE INDEX UX_SessionEvent_OperationKey\n    ON SessionEvent (OperationKey)\n    WHERE OperationKey IS NOT NULL;",
+      "ALTER TABLE ManualAdjustment ADD COLUMN TimezoneId TEXT NULL;",
+      "CREATE UNIQUE INDEX UX_ManualAdjustment_SupersedesId\n    ON ManualAdjustment (SupersedesId)\n    WHERE SupersedesId IS NOT NULL;"
+    ]
+  },
+  {
+    "version": 3,
+    "name": "Long-lock review confirmations on manual adjustments",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "ALTER TABLE ManualAdjustment ADD COLUMN ConfirmsReviewId TEXT NULL;"
+    ]
+  },
+  {
+    "version": 4,
+    "name": "Mutually exclusive long-lock review resolutions",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "CREATE TABLE LongLockResolution (\n    WorkdayDate TEXT NOT NULL,\n    TimezoneId TEXT NOT NULL,\n    ReviewId TEXT NOT NULL,\n    ActionKind TEXT NOT NULL CHECK (\n        ActionKind IN ('confirm-work', 'exclude', 'finish-at-lock-start')),\n    ActionIdentity TEXT NOT NULL,\n    CanonicalCreatedAtUtc TEXT NOT NULL,\n    PRIMARY KEY (WorkdayDate, TimezoneId, ReviewId)\n);"
+    ]
+  },
+  {
+    "version": 5,
+    "name": "Rename notification delivery timestamp to reservation timestamp",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "ALTER TABLE NotificationReceipt RENAME COLUMN DeliveredAtUtc TO ReservedAtUtc;"
+    ]
+  },
+  {
+    "version": 6,
+    "name": "Store exact credit ledger duration ticks",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "CREATE TABLE CreditLedgerEntryV6 (\r\n    Id TEXT NOT NULL PRIMARY KEY,\r\n    WorkdayDate TEXT NOT NULL,\r\n    WeekStartDate TEXT NOT NULL,\r\n    Kind TEXT NOT NULL,\r\n    DurationTicks INTEGER NOT NULL CHECK (\r\n        typeof(DurationTicks) = 'integer' AND DurationTicks > 0),\r\n    OriginWorkdayDate TEXT NOT NULL,\r\n    OriginRevision INTEGER NOT NULL,\r\n    CreatedAtUtc TEXT NOT NULL\r\n);",
+      "INSERT INTO CreditLedgerEntryV6 (\r\n    Id,\r\n    WorkdayDate,\r\n    WeekStartDate,\r\n    Kind,\r\n    DurationTicks,\r\n    OriginWorkdayDate,\r\n    OriginRevision,\r\n    CreatedAtUtc)\r\nSELECT\r\n    Id,\r\n    WorkdayDate,\r\n    WeekStartDate,\r\n    Kind,\r\n    CASE\r\n        WHEN typeof(Minutes) = 'integer'\r\n            AND Minutes BETWEEN 1 AND 15372286728\r\n        THEN Minutes * 600000000\r\n        ELSE NULL\r\n    END,\r\n    OriginWorkdayDate,\r\n    OriginRevision,\r\n    CreatedAtUtc\r\nFROM CreditLedgerEntry;",
+      "DROP TABLE CreditLedgerEntry;",
+      "ALTER TABLE CreditLedgerEntryV6 RENAME TO CreditLedgerEntry;",
+      "CREATE INDEX IX_CreditLedgerEntry_Week\r\n    ON CreditLedgerEntry (WeekStartDate, WorkdayDate, CreatedAtUtc);"
+    ]
+  },
+  {
+    "version": 7,
+    "name": "Store exact daily summary duration ticks",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "CREATE TABLE DailySummaryRevisionV7 (\r\n    WorkdayDate TEXT NOT NULL,\r\n    Revision INTEGER NOT NULL,\r\n    ComputedAtUtc TEXT NOT NULL,\r\n    TimezoneId TEXT NOT NULL,\r\n    InputFingerprint TEXT NOT NULL,\r\n    CreditedTicks INTEGER NOT NULL CHECK (\r\n        typeof(CreditedTicks) = 'integer' AND CreditedTicks >= 0),\r\n    ExcludedTicks INTEGER NOT NULL CHECK (\r\n        typeof(ExcludedTicks) = 'integer' AND ExcludedTicks >= 0),\r\n    UnknownTicks INTEGER NOT NULL CHECK (\r\n        typeof(UnknownTicks) = 'integer' AND UnknownTicks >= 0),\r\n    NominalTargetTicks INTEGER NOT NULL CHECK (\r\n        typeof(NominalTargetTicks) = 'integer' AND NominalTargetTicks > 0),\r\n    EffectiveTargetTicks INTEGER NOT NULL CHECK (\r\n        typeof(EffectiveTargetTicks) = 'integer' AND EffectiveTargetTicks > 0),\r\n    CarryAvailableTicks INTEGER NOT NULL CHECK (\r\n        typeof(CarryAvailableTicks) = 'integer' AND CarryAvailableTicks >= 0),\r\n    CarryAppliedTicks INTEGER NOT NULL CHECK (\r\n        typeof(CarryAppliedTicks) = 'integer' AND CarryAppliedTicks >= 0),\r\n    CarryEarnedTicks INTEGER NOT NULL CHECK (\r\n        typeof(CarryEarnedTicks) = 'integer' AND CarryEarnedTicks >= 0),\r\n    CarryExpiredTicks INTEGER NOT NULL CHECK (\r\n        typeof(CarryExpiredTicks) = 'integer' AND CarryExpiredTicks >= 0),\r\n    ProjectedDepartureUtc TEXT NULL,\r\n    IndicatorState TEXT NOT NULL,\r\n    SourceQuality TEXT NOT NULL,\r\n    HasPendingReview INTEGER NOT NULL,\r\n    BreakdownJson TEXT NOT NULL,\r\n    PRIMARY KEY (WorkdayDate, Revision)\r\n);",
+      "INSERT INTO DailySummaryRevisionV7 (\r\n    WorkdayDate,\r\n    Revision,\r\n    ComputedAtUtc,\r\n    TimezoneId,\r\n    InputFingerprint,\r\n    CreditedTicks,\r\n    ExcludedTicks,\r\n    UnknownTicks,\r\n    NominalTargetTicks,\r\n    EffectiveTargetTicks,\r\n    CarryAvailableTicks,\r\n    CarryAppliedTicks,\r\n    CarryEarnedTicks,\r\n    CarryExpiredTicks,\r\n    ProjectedDepartureUtc,\r\n    IndicatorState,\r\n    SourceQuality,\r\n    HasPendingReview,\r\n    BreakdownJson)\r\nSELECT\r\n    WorkdayDate,\r\n    Revision,\r\n    ComputedAtUtc,\r\n    TimezoneId,\r\n    SourceFingerprint,\r\n    CASE WHEN typeof(CreditedMinutes) = 'integer'\r\n        AND CreditedMinutes BETWEEN 0 AND 15372286728\r\n        THEN CreditedMinutes * 600000000 ELSE NULL END,\r\n    CASE WHEN typeof(ExcludedMinutes) = 'integer'\r\n        AND ExcludedMinutes BETWEEN 0 AND 15372286728\r\n        THEN ExcludedMinutes * 600000000 ELSE NULL END,\r\n    CASE WHEN typeof(UnknownMinutes) = 'integer'\r\n        AND UnknownMinutes BETWEEN 0 AND 15372286728\r\n        THEN UnknownMinutes * 600000000 ELSE NULL END,\r\n    CASE WHEN typeof(NominalTargetMinutes) = 'integer'\r\n        AND NominalTargetMinutes BETWEEN 1 AND 15372286728\r\n        THEN NominalTargetMinutes * 600000000 ELSE NULL END,\r\n    CASE WHEN typeof(EffectiveTargetMinutes) = 'integer'\r\n        AND EffectiveTargetMinutes BETWEEN 1 AND 15372286728\r\n        THEN EffectiveTargetMinutes * 600000000 ELSE NULL END,\r\n    CASE WHEN typeof(CarryAvailableMinutes) = 'integer'\r\n        AND CarryAvailableMinutes BETWEEN 0 AND 15372286728\r\n        THEN CarryAvailableMinutes * 600000000 ELSE NULL END,\r\n    CASE WHEN typeof(CarryAppliedMinutes) = 'integer'\r\n        AND CarryAppliedMinutes BETWEEN 0 AND 15372286728\r\n        THEN CarryAppliedMinutes * 600000000 ELSE NULL END,\r\n    CASE WHEN typeof(CarryEarnedMinutes) = 'integer'\r\n        AND CarryEarnedMinutes BETWEEN 0 AND 15372286728\r\n        THEN CarryEarnedMinutes * 600000000 ELSE NULL END,\r\n    CASE WHEN typeof(CarryExpiredMinutes) = 'integer'\r\n        AND CarryExpiredMinutes BETWEEN 0 AND 15372286728\r\n        THEN CarryExpiredMinutes * 600000000 ELSE NULL END,\r\n    ProjectedDepartureUtc,\r\n    IndicatorState,\r\n    SourceQuality,\r\n    HasPendingReview,\r\n    BreakdownJson\r\nFROM DailySummaryRevision;",
+      "DROP TABLE DailySummaryRevision;",
+      "ALTER TABLE DailySummaryRevisionV7 RENAME TO DailySummaryRevision;"
+    ]
+  },
+  {
+    "version": 8,
+    "name": "Keep only the latest daily summary revision",
+    "vacuumAfterCommit": true,
+    "statements": [
+      "DELETE FROM DailySummaryRevision\r\nWHERE Revision < (\r\n    SELECT MAX(latest.Revision)\r\n    FROM DailySummaryRevision AS latest\r\n    WHERE latest.WorkdayDate = DailySummaryRevision.WorkdayDate);"
+    ]
+  },
+  {
+    "version": 9,
+    "name": "Store the weekly debt left at the end of each daily summary",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "ALTER TABLE DailySummaryRevision ADD COLUMN CarryDebtTicks INTEGER NOT NULL DEFAULT 0 CHECK (\r\n    typeof(CarryDebtTicks) = 'integer' AND CarryDebtTicks >= 0);\r\nALTER TABLE DailySummaryRevision ADD COLUMN DebtPending INTEGER NOT NULL DEFAULT 0 CHECK (\r\n    DebtPending IN (0, 1));"
+    ]
+  },
+  {
+    "version": 10,
+    "name": "Allow manual adjustment revocations",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "CREATE TABLE ManualAdjustmentV10 (\r\n    Id TEXT NOT NULL PRIMARY KEY,\r\n    WorkdayDate TEXT NOT NULL,\r\n    Kind TEXT NOT NULL,\r\n    StartUtc TEXT NULL,\r\n    EndUtc TEXT NULL,\r\n    DurationMinutes INTEGER NULL,\r\n    FromLabel TEXT NULL,\r\n    ToLabel TEXT NULL,\r\n    Reason TEXT NULL,\r\n    CreatedAtUtc TEXT NOT NULL,\r\n    SupersedesId TEXT NULL REFERENCES ManualAdjustmentV10 (Id),\r\n    TimezoneId TEXT NULL,\r\n    ConfirmsReviewId TEXT NULL,\r\n    -- A comparison with NULL would satisfy the CHECK, so a missing duration is ruled out explicitly.\r\n    CHECK (\r\n        (Kind <> 'revoke' AND StartUtc IS NOT NULL AND EndUtc IS NOT NULL AND DurationMinutes IS NULL)\r\n        OR (Kind <> 'revoke' AND StartUtc IS NULL AND EndUtc IS NULL AND DurationMinutes IS NOT NULL\r\n            AND DurationMinutes > 0)\r\n        OR (Kind = 'revoke' AND StartUtc IS NULL AND EndUtc IS NULL AND DurationMinutes IS NULL\r\n            AND SupersedesId IS NOT NULL)\r\n    )\r\n);",
+      "INSERT INTO ManualAdjustmentV10 (\r\n    Id,\r\n    WorkdayDate,\r\n    Kind,\r\n    StartUtc,\r\n    EndUtc,\r\n    DurationMinutes,\r\n    FromLabel,\r\n    ToLabel,\r\n    Reason,\r\n    CreatedAtUtc,\r\n    SupersedesId,\r\n    TimezoneId,\r\n    ConfirmsReviewId)\r\nSELECT\r\n    Id,\r\n    WorkdayDate,\r\n    Kind,\r\n    StartUtc,\r\n    EndUtc,\r\n    DurationMinutes,\r\n    FromLabel,\r\n    ToLabel,\r\n    Reason,\r\n    CreatedAtUtc,\r\n    SupersedesId,\r\n    TimezoneId,\r\n    ConfirmsReviewId\r\nFROM ManualAdjustment;",
+      "DROP TABLE ManualAdjustment;",
+      "ALTER TABLE ManualAdjustmentV10 RENAME TO ManualAdjustment;",
+      "CREATE INDEX IX_ManualAdjustment_WorkdayDate\r\n    ON ManualAdjustment (WorkdayDate, CreatedAtUtc);",
+      "CREATE UNIQUE INDEX UX_ManualAdjustment_SupersedesId\r\n    ON ManualAdjustment (SupersedesId)\r\n    WHERE SupersedesId IS NOT NULL;"
+    ]
+  },
+  {
+    "version": 11,
+    "name": "Add built-in activity spans and the activity source selection history",
+    "vacuumAfterCommit": false,
+    "statements": [
+      "CREATE TABLE ActivitySpan (\n    Id INTEGER PRIMARY KEY AUTOINCREMENT,\n    State TEXT NOT NULL CHECK (State IN ('active', 'idle')),\n    StartUtc TEXT NOT NULL,\n    SettledThroughUtc TEXT NOT NULL,\n    CreatedAtUtc TEXT NOT NULL,\n    CHECK (SettledThroughUtc >= StartUtc)\n);",
+      "CREATE UNIQUE INDEX UX_ActivitySpan_StartUtc_State\n    ON ActivitySpan (StartUtc, State);",
+      "CREATE TABLE ActivitySourceSelection (\n    Id INTEGER PRIMARY KEY AUTOINCREMENT,\n    EffectiveFromUtc TEXT NOT NULL,\n    Source TEXT NOT NULL CHECK (Source IN ('built-in', 'activitywatch')),\n    CreatedAtUtc TEXT NOT NULL\n);",
+      "CREATE INDEX IX_ActivitySourceSelection_EffectiveFromUtc\n    ON ActivitySourceSelection (EffectiveFromUtc, Id);"
+    ]
+  }
+]

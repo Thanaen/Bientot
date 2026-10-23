@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest an improvement or a new feature.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You can write in English or in French. WorkTime is maintained by one person in their free time,
+        so a request may wait or be declined when it does not fit the app's goal: telling you, at a glance,
+        whether your workday is on track.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and what makes it hard today.
+      placeholder: Every Thursday I have a meeting away from my PC, and I correct that time by hand each week.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+      description: How WorkTime could help. A sketch or an example from another app is welcome.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do today
+      description: Workarounds or other tools you tried.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched the existing issues and found no similar request.
+          required: true

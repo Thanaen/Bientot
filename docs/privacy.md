@@ -1,0 +1,123 @@
+# Privacy
+
+WorkTime is local-first. It has no account and no cloud sync. Its only
+telemetry is one anonymous usage signal a day. It is on by default, shown
+during setup, and you can turn it off. This page lists what WorkTime stores,
+what it sends, and how to remove it.
+
+## What stays on the machine
+
+Spec SC-005: no activity or accounting data leaves the machine. WorkTime never
+uploads its accounting records. Its only remote requests are the daily update
+check and the anonymous daily usage signal described below.
+
+The built-in activity source reads one value from Windows: the time of your
+last keyboard or mouse input (`GetLastInputInfo`). It never reads what you
+type, which keys you press, application names or window titles. It stores only
+the start and settled end of each active or idle period.
+
+WorkTime stores everything in `%LOCALAPPDATA%\WorkTime`. A run started with
+`--data-dir <folder>` uses that folder instead, and a `--demo` run uses a
+temporary `WorkTimeDemo` folder.
+
+| File | Content |
+| --- | --- |
+| `settings.json` | Schedule, recurring appointments, notification rules, language, the built-in idle threshold, the time of the last update check, whether the anonymous usage signal is on. It also keeps the ActivityWatch address and timings of the first WorkTime version, which the current version no longer uses. |
+| `settings.json.invalid-<id>.json` | A copy of a settings file WorkTime could not read. It is kept so nothing is lost when defaults are restored. |
+| `app-state.json` | The date of the last usage signal the server recorded. Nothing else. |
+| `worktime.db` | SQLite database: which activity source was selected from which time, the active and idle periods, session, lock and power events with their times, pause and finish commands, manual corrections with their optional reason, long-lock decisions, daily summaries, weekly credit, and which notifications were already shown. |
+| `secrets\*.secret` | Secrets encrypted with DPAPI for your Windows account. Only the ActivityWatch API key of the first WorkTime version was ever stored there; the current version writes none. |
+| `import.worktime` | An import chosen in **Settings › Data**, waiting for the next start to apply it. |
+| `backups\` | The data an import replaced (**Settings › Data**), saved as a `.worktime` file so the import can be undone. |
+| `logs\worktime-*.jsonl` | Diagnostic events, at most 5 files of 1 MiB, each deleted after 14 days. |
+
+The diagnostic log also redacts at write time. Properties named like an API
+key, token, password, secret, window title, application name, message or
+payload are replaced with `[REDACTED]`. Bearer tokens and `key=value` secrets
+inside strings are replaced too.
+
+Accounting history does not expire automatically.
+
+A `.worktime` file exported from **Settings › Data** holds a copy of the
+database and of `settings.json`. It stays where you save it; WorkTime never
+sends it anywhere.
+
+## Network requests
+
+WorkTime makes two kinds of request.
+
+1. **Update check.** At most once a day, and only while **Check for updates**
+   is on in the General settings.
+   - The build installed by `Setup.exe` sends one `GET` request to
+     `https://worktime.thanaen.dev/updates/releases.win.json`, with no query
+     string, no cookie and no identifier, and downloads a newer package from
+     the same address. Both answer with a redirect to the same file in
+     Vercel's Blob storage, on a `*.public.blob.vercel-storage.com` address,
+     which receives the same request.
+   - The Microsoft Store build asks the Store through the Windows
+     `StoreContext` API.
+   - The portable ZIP never checks.
+
+   Turning the toggle off saves `"checkForUpdates": false` under `"updates"`
+   in `settings.json`.
+2. **Anonymous usage signal.** At most once a day, release builds send one
+   `POST` request to `https://worktime.thanaen.dev/v1/ping` with this body and
+   nothing else:
+
+   ```json
+   {"version":"1.0.0","channel":"store","first_this_month":true}
+   ```
+
+   `version` is the WorkTime version. `channel` is `store`, `direct` or `zip`,
+   depending on where you installed WorkTime. `first_this_month` is `true` for
+   the first signal of a calendar month. The request carries no identifier, no
+   cookie, no date and no time-tracking data. The server keeps only one count
+   per day, version and channel. It stores no IP address, no identifier and no
+   request body, and logs nothing (`services/worktime`). WorkTime keeps only
+   the date of the last signal the server recorded, in `app-state.json`. After
+   a failure, WorkTime tries again at most once an hour. Debug builds, demo
+   launches and launches with `--data-dir` never send it. Turn off **Send an
+   anonymous usage signal** in the General settings to stop it at once,
+   without a restart. The toggle saves `"usagePing": false` in
+   `settings.json`.
+
+## Diagnostic export
+
+**Export diagnostics…** in the tray menu saves a ZIP where you choose.
+WorkTime never sends it anywhere. The ZIP holds three files:
+
+- `manifest.json`: the export limits, what was available, and counts of the
+  log lines that were left out and why.
+- `snapshot.json`: numeric settings (targets, lunch window, departure time,
+  margins, notification rules, log limits, start with Windows, update check),
+  the version numbers of WorkTime and Windows, the processor architecture, and
+  today's totals, indicator colour and source health.
+- `logs.jsonl`: up to 10,000 log records from the newest 5 log files of the
+  last 14 days. Each record keeps only its time (rounded to the minute), its
+  level, an event name from a fixed list, a failure category such as `Io`, the
+  status of an unavailable power history, and for a failed Store update check
+  its numeric error code (HRESULT).
+
+The export leaves out file paths, host names, error messages, application
+names, window titles and any log event outside the fixed list. The tests in
+`crates/worktime-core/tests/diagnostics_export.rs` plant such values in the
+logs and settings and check that none of them reaches the archive.
+
+Cancelling the save dialog writes nothing. An existing file is replaced only
+after the new archive is complete.
+
+## Delete your data
+
+1. If **Start with Windows** is on, turn it off in the WorkTime
+   settings. Otherwise WorkTime starts again at the next sign-in.
+2. Quit WorkTime from the tray menu.
+3. Delete the `%LOCALAPPDATA%\WorkTime` folder, or the folder you passed with
+   `--data-dir` if you start WorkTime that way.
+4. Delete any `.worktime` file you exported.
+
+The next start from the same data folder shows onboarding again and creates a
+new, empty database.
+
+The Store build can also keep data in its own package folder, because Windows
+virtualizes packaged writes under `%LOCALAPPDATA%`. Uninstalling the app
+removes that package data.

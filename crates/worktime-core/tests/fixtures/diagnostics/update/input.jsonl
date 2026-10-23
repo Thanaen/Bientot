@@ -1,0 +1,4 @@
+{"TimestampUtc":"2026-09-10T12:33:56+00:00","Level":"Warning","Event":"update_check.failed","Properties":{"exceptionType":"System.Runtime.InteropServices.COMException","message":"SENTINEL-api-key-9ad","hresult":-2147012867}}
+{"TimestampUtc":"2026-09-10T12:32:56+00:00","Level":"Warning","Event":"update_check.unavailable","Properties":{"exceptionType":"System.InvalidOperationException","hresult":5}}
+{"TimestampUtc":"2026-09-10T12:31:56+00:00","Level":"Information","Event":"startup.tray_ready","Properties":null}
+{"TimestampUtc":"2026-09-10T12:30:56+00:00","Level":"Error","Event":"periodic_refresh.failed","Properties":{"exceptionType":"System.IO.IOException","hresult":7}}

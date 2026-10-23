@@ -1,0 +1,1090 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="WorkdayFlyoutHeading.Text" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="WorkdayFlyoutWorkedLabel.Text" xml:space="preserve">
+    <value>Worked</value>
+  </data>
+  <data name="WorkdayFlyoutTargetLabel.Text" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="WorkdayFlyoutCreditAppliedLabel.Text" xml:space="preserve">
+    <value>Credit applied today</value>
+  </data>
+  <data name="WorkdayFlyoutCreditAvailableLabel.Text" xml:space="preserve">
+    <value>Credit still available</value>
+  </data>
+  <data name="WorkdayFlyoutCreditDebtLabel.Text" xml:space="preserve"><value>Debt</value></data>
+  <data name="WorkdayFlyoutProjectionLabel.Text" xml:space="preserve">
+    <value>Projected departure</value>
+  </data>
+  <data name="WorkdayFlyoutProjectionHint.Text" xml:space="preserve">
+    <value>Available after lunch</value>
+  </data>
+  <data name="WorkdayFlyoutOvertimeLabel.Text" xml:space="preserve">
+    <value>Credited overtime</value>
+  </data>
+  <data name="WorkdayFlyoutDegradedMessage.Text" xml:space="preserve">
+    <value>Forecast unavailable while source data is degraded</value>
+  </data>
+  <data name="WorkdayStatusGreen" xml:space="preserve">
+    <value>On track</value>
+  </data>
+  <data name="WorkdayStatusOrange" xml:space="preserve">
+    <value>Estimated departure close to your latest departure time</value>
+  </data>
+  <data name="WorkdayStatusRed" xml:space="preserve">
+    <value>Estimated departure after your latest departure time</value>
+  </data>
+  <data name="WorkdayStatusBlue" xml:space="preserve">
+    <value>Target reached</value>
+  </data>
+  <data name="WorkdayStatusDegraded" xml:space="preserve">
+    <value>Check activity tracking</value>
+  </data>
+  <data name="WorkdayDegradedStatusFormat" xml:space="preserve">
+    <value>{0}, {1}</value>
+  </data>
+  <data name="WorkdayProjectionPendingComfortable" xml:space="preserve">
+    <value>Comfortable margin with planned lunch, if you keep working outside the pause</value>
+  </data>
+  <data name="WorkdayProjectionPendingTight" xml:space="preserve">
+    <value>Little margin with planned lunch, if you keep working outside the pause</value>
+  </data>
+  <data name="WorkdayProjectionPendingLate" xml:space="preserve">
+    <value>Past preferred departure with planned lunch, even if you work outside the pause</value>
+  </data>
+  <data name="DemoMorningWarning" xml:space="preserve"><value>Morning · little margin</value></data>
+  <data name="DemoMorningLate" xml:space="preserve"><value>Morning · late</value></data>
+  <data name="WorkdayProjectionLabel" xml:space="preserve">
+    <value>Projected departure</value>
+  </data>
+  <data name="WorkdayOvertimeLabel" xml:space="preserve">
+    <value>Credited overtime</value>
+  </data>
+  <data name="WorkdayDegradedPrimaryMessage" xml:space="preserve">
+    <value>Forecast unavailable</value>
+  </data>
+  <data name="WorkdayNonWorkingDayStatus" xml:space="preserve">
+    <value>Non-working day</value>
+  </data>
+  <data name="WorkdayNonWorkingDayPrimaryMessage" xml:space="preserve">
+    <value>No work scheduled</value>
+  </data>
+  <data name="WorkdayTooltipFormat" xml:space="preserve">
+    <value>{0} · {1}/{2} · {3}</value>
+  </data>
+  <data name="WorkdayTooltipNoTargetFormat" xml:space="preserve">
+    <value>{0} · {1} · {2}</value>
+  </data>
+  <data name="WorkdayPrimaryValueFormat" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="WorkdayDurationFormat" xml:space="preserve">
+    <value>{0}h {1:00}m</value>
+  </data>
+  <data name="WorkdayCreditTargetBreakdownFormat" xml:space="preserve">
+    <value>Today’s target: {0} − {1} credit earned earlier = {2}</value>
+  </data>
+  <data name="WorkdayCreditApproximateTargetBreakdownFormat" xml:space="preserve">
+    <value>Today’s target: {0} − {1} credit earned earlier ≈ {2} (durations shown to the minute)</value>
+  </data>
+  <data name="WorkdayCreditLessThanMinute" xml:space="preserve">
+    <value>&lt;1m</value>
+  </data>
+  <data name="WorkdayDebtFormat" xml:space="preserve"><value>Debt: {0}</value></data>
+  <data name="AdjustTimeDialog.Title" xml:space="preserve">
+    <value>Adjust work time</value>
+  </data>
+  <data name="AdjustTimeDialog.PrimaryButtonText" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="AdjustTimeDialog.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="AdjustTimeIntent.Header" xml:space="preserve">
+    <value>Correction type</value>
+  </data>
+  <data name="AdjustTimeLocalTimes" xml:space="preserve"><value>Local times · {0}</value></data>
+  <data name="AdjustTimeAddInterval.Content" xml:space="preserve">
+    <value>Add a work interval</value>
+  </data>
+  <data name="AdjustTimeAddDuration.Content" xml:space="preserve">
+    <value>Add a duration</value>
+  </data>
+  <data name="AdjustTimeExclude.Content" xml:space="preserve">
+    <value>Exclude an interval</value>
+  </data>
+  <data name="AdjustTimeReclassify.Content" xml:space="preserve">
+    <value>Reclassify an interval</value>
+  </data>
+  <data name="AdjustTimeStart.Header" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="AdjustTimeEnd.Header" xml:space="preserve">
+    <value>End</value>
+  </data>
+  <data name="AdjustTimeDuration.Header" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="AdjustTimeDuration.PlaceholderText" xml:space="preserve">
+    <value>For example, 1:30</value>
+  </data>
+  <data name="AdjustTimeClassification.Header" xml:space="preserve">
+    <value>Classification</value>
+  </data>
+  <data name="AdjustTimeClassificationCredited.Content" xml:space="preserve">
+    <value>Count as work</value>
+  </data>
+  <data name="AdjustTimeClassificationExcluded.Content" xml:space="preserve">
+    <value>Exclude from work</value>
+  </data>
+  <data name="AdjustTimeReason.Header" xml:space="preserve">
+    <value>Reason (optional)</value>
+  </data>
+  <data name="AdjustTimeReason.PlaceholderText" xml:space="preserve">
+    <value>Add a short note</value>
+  </data>
+  <data name="AdjustTimeError.AutomationProperties.Name" xml:space="preserve">
+    <value>Correction error</value>
+  </data>
+  <data name="AdjustTimeErrorInvalidInterval" xml:space="preserve">
+    <value>The start time must be before the end time.</value>
+  </data>
+  <data name="AdjustTimeErrorInvalidDuration" xml:space="preserve">
+    <value>Enter a positive duration as hours and minutes.</value>
+  </data>
+  <data name="TrayPause.Text" xml:space="preserve">
+    <value>Pause tracking</value>
+  </data>
+  <data name="TrayResume.Text" xml:space="preserve">
+    <value>Resume tracking</value>
+  </data>
+  <data name="TrayFinish.Text" xml:space="preserve">
+    <value>Finish day</value>
+  </data>
+  <data name="TrayAddTime.Text" xml:space="preserve">
+    <value>Add or adjust time…</value>
+  </data>
+  <data name="TrayPauseCommand" xml:space="preserve">
+    <value>Pause tracking</value>
+  </data>
+  <data name="TrayResumeCommand" xml:space="preserve">
+    <value>Resume tracking</value>
+  </data>
+  <data name="TrayFinishCommand" xml:space="preserve">
+    <value>Finish day</value>
+  </data>
+  <data name="TrayAddTimeCommand" xml:space="preserve">
+    <value>Add or adjust time…</value>
+  </data>
+  <data name="TrayReviewConfirmWorkCommandFormat" xml:space="preserve">
+    <value>Confirm locked time as work ({0})</value>
+  </data>
+  <data name="TrayReviewExcludeCommandFormat" xml:space="preserve">
+    <value>Exclude locked time ({0})</value>
+  </data>
+  <data name="TrayReviewFinishCommandFormat" xml:space="preserve">
+    <value>Finish at lock start ({0})</value>
+  </data>
+  <data name="TrayReviewSubmenuFormat" xml:space="preserve">
+    <value>Lock to review · {0}–{1}</value>
+  </data>
+  <data name="TrayEditLatestAdjustmentCommand" xml:space="preserve">
+    <value>Edit last adjustment (removal unavailable)…</value>
+  </data>
+  <data name="AdjustTimeErrorOverlapCredited" xml:space="preserve">
+    <value>This interval overlaps time already counted as work.</value>
+  </data>
+  <data name="AdjustTimeErrorActiveOverlap" xml:space="preserve">
+    <value>This interval overlaps another active manual correction.</value>
+  </data>
+  <data name="AdjustTimeErrorOutsideHorizon" xml:space="preserve">
+    <value>Choose an interval within the current accounting period.</value>
+  </data>
+  <data name="AdjustTimeErrorConflict" xml:space="preserve">
+    <value>This correction changed. Close this dialog and reopen it before trying again.</value>
+  </data>
+  <data name="AdjustTimeErrorOutsideWeek" xml:space="preserve">
+    <value>This day is in a week that has ended and can no longer be corrected.</value>
+  </data>
+  <data name="AdjustTimeErrorSubmissionFailed" xml:space="preserve">
+    <value>WorkTime could not save this correction. Check the values and try again.</value>
+  </data>
+  <data name="CommandErrorDialogTitle" xml:space="preserve">
+    <value>WorkTime could not complete the action</value>
+  </data>
+  <data name="CommandErrorDialogCloseButton" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="TrayCommandErrorMessage" xml:space="preserve">
+    <value>The command failed. Try again. Your current tracking state was not changed.</value>
+  </data>
+  <data name="PeriodicRefreshErrorMessage" xml:space="preserve">
+    <value>WorkTime could not refresh. It will try again automatically.</value>
+  </data>
+  <data name="ShellTitle.Text" xml:space="preserve"><value>WorkTime</value></data>
+  <data name="ShellWindowTitle" xml:space="preserve"><value>WorkTime</value></data>
+  <data name="ShellSettings.AutomationProperties.Name" xml:space="preserve"><value>Day settings</value></data>
+  <data name="ShellSettings.ToolTipService.ToolTip" xml:space="preserve"><value>Day settings</value></data>
+  <data name="ShellDemo.Title" xml:space="preserve"><value>Demonstration</value></data>
+  <data name="ShellDemo.Message" xml:space="preserve"><value>Fictional workday, isolated data. Your real workday is untouched.</value></data>
+  <data name="ShellScenario.Header" xml:space="preserve"><value>Explore a workday</value></data>
+  <data name="ShellAdd.Content" xml:space="preserve"><value>Adjust time</value></data>
+  <data name="ShellFinish.Content" xml:space="preserve"><value>Finish the day</value></data>
+  <data name="ShellRefresh.AutomationProperties.Name" xml:space="preserve"><value>Refresh</value></data>
+  <data name="ShellRefresh.ToolTipService.ToolTip" xml:space="preserve"><value>Refresh the day</value></data>
+  <data name="ShellHide.Content" xml:space="preserve"><value>Hide</value></data>
+  <data name="ShellPrivacy.Text" xml:space="preserve"><value>Local data · Close to keep running in the tray</value></data>
+  <data name="FlyoutPrivacy" xml:space="preserve"><value>Your working time stays on this PC.</value></data>
+  <data name="WorkdayProgress.AutomationProperties.Name" xml:space="preserve"><value>Daily target progress</value></data>
+  <data name="ShellLoading" xml:space="preserve"><value>Connecting to your workday…</value></data>
+  <data name="ShellRunning" xml:space="preserve"><value>Tracking active</value></data>
+  <data name="ShellPaused" xml:space="preserve"><value>Paused · no new time counted</value></data>
+  <data name="ShellFinished" xml:space="preserve"><value>Day finished · resume at any time</value></data>
+  <data name="ShellFinishedNeedsAdjust" xml:space="preserve"><value>Select Adjust time to add any missing work</value></data>
+  <data name="ShellFinishedOverFormat" xml:space="preserve"><value>{0} over your target</value></data>
+  <data name="ShellFinishedShortFormat" xml:space="preserve"><value>{0} short of your target</value></data>
+  <data name="ShellFinishedTargetReached" xml:space="preserve"><value>Target reached</value></data>
+  <data name="ShellWeekend" xml:space="preserve"><value>No work scheduled today</value></data>
+  <data name="ShellResumeForecast" xml:space="preserve"><value>Resume tracking to see your forecast</value></data>
+  <data name="ShellForecastAwaitsSource" xml:space="preserve"><value>Your forecast returns once activity detection works again</value></data>
+  <data name="DemoOnTrack" xml:space="preserve"><value>On track · 16:00</value></data>
+  <data name="DemoWarning" xml:space="preserve"><value>Near the limit · 16:00</value></data>
+  <data name="DemoLate" xml:space="preserve"><value>Late departure · 16:00</value></data>
+  <data name="DemoComplete" xml:space="preserve"><value>Target complete · 18:00</value></data>
+  <data name="DemoMorning" xml:space="preserve"><value>Before lunch · 11:00</value></data>
+  <data name="DemoUnavailable" xml:space="preserve"><value>ActivityWatch unavailable · 16:00</value></data>
+  <data name="DemoCredit" xml:space="preserve"><value>Credit applied · Tuesday 16:00</value></data>
+  <data name="DemoHistoryWeek" xml:space="preserve"><value>Stored current week · Friday 18:00</value></data>
+  <data name="SourceTitle" xml:space="preserve"><value>Activity</value></data>
+  <data name="SourceUnavailable" xml:space="preserve"><value>ActivityWatch is not responding, and WorkTime no longer supports it. Switch to built-in detection so your time keeps being counted.</value></data>
+  <data name="SourceUnauthorized" xml:space="preserve"><value>ActivityWatch refused the connection. WorkTime no longer supports ActivityWatch: switch to built-in detection.</value></data>
+  <data name="SourceAmbiguous" xml:space="preserve"><value>ActivityWatch has several activity histories. WorkTime no longer supports ActivityWatch: switch to built-in detection.</value></data>
+  <data name="SourceMalformed" xml:space="preserve"><value>WorkTime cannot read the ActivityWatch data. WorkTime no longer supports ActivityWatch: switch to built-in detection.</value></data>
+  <data name="SourceStale" xml:space="preserve"><value>Activity is no longer updating. WorkTime no longer supports ActivityWatch: switch to built-in detection.</value></data>
+  <data name="SourceIncomplete" xml:space="preserve"><value>No usable activity tracking was found. Enable idle detection in ActivityWatch, then select Refresh.</value></data>
+  <data name="SourceActivityWatchIncomplete" xml:space="preserve"><value>No usable activity tracking was found. WorkTime no longer supports ActivityWatch: switch to built-in detection.</value></data>
+  <data name="SourceBuiltInInputFailed" xml:space="preserve"><value>WorkTime cannot read when you last used the keyboard or mouse. That time stays unrecorded. Reading resumes on its own.</value></data>
+  <data name="SourceBuiltInInterrupted" xml:space="preserve"><value>Activity recording has stopped. It resumes on its own. If this message stays, restart WorkTime.</value></data>
+  <data name="SourceNotSelected" xml:space="preserve"><value>No activity source is selected for this period. That time stays unrecorded.</value></data>
+  <data name="WorkdayEstimatedProjectionQualifier" xml:space="preserve"><value>Based on recorded work</value></data>
+  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Unrecorded time · {1}, from {2} to {3}. Were you working? Enter the times.</value></data>
+  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Unrecorded time · {1} in {0} slots, between {2} and {3}. Were you working? Enter the times.</value></data>
+  <data name="SettingsWholeNumberRequired" xml:space="preserve"><value>Enter a whole number of minutes.</value></data>
+  <data name="SettingsWholeSecondsRequired" xml:space="preserve"><value>Enter a whole number of seconds.</value></data>
+  <data name="SettingsNumberOutOfRange" xml:space="preserve"><value>Enter a whole number within the displayed range.</value></data>
+  <data name="SettingsTargetDurationRequired" xml:space="preserve"><value>Use the H:mm format.</value></data>
+  <data name="SettingsTargetDurationOutOfRange" xml:space="preserve"><value>Enter a duration from 0:01 to 24:00.</value></data>
+  <data name="SettingsTarget" xml:space="preserve"><value>The daily target must be between 1 and 1440 minutes.</value></data>
+  <data name="SettingsMinimum" xml:space="preserve"><value>The minimum target must be positive and no higher than the daily target.</value></data>
+  <data name="SettingsLunch" xml:space="preserve"><value>Lunch must end after it starts.</value></data>
+  <data name="SettingsDeparture" xml:space="preserve"><value>The latest departure must be after lunch.</value></data>
+  <data name="SettingsMargin" xml:space="preserve"><value>The warning margin must be between 0 and 1440 minutes.</value></data>
+  <data name="SettingsLock" xml:space="preserve"><value>The lock threshold must be between 1 and 1440 minutes.</value></data>
+  <data name="SettingsDebt" xml:space="preserve"><value>The debt limit must be between 0:01 and 24:00, or left empty for no limit.</value></data>
+  <data name="SettingsSchema" xml:space="preserve"><value>This settings version is not supported.</value></data>
+  <data name="SettingsLanguage" xml:space="preserve"><value>Choose French or English.</value></data>
+  <data name="SettingsSource" xml:space="preserve"><value>The ActivityWatch address, timeout, or settlement timing is invalid.</value></data>
+  <data name="SettingsActivitySource" xml:space="preserve"><value>The selected activity source is not recognized.</value></data>
+  <data name="SettingsIdleThreshold" xml:space="preserve"><value>The idle threshold must be between 30 seconds and 30 minutes.</value></data>
+  <data name="SettingsNotifications" xml:space="preserve"><value>Notification lead times must be between 0 and 1440 minutes.</value></data>
+  <data name="SettingsStorage" xml:space="preserve"><value>The storage settings are invalid.</value></data>
+  <data name="SettingsSaveFailed" xml:space="preserve"><value>Settings could not be saved. Check disk access and try again.</value></data>
+  <data name="ActivitySourceSwitchFailed" xml:space="preserve"><value>Couldn’t switch to built-in detection. Check disk access and try again.</value></data>
+  <data name="SettingsSavedPending" xml:space="preserve"><value>Settings saved. Select Refresh to update your workday.</value></data>
+  <data name="SettingsRecovered" xml:space="preserve"><value>Invalid settings were backed up and the defaults restored. Review your settings.</value></data>
+  <data name="InitializationFailed" xml:space="preserve"><value>WorkTime could not start. Check the local settings and database, then restart the app.</value></data>
+  <data name="StartupFailureTitle" xml:space="preserve"><value>WorkTime could not start</value></data>
+  <data name="StartupFailureMessage" xml:space="preserve"><value>Check the settings and local database, then restart WorkTime. If it keeps happening, export diagnostics.</value></data>
+  <data name="StartupFailureDetailsHeader" xml:space="preserve"><value>Details</value></data>
+  <data name="StartupFailureCloseButton" xml:space="preserve"><value>Close</value></data>
+  <data name="StartupFailureExportingButton" xml:space="preserve"><value>Exporting…</value></data>
+  <data name="StartupFailureDemoDataMessage" xml:space="preserve"><value>This folder holds WorkTime data that the demo did not create, and the demo leaves it untouched. Launch the demo with another folder, or without --data-dir.</value></data>
+  <data name="StartupFailureDemoScenarioMessage" xml:space="preserve"><value>This folder keeps the demo of another scenario. Launch that scenario again, or launch this one with another folder.</value></data>
+  <data name="TrayOpenCommand" xml:space="preserve"><value>Open WorkTime</value></data>
+  <data name="TrayQuitCommand" xml:space="preserve"><value>Quit WorkTime</value></data>
+  <data name="WorkdayKnownWorkedLabel" xml:space="preserve"><value>Known work time</value></data>
+  <data name="StartupEnabled" xml:space="preserve"><value>WorkTime will start the next time you sign in.</value></data>
+  <data name="StartupDisabled" xml:space="preserve"><value>WorkTime will not start when you sign in.</value></data>
+  <data name="StartupDisabledByUser" xml:space="preserve"><value>Windows Startup Apps has disabled WorkTime. Re-enable it in Settings &gt; Apps &gt; Startup.</value></data>
+  <data name="StartupDisabledByPolicy" xml:space="preserve"><value>Your organization prevents WorkTime from starting when you sign in.</value></data>
+  <data name="StartupEnabledByPolicy" xml:space="preserve"><value>Your organization starts WorkTime when you sign in.</value></data>
+  <data name="StartupRegistrationMismatch" xml:space="preserve"><value>Another copy uses the WorkTime startup entry. Turn this setting on to use this copy.</value></data>
+  <data name="StartupUnavailable" xml:space="preserve"><value>Startup registration is unavailable for this copy of WorkTime.</value></data>
+  <data name="SettingsStartupChangeFailed" xml:space="preserve"><value>Windows did not apply the startup change. Check the status above and try again.</value></data>
+  <data name="NotificationTitle" xml:space="preserve"><value>WorkTime</value></data>
+  <data name="NotificationCompletionBody" xml:space="preserve"><value>{0} minutes remain toward your daily target. Projected departure: {1}.</value></data>
+  <data name="NotificationDepartureBody" xml:space="preserve"><value>Your preferred latest departure time is approaching. {0} minutes remain. Projected departure: {1}.</value></data>
+  <data name="NotificationCombinedBody" xml:space="preserve"><value>{0} minutes remain and your preferred departure time is approaching. Projected departure: {1}.</value></data>
+  <data name="NotificationCompleteBody" xml:space="preserve"><value>Your daily target is complete.</value></data>
+  <data name="NotificationEstimateQualifier" xml:space="preserve"><value>Based on recorded work.</value></data>
+  <data name="NotificationFailed" xml:space="preserve"><value>WorkTime could not show a notification. Workday tracking continues.</value></data>
+  <data name="NotificationRegistrationFailed" xml:space="preserve"><value>Windows notifications are unavailable. Workday tracking continues.</value></data>
+  <data name="NotificationSmokeBody" xml:space="preserve"><value>Notification smoke test. No workday data was used.</value></data>
+  <data name="WorkdayProjectionPendingStatus" xml:space="preserve"><value>Day in progress</value></data>
+  <data name="TrayStatusOrange" xml:space="preserve"><value>Departure near limit</value></data>
+  <data name="TrayStatusRed" xml:space="preserve"><value>Departure after limit</value></data>
+  <data name="TrayProjectionPendingComfortable" xml:space="preserve"><value>Planned lunch: comfortable margin</value></data>
+  <data name="TrayProjectionPendingTight" xml:space="preserve"><value>Planned lunch: little margin</value></data>
+  <data name="TrayProjectionPendingLate" xml:space="preserve"><value>Planned lunch: late departure</value></data>
+  <data name="TrayProjectionFormat" xml:space="preserve"><value>Departure {0}</value></data>
+  <data name="TrayOvertimeFormat" xml:space="preserve"><value>Overtime {0}</value></data>
+  <data name="TraySourceFailureFormat" xml:space="preserve"><value>{0} · Open WorkTime</value></data>
+  <data name="TraySourceUnavailable" xml:space="preserve"><value>Activity data unavailable</value></data>
+  <data name="TraySourceUnauthorized" xml:space="preserve"><value>Activity access refused</value></data>
+  <data name="TraySourceAmbiguous" xml:space="preserve"><value>Select activity history</value></data>
+  <data name="TraySourceMalformed" xml:space="preserve"><value>Activity data unreadable</value></data>
+  <data name="TraySourceStale" xml:space="preserve"><value>Activity data stale</value></data>
+  <data name="TraySourceIncomplete" xml:space="preserve"><value>Activity tracking incomplete</value></data>
+  <data name="TraySourceBuiltInInputFailed" xml:space="preserve"><value>Cannot read input</value></data>
+  <data name="TraySourceBuiltInInterrupted" xml:space="preserve"><value>Activity recording stopped</value></data>
+  <data name="TraySourceNotSelected" xml:space="preserve"><value>No activity source</value></data>
+  <data name="WorkdayBuiltInRecording" xml:space="preserve"><value>Built-in detection · recording</value></data>
+  <data name="WorkdayBuiltInInputFailed" xml:space="preserve"><value>Built-in detection · cannot read input</value></data>
+  <data name="WorkdayBuiltInInterrupted" xml:space="preserve"><value>Built-in detection · recording stopped</value></data>
+  <data name="ShellDiagnosticPrivacy.Text" xml:space="preserve"><value>You choose where to save the ZIP and who to share it with.</value></data>
+  <data name="ShellExportDiagnostics.Content" xml:space="preserve"><value>Export diagnostics…</value></data>
+  <data name="ShellExportDiagnostics.AutomationProperties.Name" xml:space="preserve"><value>Export local diagnostics</value></data>
+  <data name="ShellExportDiagnostics.ToolTipService.ToolTip" xml:space="preserve"><value>Save a filtered local diagnostic ZIP</value></data>
+  <data name="TrayExportDiagnosticsCommand" xml:space="preserve"><value>Export diagnostics…</value></data>
+  <data name="DiagnosticZipFileType" xml:space="preserve"><value>ZIP archive</value></data>
+  <data name="DiagnosticExportSucceeded" xml:space="preserve"><value>The diagnostic ZIP was saved.</value></data>
+  <data name="DiagnosticExportFailed" xml:space="preserve"><value>WorkTime could not save the diagnostic ZIP. Choose another location and try again.</value></data>
+  <data name="SettingsWindowTitle" xml:space="preserve"><value>Settings</value></data>
+  <data name="SettingsApplicationGroup" xml:space="preserve"><value>App</value></data>
+  <data name="SettingsTargetsGroup" xml:space="preserve"><value>Targets</value></data>
+  <data name="SettingsWorkdayGroup" xml:space="preserve"><value>Workday</value></data>
+  <data name="SettingsMinutesUnit" xml:space="preserve"><value>min</value></data>
+  <data name="SettingsDetectionGroup" xml:space="preserve"><value>Activity detection</value></data>
+  <data name="SettingsConnectionsGroup" xml:space="preserve"><value>Internet connections</value></data>
+  <data name="SettingsAboutGroup" xml:space="preserve"><value>About</value></data>
+  <data name="SettingsVersionCard.Header" xml:space="preserve"><value>Version</value></data>
+  <data name="SettingsVersionReleasedFormat" xml:space="preserve"><value>Released {0:MMMM d, yyyy}</value></data>
+  <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
+  <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Send an anonymous usage signal</value></data>
+  <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Once a day, with no identifier and no data about your working time. This count helps the developer know how many people use WorkTime.</value></data>
+  <data name="SettingsUsagePingInput.AutomationProperties.Name" xml:space="preserve"><value>Anonymous usage signal</value></data>
+  <data name="SettingsUsagePingDetails" xml:space="preserve"><value>See what is sent</value></data>
+  <data name="SettingsUsagePingFieldsFormat" xml:space="preserve"><value>That’s everything that gets sent. “channel” says where you installed WorkTime (here, {0}) and “first_this_month” is true for the first signal of the month.</value></data>
+  <data name="UsagePingChannelStore" xml:space="preserve"><value>the Microsoft Store</value></data>
+  <data name="UsagePingChannelZip" xml:space="preserve"><value>the ZIP download</value></data>
+  <data name="SettingsUsagePingServerText" xml:space="preserve"><value>The server keeps only a daily total per version and channel. It keeps neither your IP address nor anything that could identify you.</value></data>
+  <data name="SettingsUsagePingLastSentFormat" xml:space="preserve"><value>Last sent: {0}</value></data>
+  <data name="SettingsUsagePingLastSentNever" xml:space="preserve"><value>never</value></data>
+  <data name="SettingsUsagePingLastSentToday" xml:space="preserve"><value>today</value></data>
+  <data name="SettingsUsagePingLastSentYesterday" xml:space="preserve"><value>yesterday</value></data>
+  <data name="SettingsUsagePingLastSentDateFormat" xml:space="preserve"><value>{0:MMMM d}</value></data>
+  <data name="SettingsUsagePingOffText" xml:space="preserve"><value>Off: WorkTime sends no signal.</value></data>
+  <data name="SettingsActivityWatchCalloutTitle" xml:space="preserve"><value>ActivityWatch is no longer supported</value></data>
+  <data name="SettingsActivityWatchCalloutMessage" xml:space="preserve"><value>WorkTime now detects activity itself. Switch to built-in detection so your time keeps being counted.</value></data>
+  <data name="SettingsActivityWatchCalloutAction" xml:space="preserve"><value>Use built-in detection</value></data>
+  <data name="SettingsJsonNav.Content" xml:space="preserve"><value>settings.json</value></data>
+  <data name="SettingsDataNav.Content" xml:space="preserve"><value>Data</value></data>
+  <data name="SettingsDataTitle" xml:space="preserve"><value>Data</value></data>
+  <data name="SettingsTransferGroup" xml:space="preserve"><value>Moving to a new PC</value></data>
+  <data name="SettingsExportTitle" xml:space="preserve"><value>Export data</value></data>
+  <data name="SettingsExportDescription" xml:space="preserve"><value>Saves your history and settings to a file you can import on your new PC.</value></data>
+  <data name="SettingsExportAction" xml:space="preserve"><value>Export…</value></data>
+  <data name="SettingsImportTitle" xml:space="preserve"><value>Import data</value></data>
+  <data name="SettingsImportDescription" xml:space="preserve"><value>Replaces this PC’s history and settings with the ones from an exported file. WorkTime keeps a copy of the current data.</value></data>
+  <data name="SettingsImportAction" xml:space="preserve"><value>Import…</value></data>
+  <data name="SettingsTransferDemo" xml:space="preserve"><value>Export and import are turned off in the demo.</value></data>
+  <data name="SettingsExporting" xml:space="preserve"><value>Exporting…</value></data>
+  <data name="SettingsExportedFormat" xml:space="preserve"><value>Data exported · {0}. Import it on your new PC.</value></data>
+  <data name="SettingsExportFailed" xml:space="preserve"><value>WorkTime could not save the file. Choose another location and try again.</value></data>
+  <data name="SettingsImportReading" xml:space="preserve"><value>Reading the file…</value></data>
+  <data name="SettingsImportNotATransfer" xml:space="preserve"><value>This file is not a WorkTime export. Choose a .worktime file.</value></data>
+  <data name="SettingsImportNewer" xml:space="preserve"><value>This file comes from a newer version of WorkTime. Update WorkTime on this PC, then try again.</value></data>
+  <data name="SettingsImportReadFailed" xml:space="preserve"><value>WorkTime could not read this file. Copy it to this PC, then try again.</value></data>
+  <data name="SettingsImportFailed" xml:space="preserve"><value>WorkTime could not import this file. Your data has not changed. Try again.</value></data>
+  <data name="SettingsImportRestarting" xml:space="preserve"><value>Restarting WorkTime…</value></data>
+  <data name="SettingsImportDialogTitle" xml:space="preserve"><value>Replace this PC’s data?</value></data>
+  <data name="SettingsImportDialogPeriodFormat" xml:space="preserve"><value>This file, exported on {0:MMMM d, yyyy}, holds your history from {1:MMMM d, yyyy} to {2:MMMM d, yyyy}.</value></data>
+  <data name="SettingsImportDialogEmptyFormat" xml:space="preserve"><value>This file, exported on {0:MMMM d, yyyy}, holds no history.</value></data>
+  <data name="SettingsImportDialogMessage" xml:space="preserve"><value>WorkTime first saves a copy of this PC’s data, then restarts.</value></data>
+  <data name="SettingsImportDialogThisPcFormat" xml:space="preserve"><value>This PC holds your history from {0:MMMM d, yyyy} to {1:MMMM d, yyyy}.</value></data>
+  <data name="SettingsImportDialogLossFormat" xml:space="preserve"><value>Days recorded on this PC after {0:MMMM d, yyyy}, will no longer be in the history.</value></data>
+  <data name="SettingsImportDialogLossOutside" xml:space="preserve"><value>Days recorded on this PC outside the file’s period will no longer be in the history.</value></data>
+  <data name="SettingsImportDialogLossAll" xml:space="preserve"><value>This PC will have no history left.</value></data>
+  <data name="SettingsBackupTitle" xml:space="preserve"><value>Copy from before the import</value></data>
+  <data name="SettingsBackupDescriptionFormat" xml:space="preserve"><value>Saved on {0:MMMM d, yyyy}. Import it to go back to the replaced data.</value></data>
+  <data name="SettingsShowInExplorer" xml:space="preserve"><value>Show in File Explorer</value></data>
+  <data name="SettingsImportCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SettingsImportConfirm" xml:space="preserve"><value>Replace and restart</value></data>
+  <data name="TransferFileType" xml:space="preserve"><value>WorkTime data</value></data>
+  <data name="TransferImported" xml:space="preserve"><value>Data imported · A copy of your previous data stays in Settings › Data.</value></data>
+  <data name="TransferImportFailed" xml:space="preserve"><value>WorkTime could not import the file. Your data has not changed. Try again from Settings.</value></data>
+  <data name="SettingsJsonReadOnly" xml:space="preserve"><value>Read-only</value></data>
+  <data name="SettingsJsonOpenFile" xml:space="preserve"><value>Open file</value></data>
+  <data name="SettingsJsonRestartNote" xml:space="preserve"><value>Changes made in an editor take effect the next time WorkTime starts.</value></data>
+  <data name="SettingsGeneralNav.Content" xml:space="preserve"><value>General</value></data>
+  <data name="SettingsScheduleNav.Content" xml:space="preserve"><value>Schedule</value></data>
+  <data name="SettingsAccountingNav.Content" xml:space="preserve"><value>Accounting</value></data>
+  <data name="SettingsNotificationsNav.Content" xml:space="preserve"><value>Notifications</value></data>
+  <data name="SettingsRetry.Content" xml:space="preserve"><value>Retry</value></data>
+  <data name="SettingsGeneralTitle" xml:space="preserve"><value>General</value></data>
+  <data name="SettingsGeneralDescriptionRealText" xml:space="preserve"><value>Language changes apply after WorkTime restarts.</value></data>
+  <data name="SettingsGeneralDescriptionDemoText" xml:space="preserve"><value>Language changes apply after WorkTime restarts. Windows startup is unavailable in demo mode.</value></data>
+  <data name="SettingsLunchStartLabel.Text" xml:space="preserve"><value>Start</value></data>
+  <data name="SettingsLunchEndLabel.Text" xml:space="preserve"><value>End</value></data>
+  <data name="SettingsLunchStartInput.AutomationProperties.Name" xml:space="preserve"><value>Lunch start time</value></data>
+  <data name="SettingsLunchEndInput.AutomationProperties.Name" xml:space="preserve"><value>Lunch end time</value></data>
+  <data name="SettingsDepartureInput.AutomationProperties.Name" xml:space="preserve"><value>Preferred latest departure time</value></data>
+  <data name="SettingsTargetInput.AutomationProperties.Name" xml:space="preserve"><value>Daily target in hours and minutes</value></data>
+  <data name="SettingsMinimumInput.AutomationProperties.Name" xml:space="preserve"><value>Minimum target in hours and minutes</value></data>
+  <data name="SettingsCompletionInput.AutomationProperties.Name" xml:space="preserve"><value>Daily target approach notification</value></data>
+  <data name="SettingsCompletionInput.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsCompletionInput.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsCompletionLeadInput.AutomationProperties.Name" xml:space="preserve"><value>Daily target notification lead time in minutes</value></data>
+  <data name="SettingsDepartureNotificationInput.AutomationProperties.Name" xml:space="preserve"><value>Departure approach notification</value></data>
+  <data name="SettingsDepartureNotificationInput.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsDepartureNotificationInput.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsDepartureLeadInput.AutomationProperties.Name" xml:space="preserve"><value>Departure notification lead time in minutes</value></data>
+  <data name="SettingsDayCompleteInput.AutomationProperties.Name" xml:space="preserve"><value>Day complete notification</value></data>
+  <data name="SettingsDayCompleteInput.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsDayCompleteInput.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Application language</value></data>
+  <data name="SettingsStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Start WorkTime with Windows</value></data>
+  <data name="SettingsStartupInput.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsStartupInput.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsUpdatesInput.AutomationProperties.Name" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="SettingsUpdatesInput.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsUpdatesInput.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsMarginInput.AutomationProperties.Name" xml:space="preserve"><value>Warning margin in minutes</value></data>
+  <data name="SettingsCreditInput.AutomationProperties.Name" xml:space="preserve"><value>Weekly credit</value></data>
+  <data name="SettingsCreditInput.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsCreditInput.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsDebtInput.AutomationProperties.Name" xml:space="preserve"><value>Weekly debt</value></data>
+  <data name="SettingsDebtInput.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsDebtInput.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsDebtLimitInput.AutomationProperties.Name" xml:space="preserve"><value>Weekly debt limit in hours and minutes</value></data>
+  <data name="SettingsLongLockInput.AutomationProperties.Name" xml:space="preserve"><value>Long lock threshold in minutes</value></data>
+  <data name="SettingsAfkInput.AutomationProperties.Name" xml:space="preserve"><value>ActivityWatch AFK timeout in seconds</value></data>
+  <data name="SettingsPollInput.AutomationProperties.Name" xml:space="preserve"><value>ActivityWatch polling interval in seconds</value></data>
+  <data name="SettingsLanguageCard.Header" xml:space="preserve"><value>Language</value></data>
+  <data name="SettingsLanguageCard.Description" xml:space="preserve"><value>WorkTime’s language, applied at next start.</value></data>
+  <data name="SettingsLanguageSystem.Content" xml:space="preserve"><value>System</value></data>
+  <data name="SettingsLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
+  <data name="SettingsLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
+  <data name="SettingsStartupCard.Header" xml:space="preserve"><value>Windows startup</value></data>
+  <data name="SettingsStartupCard.Description" xml:space="preserve"><value>Start WorkTime when you sign in.</value></data>
+  <data name="SettingsUpdatesCard.Header" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="SettingsUpdatesCard.Description" xml:space="preserve"><value>Checks once a day for a new version.</value></data>
+  <data name="SettingsUpdatesCard.DirectDescription" xml:space="preserve"><value>Downloads any new version once a day. It installs the next time WorkTime starts.</value></data>
+  <data name="SettingsUpdatesZipText" xml:space="preserve"><value>The ZIP version doesn’t check for updates. Get new versions from GitHub.</value></data>
+  <data name="SettingsScheduleTitle" xml:space="preserve"><value>Schedule</value></data>
+  <data name="SettingsTargetCard.Header" xml:space="preserve"><value>Daily target</value></data>
+  <data name="SettingsTargetCard.Description" xml:space="preserve"><value>Hours and minutes per standard workday, for example 7:24.</value></data>
+  <data name="SettingsMinimumCard.Header" xml:space="preserve"><value>Minimum target</value></data>
+  <data name="SettingsMinimumCard.Description" xml:space="preserve"><value>Minimum after weekly credit, entered as H:mm.</value></data>
+  <data name="SettingsLunchCard.Header" xml:space="preserve"><value>Lunch window</value></data>
+  <data name="SettingsLunchCard.Description" xml:space="preserve"><value>Start and end time.</value></data>
+  <data name="SettingsDepartureCard.Header" xml:space="preserve"><value>Preferred latest departure</value></data>
+  <data name="SettingsDepartureCard.Description" xml:space="preserve"><value>WorkTime warns you when your projected departure gets close to or passes this time.</value></data>
+  <data name="SettingsMarginCard.Header" xml:space="preserve"><value>Warning margin</value></data>
+  <data name="SettingsMarginCard.Description" xml:space="preserve"><value>Minutes before the preferred departure.</value></data>
+  <data name="SettingsAccountingTitle" xml:space="preserve"><value>Accounting</value></data>
+  <data name="SettingsCreditCard.Header" xml:space="preserve"><value>Weekly credit</value></data>
+  <data name="SettingsCreditCard.Description" xml:space="preserve"><value>Apply extra work from earlier days to this week’s later targets.</value></data>
+  <data name="SettingsDebtCard.Header" xml:space="preserve"><value>Weekly debt</value></data>
+  <data name="SettingsDebtCard.Description" xml:space="preserve"><value>Carry time missing from finished days until extra work makes it up. Debt never raises a target and ends with the week. Requires weekly credit.</value></data>
+  <data name="SettingsDebtLimitCard.Header" xml:space="preserve"><value>Debt limit</value></data>
+  <data name="SettingsDebtLimitCard.Description" xml:space="preserve"><value>Largest weekly debt kept, entered as H:mm. Leave empty for no limit.</value></data>
+  <data name="SettingsDebtLimitInput.PlaceholderText" xml:space="preserve"><value>No limit</value></data>
+  <data name="SettingsLongLockCard.Header" xml:space="preserve"><value>Long lock review</value></data>
+  <data name="SettingsLongLockCard.Description" xml:space="preserve"><value>Review locked intervals longer than this many minutes.</value></data>
+  <data name="SettingsAdvancedCard.Header" xml:space="preserve"><value>ActivityWatch settlement</value></data>
+  <data name="SettingsAdvancedCard.Description" xml:space="preserve"><value>Advanced source timing.</value></data>
+  <data name="SettingsAfkCard.Header" xml:space="preserve"><value>AFK timeout</value></data>
+  <data name="SettingsAfkCard.Description" xml:space="preserve"><value>Match the AFK timeout configured in ActivityWatch, in seconds.</value></data>
+  <data name="SettingsPollCard.Header" xml:space="preserve"><value>Polling interval</value></data>
+  <data name="SettingsPollCard.Description" xml:space="preserve"><value>Match the polling interval configured in ActivityWatch, in seconds.</value></data>
+  <data name="SettingsNotificationsTitle" xml:space="preserve"><value>Notifications</value></data>
+  <data name="SettingsCompletionCard.Header" xml:space="preserve"><value>Daily target approaching</value></data>
+  <data name="SettingsCompletionCard.Description" xml:space="preserve"><value>Notify this many minutes before you reach the daily target.</value></data>
+  <data name="SettingsDepartureNotificationCard.Header" xml:space="preserve"><value>Preferred departure approaching</value></data>
+  <data name="SettingsDepartureNotificationCard.Description" xml:space="preserve"><value>Notify this many minutes before your preferred latest departure.</value></data>
+  <data name="SettingsDayCompleteCard.Header" xml:space="preserve"><value>Daily target complete</value></data>
+  <data name="SettingsDayCompleteCard.Description" xml:space="preserve"><value>Notify when you reach the daily target.</value></data>
+  <data name="SettingsSaving" xml:space="preserve"><value>Saving settings…</value></data>
+  <data name="SettingsSavedQuiet" xml:space="preserve"><value>Settings saved.</value></data>
+  <data name="SettingsUnsavedTitle" xml:space="preserve"><value>Unsaved settings</value></data>
+  <data name="SettingsUnsavedMessage" xml:space="preserve"><value>Some settings are invalid or could not be saved. Keep editing, or discard those changes.</value></data>
+  <data name="SettingsKeepEditing" xml:space="preserve"><value>Keep editing</value></data>
+  <data name="SettingsDiscard" xml:space="preserve"><value>Discard unsaved changes</value></data>
+  <data name="ShellHistory.AutomationProperties.Name" xml:space="preserve"><value>History</value></data>
+  <data name="ShellHistory.ToolTipService.ToolTip" xml:space="preserve"><value>Open current week history</value></data>
+  <data name="HistoryWindowTitle" xml:space="preserve"><value>Current week history</value></data>
+  <data name="HistoryEarnedLabel.Text" xml:space="preserve"><value>Earned</value></data>
+  <data name="HistoryAppliedLabel.Text" xml:space="preserve"><value>Applied</value></data>
+  <data name="HistoryAvailableLabel.Text" xml:space="preserve"><value>Available</value></data>
+  <data name="HistoryDebtLabel.Text" xml:space="preserve"><value>Debt</value></data>
+  <data name="HistoryExpiredLabel.Text" xml:space="preserve"><value>Expired</value></data>
+  <data name="HistoryAdd.Content" xml:space="preserve"><value>Add a correction</value></data>
+  <data name="HistoryEdit.Content" xml:space="preserve"><value>Edit</value></data>
+  <data name="HistoryConfirmationLocked" xml:space="preserve"><value>Correction confirmed in a lock review. It can’t be changed anymore.</value></data>
+  <data name="HistoryFuture" xml:space="preserve"><value>Upcoming day</value></data>
+  <data name="HistoryNoSummary" xml:space="preserve"><value>No stored summary</value></data>
+  <data name="HistoryLoadFailed" xml:space="preserve"><value>History could not be loaded. Your last loaded data remains visible; check local storage and retry.</value></data>
+  <data name="HistoryAdjustmentStale" xml:space="preserve"><value>This correction has changed. Refresh the week before editing it.</value></data>
+  <data name="HistorySavedRefreshPending" xml:space="preserve"><value>The correction was saved, but the week could not be refreshed. Refresh the week; the correction will not be submitted again.</value></data>
+  <data name="HistoryWeekChanged" xml:space="preserve"><value>The current week changed. History was reloaded before continuing.</value></data>
+  <data name="HistoryReviewPending" xml:space="preserve"><value>Review pending</value></data>
+  <data name="HistoryReviewClear" xml:space="preserve"><value>No pending review</value></data>
+  <data name="HistoryIndicatorGreen" xml:space="preserve"><value>On track</value></data>
+  <data name="HistoryIndicatorOrange" xml:space="preserve"><value>Near the limit</value></data>
+  <data name="HistoryIndicatorRed" xml:space="preserve"><value>Late</value></data>
+  <data name="HistoryIndicatorBlue" xml:space="preserve"><value>Target reached</value></data>
+  <data name="HistoryTargetFormat" xml:space="preserve"><value>{0} effective · {1} nominal</value></data>
+  <data name="HistoryCreditFormat" xml:space="preserve"><value>+{0} earned · {1} applied · {2} available</value></data>
+  <data name="HistoryDebtFormat" xml:space="preserve"><value>+{0} earned · {1} applied · balance −{2}</value></data>
+  <data name="HistoryNegativeDurationFormat" xml:space="preserve"><value>−{0}</value></data>
+  <data name="HistoryIntervalFormat" xml:space="preserve"><value>{0}–{1}</value></data>
+  <data name="HistoryTimeZoneFormat" xml:space="preserve"><value>Times shown in {0}</value></data>
+  <data name="HistoryDurationSubsecond" xml:space="preserve"><value>Less than one second</value></data>
+  <data name="HistoryDurationHoursMinutesSeconds" xml:space="preserve"><value>{0}h {1:00}m {2:00}s</value></data>
+  <data name="HistoryDispositionConfirmedCredit" xml:space="preserve"><value>Confirmed work</value></data>
+  <data name="HistoryDispositionProvisionalCredit" xml:space="preserve"><value>Provisional work</value></data>
+  <data name="HistoryDispositionExcluded" xml:space="preserve"><value>Excluded</value></data>
+  <data name="HistoryDispositionUnknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="HistoryDispositionManualCredit" xml:space="preserve"><value>Manual correction</value></data>
+  <data name="HistoryLabelActiveWork" xml:space="preserve"><value>Active work</value></data><data name="HistoryLabelAfk" xml:space="preserve"><value>Inactive</value></data><data name="HistoryLabelLunchLock" xml:space="preserve"><value>Lunch break</value></data><data name="HistoryLabelLockedWork" xml:space="preserve"><value>Locked work</value></data><data name="HistoryLabelSuspended" xml:space="preserve"><value>Suspended</value></data><data name="HistoryLabelManualPause" xml:space="preserve"><value>Manual pause</value></data><data name="HistoryLabelDayFinished" xml:space="preserve"><value>After day finish</value></data><data name="HistoryLabelManual" xml:space="preserve"><value>Manual</value></data><data name="HistoryLabelUnknown" xml:space="preserve"><value>Unknown</value></data><data name="HistoryLabelOvernightLock" xml:space="preserve"><value>Locked overnight</value></data>
+  <data name="HistorySourceComplete" xml:space="preserve"><value>Complete activity source</value></data><data name="HistorySourceIncomplete" xml:space="preserve"><value>Incomplete activity source</value></data><data name="HistorySourceAmbiguous" xml:space="preserve"><value>Ambiguous activity source</value></data><data name="HistorySourceUnauthorized" xml:space="preserve"><value>Activity source access refused</value></data><data name="HistorySourceIncompatible" xml:space="preserve"><value>Incompatible activity source</value></data><data name="HistorySourceMalformed" xml:space="preserve"><value>Unreadable activity source</value></data>
+  <data name="HistoryCorrectionFailed" xml:space="preserve"><value>The correction could not be opened or completed. Your current history is retained. Try again.</value></data>
+  <data name="AdjustTimeTargetDateFormat" xml:space="preserve"><value>Day to correct: {0}</value></data>
+  <data name="AdjustmentSavedRefreshPending.Message" xml:space="preserve"><value>The correction was saved, but the totals could not be refreshed. Refresh the totals; the correction will not be submitted again.</value></data>
+  <data name="AdjustmentRetryRefresh.Content" xml:space="preserve"><value>Refresh the totals</value></data>
+  <data name="AdjustTimeSelectedPeriod.Title" xml:space="preserve"><value>Selected period</value></data>
+  <data name="DemoProblemPeriods" xml:space="preserve"><value>Periods to review · 16:00</value></data>
+  <data name="HistoryPeriodResolved" xml:space="preserve"><value>This period has changed since it was displayed. Refresh the day to see its current state.</value></data>
+  <data name="HistoryCorrectionNotRemovable" xml:space="preserve"><value>This correction comes from a lock review and cannot be removed. The day now shows what you can change.</value></data>
+  <data name="DeclareWorkTitle" xml:space="preserve"><value>Record time worked</value></data>
+  <data name="DeclareWorkDateFormat" xml:space="preserve"><value>Day: {0}</value></data>
+  <data name="DeclareWorkExplanation.Text" xml:space="preserve"><value>Enter when you actually worked, for example during a meeting. Work already detected in this interval is counted only once.</value></data>
+  <data name="DeclareWorkStart.Header" xml:space="preserve"><value>Start</value></data>
+  <data name="DeclareWorkStart.AutomationProperties.Name" xml:space="preserve"><value>Start time</value></data>
+  <data name="DeclareWorkEnd.Header" xml:space="preserve"><value>End</value></data>
+  <data name="DeclareWorkEnd.AutomationProperties.Name" xml:space="preserve"><value>End time</value></data>
+  <data name="DeclareWorkStart.PlaceholderText" xml:space="preserve"><value>HH:mm</value></data>
+  <data name="DeclareWorkEnd.PlaceholderText" xml:space="preserve"><value>HH:mm</value></data>
+  <data name="DeclareWorkContextExplanation" xml:space="preserve"><value>Set Start and End to when you were working. Work already detected isn’t counted twice.</value></data>
+  <data name="DeclareWorkContextRowName" xml:space="preserve"><value>{0}, {1} to {2}, {3}</value></data>
+  <data name="DeclareWorkContextChosenRowName" xml:space="preserve"><value>{0}, {1} to {2}, {3}, selected slot</value></data>
+  <data name="DeclareWorkDayContext" xml:space="preserve"><value>Your day</value></data>
+  <data name="DeclareWorkDayContextPick" xml:space="preserve"><value>Your day · pick a slot</value></data>
+  <data name="DeclareWorkSlotName" xml:space="preserve"><value>{0} to {1}, {2}</value></data>
+  <data name="DeclareWorkUnrecordedSlots" xml:space="preserve"><value>Unrecorded slots</value></data>
+  <data name="SourceOpenSettings" xml:space="preserve"><value>Open settings</value></data>
+  <data name="HistoryDeclareWork.Content" xml:space="preserve"><value>Record time worked…</value></data>
+  <data name="HistoryManualTitle.Text" xml:space="preserve"><value>Manual corrections</value></data>
+  <data name="HistoryCreditTitle.Text" xml:space="preserve"><value>Credit</value></data>
+  <data name="DemoFragmentedDay" xml:space="preserve"><value>Fragmented day · 16:00</value></data>
+  <data name="HistoryNoManualAdjustments.Text" xml:space="preserve"><value>No manual corrections for this day.</value></data>
+  <data name="OnboardingActivityWatchTitle.Text" xml:space="preserve"><value>Connect ActivityWatch</value></data>
+  <data name="OnboardingActivityWatchIntro.Text" xml:space="preserve"><value>WorkTime reads your away-from-keyboard (AFK) status from ActivityWatch on this computer. It never installs, starts, stops, or changes ActivityWatch.</value></data>
+  <data name="OnboardingActivityWatchEndpointInput.Header" xml:space="preserve"><value>Server address</value></data>
+  <data name="OnboardingActivityWatchEndpointInput.PlaceholderText" xml:space="preserve"><value>http://127.0.0.1:5600</value></data>
+  <data name="OnboardingActivityWatchEndpointInput.AutomationProperties.Name" xml:space="preserve"><value>ActivityWatch server address</value></data>
+  <data name="OnboardingActivityWatchEndpointInvalid" xml:space="preserve"><value>Enter an http:// or https:// address without a path, for example http://127.0.0.1:5600.</value></data>
+  <data name="OnboardingActivityWatchApiKeyInput.Header" xml:space="preserve"><value>API key (optional)</value></data>
+  <data name="OnboardingActivityWatchApiKeyInput.AutomationProperties.Name" xml:space="preserve"><value>ActivityWatch API key, optional</value></data>
+  <data name="OnboardingActivityWatchApiKeyHelp.Text" xml:space="preserve"><value>Only needed when aw-server-rust requires authentication. WorkTime stores the key encrypted for your Windows account and never displays it.</value></data>
+  <data name="OnboardingActivityWatchTestButton.Content" xml:space="preserve"><value>Test connection</value></data>
+  <data name="OnboardingActivityWatchProgress.AutomationProperties.Name" xml:space="preserve"><value>Testing the connection</value></data>
+  <data name="OnboardingActivityWatchInstallLink.Content" xml:space="preserve"><value>Get ActivityWatch</value></data>
+  <data name="OnboardingActivityWatchBucketInput.Header" xml:space="preserve"><value>Activity history</value></data>
+  <data name="OnboardingActivityWatchBucketInput.PlaceholderText" xml:space="preserve"><value>Choose this computer’s history</value></data>
+  <data name="OnboardingActivityWatchBucketInput.AutomationProperties.Name" xml:space="preserve"><value>ActivityWatch activity history</value></data>
+  <data name="OnboardingActivityWatchBucketLocalFormat" xml:space="preserve"><value>{0} (this computer)</value></data>
+  <data name="OnboardingActivityWatchNotTestedTitle" xml:space="preserve"><value>Connection not tested</value></data>
+  <data name="OnboardingActivityWatchNotTestedMessage" xml:space="preserve"><value>Test the connection to check that WorkTime can read your activity.</value></data>
+  <data name="OnboardingActivityWatchHealthyTitle" xml:space="preserve"><value>Connected</value></data>
+  <data name="OnboardingActivityWatchHealthyMessage" xml:space="preserve"><value>WorkTime can read your AFK status from ActivityWatch.</value></data>
+  <data name="OnboardingActivityWatchServerUnavailableTitle" xml:space="preserve"><value>ActivityWatch is not reachable</value></data>
+  <data name="OnboardingActivityWatchServerUnavailableMessage" xml:space="preserve"><value>No ActivityWatch server (aw-server-rust or aw-server) answers at this address. Install or start it, check the address, then test again.</value></data>
+  <data name="OnboardingActivityWatchAuthenticationRequiredTitle" xml:space="preserve"><value>Authentication required</value></data>
+  <data name="OnboardingActivityWatchAuthenticationRequiredMessage" xml:space="preserve"><value>ActivityWatch refused the connection. Enter the API key configured in aw-server-rust, then test again.</value></data>
+  <data name="OnboardingActivityWatchAfkBucketMissingTitle" xml:space="preserve"><value>No AFK tracking found</value></data>
+  <data name="OnboardingActivityWatchAfkBucketMissingMessage" xml:space="preserve"><value>ActivityWatch is running, but it has no AFK history yet. Make sure aw-watcher-afk runs with ActivityWatch, then test again.</value></data>
+  <data name="OnboardingActivityWatchBucketSelectionRequiredTitle" xml:space="preserve"><value>Choose an activity history</value></data>
+  <data name="OnboardingActivityWatchBucketSelectionRequiredMessage" xml:space="preserve"><value>ActivityWatch has several AFK histories. Choose the one that records this computer below.</value></data>
+  <data name="OnboardingActivityWatchIncompatibleTitle" xml:space="preserve"><value>Server not compatible</value></data>
+  <data name="OnboardingActivityWatchIncompatibleMessage" xml:space="preserve"><value>The server at this address does not answer like ActivityWatch. Check the address, and use aw-server-rust or aw-server.</value></data>
+  <data name="OnboardingWindowTitle" xml:space="preserve"><value>Welcome to WorkTime</value></data>
+  <data name="OnboardingProgress.AutomationProperties.Name" xml:space="preserve"><value>Setup progress</value></data>
+  <data name="OnboardingStepLanguage" xml:space="preserve"><value>Step 1 of 4 · Language</value></data>
+  <data name="OnboardingStepSchedule" xml:space="preserve"><value>Step 2 of 4 · Hours</value></data>
+  <data name="OnboardingStepStartup" xml:space="preserve"><value>Step 3 of 4 · Startup</value></data>
+  <data name="OnboardingStepSource" xml:space="preserve"><value>Step 4 of 4 · Activity source</value></data>
+  <data name="OnboardingBackButton.Content" xml:space="preserve"><value>Back</value></data>
+  <data name="OnboardingNextButton.Content" xml:space="preserve"><value>Next</value></data>
+  <data name="OnboardingFinishButton.Content" xml:space="preserve"><value>Finish</value></data>
+  <data name="OnboardingSaveFailed" xml:space="preserve"><value>WorkTime could not save your setup. Try again.</value></data>
+  <data name="OnboardingLanguageTitle.Text" xml:space="preserve"><value>Choose your language</value></data>
+  <data name="OnboardingLanguageIntro.Text" xml:space="preserve"><value>WorkTime follows the Windows language by default. You can change it later in Settings.</value></data>
+  <data name="OnboardingLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Language</value></data>
+  <data name="OnboardingLanguageSystemFrench" xml:space="preserve"><value>Windows language (French)</value></data>
+  <data name="OnboardingLanguageSystemEnglish" xml:space="preserve"><value>Windows language (English)</value></data>
+  <data name="OnboardingLanguageSystem" xml:space="preserve"><value>Windows language</value></data>
+  <data name="OnboardingLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
+  <data name="OnboardingLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
+  <data name="OnboardingLanguageRestartNotice.Text" xml:space="preserve"><value>WorkTime restarts in the chosen language when you finish.</value></data>
+  <data name="OnboardingScheduleTitle.Text" xml:space="preserve"><value>Your typical day</value></data>
+  <data name="OnboardingScheduleIntro.Text" xml:space="preserve"><value>WorkTime works out when you can leave from these values.</value></data>
+  <data name="OnboardingTargetInput.Header" xml:space="preserve"><value>Daily target</value></data>
+  <data name="OnboardingTargetInput.AutomationProperties.Name" xml:space="preserve"><value>Daily target in hours and minutes</value></data>
+  <data name="OnboardingTargetHelp.Text" xml:space="preserve"><value>Hours and minutes, for example 7:24.</value></data>
+  <data name="OnboardingLunchStartInput.Header" xml:space="preserve"><value>Lunch start</value></data>
+  <data name="OnboardingLunchStartInput.AutomationProperties.Name" xml:space="preserve"><value>Lunch start time</value></data>
+  <data name="OnboardingLunchEndInput.Header" xml:space="preserve"><value>Lunch end</value></data>
+  <data name="OnboardingLunchEndInput.AutomationProperties.Name" xml:space="preserve"><value>Lunch end time</value></data>
+  <data name="OnboardingDepartureInput.Header" xml:space="preserve"><value>Preferred latest departure</value></data>
+  <data name="OnboardingDepartureInput.AutomationProperties.Name" xml:space="preserve"><value>Preferred latest departure time</value></data>
+  <data name="OnboardingStartupTitle.Text" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="OnboardingStartupIntro.Text" xml:space="preserve"><value>WorkTime only counts your time while it runs. Starting it when you sign in means you never miss a morning.</value></data>
+  <data name="OnboardingStartupCard.Header" xml:space="preserve"><value>Windows startup</value></data>
+  <data name="OnboardingStartupCard.Description" xml:space="preserve"><value>Start WorkTime when you sign in.</value></data>
+  <data name="OnboardingStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Start WorkTime with Windows</value></data>
+  <data name="OnboardingStartupInput.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="OnboardingStartupInput.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="OnboardingStartupFootnote.Text" xml:space="preserve"><value>The icon stays in the notification area. Closing the window does not stop WorkTime.</value></data>
+  <data name="OnboardingSourceTitle.Text" xml:space="preserve"><value>Activity detection</value></data>
+  <data name="OnboardingSourceIntro.Text" xml:space="preserve"><value>WorkTime knows you are using the computer from your last keyboard or mouse input. It never records application names or window titles, and its records stay on this computer.</value></data>
+  <data name="OnboardingSourceInput.AutomationProperties.Name" xml:space="preserve"><value>Activity source</value></data>
+  <data name="OnboardingSourceBuiltIn.Content" xml:space="preserve"><value>Built-in (recommended)</value></data>
+  <data name="OnboardingSourceActivityWatch.Content" xml:space="preserve"><value>ActivityWatch, detected on this computer</value></data>
+  <data name="OnboardingSourceFootnote.Text" xml:space="preserve"><value>Tracking starts when you finish setup. You can change the source in the settings.</value></data>
+  <data name="OnboardingStepFormat" xml:space="preserve"><value>Step {0} of {1}</value></data>
+  <data name="OnboardingPreviousButton" xml:space="preserve"><value>Previous</value></data>
+  <data name="OnboardingStartButton" xml:space="preserve"><value>Get started</value></data>
+  <data name="OnboardingConnectionsTitle" xml:space="preserve"><value>Startup and connections</value></data>
+  <data name="OnboardingConnectionsIntro" xml:space="preserve"><value>You can change all of this later in Settings › General.</value></data>
+  <data name="OnboardingConnectionsPrivacy" xml:space="preserve"><value>Your hours and activity stay on this PC.</value></data>
+  <data name="OnboardingUsagePingAllSent" xml:space="preserve"><value>That’s everything that gets sent.</value></data>
+  <data name="TimelineKindWork" xml:space="preserve"><value>Work</value></data>
+  <data name="TimelineKindManual" xml:space="preserve"><value>Manual correction</value></data>
+  <data name="TimelineKindPause" xml:space="preserve"><value>Break</value></data>
+  <data name="TimelineKindNotWorked" xml:space="preserve"><value>Not worked</value></data>
+  <data name="TimelineKindGap" xml:space="preserve"><value>Gap</value></data>
+  <data name="TimelineKindSleep" xml:space="preserve"><value>Sleep</value></data>
+  <data name="TimelineKindReview" xml:space="preserve"><value>To review</value></data>
+  <data name="TimelineSegmentNameFormat" xml:space="preserve"><value>{0}, {1} ({2})</value></data>
+  <data name="HistoryRefresh.AutomationProperties.Name" xml:space="preserve"><value>Refresh</value></data>
+  <data name="HistoryRefresh.ToolTipService.ToolTip" xml:space="preserve"><value>Refresh the week</value></data>
+  <data name="HistoryWeekTitleSameMonth" xml:space="preserve"><value>Week of {0:MMMM d}–{1:%d}</value></data>
+  <data name="HistoryWeekTitle" xml:space="preserve"><value>Week of {0:MMMM d} – {1:MMMM d}</value></data>
+  <data name="HistoryWeekSummary" xml:space="preserve"><value>{0} counted of {1}</value></data>
+  <data name="HistoryWeekCounted" xml:space="preserve"><value>{0} counted</value></data>
+  <data name="HistoryPendingOne" xml:space="preserve"><value>1 slot to settle</value></data>
+  <data name="HistoryPendingMany" xml:space="preserve"><value>{0} slots to settle</value></data>
+  <data name="HistoryAllSettled" xml:space="preserve"><value>everything is settled</value></data>
+  <data name="HistorySettleAll" xml:space="preserve"><value>Settle slots ({0})</value></data>
+  <data name="HistorySettleNone" xml:space="preserve"><value>All settled</value></data>
+  <data name="HistoryDayShortFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="HistoryDayReached" xml:space="preserve"><value>Target reached</value></data>
+  <data name="HistoryDayShort" xml:space="preserve"><value>{0} short</value></data>
+  <data name="HistoryDayToday" xml:space="preserve"><value>Today</value></data>
+  <data name="HistoryDayTodayEnd" xml:space="preserve"><value>Today · estimated end {0}</value></data>
+  <data name="HistoryDayTodayReached" xml:space="preserve"><value>Today · target reached</value></data>
+  <data name="HistoryDayBadge" xml:space="preserve"><value>{0} to settle</value></data>
+  <data name="HistoryDayTargetFormat" xml:space="preserve"><value>/ {0}</value></data>
+  <data name="HistoryDayPauses" xml:space="preserve"><value>Breaks {0}</value></data>
+  <data name="HistoryDayNotCounted" xml:space="preserve"><value>Not counted {0}</value></data>
+  <data name="HistoryDayAhead" xml:space="preserve"><value>+{0} credit</value></data>
+  <data name="HistoryDayBehind" xml:space="preserve"><value>−{0} against the target</value></data>
+  <data name="HistoryPendingTitle" xml:space="preserve"><value>To settle ({0})</value></data>
+  <data name="HistoryPendingNoneTitle" xml:space="preserve"><value>To settle</value></data>
+  <data name="HistoryPendingNone.Text" xml:space="preserve"><value>Nothing to settle on this day.</value></data>
+  <data name="HistoryPendingSettle.Content" xml:space="preserve"><value>Settle</value></data>
+  <data name="HistoryPendingSettleName" xml:space="preserve"><value>Settle · {0}</value></data>
+  <data name="HistoryDetailsToggle.Content" xml:space="preserve"><value>Activity and credit details</value></data>
+  <data name="HistoryAxisTotals.Text" xml:space="preserve"><value>Counted / target</value></data>
+  <data name="HistoryTimeline.AutomationProperties.Name" xml:space="preserve"><value>Week timelines</value></data>
+  <data name="TimelineHourFormat" xml:space="preserve"><value>{0:00}:00</value></data>
+  <data name="HistoryLegendWork.Text" xml:space="preserve"><value>Work</value></data>
+  <data name="HistoryLegendManual.Text" xml:space="preserve"><value>Manual correction</value></data>
+  <data name="HistoryLegendPause.Text" xml:space="preserve"><value>Break</value></data>
+  <data name="HistoryLegendGap.Text" xml:space="preserve"><value>Gap or sleep, to settle</value></data>
+  <data name="HistoryLegendReview.Text" xml:space="preserve"><value>Lock to review</value></data>
+  <data name="HistoryLegendNotWorked.Text" xml:space="preserve"><value>Not worked</value></data>
+  <data name="HistoryLegendNow.Text" xml:space="preserve"><value>Now</value></data>
+  <data name="HistoryBubbleReviewTitle" xml:space="preserve"><value>Lock to review</value></data>
+  <data name="HistoryBubbleFrom.Header" xml:space="preserve"><value>From</value></data>
+  <data name="HistoryBubbleTo.Header" xml:space="preserve"><value>To</value></data>
+  <data name="HistoryBubbleConfirm.Content" xml:space="preserve"><value>Yes, I was working</value></data>
+  <data name="HistoryBubbleReclassify.Content" xml:space="preserve"><value>It wasn’t work</value></data>
+  <data name="HistoryBubbleRemove.Content" xml:space="preserve"><value>Remove the correction</value></data>
+  <data name="HistoryRangeCount.Content" xml:space="preserve"><value>Count as work</value></data>
+  <data name="HistoryRangeExclude.Content" xml:space="preserve"><value>Exclude from work</value></data>
+  <data name="HistoryRangeAlreadyCounted" xml:space="preserve"><value>Already counted as work</value></data>
+  <data name="HistoryRangeAlreadyExcluded" xml:space="preserve"><value>Already excluded from work</value></data>
+  <data name="HistoryRangeDragHint" xml:space="preserve"><value>Or drag its edges.</value></data>
+  <data name="HistoryRangeCountPreview" xml:space="preserve"><value>Day total if you count it: {0} → {1}.</value></data>
+  <data name="HistoryRangeExcludePreview" xml:space="preserve"><value>Day total if you exclude it: {0} → {1}.</value></data>
+  <data name="HistoryRangeLockNote" xml:space="preserve"><value>The lock to review will be settled too.</value></data>
+  <data name="HistoryRangeReplacesOne" xml:space="preserve"><value>Replaces your correction from {0} to {1}.</value></data>
+  <data name="HistoryRangeReplacesMany" xml:space="preserve"><value>Replaces {0} of your corrections.</value></data>
+  <data name="HistoryRangeCorrectionNote" xml:space="preserve"><value>If you remove it, this time goes back to automatic detection.</value></data>
+  <data name="HistoryRangeOpenLockNote" xml:space="preserve"><value>The session is still locked. You can settle this range once it’s unlocked.</value></data>
+  <data name="HistoryRangeCountNoChange" xml:space="preserve"><value>If you count it, the day total doesn’t change.</value></data>
+  <data name="HistoryRangeExcludeNoChange" xml:space="preserve"><value>If you exclude it, the day total doesn’t change.</value></data>
+  <data name="HistoryRangeEditInDetails" xml:space="preserve"><value>To change this correction’s times, use “Edit” in the activity and credit details.</value></data>
+  <data name="HistoryRangeBound" xml:space="preserve"><value>This range includes a correction confirmed in a lock review. Shorten the range to leave it out.</value></data>
+  <data name="HistoryRangeStartHandle" xml:space="preserve"><value>Start of the range</value></data>
+  <data name="HistoryRangeEndHandle" xml:space="preserve"><value>End of the range</value></data>
+  <data name="HistoryBubbleBoundNote" xml:space="preserve"><value>Correction from a lock review. It can’t be removed.</value></data>
+  <data name="HistoryResultWorked" xml:space="preserve"><value>{0} counted as work ({1}).</value></data>
+  <data name="HistoryResultNotWorked" xml:space="preserve"><value>{0} marked as not worked.</value></data>
+  <data name="HistoryResultConfirmed" xml:space="preserve"><value>{0} confirmed as work.</value></data>
+  <data name="HistoryResultReclassified" xml:space="preserve"><value>{0} removed from work.</value></data>
+  <data name="HistoryResultRemoved" xml:space="preserve"><value>Correction removed.</value></data>
+  <data name="HistoryResultUndone" xml:space="preserve"><value>Undone.</value></data>
+  <data name="HistoryResultUndo.Content" xml:space="preserve"><value>Undo</value></data>
+  <data name="HistoryResultNextFormat" xml:space="preserve"><value>Next · {0} left</value></data>
+  <data name="HistoryDetailsTitle.Text" xml:space="preserve"><value>Activity and credit</value></data>
+  <data name="UpdateAvailableDialog.Title" xml:space="preserve"><value>Update available</value></data>
+  <data name="UpdateAvailableDialog.PrimaryButtonText" xml:space="preserve"><value>Update</value></data>
+  <data name="UpdateAvailableDialog.CloseButtonText" xml:space="preserve"><value>Later</value></data>
+  <data name="UpdateAvailableDialogMessage.Text" xml:space="preserve"><value>A new version of WorkTime is available in the Microsoft Store. Windows asks for your permission before downloading it, and WorkTime may close while it installs.</value></data>
+  <data name="UpdateNotice.Message" xml:space="preserve"><value>A new version is available in the Microsoft Store. WorkTime may close while it installs.</value></data>
+  <data name="UpdateNoticeAction.Content" xml:space="preserve"><value>See the update</value></data>
+  <data name="UpdateInstallFailed" xml:space="preserve"><value>The update couldn’t be installed. WorkTime will offer it again within a day.</value></data>
+  <data name="UpdateInstalling" xml:space="preserve"><value>Installing…</value></data>
+  <data name="UsagePingChannelDirect" xml:space="preserve"><value>the installer</value></data>
+  <data name="UpdateReady.Message" xml:space="preserve"><value>A new version is ready. It will install the next time WorkTime starts.</value></data>
+  <data name="UpdateRestartAction.Content" xml:space="preserve"><value>Restart WorkTime</value></data>
+  <data name="UpdateRestarting" xml:space="preserve"><value>Restarting…</value></data>
+  <data name="UpdateRestarting.Message" xml:space="preserve"><value>Installing… WorkTime will reopen.</value></data>
+  <data name="UpdateRestartFailed.Message" xml:space="preserve"><value>The update couldn’t be installed. WorkTime will retry at next start.</value></data>
+  <data name="UpdateFailedMessage" xml:space="preserve"><value>The update couldn’t be installed. Try again now or later.</value></data>
+  <data name="UpdateRetry" xml:space="preserve"><value>Try again</value></data>
+  <data name="SettingsSourceNav.Content" xml:space="preserve"><value>Activity source</value></data>
+  <data name="SettingsSourceTitle" xml:space="preserve"><value>Activity source</value></data>
+  <data name="SettingsSourceDescription.Text" xml:space="preserve"><value>Choose how WorkTime detects that you are using the computer. A change of source applies from now on. Time already past stays read from the source chosen then.</value></data>
+  <data name="SettingsSourceConnectionButton.Content" xml:space="preserve"><value>Connection settings</value></data>
+  <data name="SettingsSourceAddressFormat" xml:space="preserve"><value>Server address: {0}</value></data>
+  <data name="SettingsSourceNotCheckedTitle" xml:space="preserve"><value>Connection not checked yet</value></data>
+  <data name="SettingsSourceNotCheckedMessage" xml:space="preserve"><value>WorkTime checks the connection at the next refresh.</value></data>
+  <data name="SettingsSourceConnectedTitle" xml:space="preserve"><value>Connected</value></data>
+  <data name="SettingsSourceConnectedMessage" xml:space="preserve"><value>WorkTime is reading your activity from ActivityWatch.</value></data>
+  <data name="SettingsSourceUnavailableTitle" xml:space="preserve"><value>ActivityWatch is not reachable</value></data>
+  <data name="SettingsSourceUnavailableMessage" xml:space="preserve"><value>ActivityWatch is not responding, and WorkTime no longer supports it. Switch to built-in detection so your time keeps being counted.</value></data>
+  <data name="SettingsSourceKeyRefusedTitle" xml:space="preserve"><value>API key refused</value></data>
+  <data name="SettingsSourceKeyRefusedMessage" xml:space="preserve"><value>ActivityWatch refused the connection. Enter its API key in Connection settings.</value></data>
+  <data name="SettingsSourceHistoryToChooseTitle" xml:space="preserve"><value>Activity history to choose</value></data>
+  <data name="SettingsSourceHistoryToChooseMessage" xml:space="preserve"><value>ActivityWatch has several activity histories. Choose this computer’s history in Connection settings.</value></data>
+  <data name="SettingsSourceDegradedTitle" xml:space="preserve"><value>Activity data incomplete</value></data>
+  <data name="SettingsSourceDegradedMessage" xml:space="preserve"><value>ActivityWatch answers, but its activity data is incomplete or out of date. The main window says what to check.</value></data>
+  <data name="SettingsSourceDialogName" xml:space="preserve"><value>Connection settings</value></data>
+  <data name="SettingsSourceSave" xml:space="preserve"><value>Save</value></data>
+  <data name="SettingsSourceCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SettingsSourceSaveFailed" xml:space="preserve"><value>WorkTime could not save the connection. Try again.</value></data>
+  <data name="SettingsSourceChoiceCard.Header" xml:space="preserve"><value>Activity detection</value></data>
+  <data name="SettingsSourceChoiceCard.Description" xml:space="preserve"><value>Built-in needs nothing else installed. ActivityWatch reads the activity recorded by your ActivityWatch server, after a successful connection test.</value></data>
+  <data name="SettingsSourceChoiceInput.AutomationProperties.Name" xml:space="preserve"><value>Activity source</value></data>
+  <data name="SettingsSourceBuiltIn.Content" xml:space="preserve"><value>Built-in</value></data>
+  <data name="SettingsSourceActivityWatch.Content" xml:space="preserve"><value>ActivityWatch</value></data>
+  <data name="SettingsIdleThresholdCard.Header" xml:space="preserve"><value>Idle threshold</value></data>
+  <data name="SettingsIdleThresholdCard.Description" xml:space="preserve"><value>After this many seconds without keyboard or mouse input, WorkTime counts you as away from your last input. From 30 seconds to 30 minutes.</value></data>
+  <data name="SettingsIdleThresholdInput.AutomationProperties.Name" xml:space="preserve"><value>Idle threshold in seconds</value></data>
+  <data name="SettingsSourceSelectHint" xml:space="preserve"><value>Test the connection. You can use ActivityWatch once the test succeeds. Time from now on will then be read from ActivityWatch.</value></data>
+  <data name="SettingsSourceUseActivityWatch" xml:space="preserve"><value>Use ActivityWatch</value></data>
+  <data name="OnboardingActivityWatchApiKeySaved" xml:space="preserve"><value>A key is saved. Leave this blank to keep it.</value></data>
+  <data name="FlyoutStatusNearLimit" xml:space="preserve"><value>Near the limit</value></data>
+  <data name="FlyoutStatusLate" xml:space="preserve"><value>Late</value></data>
+  <data name="FlyoutOvertimeLabel" xml:space="preserve"><value>Overtime</value></data>
+  <data name="FlyoutMarginHintFormat" xml:space="preserve"><value>{0} to spare before your latest departure ({1}).</value></data>
+  <data name="FlyoutOverrunHintFormat" xml:space="preserve"><value>{0} past your latest departure ({1}).</value></data>
+  <data name="FlyoutOvertimeHint" xml:space="preserve"><value>This time is added to your weekly credit.</value></data>
+  <data name="FlyoutDegradedHint" xml:space="preserve"><value>Recalculated once tracking resumes.</value></data>
+  <data name="FlyoutWeek" xml:space="preserve"><value>Open week</value></data>
+  <data name="FlyoutAdjustTime" xml:space="preserve"><value>Adjust time…</value></data>
+  <data name="FlyoutDeclareWork" xml:space="preserve"><value>Record time worked…</value></data>
+  <data name="FlyoutPaused" xml:space="preserve"><value>Paused</value></data>
+  <data name="FlyoutFinished" xml:space="preserve"><value>Day finished</value></data>
+  <data name="FlyoutCommands" xml:space="preserve"><value>Commands</value></data>
+  <data name="FlyoutShortcutNameFormat" xml:space="preserve"><value>{0}, {1}</value></data>
+  <data name="FlyoutDateFormat" xml:space="preserve"><value>{0}, {2} {1} · {3}</value></data>
+  <data name="FlyoutWorkedAccessibleFormat" xml:space="preserve"><value>{0}: {1} of {2}</value></data>
+  <data name="KeyControl" xml:space="preserve"><value>Ctrl</value></data>
+  <data name="KeyShift" xml:space="preserve"><value>Shift</value></data>
+  <data name="KeyAlt" xml:space="preserve"><value>Alt</value></data>
+  <data name="KeyComma" xml:space="preserve"><value>Comma</value></data>
+  <data name="CalendarAbbreviatedDayNames" xml:space="preserve"><value>Mon;Tue;Wed;Thu;Fri;Sat;Sun</value></data>
+  <data name="CalendarAbbreviatedMonthNames" xml:space="preserve"><value>Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec</value></data>
+  <data name="FlyoutMinutesFormat" xml:space="preserve"><value>{0}m</value></data>
+  <data name="CalendarDayNames" xml:space="preserve"><value>Monday;Tuesday;Wednesday;Thursday;Friday;Saturday;Sunday</value></data>
+  <data name="CalendarMonthNames" xml:space="preserve"><value>January;February;March;April;May;June;July;August;September;October;November;December</value></data>
+  <data name="HistoryDayLongFormat" xml:space="preserve"><value>{0}, {2} {1}</value></data>
+  <data name="HistoryStatusChangeDay" xml:space="preserve"><value>Change day</value></data>
+  <data name="HistoryStatusNextPending" xml:space="preserve"><value>Next slot to settle</value></data>
+  <data name="HistoryBubbleFinish" xml:space="preserve"><value>Finish the day at {0}</value></data>
+  <data name="HistoryResultFinished" xml:space="preserve"><value>Day finished at {0}.</value></data>
+  <data name="KeyEnter" xml:space="preserve"><value>Enter</value></data>
+  <data name="KeyEscape" xml:space="preserve"><value>Esc</value></data>
+  <data name="KeyDelete" xml:space="preserve"><value>Del</value></data>
+  <data name="KeyUp" xml:space="preserve"><value>↑</value></data>
+  <data name="KeyDown" xml:space="preserve"><value>↓</value></data>
+  <data name="HistoryDurationMinutesSeconds" xml:space="preserve"><value>{0}m {1:00}s</value></data>
+  <data name="SpokenHour" xml:space="preserve"><value>{0} hour</value></data>
+  <data name="SpokenHours" xml:space="preserve"><value>{0} hours</value></data>
+  <data name="SpokenMinute" xml:space="preserve"><value>{0} minute</value></data>
+  <data name="SpokenMinutes" xml:space="preserve"><value>{0} minutes</value></data>
+  <data name="SpokenSecond" xml:space="preserve"><value>{0} second</value></data>
+  <data name="SpokenSeconds" xml:space="preserve"><value>{0} seconds</value></data>
+  <data name="HistoryDayTodayDeparture" xml:space="preserve"><value>Leave at {0}</value></data>
+  <data name="HistoryDayDifference" xml:space="preserve"><value>Difference</value></data>
+  <data name="HistoryDayPausesLabel" xml:space="preserve"><value>Breaks</value></data>
+  <data name="HistoryDayNotCountedLabel" xml:space="preserve"><value>Not counted</value></data>
+  <data name="AdjustTimeCloseButton" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="AdjustTimeResultDuration" xml:space="preserve">
+    <value>{0} counted as work.</value>
+  </data>
+  <data name="TimeFieldHours.AutomationProperties.Name" xml:space="preserve">
+    <value>Hours</value>
+  </data>
+  <data name="TimeFieldMinutes.AutomationProperties.Name" xml:space="preserve">
+    <value>Minutes</value>
+  </data>
+  <data name="PaletteCommandFormat" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="PaletteDomainTracking" xml:space="preserve">
+    <value>Tracking</value>
+  </data>
+  <data name="PaletteDomainTime" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="PaletteDomainWeek" xml:space="preserve">
+    <value>Week</value>
+  </data>
+  <data name="PaletteDomainDay" xml:space="preserve">
+    <value>Day</value>
+  </data>
+  <data name="PaletteDomainSettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="PaletteDomainApp" xml:space="preserve">
+    <value>WorkTime</value>
+  </data>
+  <data name="PalettePause" xml:space="preserve">
+    <value>pause</value>
+  </data>
+  <data name="PaletteResume" xml:space="preserve">
+    <value>resume</value>
+  </data>
+  <data name="PaletteCorrect" xml:space="preserve">
+    <value>adjust…</value>
+  </data>
+  <data name="PalettePreviousDay" xml:space="preserve">
+    <value>previous day</value>
+  </data>
+  <data name="PaletteNextDay" xml:space="preserve">
+    <value>next day</value>
+  </data>
+  <data name="PaletteSettleNext" xml:space="preserve">
+    <value>settle next slot</value>
+  </data>
+  <data name="PaletteUndo" xml:space="preserve">
+    <value>undo last action</value>
+  </data>
+  <data name="PaletteFinish" xml:space="preserve">
+    <value>finish</value>
+  </data>
+  <data name="PaletteOpen" xml:space="preserve">
+    <value>open</value>
+  </data>
+  <data name="PaletteOpenSettingsJson" xml:space="preserve">
+    <value>open settings.json</value>
+  </data>
+  <data name="PaletteRefresh" xml:space="preserve">
+    <value>refresh</value>
+  </data>
+  <data name="PaletteExportDiagnostics" xml:space="preserve">
+    <value>export diagnostics…</value>
+  </data>
+  <data name="PaletteQuit" xml:space="preserve">
+    <value>quit</value>
+  </data>
+  <data name="PalettePlaceholder" xml:space="preserve">
+    <value>Search commands…</value>
+  </data>
+  <data name="PaletteSearchName" xml:space="preserve">
+    <value>Search commands</value>
+  </data>
+  <data name="PaletteCommands" xml:space="preserve">
+    <value>Commands</value>
+  </data>
+  <data name="PaletteDialogName" xml:space="preserve">
+    <value>Command palette</value>
+  </data>
+  <data name="PaletteNoMatch" xml:space="preserve">
+    <value>No matching commands.</value>
+  </data>
+  <data name="PaletteSelectHint" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="PaletteRunHint" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="PaletteCloseHint" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="SettingsAppointments" xml:space="preserve">
+    <value>A recurring appointment must be on a weekday, end after it starts, and have a name of 80 characters or fewer.</value>
+  </data>
+  <data name="TrayAppointmentReviewSubmenuFormat" xml:space="preserve">
+    <value>{0} to review · {1}–{2}</value>
+  </data>
+  <data name="AppointmentDefaultNameFormat" xml:space="preserve">
+    <value>{0} appointment</value>
+  </data>
+  <data name="SettingsAppointmentStartName" xml:space="preserve">
+    <value>Appointment start</value>
+  </data>
+  <data name="SettingsAppointmentEndName" xml:space="preserve">
+    <value>Appointment end</value>
+  </data>
+  <data name="SettingsAppointmentsGroup" xml:space="preserve">
+    <value>Recurring appointments</value>
+  </data>
+  <data name="SettingsAppointmentsDescription" xml:space="preserve">
+    <value>Meetings, training, visits… If you’re away from your PC during one of these appointments, WorkTime counts that time as work and, depending on the appointment’s setting, asks you to confirm when you’re back.</value>
+  </data>
+  <data name="SettingsAppointmentsEmpty" xml:space="preserve">
+    <value>No recurring appointments yet.</value>
+  </data>
+  <data name="SettingsAppointmentsAdd" xml:space="preserve">
+    <value>Add appointment</value>
+  </data>
+  <data name="SettingsAppointmentEdit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="SettingsAppointmentEditNameFormat" xml:space="preserve">
+    <value>Edit {0}</value>
+  </data>
+  <data name="SettingsAppointmentEditTitle" xml:space="preserve">
+    <value>Edit appointment</value>
+  </data>
+  <data name="SettingsAppointmentNameLabel" xml:space="preserve">
+    <value>Name (optional)</value>
+  </data>
+  <data name="SettingsAppointmentDayLabel" xml:space="preserve">
+    <value>Day</value>
+  </data>
+  <data name="SettingsAppointmentHoursLabel" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="SettingsAppointmentHoursError" xml:space="preserve">
+    <value>The end time must come after the start time.</value>
+  </data>
+  <data name="SettingsAppointmentNote" xml:space="preserve">
+    <value>Changes apply from today. Past days stay as they were.</value>
+  </data>
+  <data name="SettingsAppointmentSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="SettingsAppointmentCreate" xml:space="preserve">
+    <value>Create appointment</value>
+  </data>
+  <data name="SettingsAppointmentCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SettingsAppointmentDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="SettingsAppointmentDeleteConfirm" xml:space="preserve">
+    <value>Confirm deletion</value>
+  </data>
+  <data name="SettingsAppointmentRepeatLabel" xml:space="preserve">
+    <value>Repeat</value>
+  </data>
+  <data name="SettingsAppointmentEveryWeek" xml:space="preserve">
+    <value>Every week</value>
+  </data>
+  <data name="SettingsAppointmentEveryOtherWeek" xml:space="preserve">
+    <value>Every other week</value>
+  </data>
+  <data name="SettingsAppointmentNextLabel" xml:space="preserve">
+    <value>Next date</value>
+  </data>
+  <data name="SettingsAppointmentWeekFormat" xml:space="preserve">
+    <value>{0:MMMM d}</value>
+  </data>
+  <data name="SettingsAppointmentAlternateRowFormat" xml:space="preserve">
+    <value>Every other {0} · {1}–{2}</value>
+  </data>
+  <data name="SettingsAppointmentWeekFullFormat" xml:space="preserve">
+    <value>{0:dddd, MMMM d}</value>
+  </data>
+  <data name="SettingsAppointmentRowFormat" xml:space="preserve">
+    <value>Every {0} · {1}–{2}</value>
+  </data>
+  <data name="AppointmentReviewNameFormat" xml:space="preserve">
+    <value>{0} to review</value>
+  </data>
+  <data name="FlyoutAppointmentReviewRangeFormat" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="FlyoutAppointmentReviewText" xml:space="preserve">
+    <value>No activity during this appointment. This time counts as work for now.</value>
+  </data>
+  <data name="SettingsAppointmentProposalsCardHeader" xml:space="preserve">
+    <value>Suggest appointments from your corrections</value>
+  </data>
+  <data name="SettingsAppointmentProposalsCardDescription" xml:space="preserve">
+    <value>When you correct the same absence several weeks in a row, WorkTime offers to make it a recurring appointment.</value>
+  </data>
+  <data name="CalendarDayNamesPlural" xml:space="preserve">
+    <value>Mondays;Tuesdays;Wednesdays;Thursdays;Fridays;Saturdays;Sundays</value>
+  </data>
+  <data name="HistoryProposalCounts" xml:space="preserve">
+    <value>two;three</value>
+  </data>
+  <data name="HistoryProposalNoteFormat" xml:space="preserve">
+    <value>Same correction as the previous {0} {1}. Make it a recurring appointment?</value>
+  </data>
+  <data name="HistoryProposalAlternateNoteFormat" xml:space="preserve">
+    <value>Same correction as the previous {0} {1}, every other week. Make it a recurring appointment?</value>
+  </data>
+  <data name="HistoryProposalEveryWeekFormat" xml:space="preserve">
+    <value>Count every {0}…</value>
+  </data>
+  <data name="HistoryProposalAlternateFormat" xml:space="preserve">
+    <value>Count every other {0}…</value>
+  </data>
+  <data name="HistoryProposalDismissFormat" xml:space="preserve">
+    <value>Stop suggesting for {0}</value>
+  </data>
+  <data name="SettingsAppointmentModeLabel" xml:space="preserve">
+    <value>When you’re back</value>
+  </data>
+  <data name="SettingsAppointmentModeAsk" xml:space="preserve">
+    <value>Ask me</value>
+  </data>
+  <data name="SettingsAppointmentModeAutomatic" xml:space="preserve">
+    <value>Count automatically</value>
+  </data>
+  <data name="SettingsAppointmentModeAskNote" xml:space="preserve">
+    <value>WorkTime counts the absence as work for now and asks you to confirm it was work.</value>
+  </data>
+  <data name="SettingsAppointmentModeAutomaticNote" xml:space="preserve">
+    <value>WorkTime counts the absence as work as soon as you’re back, without asking. You can still undo it with “It wasn’t work”.</value>
+  </data>
+  <data name="SettingsAppointmentAutomaticRowFormat" xml:space="preserve">
+    <value>{0} · Counted automatically</value>
+  </data>
+  <data name="FlyoutAppointmentCountedText" xml:space="preserve">
+    <value>Counted as work automatically.</value>
+  </data>
+  <data name="FlyoutAppointmentTrustFormat" xml:space="preserve">
+    <value>You’ve confirmed this appointment as work {0} times in a row.</value>
+  </data>
+  <data name="FlyoutAppointmentTrustAction" xml:space="preserve">
+    <value>Count automatically from now on</value>
+  </data>
+</root>

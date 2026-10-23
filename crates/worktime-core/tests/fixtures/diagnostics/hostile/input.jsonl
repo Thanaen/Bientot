@@ -1,0 +1,5 @@
+{"TimestampUtc":"2026-09-10T12:33:56+00:00","Level":"Error","Event":"periodic_refresh.failed","Properties":{"exceptionType":"System.IO.IOException","message":"C:\\Users\\SENTINEL-user\\private.txt SENTINEL-api-key-9ad SENTINEL-host.example SENTINEL-window-title"}}
+{"TimestampUtc":"2026-09-10T12:32:56+00:00","Level":"Warning","Event":"power_history.recovery_unavailable","Properties":{"status":"Truncated","reason":"SENTINEL-window-title"}}
+{"TimestampUtc":"2026-09-10T12:31:56+00:00","Level":"Error","Event":"notification.failed","Properties":{"exceptionType":"Harmless.CustomException","message":"SENTINEL-api-key-9ad"}}
+{"TimestampUtc":"2026-09-10T12:30:56+00:00","Level":"Information","Event":"untrusted.event","Properties":{"message":"SENTINEL-api-key-9ad"}}
+{ malformed SENTINEL-api-key-9ad

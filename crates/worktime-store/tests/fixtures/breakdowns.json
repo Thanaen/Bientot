@@ -1,0 +1,234 @@
+[
+  {
+    "input": "{\"version\":1,\"entries\":[]}",
+    "read": "{\"version\":1,\"entries\":[]}"
+  },
+  {
+    "input": " {\"version\":1,\"entries\":[]} \n",
+    "read": "{\"version\":1,\"entries\":[]}"
+  },
+  {
+    "input": "{\"entries\":[],\"version\":1,\"extra\":{\"nested\":[1,2]}}",
+    "read": "{\"version\":1,\"entries\":[]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":36000000000,\"startUtc\":\"2026-09-07T09:00:00.0000000\\u002B00:00\",\"endUtc\":\"2026-09-07T10:00:00.0000000+00:00\",\"adjustmentId\":null,\"reviewId\":\"session-lock:\\u00e9\\ud83d\\ude00\"},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":9223372036854775807,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"a\\\"b\\\\c\\/d <&> +\",\"reviewId\":null},{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T08:00:00.0000000+00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000001+00:00\",\"adjustmentId\":\"  padded  \",\"reviewId\":\"  padded  \"}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"overnight-lock\",\"durationTicks\":1,\"startUtc\":\"2026-09-07T08:00:00.0000000\\u002B00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000001\\u002B00:00\",\"adjustmentId\":\"padded\",\"reviewId\":\"  padded  \"},{\"disposition\":\"provisional-credit\",\"label\":\"locked-work\",\"durationTicks\":36000000000,\"startUtc\":\"2026-09-07T09:00:00.0000000\\u002B00:00\",\"endUtc\":\"2026-09-07T10:00:00.0000000\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":\"session-lock:\\u00E9\\uD83D\\uDE00\"},{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":9223372036854775807,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"a\\u0022b\\\\c/d \\u003C\\u0026\\u003E \\u002B\",\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":2,\"version\":1,\"entries\":[]}",
+    "read": "{\"version\":1,\"entries\":[]}"
+  },
+  {
+    "input": "{\"version\":1,\"version\":2,\"entries\":[]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"unknown\",\"label\":\"unknown\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"afk\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"lunch-lock\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"suspended\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"manual-pause\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"excluded\",\"label\":\"day-finished\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"manual-credit\",\"label\":\"manual\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"future\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"future\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"Confirmed-Credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":2,\"entries\":[]}",
+    "read": null
+  },
+  {
+    "input": "{not-json",
+    "read": null
+  },
+  {
+    "input": "",
+    "read": null
+  },
+  {
+    "input": "null",
+    "read": null
+  },
+  {
+    "input": "[]",
+    "read": null
+  },
+  {
+    "input": "1",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1.0,\"entries\":[]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":\"1\",\"entries\":[]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1e0,\"entries\":[]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":4294967297,\"entries\":[]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":{}}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":null}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[]}x",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[],}",
+    "read": null
+  },
+  {
+    "input": "/*c*/{\"version\":1,\"entries\":[]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[1]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[null]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{}]}",
+    "read": null
+  },
+  {
+    "input": "{'version':1,'entries':[]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5.0,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":\"5\",\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":0,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":-5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":9223372036854775808,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5e0,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":5}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"\",\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":\"  \",\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":\" \"}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":null,\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":1,\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":null,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000000+00:00\",\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000000+00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000005+00:00\",\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000000\\u002B00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000005\\u002B00:00\",\"adjustmentId\":null,\"reviewId\":null}]}"
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000000+00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000004+00:00\",\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000005+00:00\",\"endUtc\":\"2026-09-07T08:00:00.0000000+00:00\",\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":\"2026-09-07T08:00:00.0000000Z\",\"endUtc\":\"2026-09-07T08:00:00.0000005Z\",\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  },
+  {
+    "input": "{\"version\":1,\"entries\":[{\"disposition\":\"confirmed-credit\",\"label\":\"active-work\",\"durationTicks\":5,\"startUtc\":5,\"endUtc\":null,\"adjustmentId\":null,\"reviewId\":null}]}",
+    "read": null
+  }
+]

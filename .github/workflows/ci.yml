@@ -1,0 +1,372 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Decides which gates this run needs. A failure here never skips a gate: every condition
+  # below treats a missing output as "run it".
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+
+    outputs:
+      verified: ${{ steps.push.outputs.verified }}
+      gpui-screenshots: ${{ steps.pull-request.outputs.gpui-screenshots }}
+      rust: ${{ steps.pull-request.outputs.rust }}
+      rust-windows: ${{ steps.pull-request.outputs.rust-windows }}
+
+    steps:
+      # Screenshots only matter when the pull request can change what the app looks like; the
+      # Linux Rust job takes them. The Rust job runs only when a Rust file, `packaging/` (read by
+      # the tests) or this workflow changes. The Windows Rust job, the costliest minutes, runs only
+      # when the app crate, the store's Windows-only code, the dependencies or this workflow change.
+      - name: Detect pull request changes
+        id: pull-request
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          files=$(gh api "repos/${REPOSITORY}/pulls/${PULL_REQUEST}/files" --paginate \
+            --jq '.[] | .filename, (.previous_filename // empty)')
+
+          gpui_screenshots=false
+          if grep -qE '^crates/worktime-app/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+            gpui_screenshots=true
+          fi
+
+          rust_files='^crates/|^packaging/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$'
+
+          rust=false
+          if grep -qE "${rust_files}|^\.github/workflows/ci\.yml$" <<< "$files"; then
+            rust=true
+          fi
+
+          rust_windows=false
+          if grep -qE '^crates/worktime-(app|windows)/|^crates/worktime-store/(Cargo\.toml|src/(secrets|data_directory)(/|\.rs$))|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/measure-performance\.ps1$|^\.github/workflows/ci\.yml$' <<< "$files"; then
+            rust_windows=true
+          fi
+
+          echo "gpui-screenshots=${gpui_screenshots}" >> "$GITHUB_OUTPUT"
+          echo "rust=${rust}" >> "$GITHUB_OUTPUT"
+          echo "rust-windows=${rust_windows}" >> "$GITHUB_OUTPUT"
+          echo "GPUI screenshots: ${gpui_screenshots}. Rust: ${rust}. Rust on Windows: ${rust_windows}." >> "$GITHUB_STEP_SUMMARY"
+
+      # A merged pull request was already built and tested on its merge ref. When the pushed
+      # commit has exactly the tree that a successful pull request run recorded, the push run
+      # skips the gates instead of testing the same files again. Any other push, for example
+      # after main moved under the pull request, runs every gate.
+      - name: Find a passed run of the same tree
+        id: push
+        if: ${{ github.event_name == 'push' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -uo pipefail
+          verified=false
+          prs=""
+          tree=$(gh api "repos/${REPOSITORY}/commits/${SHA}" --jq '.commit.tree.sha') || tree=""
+          if [ -n "$tree" ]; then
+            prs=$(gh api "repos/${REPOSITORY}/commits/${SHA}/pulls" \
+              --jq '.[] | select(.merged_at != null) | .number') || prs=""
+          fi
+
+          for pr in $prs; do
+            head=$(gh api "repos/${REPOSITORY}/pulls/${pr}" --jq '.head.sha') || continue
+            runs=$(gh api "repos/${REPOSITORY}/actions/workflows/ci.yml/runs?event=pull_request&status=success&head_sha=${head}" \
+              --jq '.workflow_runs[].id') || continue
+            for run in $runs; do
+              dir="${RUNNER_TEMP}/tested-tree-${run}"
+              gh run download "$run" --repo "$REPOSITORY" --pattern 'tested-tree-*' --dir "$dir" || continue
+              if find "$dir" -type f -exec cat {} + | tr -d '\r' | grep -qxF "$tree"; then
+                verified=true
+                echo "Tree ${tree} passed in pull request #${pr} (run ${run}), so the gates do not run again." >> "$GITHUB_STEP_SUMMARY"
+                break 2
+              fi
+            done
+          done
+
+          if [ "$verified" != true ]; then
+            echo "No passed pull request run has tree ${tree:-unknown}, so every gate runs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "verified=${verified}" >> "$GITHUB_OUTPUT"
+
+  rust:
+    name: Rust
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.outputs.verified != 'true' && needs.plan.outputs.rust != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Installs the toolchain pinned in rust-toolchain.toml.
+      - name: Install Rust toolchain
+        run: rustup toolchain install
+
+      # A pull request's cache is visible to that pull request only, so this saves the
+      # dependency builds between its pushes, not across pull requests.
+      - name: Cache dependency builds
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      # All features, so the screenshot tool is checked too.
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --all-features --locked
+
+      # The flyout of every demo scenario, rendered off screen by Mesa's software Vulkan driver.
+      - name: Capture GPUI screenshots
+        if: ${{ needs.plan.outputs.gpui-screenshots == 'true' }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers
+          cargo build --locked -p worktime-app --features screenshots --bin worktime-screenshots
+          for variant in fr-dark fr-light en-dark en-light; do
+            case "$variant" in fr-*) language=--french ;; *) language=--english ;; esac
+            target/debug/worktime-screenshots "artifacts/gpui-screenshots/${variant}" "$language" "--${variant#*-}"
+          done
+
+      - name: Upload GPUI screenshots
+        if: ${{ always() && needs.plan.outputs.gpui-screenshots == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpui-screenshots-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/gpui-screenshots/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # Builds the release executable on Windows and measures the v1 gates: size, startup time
+  # and idle memory. Linux checks the code first, so this job only spends Windows minutes on
+  # what Linux cannot check.
+  rust-windows:
+    name: Rust on Windows
+    needs:
+      - plan
+      - rust
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.rust.result != 'failure' && needs.plan.outputs.verified != 'true' && needs.plan.outputs.rust-windows != 'false' }}
+    runs-on: windows-latest
+    timeout-minutes: 40
+
+    permissions:
+      contents: read
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache dependency builds
+        uses: Swatinem/rust-cache@v2
+
+      # The DPAPI secret store and the Windows path cases only compile and run here.
+      - name: Test the store
+        run: cargo test --locked -p worktime-store
+
+      # The Win32 calls: the last-input query, the Run key, and the single-instance event.
+      - name: Test the Windows integration
+        run: cargo test --locked -p worktime-windows
+
+      # The executable as it ships, with the usage signal (spec signal-utilisation §4).
+      - name: Build release executable
+        run: cargo build --release --locked -p worktime-app --bin worktime --features release
+
+      # The gates are 20 MB, 1 s and 60 MB (issue #147). Only the size fails the job: a hosted
+      # runner has no GPU and noisy neighbours, so its time and memory are indications.
+      - name: Measure the gates
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path target/release/worktime.exe
+          $sizeMb = [math]::Round((Get-Item $exe).Length / 1MB, 2)
+
+          # `--data-dir` keeps the measured run from sending the usage signal. Saved settings
+          # measure a returning user's start, past the first-run onboarding.
+          $data = Join-Path $env:RUNNER_TEMP 'worktime-data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          Set-Content -Path (Join-Path $data 'settings.json') -Value '{}' -Encoding utf8NoBOM
+
+          $ready = Join-Path $env:RUNNER_TEMP 'worktime-ready'
+          Remove-Item $ready -ErrorAction SilentlyContinue
+          $env:WORKTIME_READY_FILE = $ready
+          $clock = [Diagnostics.Stopwatch]::StartNew()
+          $process = Start-Process $exe -ArgumentList '--open-flyout', '--data-dir', $data -PassThru
+          while (-not (Test-Path $ready)) {
+            if ($process.HasExited) { throw "WorkTime exited with code $($process.ExitCode) before it was ready." }
+            if ($clock.Elapsed.TotalSeconds -gt 30) { throw 'WorkTime was not ready after 30 s.' }
+            Start-Sleep -Milliseconds 10
+          }
+          $startMs = $clock.ElapsedMilliseconds
+          Start-Sleep -Seconds 5
+          $process.Refresh()
+          $workingSetMb = [math]::Round($process.WorkingSet64 / 1MB, 1)
+          $privateMb = [math]::Round($process.PrivateMemorySize64 / 1MB, 1)
+          Stop-Process -Id $process.Id
+
+          # Also in the log, which the API can read: the step summary is visible only on the web.
+          $table = @(
+            '## Rust on Windows'
+            ''
+            '| Gate | Measured | Target |'
+            '| --- | --- | --- |'
+            "| Executable size | $sizeMb MB | < 20 MB |"
+            "| Ready after start | $startMs ms | < 1000 ms |"
+            "| Working set after 5 s, flyout open | $workingSetMb MB | < 60 MB |"
+            "| Private memory after 5 s | $privateMb MB | |"
+          ) -join "`n"
+          Write-Host $table
+          $table >> $env:GITHUB_STEP_SUMMARY
+
+          if ($sizeMb -ge 20) { throw "The executable is $sizeMb MB, over the 20 MB gate." }
+
+      # The spec budgets (SC-007). The 30-second idle window covers one 30-second periodic refresh.
+      # Reported, not enforced, for the same reason as the gates above.
+      - name: Measure performance
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/measure-performance.ps1 -ExecutablePath target/release/worktime.exe
+
+      # Lets a person try the build, for example with Narrator, without building it, even one
+      # over a gate.
+      - name: Upload executable
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: worktime-rust-windows-${{ github.run_attempt }}
+          path: target/release/worktime.exe
+          retention-days: 7
+          if-no-files-found: error
+
+  # Lets a later push of the same tree to main reuse this run (see the Plan job). Records the
+  # tree once every gate this pull request needed has passed, whichever gates those were.
+  tested-tree:
+    name: Record tested tree
+    needs:
+      - plan
+      - rust
+      - rust-windows
+    if: ${{ github.event_name == 'pull_request' && !cancelled() && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Record tested tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          mkdir -p artifacts
+          gh api "repos/${REPOSITORY}/commits/${SHA}" --jq '.commit.tree.sha' > artifacts/tested-tree.txt
+
+      - name: Upload tested tree
+        uses: actions/upload-artifact@v7
+        with:
+          name: tested-tree-${{ github.run_attempt }}
+          path: artifacts/tested-tree.txt
+          retention-days: 30
+          if-no-files-found: error
+
+  # Publishes the screenshots on a branch so reviewers and Claude can open them without
+  # downloading an archive. Kept apart from the Rust job so no pull request code runs with
+  # write access.
+  screenshots:
+    name: Publish screenshots
+    needs:
+      - plan
+      - rust
+    if: ${{ !cancelled() && needs.plan.outputs.gpui-screenshots == 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Download screenshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # A re-run of this job alone has a newer run_attempt than the job that uploaded the
+        # screenshots, so pick the most recent artifact in the run instead.
+        run: |
+          name=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+            --jq '[.artifacts[] | select(.name | startswith("gpui-screenshots-")) | select(.expired | not)] | max_by(.created_at) | .name // empty')
+          if [ -n "$name" ]; then
+            gh run download "${{ github.run_id }}" --repo "${{ github.repository }}" --name "$name" --dir screenshots
+          fi
+          if [ -z "$(find screenshots -name '*.png' 2>/dev/null)" ]; then
+            echo "No screenshots were uploaded." >&2
+            exit 1
+          fi
+
+      - name: Push screenshot branch
+        working-directory: screenshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          branch="ci-screenshots/${PULL_REQUEST}"
+          git init -q -b "$branch"
+          git add .
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Screenshots for #${PULL_REQUEST} at ${HEAD_SHA}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git" "HEAD:refs/heads/${branch}"
+
+          {
+            echo "## Screenshots"
+            echo
+            echo "Branch \`${branch}\`, captured from ${HEAD_SHA}."
+            echo
+            echo "| Window | fr-dark | fr-light | en-dark | en-light |"
+            echo "| --- | --- | --- | --- | --- |"
+            for file in $(cd fr-dark && ls *.png); do
+              row="| ${file%.png} |"
+              for variant in fr-dark fr-light en-dark en-light; do
+                row="${row} [view](https://github.com/${REPOSITORY}/blob/${branch}/${variant}/${file}) |"
+              done
+              echo "$row"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

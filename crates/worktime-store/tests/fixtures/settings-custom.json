@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "nominalDailyTarget": "07:42:30.5000000",
+  "minimumEffectiveTarget": "05:00:00.0000001",
+  "lunchStart": "11:45:10",
+  "lunchEnd": "13:15:00.1234567",
+  "preferredLatestDeparture": "19:05:00",
+  "orangeWarningMargin": "00:00:00",
+  "longLockReviewThreshold": "1.00:00:00",
+  "weeklyCreditEnabled": false,
+  "weeklyDebtEnabled": true,
+  "maximumWeeklyDebt": "01:35:00",
+  "startWithWindows": false,
+  "notifications": {
+    "completionApproach": {
+      "enabled": false,
+      "leadTime": "00:07:00"
+    },
+    "latestDepartureApproach": {
+      "enabled": true,
+      "leadTime": "00:00:00.0000001"
+    },
+    "dayComplete": {
+      "enabled": true,
+      "leadTime": "1.00:00:00"
+    }
+  },
+  "activitySource": "activitywatch",
+  "builtInActivity": {
+    "idleThreshold": "00:00:30"
+  },
+  "activityWatch": {
+    "baseUrl": "https://aw.example:5601/",
+    "selectedBucketId": "aw-watcher-afk_h\u00F4te \u003C\u0026\u003E \u0027quote\u0027 \u0022double\u0022 back\\slash \u002Bplus \u0060tick\u0060 \u007F\u0001\t\n\r\b\f \uD83D\uDE00 \u2028 \u00A0 \uFEFF",
+    "apiKeyReference": "activitywatch-token",
+    "requestTimeout": "00:00:01.5000000",
+    "settlement": {
+      "afkTimeout": "00:20:00",
+      "pollInterval": "00:00:01",
+      "maximumJitter": "00:00:00.9999999",
+      "horizon": "00:20:01.9999999"
+    }
+  },
+  "updates": {
+    "checkForUpdates": false,
+    "lastCheckedAtUtc": "2026-10-13T08:15:30.12+00:00"
+  },
+  "logging": {
+    "maximumFileCount": 12,
+    "maximumFileBytes": 20971520
+  },
+  "languageOverride": "fr-FR"
+}
