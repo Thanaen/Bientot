@@ -31,6 +31,12 @@ pub(crate) fn random_hex() -> String {
     format!("{:016x}{:016x}", state.hash_one(1u8), state.hash_one(2u8))
 }
 
+/// Flushes the file at `path` to disk. Windows only flushes through a handle open for writing:
+/// a read-only one fails with "Access is denied".
+pub(crate) fn sync(path: &Path) -> io::Result<()> {
+    fs::OpenOptions::new().write(true).open(path)?.sync_all()
+}
+
 fn write_new(path: &Path, contents: &[u8]) -> io::Result<()> {
     let mut file = fs::File::create_new(path)?;
     file.write_all(contents)?;

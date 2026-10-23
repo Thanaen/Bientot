@@ -239,7 +239,7 @@ pub fn stage(file: &Path, directory: &DataDirectory) -> Result<Contents, Transfe
     }
     let temporary = file::sibling(&pending, &format!(".{}.tmp", file::random_hex()));
     let copied = fs::copy(file, &temporary)
-        .and_then(|_| fs::File::open(&temporary)?.sync_all())
+        .and_then(|_| file::sync(&temporary))
         .and_then(|()| fs::rename(&temporary, &pending));
     if copied.is_err() {
         let _ = fs::remove_file(&temporary);
@@ -345,7 +345,7 @@ fn prepare(pending: &Path, temporary: &Path) -> Result<(), TransferError> {
     let connection = Connection::open(temporary)?;
     connection.execute_batch("DROP TABLE WorkTimeTransfer;")?;
     connection.close().map_err(|(_, error)| error)?;
-    fs::File::open(temporary)?.sync_all()?;
+    file::sync(temporary)?;
     Ok(())
 }
 
