@@ -285,6 +285,10 @@ jobs:
           Remove-AppxPackage -Package $package.PackageFullName
           if (Get-AppxPackage -Name 'Thanaen.WorkTime') { throw 'The MSIX did not uninstall.' }
 
+      # scripts/release-direct.sh builds the Velopack Setup.exe with this feature, outside CI.
+      - name: Check the Velopack build
+        run: cargo check --release --locked -p worktime-app --bin worktime --features direct
+
       # Lets a person try the build, for example with Narrator, without building it, even one
       # over a gate.
       - name: Upload executable

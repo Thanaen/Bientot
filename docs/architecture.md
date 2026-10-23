@@ -87,6 +87,8 @@ the Rust app reads its data with no conversion.
 - The Microsoft Store build asks the Store, at most once a day.
 - The portable ZIP never checks; its settings link to the GitHub releases page.
 - « Rechercher les mises à jour » in Settings turns the checks off.
+- Only the `Setup.exe` build carries Velopack: it is built with worktime-app's
+  `direct` feature, the Store package and the ZIP with its `release` feature.
 
 ## Testability
 

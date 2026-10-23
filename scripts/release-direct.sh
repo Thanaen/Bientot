@@ -51,7 +51,7 @@ released=$(git -C "$root" log -1 --format=%cs HEAD)
 [[ $released =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || fail "unexpected commit date $released"
 export WORKTIME_CHANNEL=direct WORKTIME_VERSION=$version WORKTIME_RELEASE_DATE=$released
 build() {
-    cargo xwin build --release --locked -p worktime-app --bin worktime --features release \
+    cargo xwin build --release --locked -p worktime-app --bin worktime --features direct \
         --target "$target" --manifest-path "$root/Cargo.toml"
 }
 if ! build; then
@@ -77,7 +77,7 @@ cp "$root/packaging/msix/worktime.png" "$pack/"
 cp "$root/LICENSE" "$pack/LICENSE.txt"
 cp "$root/crates/worktime-app/assets/icons/LICENSE" "$pack/LICENSE-icons.txt"
 cp "$root/crates/worktime-app/assets/fonts/OFL.txt" "$pack/LICENSE-fonts.txt"
-(cd "$root" && cargo run --locked --quiet -p worktime-notices -- "$pack/THIRD-PARTY-NOTICES.txt")
+(cd "$root" && cargo run --locked --quiet -p worktime-notices -- "$pack/THIRD-PARTY-NOTICES.txt" direct)
 python3 -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).save(sys.argv[2], sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])' \
     "$root/packaging/msix/worktime.png" "$staging/worktime.ico"
 
