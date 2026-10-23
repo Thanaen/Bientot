@@ -117,7 +117,9 @@ jobs:
     needs: plan
     if: ${{ !cancelled() && needs.plan.outputs.verified != 'true' && needs.plan.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # A pull request's first run builds without a cache, then renders every screenshot on the
+    # software Vulkan driver; together they passed 15 minutes on #20.
+    timeout-minutes: 30
 
     permissions:
       contents: read
@@ -282,6 +284,10 @@ jobs:
           if (-not (Test-Path (Join-Path $package.InstallLocation 'worktime.exe'))) { throw 'The installed package has no worktime.exe.' }
           Remove-AppxPackage -Package $package.PackageFullName
           if (Get-AppxPackage -Name 'Thanaen.WorkTime') { throw 'The MSIX did not uninstall.' }
+
+      # scripts/release-direct.sh builds the Velopack Setup.exe with this feature, outside CI.
+      - name: Check the Velopack build
+        run: cargo check --release --locked -p worktime-app --bin worktime --features direct
 
       # Lets a person try the build, for example with Narrator, without building it, even one
       # over a gate.

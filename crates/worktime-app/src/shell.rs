@@ -2,11 +2,12 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use gpui::{
-    App, AppContext as _, Bounds, Global, Pixels, Size, Window, WindowBounds, WindowHandle,
-    WindowKind, WindowOptions, point, px, size,
+    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, Size, Window,
+    WindowBounds, WindowHandle, WindowKind, WindowOptions, point, px, size,
 };
 
 use crate::flyout::Flyout;
@@ -23,6 +24,10 @@ const MARGIN: i32 = 12;
 /// A click on the tray icon first takes the focus away from an open flyout, which closes it.
 /// Without this delay the same click would open it again at once.
 const REOPEN_DELAY: Duration = Duration::from_millis(300);
+
+/// The size of the flyout's panel when its window was last fitted: the size it most likely has
+/// at the next opening.
+static LAST_PANEL: Mutex<Option<Size<Pixels>>> = Mutex::new(None);
 
 #[derive(Default)]
 struct FlyoutState {
@@ -89,11 +94,10 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
         today.tracking(),
         today.opening_alerts(),
     );
+    let (display_id, bounds) = opening_bounds();
     let options = WindowOptions {
-        window_bounds: Some(WindowBounds::Windowed(Bounds {
-            origin: point(px(0.), px(0.)),
-            size: size(theme::size::FLYOUT_WIDTH, px(400.)),
-        })),
+        window_bounds: Some(WindowBounds::Windowed(bounds)),
+        display_id,
         titlebar: None,
         focus: true,
         show: true,
@@ -120,6 +124,54 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
         }
         Err(error) => log::error!("cannot open the flyout: {error:#}"),
     }
+}
+
+/// Where the flyout's window opens, and on which monitor. Windows shows the window as soon as
+/// GPUI creates it, empty until its first frame fits it: opened elsewhere than where that frame
+/// puts it, it would flash there, at the top left of the primary monitor. So it opens in the
+/// corner the frame will fit it in, at the size its panel last had.
+#[cfg(windows)]
+fn opening_bounds() -> (Option<DisplayId>, Bounds<Pixels>) {
+    let panel = last_panel();
+    match crate::tray::clicked_monitor() {
+        Some(monitor) => (
+            Some(monitor.display),
+            logical_bounds(
+                flyout_bounds(monitor.work_area, panel, monitor.scale),
+                monitor.scale,
+            ),
+        ),
+        None => (None, Bounds::new(point(px(0.), px(0.)), panel)),
+    }
+}
+
+#[cfg(not(windows))]
+fn opening_bounds() -> (Option<DisplayId>, Bounds<Pixels>) {
+    (None, Bounds::new(point(px(0.), px(0.)), last_panel()))
+}
+
+/// The panel's size at the last fitting, or a guess before the first one.
+fn last_panel() -> Size<Pixels> {
+    LAST_PANEL
+        .lock()
+        .unwrap()
+        .unwrap_or(size(theme::size::FLYOUT_WIDTH, px(400.)))
+}
+
+/// `physical` at `scale`, in the logical pixels GPUI takes window bounds in. GPUI rounds them
+/// back to the same physical pixels.
+pub fn logical_bounds(physical: Bounds<i32>, scale: f32) -> Bounds<Pixels> {
+    Bounds::new(
+        point(
+            DevicePixels(physical.origin.x),
+            DevicePixels(physical.origin.y),
+        ),
+        size(
+            DevicePixels(physical.size.width),
+            DevicePixels(physical.size.height),
+        ),
+    )
+    .to_pixels(scale)
 }
 
 /// Shows what « Utiliser la détection intégrée » answered in the open flyout, if any.
@@ -179,6 +231,7 @@ impl Fitted {
 /// Gives the window the measured content size and, on Windows, anchors it above the
 /// notification area like the system flyouts.
 pub fn fit_window(window: &mut Window, content: Size<Pixels>) {
+    *LAST_PANEL.lock().unwrap() = Some(content);
     #[cfg(windows)]
     crate::tray::place_above_taskbar(window, content);
     #[cfg(not(windows))]
@@ -299,6 +352,27 @@ mod tests {
             flyout_bounds(area(48, 0, 1920, 1080), panel(600.), 1.),
             Bounds::new(point(1548, 468), size(360, 600)),
         );
+    }
+
+    #[test]
+    fn the_flyout_opens_on_the_physical_pixels_its_first_frame_fits_it_to() {
+        // 1366 × 768 at 125 %, and a monitor at 150 % left of the primary one.
+        for (work_area, scale) in [
+            (area(0, 0, 1366, 708), 1.25),
+            (area(-2560, 0, 0, 1392), 1.5),
+            (area(0, 0, 1920, 1032), 1.),
+        ] {
+            let fitted = flyout_bounds(work_area, panel(613.), scale);
+            let opening = logical_bounds(fitted, scale).to_device_pixels(scale);
+            assert_eq!(
+                Bounds::new(
+                    point(opening.origin.x.0, opening.origin.y.0),
+                    size(opening.size.width.0, opening.size.height.0),
+                ),
+                fitted,
+                "at {scale}",
+            );
+        }
     }
 
     #[test]

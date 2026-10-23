@@ -266,12 +266,18 @@ impl Drop for Scope<'_> {
                 open.remove(last);
             }
         });
-        if !self.done {
-            let _ = self.connection.execute_batch(if self.nested {
-                "ROLLBACK TO worktime_scope; RELEASE worktime_scope"
-            } else {
-                "ROLLBACK"
-            });
+        if self.done {
+            return;
+        }
+        let rolled_back = self.connection.execute_batch(if self.nested {
+            "ROLLBACK TO worktime_scope; RELEASE worktime_scope"
+        } else {
+            "ROLLBACK"
+        });
+        // A savepoint that did not roll back leaves its writes to the transaction around it,
+        // which is rolled back instead: its commit then fails rather than keeping them.
+        if rolled_back.is_err() && !self.connection.is_autocommit() {
+            let _ = self.connection.execute_batch("ROLLBACK");
         }
     }
 }

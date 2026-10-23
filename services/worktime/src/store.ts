@@ -1,126 +1,128 @@
-import type { Client } from "@libsql/client";
 import type { Ping } from "./ping";
 import type { DayTotal, MonthCell } from "./stats";
 
-// One row per day, version and channel: counters only, nothing that identifies a person.
-const SCHEMA = `CREATE TABLE IF NOT EXISTS usage_daily (
-  day TEXT NOT NULL,
-  version TEXT NOT NULL,
-  channel TEXT NOT NULL,
-  pings INTEGER NOT NULL DEFAULT 0,
-  first_of_month INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (day, version, channel)
-)`;
-
-export interface MonthStats {
-  month: string;
-  activeThisMonth: number;
-  averageDaily: number;
-  peakDaily: number;
-  byChannel: Record<string, number>;
-  byVersion: Record<string, number>;
+// Where the signals go and where the public figures come from.
+export interface UsageStore {
+  record(ping: Ping, day: string): Promise<void>;
+  // Raw totals of the days from `from` to `through`: one per day, and one per month, version and channel.
+  totals(from: string, through: string): Promise<{ days: DayTotal[]; cells: MonthCell[] }>;
 }
 
-export class UsageStore {
-  #ready: Promise<unknown> | undefined;
+// One row per day, version and channel, as the `usage_daily` endpoint answers.
+export interface DailyRow {
+  day: string;
+  version: string;
+  channel: string;
+  pings: number;
+  firstOfMonth: number;
+}
 
-  constructor(private readonly db: Client) {}
+export function totalsFromRows(rows: DailyRow[], from: string, through: string): { days: DayTotal[]; cells: MonthCell[] } {
+  const days = new Map<string, number>();
+  const cells = new Map<string, MonthCell>();
+  for (const row of rows) {
+    if (row.day < from || row.day > through) continue;
+    days.set(row.day, (days.get(row.day) ?? 0) + row.pings);
+    const month = row.day.slice(0, 7);
+    const key = `${month} ${row.version} ${row.channel}`;
+    const cell = cells.get(key) ?? { month, version: row.version, channel: row.channel, active: 0 };
+    cell.active += row.firstOfMonth;
+    cells.set(key, cell);
+  }
+  return { days: [...days].map(([day, pings]) => ({ day, pings })), cells: [...cells.values()] };
+}
 
-  #migrate(): Promise<unknown> {
-    this.#ready ??= this.db.execute(SCHEMA).catch((error) => {
-      this.#ready = undefined;
-      throw error;
-    });
-    return this.#ready;
+export interface PostHogOptions {
+  // The project token, which only lets one send events.
+  projectToken: string;
+  projectId: string;
+  // A project secret API key limited to `endpoint:read`; without it, no figures are read.
+  apiKey: string | undefined;
+  ingestUrl?: string;
+  apiUrl?: string;
+  fetch?: typeof fetch;
+}
+
+// The saved query behind the figures, in PostHog (README.md, "Statistics"), pinned to one version.
+export const ENDPOINT = { name: "usage_daily", version: 1 };
+
+// The signals become `usage_ping` events in PostHog EU. Each event carries the three fields of the
+// signal and nothing else: no person profile, no IP address (the request comes from this function,
+// and the project discards addresses anyway), a fresh random id, and the day's midnight as its time,
+// so that the signals of one day cannot be told apart.
+export class PostHogStore implements UsageStore {
+  readonly #options: Required<Omit<PostHogOptions, "apiKey">> & { apiKey: string | undefined };
+
+  constructor(options: PostHogOptions) {
+    this.#options = {
+      ingestUrl: "https://eu.i.posthog.com",
+      apiUrl: "https://eu.posthog.com",
+      fetch: globalThis.fetch,
+      ...options,
+    };
   }
 
   async record(ping: Ping, day: string): Promise<void> {
-    await this.#migrate();
-    const first = ping.firstThisMonth ? 1 : 0;
-    await this.db.execute({
-      sql: `INSERT INTO usage_daily (day, version, channel, pings, first_of_month)
-            VALUES (?, ?, ?, 1, ?)
-            ON CONFLICT (day, version, channel) DO UPDATE SET
-              pings = pings + 1,
-              first_of_month = first_of_month + excluded.first_of_month`,
-      args: [day, ping.version, ping.channel, first],
+    const { ingestUrl, projectToken, fetch } = this.#options;
+    const response = await fetch(`${ingestUrl}/i/v0/e/`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        api_key: projectToken,
+        event: "usage_ping",
+        distinct_id: crypto.randomUUID(),
+        timestamp: `${day}T00:00:00Z`,
+        properties: {
+          version: ping.version,
+          channel: ping.channel,
+          first_this_month: ping.firstThisMonth,
+          $process_person_profile: false,
+          $ip: null,
+          $geoip_disable: true,
+        },
+      }),
+      signal: AbortSignal.timeout(5000),
     });
+    if (!response.ok) throw new Error(`PostHog capture answered ${response.status}`);
   }
 
-  // Raw totals of the finished days from `from` to `through`, summed in the database so that only a
-  // few hundred rows travel: one per day, and one per month, version and channel.
   async totals(from: string, through: string): Promise<{ days: DayTotal[]; cells: MonthCell[] }> {
-    await this.#migrate();
-    const [days, cells] = await this.db.batch(
-      [
-        {
-          sql: `SELECT day, SUM(pings) AS pings FROM usage_daily WHERE day BETWEEN ? AND ? GROUP BY day`,
-          args: [from, through],
-        },
-        {
-          sql: `SELECT substr(day, 1, 7) AS month, version, channel, SUM(first_of_month) AS active
-                FROM usage_daily WHERE day BETWEEN ? AND ? GROUP BY month, version, channel`,
-          args: [from, through],
-        },
-      ],
-      "read",
-    );
-    return {
-      days: days!.rows.map((row) => ({ day: String(row.day), pings: Number(row.pings) })),
-      cells: cells!.rows.map((row) => ({
-        month: String(row.month),
-        version: String(row.version),
-        channel: String(row.channel),
-        active: Number(row.active),
-      })),
-    };
+    const { apiUrl, projectId, apiKey, fetch } = this.#options;
+    if (!apiKey) throw new Error("POSTHOG_PERSONAL_API_KEY is not set");
+    const response = await fetch(`${apiUrl}/api/projects/${projectId}/endpoints/${ENDPOINT.name}/run?version=${ENDPOINT.version}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      // Bypass PostHog's cache, which could still hold a snapshot taken before the day ended.
+      body: JSON.stringify({ refresh: "force", limit: 10000 }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw new Error(`PostHog endpoint answered ${response.status}`);
+    const { columns, results } = (await response.json()) as { columns: string[]; results: unknown[][] };
+    const at = (name: string) => columns.indexOf(name);
+    const [day, version, channel, pings, first] = ["day", "version", "channel", "pings", "first_of_month"].map(at);
+    const rows = results.map((row) => ({
+      day: String(row[day!]),
+      version: String(row[version!]),
+      channel: String(row[channel!]),
+      pings: Number(row[pings!]),
+      firstOfMonth: Number(row[first!]),
+    }));
+    return totalsFromRows(rows, from, through);
+  }
+}
+
+// The signals kept in memory, for tests and `bun run dev`.
+export class MemoryStore implements UsageStore {
+  readonly rows: DailyRow[] = [];
+
+  async record(ping: Ping, day: string): Promise<void> {
+    let row = this.rows.find((r) => r.day === day && r.version === ping.version && r.channel === ping.channel);
+    if (!row) this.rows.push((row = { day, version: ping.version, channel: ping.channel, pings: 0, firstOfMonth: 0 }));
+    row.pings += 1;
+    if (ping.firstThisMonth) row.firstOfMonth += 1;
   }
 
-  // The `count` calendar months up to `now` (UTC). "Active this month" counts first-of-month
-  // signals; daily figures count every signal, over every day of the month so far.
-  async months(now: Date, count: number): Promise<MonthStats[]> {
-    await this.#migrate();
-    const cutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (count - 1), 1));
-    const { rows } = await this.db.execute({
-      sql: `SELECT day, version, channel, pings, first_of_month FROM usage_daily WHERE day >= ?`,
-      args: [cutoff.toISOString().slice(0, 10)],
-    });
-    const currentMonth = now.toISOString().slice(0, 7);
-    const daysCounted = (month: string) => {
-      if (month === currentMonth) return now.getUTCDate();
-      const [year, monthNumber] = month.split("-").map(Number);
-      return new Date(Date.UTC(year!, monthNumber!, 0)).getUTCDate();
-    };
-
-    type Month = { first: number; days: Map<string, number>; byChannel: Record<string, number>; byVersion: Record<string, number> };
-    const add = (counts: Record<string, number>, key: string, n: number) => {
-      counts[key] = (counts[key] ?? 0) + n;
-    };
-    const months = new Map<string, Month>();
-    for (const row of rows) {
-      const day = String(row.day);
-      const month = day.slice(0, 7);
-      let entry = months.get(month);
-      if (!entry) months.set(month, (entry = { first: 0, days: new Map(), byChannel: {}, byVersion: {} }));
-      const first = Number(row.first_of_month);
-      entry.first += first;
-      entry.days.set(day, (entry.days.get(day) ?? 0) + Number(row.pings));
-      add(entry.byChannel, String(row.channel), first);
-      add(entry.byVersion, String(row.version), first);
-    }
-
-    return [...months.entries()]
-      .sort(([a], [b]) => b.localeCompare(a))
-      .map(([month, entry]) => {
-        const daily = [...entry.days.values()];
-        return {
-          month,
-          activeThisMonth: entry.first,
-          averageDaily: Math.round((10 * daily.reduce((sum, n) => sum + n, 0)) / daysCounted(month)) / 10,
-          peakDaily: Math.max(...daily),
-          byChannel: entry.byChannel,
-          byVersion: entry.byVersion,
-        };
-      });
+  async totals(from: string, through: string): Promise<{ days: DayTotal[]; cells: MonthCell[] }> {
+    return totalsFromRows(this.rows, from, through);
   }
 }

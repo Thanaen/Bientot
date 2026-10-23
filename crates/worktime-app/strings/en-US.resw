@@ -353,7 +353,7 @@
   <data name="SettingsUsagePingFieldsFormat" xml:space="preserve"><value>That’s everything that gets sent. “channel” says where you installed WorkTime (here, {0}) and “first_this_month” is true for the first signal of the month.</value></data>
   <data name="UsagePingChannelStore" xml:space="preserve"><value>the Microsoft Store</value></data>
   <data name="UsagePingChannelZip" xml:space="preserve"><value>the ZIP download</value></data>
-  <data name="SettingsUsagePingServerText" xml:space="preserve"><value>The server keeps only a daily total per version and channel. It keeps neither your IP address nor anything that could identify you.</value></data>
+  <data name="SettingsUsagePingServerText" xml:space="preserve"><value>The server keeps nothing and passes this signal on to PostHog, hosted in the European Union, without your IP address or anything that could identify you.</value></data>
   <data name="SettingsUsagePingLastSentFormat" xml:space="preserve"><value>Last sent: {0}</value></data>
   <data name="SettingsUsagePingLastSentNever" xml:space="preserve"><value>never</value></data>
   <data name="SettingsUsagePingLastSentToday" xml:space="preserve"><value>today</value></data>
@@ -646,6 +646,12 @@
   <data name="OnboardingConnectionsIntro" xml:space="preserve"><value>You can change all of this later in Settings › General.</value></data>
   <data name="OnboardingConnectionsPrivacy" xml:space="preserve"><value>Your hours and activity stay on this PC.</value></data>
   <data name="OnboardingUsagePingAllSent" xml:space="preserve"><value>That’s everything that gets sent.</value></data>
+  <data name="OnboardingImportLead" xml:space="preserve"><value>Already using WorkTime on another PC?
+Import the file you exported from Settings › Data on that PC.</value></data>
+  <data name="OnboardingImportAction" xml:space="preserve"><value>Import data…</value></data>
+  <data name="OnboardingImportTitle" xml:space="preserve"><value>Import this file?</value></data>
+  <data name="OnboardingImportConfirm" xml:space="preserve"><value>Import and restart</value></data>
+  <data name="OnboardingImportMessage" xml:space="preserve"><value>WorkTime then restarts with this data and skips the remaining setup.</value></data>
   <data name="TimelineKindWork" xml:space="preserve"><value>Work</value></data>
   <data name="TimelineKindManual" xml:space="preserve"><value>Manual correction</value></data>
   <data name="TimelineKindPause" xml:space="preserve"><value>Break</value></data>

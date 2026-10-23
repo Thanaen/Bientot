@@ -307,6 +307,11 @@ pub enum Key {
     OnboardingDepartureInputAutomationPropertiesName,
     OnboardingDepartureInputHeader,
     OnboardingFinishButtonContent,
+    OnboardingImportAction,
+    OnboardingImportConfirm,
+    OnboardingImportLead,
+    OnboardingImportMessage,
+    OnboardingImportTitle,
     OnboardingLanguageEnglishContent,
     OnboardingLanguageFrenchContent,
     OnboardingLanguageInputAutomationPropertiesName,
@@ -791,7 +796,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 783] = [
+pub(super) static ENTRIES: [Entry; 788] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1093,6 +1098,11 @@ pub(super) static ENTRIES: [Entry; 783] = [
     Entry { name: "OnboardingDepartureInput.AutomationProperties.Name", fr: "Heure limite de départ souhaitée", en: "Preferred latest departure time" },
     Entry { name: "OnboardingDepartureInput.Header", fr: "Heure limite de départ souhaitée", en: "Preferred latest departure" },
     Entry { name: "OnboardingFinishButton.Content", fr: "Terminer", en: "Finish" },
+    Entry { name: "OnboardingImportAction", fr: "Importer des données…", en: "Import data…" },
+    Entry { name: "OnboardingImportConfirm", fr: "Importer et redémarrer", en: "Import and restart" },
+    Entry { name: "OnboardingImportLead", fr: "Vous utilisez déjà WorkTime sur un autre PC\u{202f}?\nImportez le fichier exporté depuis Paramètres\u{a0}›\u{a0}Données sur ce PC-là.", en: "Already using WorkTime on another PC?\nImport the file you exported from Settings\u{a0}›\u{a0}Data on that PC." },
+    Entry { name: "OnboardingImportMessage", fr: "WorkTime redémarre ensuite avec ces données, sans les étapes suivantes.", en: "WorkTime then restarts with this data and skips the remaining setup." },
+    Entry { name: "OnboardingImportTitle", fr: "Importer ce fichier\u{202f}?", en: "Import this file?" },
     Entry { name: "OnboardingLanguageEnglish.Content", fr: "English", en: "English" },
     Entry { name: "OnboardingLanguageFrench.Content", fr: "Français", en: "Français" },
     Entry { name: "OnboardingLanguageInput.AutomationProperties.Name", fr: "Langue", en: "Language" },
@@ -1406,7 +1416,7 @@ pub(super) static ENTRIES: [Entry; 783] = [
     Entry { name: "SettingsUsagePingLastSentToday", fr: "aujourd’hui", en: "today" },
     Entry { name: "SettingsUsagePingLastSentYesterday", fr: "hier", en: "yesterday" },
     Entry { name: "SettingsUsagePingOffText", fr: "Désactivé\u{a0}: WorkTime n’envoie aucun signal.", en: "Off: WorkTime sends no signal." },
-    Entry { name: "SettingsUsagePingServerText", fr: "Le serveur ne conserve qu’un total par jour, par version et par canal. Il ne garde ni votre adresse IP ni rien qui permette de vous reconnaître.", en: "The server keeps only a daily total per version and channel. It keeps neither your IP address nor anything that could identify you." },
+    Entry { name: "SettingsUsagePingServerText", fr: "Le serveur ne garde rien et transmet ce signal à PostHog, hébergé dans l’Union européenne, sans votre adresse IP ni rien qui permette de vous reconnaître.", en: "The server keeps nothing and passes this signal on to PostHog, hosted in the European Union, without your IP address or anything that could identify you." },
     Entry { name: "SettingsVersionCard.Header", fr: "Version", en: "Version" },
     Entry { name: "SettingsVersionReleasedFormat", fr: "Publiée le {0:d MMMM yyyy}", en: "Released {0:MMMM d, yyyy}" },
     Entry { name: "SettingsWholeNumberRequired", fr: "Saisissez un nombre entier de minutes.", en: "Enter a whole number of minutes." },

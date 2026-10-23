@@ -1,14 +1,23 @@
 use std::io;
 use std::sync::Mutex;
 
-use jiff::civil::Date;
+use std::path::PathBuf;
+
+use jiff::civil::{Date, date};
 use worktime_domain::usage_ping::{Build, Channel};
+use worktime_store::transfer::Contents;
 
 use super::*;
 use crate::adjust::TimePart;
 use crate::settings::RowTone;
+use crate::settings::data::{Action, Chosen, Refusal};
 
 const TODAY: Date = jiff::civil::date(2026, 10, 13);
+
+/// The data folder of a PC where WorkTime never ran.
+fn here() -> DataDirectory {
+    DataDirectory::from(PathBuf::from("C:/Users/Camille/AppData/Local/WorkTime"))
+}
 
 fn onboarding(forced: Option<Language>) -> Onboarding {
     Onboarding::new(
@@ -20,7 +29,40 @@ fn onboarding(forced: Option<Language>) -> Onboarding {
             last_sent: None,
         },
         forced,
+        Some(here()),
     )
+}
+
+/// The file exported on the previous PC, read for the import.
+fn chosen() -> Chosen {
+    Chosen {
+        file: PathBuf::from("D:/WorkTime-2026-10-21.worktime"),
+        contents: Contents {
+            exported_at: "2026-10-21T16:04:00Z".parse().unwrap(),
+            days: Some((date(2026, 3, 2), date(2026, 10, 21))),
+        },
+        exported_on: date(2026, 10, 21),
+        this_pc: None,
+    }
+}
+
+/// « Importer des données… » clicked, and `read` what the file dialog and the file gave.
+fn imported(onboarding: &mut Onboarding, read: Option<Result<Chosen, Refusal>>) {
+    let page = onboarding
+        .import_mut()
+        .expect("the first step offers the import");
+    assert_eq!(page.start(Action::Import), Some(here()));
+    page.read(read);
+}
+
+fn import(onboarding: &Onboarding) -> ImportOffer {
+    match onboarding.view().body {
+        Body::Language {
+            import: Some(import),
+            ..
+        } => import,
+        body => panic!("the language step with its import: {body:?}"),
+    }
 }
 
 /// On the last step, the registration read as `state`.
@@ -109,6 +151,14 @@ fn the_language_step_offers_windows_french_and_english() {
                     selected: false,
                 },
             ],
+            import: Some(ImportOffer {
+                lead: "Vous utilisez déjà WorkTime sur un autre PC\u{202f}?\nImportez le fichier \
+                       exporté depuis Paramètres\u{a0}›\u{a0}Données sur ce PC-là.",
+                action: "Importer des données…",
+                status: None,
+                error: None,
+                confirmation: None,
+            }),
         }
     );
     assert_eq!((page.previous, page.next), (None, "Suivant"));
@@ -435,6 +485,7 @@ fn the_zip_build_leaves_the_updates_out() {
             last_sent: None,
         },
         Some(Language::French),
+        None,
     );
     onboarding.advance();
     onboarding.advance();
@@ -487,9 +538,9 @@ fn see_what_is_sent_shows_the_body_and_what_the_server_keeps() {
                 body: "{\n  \"version\": \"1.0.0\",\n  \"channel\": \"store\",\n  \
                        \"first_this_month\": true\n}"
                     .to_owned(),
-                note: "C’est tout ce qui est envoyé. Le serveur ne conserve qu’un total par \
-                       jour, par version et par canal. Il ne garde ni votre adresse IP ni rien \
-                       qui permette de vous reconnaître."
+                note: "C’est tout ce qui est envoyé. Le serveur ne garde rien et transmet ce \
+                       signal à PostHog, hébergé dans l’Union européenne, sans votre adresse IP \
+                       ni rien qui permette de vous reconnaître."
                     .to_owned(),
             }),
         })
@@ -514,8 +565,9 @@ fn see_what_is_sent_shows_the_body_and_what_the_server_keeps() {
     };
     assert_eq!(
         note,
-        "That’s everything that gets sent. The server keeps only a daily total per version and \
-         channel. It keeps neither your IP address nor anything that could identify you."
+        "That’s everything that gets sent. The server keeps nothing and passes this signal on to \
+         PostHog, hosted in the European Union, without your IP address or anything that could \
+         identify you."
     );
 }
 
@@ -542,6 +594,206 @@ fn saving_freezes_the_page_and_a_failure_lets_commencer_try_again() {
     );
     assert!(onboarding.advance().is_some());
     assert_eq!(onboarding.view().failure, None);
+}
+
+#[test]
+fn a_demo_offers_no_import() {
+    let onboarding = Onboarding::new(
+        WorkTimeSettings::default(),
+        UsagePingFacts {
+            build: Build::new("1.0.0", Channel::Store).unwrap(),
+            released: None,
+            today: TODAY,
+            last_sent: None,
+        },
+        Some(Language::French),
+        None,
+    );
+
+    let Body::Language { import, .. } = onboarding.view().body else {
+        panic!("the language step");
+    };
+    assert_eq!(import, None);
+}
+
+#[test]
+fn a_file_read_asks_to_import_it_and_the_steps_wait_for_the_answer() {
+    let mut onboarding = onboarding(Some(Language::French));
+
+    imported(&mut onboarding, Some(Ok(chosen())));
+
+    let confirmation = import(&onboarding).confirmation.unwrap();
+    assert_eq!(confirmation.title, "Importer ce fichier\u{202f}?");
+    assert_eq!(
+        confirmation.paragraphs,
+        [
+            "Ce fichier, exporté le 21\u{a0}octobre\u{a0}2026, contient votre historique du \
+             2\u{a0}mars\u{a0}2026 au 21\u{a0}octobre\u{a0}2026."
+        ]
+    );
+    assert_eq!(confirmation.loss, None);
+    assert_eq!(
+        confirmation.message,
+        "WorkTime redémarre ensuite avec ces données, sans les étapes suivantes."
+    );
+    assert_eq!(
+        (confirmation.cancel, confirmation.confirm),
+        ("Annuler", "Importer et redémarrer")
+    );
+    assert!(onboarding.view().importing);
+    assert_eq!(onboarding.advance(), None);
+    assert_eq!(onboarding.step(), Step::Language);
+
+    onboarding.import_mut().unwrap().cancel();
+
+    assert_eq!(import(&onboarding).confirmation, None);
+    assert!(!onboarding.view().importing);
+    onboarding.advance();
+    assert_eq!(onboarding.step(), Step::Schedule);
+}
+
+#[test]
+fn the_import_tells_what_runs_and_why_a_file_was_refused() {
+    let mut onboarding = onboarding(Some(Language::French));
+    onboarding
+        .import_mut()
+        .unwrap()
+        .start(Action::Import)
+        .unwrap();
+
+    assert_eq!(import(&onboarding).status, Some("Lecture du fichier…"));
+    assert!(onboarding.view().importing);
+
+    onboarding
+        .import_mut()
+        .unwrap()
+        .read(Some(Err(Refusal::NotATransfer)));
+
+    let offer = import(&onboarding);
+    assert_eq!((offer.status, offer.confirmation), (None, None));
+    assert_eq!(
+        offer.error,
+        Some("Ce fichier n’est pas une exportation WorkTime. Choisissez un fichier .worktime.")
+    );
+    assert!(!onboarding.view().importing);
+}
+
+#[test]
+fn a_cancelled_file_dialog_leaves_the_first_step_as_it_was() {
+    let mut onboarding = onboarding(Some(Language::French));
+
+    imported(&mut onboarding, None);
+
+    let offer = import(&onboarding);
+    assert_eq!(
+        (offer.status, offer.error, offer.confirmation),
+        (None, None, None)
+    );
+    assert!(!onboarding.view().importing);
+}
+
+#[test]
+fn confirming_restarts_on_the_file_and_a_failure_lets_the_steps_go_on() {
+    let mut onboarding = onboarding(Some(Language::French));
+    imported(&mut onboarding, Some(Ok(chosen())));
+
+    assert_eq!(
+        onboarding.import_mut().unwrap().confirm(),
+        Some((PathBuf::from("D:/WorkTime-2026-10-21.worktime"), here()))
+    );
+
+    let offer = import(&onboarding);
+    assert_eq!(offer.confirmation, None);
+    assert_eq!(offer.status, Some("Redémarrage de WorkTime…"));
+    assert_eq!(onboarding.advance(), None);
+
+    onboarding.import_mut().unwrap().import_failed();
+
+    assert_eq!(
+        import(&onboarding).error,
+        Some("WorkTime n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.")
+    );
+    onboarding.advance();
+    assert_eq!(onboarding.step(), Step::Schedule);
+}
+
+#[test]
+fn a_pc_that_holds_days_is_told_what_it_would_lose() {
+    let mut onboarding = onboarding(Some(Language::English));
+
+    imported(
+        &mut onboarding,
+        Some(Ok(Chosen {
+            this_pc: Some((date(2026, 10, 1), date(2026, 10, 22))),
+            ..chosen()
+        })),
+    );
+
+    let confirmation = import(&onboarding).confirmation.unwrap();
+    assert_eq!(
+        confirmation.loss.as_deref(),
+        Some(
+            "Days recorded on this PC after October\u{a0}21,\u{a0}2026, will no longer be in the \
+             history."
+        )
+    );
+    assert_eq!(
+        confirmation.message,
+        "WorkTime then restarts with this data and skips the remaining setup."
+    );
+}
+
+#[test]
+fn the_languages_wait_for_the_import_and_its_texts_follow_the_one_chosen_after() {
+    let mut onboarding = onboarding(None);
+    imported(&mut onboarding, Some(Ok(chosen())));
+
+    onboarding.choose_language(LanguageChoice::English);
+
+    assert_eq!(onboarding.language(), Language::French);
+    assert_eq!(
+        import(&onboarding).confirmation.unwrap().title,
+        "Importer ce fichier\u{202f}?"
+    );
+
+    onboarding.import_mut().unwrap().cancel();
+    imported(&mut onboarding, Some(Err(Refusal::NotATransfer)));
+    onboarding.choose_language(LanguageChoice::English);
+
+    assert_eq!(onboarding.language(), Language::English);
+    assert_eq!(
+        import(&onboarding).error,
+        Some("This file is not a WorkTime export. Choose a .worktime file.")
+    );
+}
+
+#[test]
+fn a_new_pick_clears_the_last_refusal() {
+    let mut onboarding = onboarding(Some(Language::French));
+    imported(&mut onboarding, Some(Err(Refusal::NotATransfer)));
+
+    onboarding
+        .import_mut()
+        .unwrap()
+        .start(Action::Import)
+        .unwrap();
+
+    let offer = import(&onboarding);
+    assert_eq!(
+        (offer.status, offer.error),
+        (Some("Lecture du fichier…"), None)
+    );
+}
+
+#[test]
+fn only_the_first_step_offers_the_import() {
+    let mut onboarding = onboarding(Some(Language::French));
+
+    onboarding.advance();
+
+    assert!(onboarding.import_mut().is_none());
+    onboarding.back();
+    assert!(onboarding.import_mut().is_some());
 }
 
 /// Answers `state`, and settles every change on `settled`, recording it.

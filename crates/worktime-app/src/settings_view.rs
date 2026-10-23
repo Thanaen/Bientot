@@ -1,6 +1,7 @@
 //! The « Paramètres » window opened by the flyout. Its state lives in [`SettingsForm`]; this
 //! module draws it, turns keys and clicks into its methods and saves through the host.
 
+mod about;
 mod appointments;
 mod data;
 mod dialog;
@@ -8,6 +9,7 @@ mod json;
 mod language;
 
 use dialog::Dialog;
+pub(crate) use dialog::warning;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -31,9 +33,8 @@ use crate::host::{self, Today};
 use crate::settings::data::DataPage;
 use crate::settings::startup::{self, StartupPort};
 use crate::settings::{
-    AboutView, CalloutView, Clock, Control, Details, Field, LanguageChoice, Leaving, Link, Page,
-    PingDetails, RowTone, RowView, SectionView, SettingsForm, SourceCallout, Switch, Tone,
-    UsagePingFacts,
+    CalloutView, Clock, Control, Details, Field, LanguageChoice, Leaving, Link, Page, PingDetails,
+    RowTone, RowView, SectionView, SettingsForm, SourceCallout, Switch, Tone, UsagePingFacts,
 };
 use crate::shell;
 use crate::strings::{Key, Language};
@@ -1816,7 +1817,7 @@ impl SettingsView {
                 .chain(appointments)
                 .chain(
                     page.about
-                        .map(|about| about_section(about, theme).into_any_element()),
+                        .map(|about| about::section(about, theme).into_any_element()),
                 ),
             theme,
         )
@@ -1855,31 +1856,6 @@ impl SettingsView {
                     .children(content),
             )
     }
-}
-
-/// « À propos »: the version where a row has its control, the day it was published as its
-/// description, and no description when the build does not know it.
-fn about_section(about: AboutView, theme: &Theme) -> impl IntoElement {
-    let version = div()
-        .id("version")
-        .role(Role::Label)
-        .aria_label(about.label)
-        .flex_none()
-        .whitespace_nowrap()
-        .child(about.version);
-    let text = row_text(
-        about.title,
-        theme.text,
-        about.released.map(IntoElement::into_any_element),
-        theme.text_muted,
-    );
-    let row = div().py(BASE_12).child(row_line(text, version));
-    group(
-        "about",
-        Some(about.heading),
-        [row.into_any_element()],
-        theme,
-    )
 }
 
 /// A page's title, and the status line under it with a spinner while `busy`.

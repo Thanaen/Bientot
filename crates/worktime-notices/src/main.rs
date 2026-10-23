@@ -2,7 +2,8 @@
 //! outside the workspace (a registry or a git source), with its license and the license texts it
 //! ships.
 //!
-//! The crate set is `cargo tree` for the Windows target with worktime-app's `release` feature,
+//! The crate set is `cargo tree` for the Windows target with a feature of worktime-app, `release`
+//! for the Store package and the ZIP unless another is given (`direct` for the Velopack release),
 //! over normal edges only: build scripts and proc-macros run on the build machine and are not in
 //! the exe.
 //! `cargo metadata` resolves features for the whole workspace and would list crates the exe never
@@ -14,7 +15,7 @@
 //! which must cover its whole expression, and its authors as the copyright holders the MIT and
 //! BSD texts require.
 //!
-//! Usage: `cargo run --locked -p worktime-notices -- <output file>`. Fails, naming the crate, on a
+//! Usage: `cargo run --locked -p worktime-notices -- <output file> [feature]`. Fails, naming the crate, on a
 //! missing license, a license outside [`license::ALLOWED`] or license texts that do not cover it.
 
 mod license;
@@ -55,11 +56,19 @@ struct Crate {
 
 fn main() -> ExitCode {
     let mut arguments = std::env::args_os().skip(1);
-    let (Some(output), None) = (arguments.next(), arguments.next()) else {
-        eprintln!("usage: worktime-notices <output file>");
+    let (Some(output), feature, None) = (arguments.next(), arguments.next(), arguments.next())
+    else {
+        eprintln!("usage: worktime-notices <output file> [feature]");
         return ExitCode::FAILURE;
     };
-    match generate(Path::new(&output)) {
+    let Some(feature) = feature
+        .as_deref()
+        .map_or(Some("release"), |feature| feature.to_str())
+    else {
+        eprintln!("worktime-notices: the feature is not UTF-8");
+        return ExitCode::FAILURE;
+    };
+    match generate(Path::new(&output), feature) {
         Ok(count) => {
             eprintln!("{}: {count} crates", Path::new(&output).display());
             ExitCode::SUCCESS
@@ -71,7 +80,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn generate(output: &Path) -> Result<usize, String> {
+fn generate(output: &Path, feature: &str) -> Result<usize, String> {
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let manifest = workspace.join("Cargo.toml");
     let tree = cargo(&[
@@ -82,7 +91,7 @@ fn generate(output: &Path) -> Result<usize, String> {
         "--package",
         "worktime-app",
         "--features",
-        "release",
+        feature,
         "--target",
         TARGET,
         "--edges",

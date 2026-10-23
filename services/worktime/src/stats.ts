@@ -1,4 +1,4 @@
-// The public statistics: what the counters in usage_daily may show to anyone, and in which shape.
+// The public statistics: what the daily totals of the usage signal may show to anyone, and in which shape.
 // Publication rules (README.md, "Statistics"): only finished UTC days, and monthly figures only for
 // finished months, so that no total is published twice while it grows. No figure under 10, and a
 // small group is merged with others until the merge reaches 10 too, so that it cannot be found back

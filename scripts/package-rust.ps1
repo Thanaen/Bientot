@@ -61,7 +61,8 @@ function Copy-LicenseNotices([string] $Layout) {
         -Destination (Join-Path $Layout 'LICENSE-icons.txt')
     Copy-Item -LiteralPath (Join-Path $repositoryRoot 'crates/worktime-app/assets/fonts/OFL.txt') `
         -Destination (Join-Path $Layout 'LICENSE-fonts.txt')
-    # The crates compiled into a release exe (worktime-app's `release` feature) and their licenses.
+    # The crates compiled into the Store and ZIP exe (worktime-app's `release` feature) and their
+    # licenses.
     # The generator fails on a license it does not allow, which stops the packaging. rustup picks
     # the toolchain from the current directory, so the run starts at the root to get
     # rust-toolchain.toml.

@@ -1,27 +1,19 @@
-import { createClient } from "@libsql/client";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { createApp } from "./src/app";
-import { UsageStore } from "./src/store";
+import { MemoryStore } from "./src/store";
 
 let clock: Date;
 let app: ReturnType<typeof createApp>;
 
 beforeEach(() => {
   clock = new Date("2026-10-12T22:30:00Z");
-  app = createApp({ store: new UsageStore(createClient({ url: ":memory:" })), statsToken: "secret", now: () => clock });
+  app = createApp({ store: new MemoryStore(), now: () => clock });
 });
 
 const ping = (body: unknown) =>
   app["/v1/ping"].POST(
     new Request("http://local/v1/ping", { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) }),
   );
-const stats = async (token = "secret") => {
-  const response = await app["/v1/stats"].GET(
-    new Request("http://local/v1/stats", { headers: { authorization: `Bearer ${token}` } }),
-  );
-  return { status: response.status, body: response.status === 200 ? await response.json() : null };
-};
-
 describe("POST /v1/ping", () => {
   test.each(["store", "direct", "zip"])("accepts the signal of the %s channel", async (channel) => {
     const response = await ping({ version: "1.0.0", channel, first_this_month: true });
@@ -45,94 +37,33 @@ describe("POST /v1/ping", () => {
   });
 });
 
-describe("GET /v1/stats", () => {
-  test("needs the stats token", async () => {
-    expect((await stats("wrong")).status).toBe(401);
-  });
-
-  test("counts monthly actives from first-of-month signals and daily actives from every signal", async () => {
-    await ping({ version: "1.0.0", channel: "store", first_this_month: true });
-    await ping({ version: "1.0.0", channel: "store", first_this_month: true });
-    await ping({ version: "1.0.0-alpha.3", channel: "zip", first_this_month: true });
-    clock = new Date("2026-10-13T08:00:00Z");
-    await ping({ version: "1.0.0", channel: "store", first_this_month: false });
-    clock = new Date("2026-11-01T08:00:00Z");
-    await ping({ version: "1.0.1", channel: "store", first_this_month: true });
-
-    expect((await stats()).body).toEqual([
-      { month: "2026-11", activeThisMonth: 1, averageDaily: 1, peakDaily: 1, byChannel: { store: 1 }, byVersion: { "1.0.1": 1 } },
-      {
-        month: "2026-10",
-        activeThisMonth: 3,
-        averageDaily: 0.1,
-        peakDaily: 3,
-        byChannel: { store: 2, zip: 1 },
-        byVersion: { "1.0.0": 2, "1.0.0-alpha.3": 1 },
-      },
-    ]);
-  });
-
-  test("averages a finished month over all its days, quiet ones included", async () => {
-    clock = new Date("2026-09-01T09:00:00Z");
-    for (let i = 0; i < 30; i++) await ping({ version: "1.0.0", channel: "store", first_this_month: true });
-    clock = new Date("2026-10-12T09:00:00Z");
-
-    const [september] = (await stats()).body;
-    expect(september).toMatchObject({ month: "2026-09", averageDaily: 1, peakDaily: 30 });
-  });
-
-  test("averages the current month over the days elapsed so far", async () => {
-    clock = new Date("2026-10-01T09:00:00Z");
-    for (let i = 0; i < 4; i++) await ping({ version: "1.0.0", channel: "store", first_this_month: true });
-    clock = new Date("2026-10-02T09:00:00Z");
-
-    expect((await stats()).body).toEqual([expect.objectContaining({ month: "2026-10", averageDaily: 2, peakDaily: 4 })]);
-  });
-
-  test("keeps the last 12 calendar months, even when recent months are quiet", async () => {
-    clock = new Date("2024-01-15T09:00:00Z");
-    await ping({ version: "0.9.0", channel: "zip", first_this_month: true });
-    clock = new Date("2025-11-01T09:00:00Z");
-    await ping({ version: "0.9.5", channel: "zip", first_this_month: true });
-    clock = new Date("2026-10-12T09:00:00Z");
-
-    expect((await stats()).body.map((m: { month: string }) => m.month)).toEqual(["2025-11"]);
-  });
-});
-
 describe("GET /updates/:file", () => {
-  const releases = createApp({
-    store: new UsageStore(createClient({ url: ":memory:" })),
-    statsToken: "secret",
-    releasesUrl: "https://store.public.blob.vercel-storage.com/",
-  });
   const get = (file: string) =>
-    releases["/updates/:file"].GET(Object.assign(new Request(`http://local/updates/${file}`), { params: { file } }));
+    app["/updates/:file"].GET(Object.assign(new Request(`http://local/updates/${file}`), { params: { file } }));
+  const releases = "https://github.com/Thanaen/WorkTime/releases";
 
-  test("points at the file in the Blob store, uncached", () => {
+  test("points at the latest release's feed, uncached", () => {
     const response = get("releases.win.json");
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe(
-      "https://store.public.blob.vercel-storage.com/updates/releases.win.json",
-    );
+    expect(response.headers.get("location")).toBe(`${releases}/latest/download/releases.win.json`);
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
-  test.each(["..", ".hidden", "a/b", "a%2Fb", ""])("finds no file named %p", (file) => {
-    expect(get(file).status).toBe(404);
+  test.each(["full", "delta"])("points at a %s package in the release of its version", (kind) => {
+    const file = `Thanaen.WorkTime-0.2.0-alpha.13-${kind}.nupkg`;
+    expect(get(file).headers.get("location")).toBe(`${releases}/download/v0.2.0-alpha.13/${file}`);
   });
 
-  test("finds nothing without a store", () => {
-    const file = "releases.win.json";
-    const response = app["/updates/:file"].GET(
-      Object.assign(new Request(`http://local/updates/${file}`), { params: { file } }),
-    );
-    expect(response.status).toBe(404);
-  });
+  test.each(["..", ".hidden", "a/b", "a%2Fb", "", "RELEASES", "Thanaen.WorkTime-x-full.nupkg", "Other-1.0.0-full.nupkg"])(
+    "finds no file named %p",
+    (file) => {
+      expect(get(file).status).toBe(404);
+    },
+  );
 
-  test("/download points at the installer", () => {
-    expect(releases["/download"].GET().headers.get("location")).toBe(
-      "https://store.public.blob.vercel-storage.com/updates/Thanaen.WorkTime-win-Setup.exe",
+  test("/download points at the latest installer", () => {
+    expect(app["/download"].GET().headers.get("location")).toBe(
+      `${releases}/latest/download/Thanaen.WorkTime-win-Setup.exe`,
     );
   });
 });
@@ -160,8 +91,9 @@ describe("the site", () => {
     expect(page).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/">');
     expect(page).toContain('<meta property="og:image" content="https://worktime.thanaen.dev/og/home.png">');
     expect(page).toContain('<meta name="twitter:card" content="summary_large_image">');
-    expect(page).toContain(`<script defer src="/_vercel/insights/script.js"></script>`);
-    expect(page).toContain(`<script defer src="/_vercel/speed-insights/script.js"></script>`);
+    expect(page).toContain(`<script defer crossorigin="anonymous" src="https://e.worktime.thanaen.dev/static/array.js"></script>`);
+    expect(page).toContain(`<script defer src="/analytics.js"></script>`);
+    expect(page).not.toContain("/_vercel/");
   });
 
   test("every local file the page links to is served", async () => {
@@ -172,9 +104,8 @@ describe("the site", () => {
     );
     expect(paths).toContain("/og/home.png");
     expect(paths).toContain("/fonts/IBMPlexSans-Regular.woff2");
+    expect(paths).toContain("/analytics.js");
     for (const path of paths) {
-      // Vercel serves its own scripts under /_vercel/.
-      if (path.startsWith("/_vercel/")) continue;
       const response = await get(path);
       expect(response?.status, path).toBe(200);
       expect((await response!.arrayBuffer()).byteLength, path).toBeGreaterThan(100);
@@ -313,7 +244,7 @@ describe("the statistics", () => {
     const html = await (await page()).text();
     expect(html).toContain("<title>Statistiques · WorkTime</title>");
     expect(html).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/statistiques">');
-    expect(html).toContain("/_vercel/insights/script.js");
+    expect(html).toContain(`<script defer src="/analytics.js"></script>`);
     expect(html).not.toContain("<!-- head -->");
   });
 });
