@@ -117,7 +117,9 @@ jobs:
     needs: plan
     if: ${{ !cancelled() && needs.plan.outputs.verified != 'true' && needs.plan.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # A pull request's first run builds without a cache, then renders every screenshot on the
+    # software Vulkan driver; together they passed 15 minutes on #20.
+    timeout-minutes: 30
 
     permissions:
       contents: read
