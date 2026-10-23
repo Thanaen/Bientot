@@ -81,6 +81,12 @@ WorkTime makes two kinds of request.
    without a restart. The toggle saves `"usagePing": false` in
    `settings.json`.
 
+   These counts are public, at `https://worktime.thanaen.dev/statistiques`, as a
+   page and as CSV and JSON files under CC0. The page shows only finished days
+   and finished months, no figure under 10 (small groups are merged until they
+   reach 10), and the figures per version and channel rounded to the nearest 5,
+   so that no figure points at a few installations.
+
 ## The website
 
 The app never loads the website. The pages of `https://worktime.thanaen.dev`

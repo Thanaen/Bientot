@@ -155,9 +155,11 @@ footer .foot-note { flex-basis: 100%; }
 @media (max-width: 860px) {
   .hero, .two { grid-template-columns: minmax(0, 1fr); }
   .states { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .nav nav { display: none; }
+  .nav { flex-wrap: wrap; gap: 12px 24px; }
+  .nav nav { margin-left: 0; flex: 1 1 100%; overflow-x: auto; gap: 16px; white-space: nowrap; padding-bottom: 2px; }
 }
 @media (max-width: 600px) {
+  footer .wrap > span:first-child { flex-basis: 100%; }
   .seg span { display: none; }
   .tl-row, .tl-axis { grid-template-columns: 44px 1fr 72px; gap: 8px; }
   .tl-axis div:nth-child(2) span:nth-child(even) { visibility: hidden; }
@@ -201,7 +203,7 @@ footer .foot-note { flex-basis: 100%; }
 
   <div class="wrap nav">
     <a class="brand" href="/"><svg class="tray" aria-hidden="true"><use href="#t-green"/></svg>WorkTime</a>
-    <nav aria-label="Sections"><a href="#how">Fonctionnement</a><a href="#privacy">Vie privée</a><a href="https://github.com/Thanaen/WorkTime">Code source</a></nav>
+    <nav aria-label="Sections"><a href="#how">Fonctionnement</a><a href="#privacy">Vie privée</a><a href="/statistiques">Statistiques</a><a href="https://github.com/Thanaen/WorkTime">Code source</a></nav>
   </div>
   <div class="wrap hero">
     <div>
@@ -284,7 +286,7 @@ footer .foot-note { flex-basis: 100%; }
       <div class="panel">
         <h2>Vos heures restent chez vous</h2>
         <p>Tout est enregistré sur votre PC, sans compte. Vous pouvez exporter vos données, puis les importer sur un autre ordinateur.</p>
-        <p>Une fois par jour, WorkTime envoie un signal anonyme (sa version, son mode d’installation et s’il s’agit du premier envoi du mois) pour compter les PC qui l’utilisent. Il est activé par défaut&nbsp;; vous pouvez le couper dans les paramètres.</p>
+        <p>Une fois par jour, WorkTime envoie un signal anonyme (sa version, son mode d’installation et s’il s’agit du premier envoi du mois) pour compter les PC qui l’utilisent. Il est activé par défaut&nbsp;; vous pouvez le couper dans Paramètres&nbsp;›&nbsp;Général. Les totaux sont publics, sur la page <a href="/statistiques">Statistiques</a>.</p>
       </div>
       <div class="panel">
         <h2>Libre et gratuit</h2>
@@ -295,6 +297,6 @@ footer .foot-note { flex-basis: 100%; }
     </div>
   </section>
 
-  <footer><div class="wrap"><span>WorkTime · licence MIT</span><a href="https://github.com/Thanaen/WorkTime">GitHub</a><a href="/download">Télécharger</a><span class="foot-note">Audience mesurée par Vercel, <a href="https://github.com/Thanaen/WorkTime/blob/main/docs/privacy.md#the-website">sans cookie</a>.</span></div></footer>
+  <footer><div class="wrap"><span>WorkTime · licence MIT</span><a href="https://github.com/Thanaen/WorkTime">GitHub</a><a href="/download">Télécharger</a><a href="/statistiques">Statistiques</a><span class="foot-note">Audience mesurée par Vercel, <a href="https://github.com/Thanaen/WorkTime/blob/main/docs/privacy.md#the-website">sans cookie</a>.</span></div></footer>
 </body>
 </html>

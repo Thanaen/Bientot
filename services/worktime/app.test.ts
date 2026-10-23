@@ -196,3 +196,124 @@ describe("the site", () => {
     expect(await get(path)).toBeNull();
   });
 });
+
+describe("the statistics", () => {
+  const page = (headers: Record<string, string> = {}) =>
+    app["/statistiques"].GET(new Request("http://local/statistiques", { headers }));
+  const file = (name: string) =>
+    app["/statistiques/:file"].GET(Object.assign(new Request(`http://local/statistiques/${name}`), { params: { file: name } }));
+  const pings = async (count: number, channel = "direct", version = "0.2.0") => {
+    for (let i = 0; i < count; i++) await ping({ version, channel, first_this_month: true });
+  };
+
+  test("shows nothing but a notice below 10 installations", async () => {
+    await pings(9);
+    clock = new Date("2026-10-13T08:00:00Z");
+    const html = await (await page()).text();
+    expect(html).toContain("Pas encore de chiffres");
+    expect(html).not.toContain('class="kpis"');
+  });
+
+  test("leaves out the current day and caches until the next one", async () => {
+    clock = new Date("2026-10-31T09:00:00Z");
+    await pings(12);
+    await pings(30, "zip", "0.1.0-alpha.250");
+    clock = new Date("2026-11-01T09:00:00Z");
+    await pings(15);
+    const response = await page();
+    expect(response.headers.get("cache-control")).toBe("public, max-age=600");
+    // 09:00 to 00:05 the next day.
+    expect(response.headers.get("vercel-cdn-cache-control")).toBe("max-age=54300, stale-while-revalidate=3600");
+    const html = await response.text();
+    expect(html).toContain("Installations actives en octobre");
+    expect(html).toContain("Données jusqu’au 31 octobre 2026");
+    expect(await (await file("quotidien.csv")).text()).toBe("jour,installations\n2026-10-31,42\n");
+  });
+
+  test("publishes a month once it is over", async () => {
+    clock = new Date("2026-10-30T09:00:00Z");
+    await pings(12);
+    clock = new Date("2026-10-31T09:00:00Z");
+    expect(await (await page()).text()).toContain("Pas encore de chiffres");
+    expect(await (await file("mensuel.csv")).text()).toBe("mois,actives,moyenne_jour,pic_jour\n");
+    expect(await (await file("quotidien.csv")).text()).toBe("jour,installations\n2026-10-30,12\n");
+  });
+
+  test("still shows the earlier months when the last one is under 10", async () => {
+    clock = new Date("2026-09-15T09:00:00Z");
+    await pings(100);
+    clock = new Date("2026-10-15T09:00:00Z");
+    await pings(5);
+    clock = new Date("2026-11-01T09:00:00Z");
+    const html = await (await page()).text();
+    expect(html).toContain('class="kpis"');
+    expect(html).toContain("Installations actives en octobre");
+    expect(html).toContain("septembre 2026 100");
+    expect(html).toContain("Septembre&nbsp;: 100");
+    expect(html).not.toContain("Par mode d’installation");
+  });
+
+  test("serves the open data files, readable from other sites", async () => {
+    clock = new Date("2026-10-31T09:00:00Z");
+    await pings(12);
+    clock = new Date("2026-11-01T09:00:00Z");
+    const csv = await file("details.csv");
+    expect(csv.headers.get("content-type")).toBe("text/csv; charset=utf-8");
+    expect(csv.headers.get("access-control-allow-origin")).toBe("*");
+    expect(await csv.text()).toBe("mois,par,valeur,actives\n2026-10,version,0.2.0,10\n2026-10,mode,direct,10\n");
+    expect(await (await file("mensuel.json")).json()).toEqual([{ mois: "2026-10", actives: 12, moyenne_jour: null, pic_jour: 12 }]);
+  });
+
+  test("answers 304 to a browser that has the same day's figures", async () => {
+    clock = new Date("2026-10-13T09:00:00Z");
+    const etag = (await page()).headers.get("etag")!;
+    expect((await page({ "if-none-match": etag })).status).toBe(304);
+    expect((await page({ "if-none-match": `"other", W/${etag}` })).status).toBe(304);
+    clock = new Date("2026-10-14T09:00:00Z");
+    expect((await page({ "if-none-match": etag })).status).toBe(200);
+  });
+
+  test.each(["stats.csv", "mensuel.xml", "..", "mensuel.csv.bak"])("serves no file named %p", async (name) => {
+    expect((await file(name)).status).toBe(404);
+  });
+
+  test("withholds a month without saying it is under 10", async () => {
+    // A shown 10, a hidden 9 and 19 actives (the stats.test.ts case): March is withheld at 19.
+    clock = new Date("2026-10-01T09:00:00Z");
+    await pings(10);
+    clock = new Date("2026-10-02T09:00:00Z");
+    await pings(9);
+    clock = new Date("2026-11-01T09:00:00Z");
+    const alone = await (await page()).text();
+    expect(alone).toContain("Pas encore de chiffres");
+    expect(alone).not.toContain("Moins de 10");
+  });
+
+  test("labels a withheld month after a published one as not published", async () => {
+    clock = new Date("2026-09-15T09:00:00Z");
+    await pings(100);
+    clock = new Date("2026-10-01T09:00:00Z");
+    await pings(10);
+    clock = new Date("2026-10-02T09:00:00Z");
+    await pings(9);
+    clock = new Date("2026-11-01T09:00:00Z");
+    expect(await (await file("mensuel.csv")).text()).toBe("mois,actives,moyenne_jour,pic_jour\n2026-09,100,,100\n2026-10,,,10\n");
+    const html = await (await page()).text();
+    expect(html).toContain('Installations actives en octobre</span><span class="v small">non publié</span>');
+    expect(html).toContain("octobre 2026 non publié");
+  });
+
+  test("the homepage links to the page, and the sitemap lists it", async () => {
+    const routes: Record<string, { GET(): Response | Promise<Response> }> = app as never;
+    expect(await (await routes["/"]!.GET()).text()).toContain('href="/statistiques"');
+    expect(await (await routes["/sitemap.xml"]!.GET()).text()).toContain("<loc>https://worktime.thanaen.dev/statistiques</loc>");
+  });
+
+  test("the page carries the site's head", async () => {
+    const html = await (await page()).text();
+    expect(html).toContain("<title>Statistiques · WorkTime</title>");
+    expect(html).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/statistiques">');
+    expect(html).toContain("/_vercel/insights/script.js");
+    expect(html).not.toContain("<!-- head -->");
+  });
+});

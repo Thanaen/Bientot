@@ -26,6 +26,16 @@ export const PAGES: Page[] = [
   },
 ];
 
+// The statistics page is drawn per request from its template (stats-page.ts), with the same head.
+export const STATISTICS: Page = {
+  path: "/statistiques",
+  file: new URL("../site/statistiques.html", import.meta.url),
+  title: "Statistiques · WorkTime",
+  description:
+    "Combien d’installations de WorkTime sont actives chaque mois, par version et par mode d’installation : les chiffres du signal anonyme, publiés en données ouvertes.",
+  image: PAGES[0]!.image,
+};
+
 const DAY = 86400;
 
 const FILES: Record<string, { url: URL; type: string; maxAge: number }> = {
@@ -92,7 +102,7 @@ const text = (body: string, type: string) =>
   new Response(body, { headers: { "content-type": `${type}; charset=utf-8`, "cache-control": `public, max-age=${DAY}` } });
 
 export function sitemap(): string {
-  const urls = PAGES.map((page) => `  <url><loc>${ORIGIN}${page.path}</loc></url>`).join("\n");
+  const urls = [...PAGES, STATISTICS].map((page) => `  <url><loc>${ORIGIN}${page.path}</loc></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 

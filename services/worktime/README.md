@@ -7,6 +7,8 @@ their updates.
 | Route | Answer |
 | --- | --- |
 | `GET /` | The homepage, `site/index.html` |
+| `GET /statistiques` | The public statistics page, built from `site/statistiques.html` |
+| `GET /statistiques/<name>.<csv\|json>` | The open data files: `mensuel`, `quotidien`, `details` |
 | `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png` | The files listed in `src/site.ts`; `404` for any other path |
 | `GET /robots.txt`, `/sitemap.xml` | Generated from the pages listed in `src/site.ts` |
 | `POST /v1/ping` | `204`; `400` for any other shape, `413` above 256 bytes |
@@ -49,6 +51,30 @@ request body, and logs nothing.
 `activeThisMonth` counts first-of-month signals. `averageDaily` and
 `peakDaily` count every signal of a day; the average, to one decimal, spreads them over every
 day of the month, or every day so far for the current month.
+
+## Statistics
+
+`/statistiques` publishes what the counters allow, as a page and as CSV and JSON files under CC0.
+`src/stats.ts` holds the publication rules, tested in `stats.test.ts`:
+
+- only finished UTC days: the current day appears the next day;
+- monthly figures only for finished months, so that two snapshots of a growing total never show
+  what one day added;
+- no figure under 10: the cell is empty (`null`), or the key joins `autres`. While `autres` is
+  under 10, the smallest shown key joins it too, so that no hidden figure can be found by
+  subtracting the shown ones from the month's exact total;
+- the version and channel figures are rounded to the nearest 5;
+- a month's daily average and peak come from the published days, a hidden day counting as 0;
+- a month whose actives exceed the total of its published days stays hidden: every first-of-month
+  signal is also a day's signal, so the excess would tell what the hidden days hold;
+- the last 12 finished months.
+
+The figures change once a day, so they cost almost nothing to serve. On a cache miss the function
+runs two `GROUP BY` queries over the primary key, a few hundred rows, and keeps the result in memory
+until the day changes. Each answer carries `Cache-Control: public, max-age=600` for browsers,
+`Vercel-CDN-Cache-Control` up to 00:05 UTC the next day with an hour of `stale-while-revalidate`,
+and an `ETag` named after the last day it covers. The page is drawn on the server as HTML and CSS,
+with no script.
 
 ## Updates
 
