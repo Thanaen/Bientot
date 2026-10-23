@@ -248,6 +248,7 @@ pub enum Key {
     HistoryWeekTitle,
     HistoryWeekTitleSameMonth,
     HistoryWindowTitle,
+    ImportWaitsForNextStart,
     InitializationFailed,
     KeyAlt,
     KeyComma,
@@ -808,7 +809,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 800] = [
+pub(super) static ENTRIES: [Entry; 801] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1051,6 +1052,7 @@ pub(super) static ENTRIES: [Entry; 800] = [
     Entry { name: "HistoryWeekTitle", fr: "Semaine du {0:d MMMM} au {1:d MMMM}", en: "Week of {0:MMMM d} – {1:MMMM d}" },
     Entry { name: "HistoryWeekTitleSameMonth", fr: "Semaine du {0:%d} au {1:d MMMM}", en: "Week of {0:MMMM d}–{1:%d}" },
     Entry { name: "HistoryWindowTitle", fr: "Historique de la semaine actuelle", en: "Current week history" },
+    Entry { name: "ImportWaitsForNextStart", fr: "WorkTime n’a pas pu redémarrer. Vos données seront importées au prochain démarrage. Si l’icône WorkTime est encore dans la zone de notification, choisissez «\u{a0}Quitter WorkTime\u{a0}» dans son menu. Relancez ensuite WorkTime.", en: "WorkTime could not restart. Your data will be imported the next time it starts. If the WorkTime icon is still in the notification area, choose “Quit WorkTime” from its menu. Then open WorkTime again." },
     Entry { name: "InitializationFailed", fr: "WorkTime n’a pas pu démarrer. Vérifiez les paramètres et la base locale, puis relancez l’application.", en: "WorkTime could not start. Check the local settings and database, then restart the app." },
     Entry { name: "KeyAlt", fr: "Alt", en: "Alt" },
     Entry { name: "KeyComma", fr: "Virgule", en: "Comma" },

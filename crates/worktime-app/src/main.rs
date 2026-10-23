@@ -141,7 +141,14 @@ fn run(
     #[cfg(windows)]
     let instance = match worktime_windows::single_instance::claim(&directory) {
         Ok(Instance::Primary(instance)) => instance,
-        Ok(Instance::Secondary) => return Ok(()),
+        Ok(Instance::Secondary) => {
+            if let Some(language) =
+                transfer::import_left_waiting(launch.restarted_from, &directory, launch.language)
+            {
+                alert(language, Key::ImportWaitsForNextStart);
+            }
+            return Ok(());
+        }
         Err(error) => {
             return Err(StartFailure {
                 error: error.into(),

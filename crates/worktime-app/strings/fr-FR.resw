@@ -296,6 +296,7 @@
   <data name="SettingsSavedPending" xml:space="preserve"><value>Réglages enregistrés. Actualisez pour mettre à jour votre journée.</value></data>
   <data name="SettingsRecovered" xml:space="preserve"><value>Les réglages invalides ont été sauvegardés à part et les valeurs par défaut rétablies. Vérifiez vos réglages.</value></data>
   <data name="InitializationFailed" xml:space="preserve"><value>WorkTime n’a pas pu démarrer. Vérifiez les paramètres et la base locale, puis relancez l’application.</value></data>
+  <data name="ImportWaitsForNextStart" xml:space="preserve"><value>WorkTime n’a pas pu redémarrer. Vos données seront importées au prochain démarrage. Si l’icône WorkTime est encore dans la zone de notification, choisissez « Quitter WorkTime » dans son menu. Relancez ensuite WorkTime.</value></data>
   <data name="StartupFailureTitle" xml:space="preserve"><value>WorkTime n’a pas pu démarrer</value></data>
   <data name="StartupFailureMessage" xml:space="preserve"><value>Vérifiez les paramètres et la base de données locale, puis relancez WorkTime. Si le problème persiste, exportez le diagnostic.</value></data>
   <data name="StartupFailureDetailsHeader" xml:space="preserve"><value>Détails</value></data>
