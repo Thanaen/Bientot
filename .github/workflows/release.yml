@@ -151,6 +151,13 @@ jobs:
       contents: write
 
     steps:
+      # The history from the previous release, for the notes.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 0
+
       - name: Download the release
         uses: actions/download-artifact@v7
         with:
@@ -167,11 +174,15 @@ jobs:
         run: |
           set -euo pipefail
           tag="v${VERSION}"
+          # The notes cover the app since the latest published release (scripts/release-notes.sh).
+          previous=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
+          scripts/release-notes.sh "$previous" "$SHA" > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md" >> "$GITHUB_STEP_SUMMARY"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes
           fi
           gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --target "$SHA" \
-            --title "WorkTime ${VERSION}" --generate-notes
+            --title "WorkTime ${VERSION}" --notes-file "$RUNNER_TEMP/notes.md"
           gh release upload "$tag" --repo "$GITHUB_REPOSITORY" dist/*
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest
           echo "Published [WorkTime ${VERSION}](https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag})." >> "$GITHUB_STEP_SUMMARY"

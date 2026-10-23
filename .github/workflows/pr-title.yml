@@ -1,0 +1,26 @@
+name: Pull request title
+
+# Pull requests are squash-merged, so their title becomes the commit on main, which the release
+# notes read (scripts/release-notes.sh): a Conventional Commits type and the part it changes.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  title:
+    name: Conventional title
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Check the title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|perf|refactor|build|ci|docs|style|test|chore|revert)\((app|site|repo)\)!?: [^ ](.*[^.])?$'
+          if [[ ! $TITLE =~ $pattern ]]; then
+            echo "::error::\"$TITLE\" is not \"<type>(<scope>): <subject>\", with a scope among app, site and repo. See CONTRIBUTING.md, \"Commits and pull requests\"."
+            exit 1
+          fi
