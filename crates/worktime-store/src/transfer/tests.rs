@@ -180,6 +180,81 @@ fn a_ledger_that_cannot_move_into_place_puts_the_settings_back() {
     assert_eq!(summaries(&directory), ["2026-10-22"]);
 }
 
+/// Leaves `new_pc` as a crash between writing the settings of `file` and moving its ledger into
+/// place leaves it: the previous data exported, the staged file renamed, the new settings beside
+/// the previous ledger.
+fn interrupt_after_the_settings(file: &Path, new_pc: &DataDirectory) {
+    stage(file, new_pc).unwrap();
+    fs::create_dir_all(new_pc.backups_directory()).unwrap();
+    let backup = new_pc
+        .backups_directory()
+        .join(backup_name(now(), &TimeZone::UTC));
+    export(new_pc, &backup, now()).unwrap();
+    let pending = new_pc.pending_import_file();
+    fs::rename(&pending, file::sibling(&pending, ".applying")).unwrap();
+    let (_, settings) = read(file).unwrap();
+    file::replace(&new_pc.settings_file(), &settings.unwrap()).unwrap();
+}
+
+#[test]
+fn an_import_a_crash_interrupted_is_finished_by_the_next_start() {
+    let (_old, old_pc) = folder(&["2026-03-02", "2026-10-21"], 450);
+    let file = old_pc.path().join("export.worktime");
+    export(&old_pc, &file, now()).unwrap();
+    let (_new, new_pc) = folder(&["2026-10-22"], 480);
+    interrupt_after_the_settings(&file, &new_pc);
+    assert_eq!(target(&new_pc), 450);
+    // Recorded on the previous ledger after the crash: it must not be lost either.
+    insert_summary(&open(&new_pc.database_file()).unwrap(), "2026-10-23");
+
+    let applied = apply_staged(
+        &new_pc,
+        "2026-10-23T09:35:00Z".parse().unwrap(),
+        &TimeZone::UTC,
+    )
+    .unwrap()
+    .unwrap();
+
+    assert_eq!(summaries(&new_pc), ["2026-03-02", "2026-10-21"]);
+    assert_eq!(target(&new_pc), 450);
+    let backup = applied.backup.unwrap();
+    assert_eq!(
+        backup,
+        new_pc
+            .backups_directory()
+            .join("before-import-2026-10-23-09-35-00.worktime")
+    );
+    assert_eq!(
+        inspect(&backup).unwrap().days,
+        Some((date(2026, 10, 22), date(2026, 10, 23)))
+    );
+    assert_eq!(apply_staged(&new_pc, now(), &TimeZone::UTC).unwrap(), None);
+}
+
+#[test]
+fn a_file_staged_after_an_interrupted_import_replaces_what_it_left() {
+    let (_old, old_pc) = folder(&["2026-03-02"], 450);
+    let interrupted = old_pc.path().join("export.worktime");
+    export(&old_pc, &interrupted, now()).unwrap();
+    let (_other, other_pc) = folder(&["2026-05-04"], 420);
+    let staged = other_pc.path().join("export.worktime");
+    export(&other_pc, &staged, now()).unwrap();
+    let (_new, new_pc) = folder(&["2026-10-22"], 480);
+    interrupt_after_the_settings(&interrupted, &new_pc);
+
+    stage(&staged, &new_pc).unwrap();
+    apply_staged(
+        &new_pc,
+        "2026-10-22T09:35:00Z".parse().unwrap(),
+        &TimeZone::UTC,
+    )
+    .unwrap();
+
+    assert_eq!(summaries(&new_pc), ["2026-05-04"]);
+    assert_eq!(target(&new_pc), 420);
+    assert_eq!(apply_staged(&new_pc, now(), &TimeZone::UTC).unwrap(), None);
+}
+
 #[test]
 fn importing_the_backup_undoes_the_import() {
     let (_old, old_pc) = folder(&["2026-03-02"], 450);
