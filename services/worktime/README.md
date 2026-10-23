@@ -16,13 +16,15 @@ their updates.
 
 ## Pages
 
-`site/index.html` is a static page in French, in the app's WorkTime One theme. It runs no
-script, sets no cookie and makes no third-party request: the fonts are Latin subsets of the
-app's IBM Plex fonts, made with `pyftsubset`.
+`site/index.html` is a static page in French, in the app's WorkTime One theme. It sets no
+cookie and makes no third-party request: the fonts are Latin subsets of the app's IBM Plex
+fonts, made with `pyftsubset`. Its only scripts are Vercel Web Analytics and Speed Insights,
+served by Vercel from `/_vercel/` on the same origin (see `docs/privacy.md`); they are absent
+under `bun run dev`.
 
 `src/site.ts` lists the pages and the files they use. Each page has `<!-- head -->` in its
 `<head>`; the service fills it with the title, description, canonical URL, link-preview tags
-(Open Graph, `summary_large_image`), icons and theme colours, and adds the page to
+(Open Graph, `summary_large_image`), icons, theme colours and the two Vercel scripts, and adds the page to
 `/sitemap.xml`. A new page or file must be listed there.
 
 Each page has a 1200 × 630 share image, drawn from an HTML source next to it. After changing

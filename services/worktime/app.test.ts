@@ -160,6 +160,8 @@ describe("the site", () => {
     expect(page).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/">');
     expect(page).toContain('<meta property="og:image" content="https://worktime.thanaen.dev/og/home.png">');
     expect(page).toContain('<meta name="twitter:card" content="summary_large_image">');
+    expect(page).toContain(`<script defer src="/_vercel/insights/script.js"></script>`);
+    expect(page).toContain(`<script defer src="/_vercel/speed-insights/script.js"></script>`);
   });
 
   test("every local file the page links to is served", async () => {
@@ -171,6 +173,8 @@ describe("the site", () => {
     expect(paths).toContain("/og/home.png");
     expect(paths).toContain("/fonts/IBMPlexSans-Regular.woff2");
     for (const path of paths) {
+      // Vercel serves its own scripts under /_vercel/.
+      if (path.startsWith("/_vercel/")) continue;
       const response = await get(path);
       expect(response?.status, path).toBe(200);
       expect((await response!.arrayBuffer()).byteLength, path).toBeGreaterThan(100);

@@ -43,7 +43,7 @@ const FILES: Record<string, { url: URL; type: string; maxAge: number }> = {
 const escape = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// What search engines, link previews and browsers read about a page.
+// What search engines, link previews and browsers read about a page, and the audience measurement.
 export function head(page: Page): string {
   const url = ORIGIN + page.path;
   const image = ORIGIN + page.image.path;
@@ -68,6 +68,10 @@ export function head(page: Page): string {
     `<link rel="apple-touch-icon" href="/apple-touch-icon.png">`,
     `<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">`,
     `<meta name="theme-color" content="#282c33" media="(prefers-color-scheme: dark)">`,
+    // Vercel Web Analytics and Speed Insights, served by Vercel on the site's own origin. They set
+    // no cookie; outside Vercel (bun run dev) the scripts are missing and nothing is measured.
+    `<script defer src="/_vercel/insights/script.js"></script>`,
+    `<script defer src="/_vercel/speed-insights/script.js"></script>`,
   ].join("\n");
 }
 
