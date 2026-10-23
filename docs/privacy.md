@@ -96,7 +96,8 @@ WorkTime makes two kinds of request.
 
 The app never loads the website. The pages of `https://worktime.thanaen.dev`
 measure their audience and loading speed with PostHog, hosted in the European
-Union (`eu.i.posthog.com`). The script sets no cookie and stores nothing in the browser
+Union, through `https://e.worktime.thanaen.dev`, an address PostHog runs for
+the site. The script sets no cookie and stores nothing in the browser
 (cookieless mode). PostHog counts a visit with a hash of the IP address and
 the browser that changes every day, and keeps no IP address. For each page
 view, it keeps the time, the page address, the referring site, the operating
@@ -104,7 +105,7 @@ system, the browser, the device type, the screen size, the language and the
 time zone, and the loading-speed measurements of the page (Core Web Vitals). It records no
 clicks, no keystrokes and no session replay. PostHog's
 [privacy page](https://posthog.com/privacy) gives the details. A content
-blocker that stops PostHog's addresses stops it.
+blocker that stops `e.worktime.thanaen.dev` stops it.
 
 ## Diagnostic export
 
