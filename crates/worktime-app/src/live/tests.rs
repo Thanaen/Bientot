@@ -1150,6 +1150,100 @@ fn an_automatic_appointment_records_nothing_while_the_user_is_away() {
     );
 }
 
+/// Thursday's adjustments, as the store holds them.
+fn thursday_adjustments(machine: &Machine, host: &LiveHost) -> Vec<ManualAdjustment> {
+    let workday = host
+        .week()
+        .unwrap()
+        .day(jiff::civil::date(2026, 10, 8))
+        .unwrap()
+        .figures
+        .as_ref()
+        .unwrap()
+        .workday
+        .clone();
+    ManualAdjustmentRepository::new(&machine.connection)
+        .read_for_workday(&workday)
+        .unwrap()
+}
+
+fn pending_on_thursday(host: &LiveHost) -> usize {
+    host.week()
+        .unwrap()
+        .day(jiff::civil::date(2026, 10, 8))
+        .unwrap()
+        .pending_count()
+}
+
+/// Sleeps from the end of Thursday to 08:00 on Friday, then works five minutes.
+fn sleep_until_friday(machine: &Machine, host: &mut LiveHost) {
+    host.record_lifecycle(&change(
+        machine,
+        LifecycleChange::Power(PowerState::Suspended),
+    ));
+    machine.clock.set("2026-10-09T08:00:00Z".parse().unwrap());
+    host.record_lifecycle(&change(machine, LifecycleChange::Power(PowerState::Active)));
+    machine.work(host, SignedDuration::from_mins(5));
+}
+
+/// An absence left unanswered on Thursday counts once its appointment turns automatic on
+/// Friday, and only once.
+#[test]
+fn turning_an_appointment_automatic_counts_the_absences_earlier_in_the_week() {
+    let machine = Machine::new();
+    let mut host = start_after_a_night_asleep(&machine);
+    let mut settings = host.settings().clone();
+    settings.recurring_appointments = vec![thursday_meeting(false)];
+    host.save_settings(&settings).unwrap();
+    sleep_through_the_meeting(&machine, &mut host);
+    host.refresh();
+    assert_eq!(pending_on_thursday(&host), 1);
+    sleep_until_friday(&machine, &mut host);
+    host.refresh();
+    assert_eq!(pending_on_thursday(&host), 1);
+
+    settings.recurring_appointments = vec![thursday_meeting(true)];
+    host.save_settings(&settings).unwrap();
+    host.refresh();
+    host.refresh();
+
+    let recorded = thursday_adjustments(&machine, &host);
+    assert_eq!(recorded.len(), 1);
+    assert!(
+        recorded[0]
+            .id()
+            .as_str()
+            .starts_with("appointment-auto:2026-10-08:")
+    );
+    assert_eq!(
+        recorded[0].interval().map(|interval| interval.duration()),
+        Some(SignedDuration::from_hours(1))
+    );
+    assert_eq!(pending_on_thursday(&host), 0);
+    assert_eq!(host.view(Language::French).counted_absence, None);
+    assert_eq!(machine.log(), "");
+}
+
+/// An absence in an automatic appointment that ends on the next day counts on its own day.
+#[test]
+fn an_absence_that_ends_the_next_day_counts_on_its_own_day() {
+    let machine = Machine::new();
+    let mut host = start_after_a_night_asleep(&machine);
+    let mut settings = host.settings().clone();
+    settings.recurring_appointments = vec![thursday_meeting(true)];
+    host.save_settings(&settings).unwrap();
+    host.prepare_lifecycle(|| Some(SessionState::Unlocked), std::iter::empty());
+    host.poll();
+    machine.work(&mut host, SignedDuration::from_mins(120));
+    sleep_until_friday(&machine, &mut host);
+    host.refresh();
+
+    let recorded = thursday_adjustments(&machine, &host);
+    assert_eq!(recorded.len(), 1, "{recorded:?}");
+    assert_eq!(pending_on_thursday(&host), 0);
+    assert_eq!(machine.log(), "");
+}
+
 /// The closed callout of an absence counted automatically stays closed.
 #[test]
 fn closing_the_callout_of_a_counted_absence_keeps_the_count() {

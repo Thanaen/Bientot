@@ -8,11 +8,12 @@ use std::collections::HashSet;
 use jiff::{SignedDuration, Timestamp, ToSpan as _};
 use rusqlite::Connection;
 use worktime_core::reviews::{ManualResolution, base64_url, resolution_interval, resolution_of};
-use worktime_domain::accounting::{AdjustmentId, LongLockReviewId, LongLockReviewReason};
+use worktime_domain::accounting::{
+    AccountingResult, AdjustmentId, LongLockReviewId, LongLockReviewReason,
+};
 use worktime_domain::adjustments::{ManualAdjustment, ManualClassification};
 use worktime_domain::configuration::RecurringAppointment;
 use worktime_domain::intervals::UtcInterval;
-use worktime_domain::summaries::DailySummary;
 use worktime_domain::time::LocalWorkday;
 use worktime_store::adjustments::ManualAdjustmentRepository;
 use worktime_store::history::DailySummaryRepository;
@@ -73,16 +74,16 @@ fn appointment<'a>(
     appointments.iter().find(|appointment| appointment.id == id)
 }
 
-/// The counts to record on the day `summary` publishes: one per absence in an automatic
-/// appointment that ended, the user being back, unless one was recorded before, even if
-/// withdrawn since.
+/// The counts to record on `workday`, whose accounting is `current` at `now`: one per absence
+/// in an automatic appointment that ended, the user being back, unless one was recorded before,
+/// even if withdrawn since.
 pub fn counts(
-    summary: &DailySummary,
+    workday: &LocalWorkday,
+    current: &AccountingResult,
+    now: Timestamp,
     appointments: &[RecurringAppointment],
     recorded: &[ManualAdjustment],
 ) -> Vec<ManualAdjustment> {
-    let workday = summary.workday();
-    let current = summary.accounting();
     let known: HashSet<&AdjustmentId> = recorded.iter().map(ManualAdjustment::id).collect();
     current
         .pending_reviews()
@@ -103,7 +104,7 @@ pub fn counts(
                 workday.clone(),
                 interval,
                 ManualClassification::Credited,
-                summary.computed_at(),
+                now,
             )
             .ok()
         })
