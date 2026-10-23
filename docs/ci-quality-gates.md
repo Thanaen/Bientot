@@ -22,7 +22,7 @@ For a pull request, `Record tested tree` runs once every other job has passed or
 
 ## Releases
 
-Releases are not built by CI. `scripts/release-direct.sh` builds the Velopack installer and update packages from a clean checkout of `main`, and `services/worktime/scripts/publish-release.ts` uploads them; see [services/worktime/README.md](../services/worktime/README.md). `scripts/package-rust.ps1` builds the portable ZIP and the MSIX for the Microsoft Store.
+The `Release` workflow (`.github/workflows/release.yml`) publishes the Velopack installer and update packages as a GitHub Release named `v<version>`. It runs every night at 04:17 UTC and does nothing when the commit at the head of `main` already has a release. For an urgent fix, run it from the Actions tab (**Run workflow**). A Windows runner builds the release with `scripts/release-direct.sh`, which computes the delta from the latest release in the feed at `https://worktime.thanaen.dev/updates/`. A separate job, the only one with write access, uploads the files to a draft and publishes it as the latest release once every file is uploaded. `scripts/package-rust.ps1` builds the portable ZIP and the MSIX for the Microsoft Store.
 
 ## Required checks
 
