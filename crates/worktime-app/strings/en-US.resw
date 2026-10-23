@@ -296,6 +296,7 @@
   <data name="SettingsSavedPending" xml:space="preserve"><value>Settings saved. Select Refresh to update your workday.</value></data>
   <data name="SettingsRecovered" xml:space="preserve"><value>Invalid settings were backed up and the defaults restored. Review your settings.</value></data>
   <data name="InitializationFailed" xml:space="preserve"><value>WorkTime could not start. Check the local settings and database, then restart the app.</value></data>
+  <data name="ImportWaitsForNextStart" xml:space="preserve"><value>WorkTime could not restart. Your data will be imported the next time it starts. If the WorkTime icon is still in the notification area, choose “Quit WorkTime” from its menu. Then open WorkTime again.</value></data>
   <data name="StartupFailureTitle" xml:space="preserve"><value>WorkTime could not start</value></data>
   <data name="StartupFailureMessage" xml:space="preserve"><value>Check the settings and local database, then restart WorkTime. If it keeps happening, export diagnostics.</value></data>
   <data name="StartupFailureDetailsHeader" xml:space="preserve"><value>Details</value></data>

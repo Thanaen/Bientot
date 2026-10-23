@@ -9,6 +9,7 @@ use gpui::{App, AsyncApp};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use worktime_store::data_directory::DataDirectory;
+use worktime_store::settings::SettingsStore;
 use worktime_store::transfer::{self, EXTENSION, TransferError};
 
 use crate::file_dialogs;
@@ -201,6 +202,28 @@ pub fn wait_for_restart(restarted_from: Option<u32>) {
     let _ = (id, RESTART_WAIT);
 }
 
+/// After a restart for an import that gave up waiting, the WorkTime that started it still owns
+/// the folder: whether the import staged in `directory` now waits for the next start, and the
+/// language of the settings it would replace, to tell the user so.
+pub fn import_left_waiting(
+    restarted_from: Option<u32>,
+    directory: &DataDirectory,
+    forced: Option<Language>,
+) -> Option<Language> {
+    if restarted_from.is_none() || !directory.pending_import_file().exists() {
+        return None;
+    }
+    let saved = SettingsStore::new(directory.settings_file())
+        .ok()
+        .and_then(|store| store.peek());
+    Some(Language::resolve(
+        forced,
+        saved
+            .as_ref()
+            .and_then(|settings| settings.language_override.as_deref()),
+    ))
+}
+
 /// Applies the import staged in `directory`, before anything opens its ledger: what the first
 /// flyout then tells, `None` when nothing was staged.
 pub fn apply_staged(directory: &DataDirectory) -> Option<Announcement> {
@@ -239,3 +262,6 @@ fn failed(error: &dyn std::fmt::Display, cx: &mut AsyncApp) {
         }
     });
 }
+
+#[cfg(test)]
+mod tests;
