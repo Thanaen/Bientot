@@ -168,28 +168,51 @@ impl<'a> RangeCorrections<'a> {
             calculation = self.accounting.calculate(workday.date, &context)?;
         }
 
+        // The corrections counting the other way are trimmed first: what they took from the
+        // range, the day may then count as asked without a correction of its own.
         let current = calculation.summary_input.accounting();
         let history = self.adjustments.read_for_workday(workday)?;
-        let plan = plan(current, &history, command)?;
+        let trims = plan(current, &history, command)?;
+        let trimmed = trims.replacements.len() + trims.rests.len();
+        if trimmed > 0 {
+            let records: Vec<_> = trims
+                .replacements
+                .iter()
+                .chain(&trims.rests)
+                .cloned()
+                .collect();
+            self.adjustments.append_all_validated(current, &records)?;
+            calculation = self.accounting.calculate(workday.date, &context)?;
+        }
+
+        let current = calculation.summary_input.accounting();
+        let history = self.adjustments.read_for_workday(workday)?;
+        let fill = plan_from(current, &history, command, trimmed + 1)?;
         self.adjustments
-            .append_all_validated(current, &plan.records())?;
+            .append_all_validated(current, &fill.records())?;
         scope.commit().map_err(ManualAdjustmentError::from)?;
         Ok(RangeOutcome {
-            added: plan
-                .additions
+            added: trims
+                .rests
                 .iter()
+                .chain(&fill.rests)
+                .chain(&fill.additions)
                 .map(|addition| addition.id().clone())
                 .collect(),
-            replaced: !locks.is_empty() || !cleared.is_empty() || !plan.replacements.is_empty(),
+            replaced: !locks.is_empty()
+                || !cleared.is_empty()
+                || !trims.replacements.is_empty()
+                || !fill.replacements.is_empty(),
         })
     }
 }
 
 /// The corrections a range records once its long locks are settled: what replaces each
-/// correction it overrides, then what corrects the rest.
+/// correction it overrides, the far end of one it cuts in two, then what corrects the rest.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Plan {
     pub replacements: Vec<ManualAdjustment>,
+    pub rests: Vec<ManualAdjustment>,
     pub additions: Vec<ManualAdjustment>,
 }
 
@@ -197,6 +220,7 @@ impl Plan {
     pub fn records(&self) -> Vec<ManualAdjustment> {
         self.replacements
             .iter()
+            .chain(&self.rests)
             .chain(&self.additions)
             .cloned()
             .collect()
@@ -213,6 +237,16 @@ pub fn plan(
     history: &[ManualAdjustment],
     command: &RangeCommand,
 ) -> Result<Plan, RangeError> {
+    plan_from(current, history, command, 1)
+}
+
+/// [`plan`], numbering its corrections from `first`.
+fn plan_from(
+    current: &AccountingResult,
+    history: &[ManualAdjustment],
+    command: &RangeCommand,
+    first: usize,
+) -> Result<Plan, RangeError> {
     let timeline = current.timeline();
     let Some(range) = UtcInterval::new(timeline.window().start, timeline.through())
         .ok()
@@ -221,7 +255,7 @@ pub fn plan(
         return Ok(Plan::default());
     };
     let target = command.classification;
-    let mut ids = (1..).map(|index| {
+    let mut ids = (first..).map(|index| {
         AdjustmentId::new(format!("{}.{index}", command.id)).expect("the id is not blank")
     });
     let workday = &command.workday;
@@ -233,6 +267,7 @@ pub fn plan(
         .filter_map(ManualAdjustment::supersedes_id)
         .collect();
     let mut replacements = Vec::new();
+    let mut rests = Vec::new();
     let mut additions = Vec::new();
     for adjustment in history {
         if superseded.contains(&adjustment.id()) {
@@ -269,7 +304,7 @@ pub fn plan(
                 classification,
                 at,
             )?;
-            additions.push(rest.with_reason(adjustment.reason().unwrap_or_default()));
+            rests.push(rest.with_reason(adjustment.reason().unwrap_or_default()));
         }
     }
 
@@ -297,6 +332,7 @@ pub fn plan(
     }
     Ok(Plan {
         replacements,
+        rests,
         additions,
     })
 }

@@ -254,16 +254,52 @@ fn a_range_trims_the_correction_it_overlaps_and_cannot_be_undone() {
     .unwrap()
     .superseding(id("lunch-chat"))
     .with_reason("chat");
-    let counted = ManualAdjustment::interval_work(
-        id("range.2"),
-        workday(),
-        interval((13, 30), (14, 0)),
-        at(18, 0),
-    )
-    .unwrap();
-    assert_eq!(day.stored(), [original, trimmed, counted]);
+    // 13:30–14:00 was active: once trimmed, the day counts it without a correction.
+    assert_eq!(day.stored(), [original, trimmed]);
     assert_eq!(day.credited(), before + SignedDuration::from_mins(30));
     assert_eq!(outcome.undoable(), None);
+}
+
+#[test]
+fn a_trimmed_correction_leaves_a_correction_only_where_the_day_was_away() {
+    let day = Day::new();
+    day.save(
+        ManualAdjustment::exclusion(
+            id("late-morning"),
+            workday(),
+            interval((11, 0), (12, 30)),
+            at(17, 0),
+        )
+        .unwrap(),
+    );
+    let before = day.credited();
+
+    day.record((11, 30), (12, 30), CREDITED).unwrap();
+
+    let kinds: Vec<_> = day
+        .stored()
+        .iter()
+        .skip(1)
+        .map(|adjustment| (adjustment.id().clone(), adjustment.kind().clone()))
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            (
+                id("range.1"),
+                AdjustmentKind::Exclusion {
+                    interval: interval((11, 0), (11, 30))
+                }
+            ),
+            (
+                id("range.2"),
+                AdjustmentKind::IntervalWork {
+                    interval: interval((11, 50), (12, 30))
+                }
+            ),
+        ]
+    );
+    assert_eq!(day.credited(), before + hours(1.));
 }
 
 #[test]
@@ -303,12 +339,6 @@ fn a_range_inside_a_correction_keeps_both_of_its_ends() {
                     interval: interval((14, 0), (15, 0)),
                     classification: EXCLUDED,
                     confirms_review_id: None,
-                }
-            ),
-            (
-                id("range.3"),
-                AdjustmentKind::IntervalWork {
-                    interval: interval((13, 0), (14, 0))
                 }
             ),
         ]
