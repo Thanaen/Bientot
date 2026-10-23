@@ -1,7 +1,8 @@
 // The public statistics: what the counters in usage_daily may show to anyone, and in which shape.
-// Publication rules (README.md, "Statistics"): only finished UTC days, no figure under 10, and the
-// version and channel figures rounded to the nearest 5 so that a hidden one cannot be found back by
-// subtracting the others from a total.
+// Publication rules (README.md, "Statistics"): only finished UTC days, and monthly figures only for
+// finished months, so that no total is published twice while it grows. No figure under 10, and a
+// small group is merged with others until the merge reaches 10 too, so that it cannot be found back
+// by subtracting the shown figures from a total. Version and channel figures are rounded to 5.
 
 export const THRESHOLD = 10;
 const STEP = 5;
@@ -19,42 +20,35 @@ export interface MonthCell {
   active: number;
 }
 
-export interface PublicMonth {
-  month: string;
-  active: number | null;
-  averageDaily: number | null;
-  peakDaily: number | null;
-  // The month is still running: its figures cover the days up to `through` only.
-  partial: boolean;
-}
-export interface PublicDay {
-  day: string;
-  installations: number | null;
-}
-export interface PublicDetail {
-  month: string;
-  // "autres" gathers the versions under the threshold, with channel "tous".
-  version: string;
-  channel: string;
-  active: number | null;
-}
 export interface Share {
   key: string;
   active: number;
 }
 export interface Breakdown {
   shares: Share[];
-  // Keys under the threshold, merged; null when there are none.
+  // The keys under the threshold, merged with the smallest others until the merge reaches it; null
+  // when no key is merged.
   others: { count: number; active: number | null } | null;
+}
+export interface PublicMonth {
+  month: string;
+  active: number | null;
+  // Both from the published days, a hidden day counting as 0, so that they reveal nothing more.
+  averageDaily: number | null;
+  peakDaily: number | null;
+  byVersion: Breakdown;
+  byChannel: Breakdown;
+}
+export interface PublicDay {
+  day: string;
+  installations: number | null;
 }
 export interface PublicStats {
   // The last finished UTC day the figures cover.
   through: string;
+  // The finished months, oldest first; the page leads with the last one.
   months: PublicMonth[];
   days: PublicDay[];
-  details: PublicDetail[];
-  // The month the page leads with: the last finished one, or the running one before any month ends.
-  reference: { month: PublicMonth; byVersion: Breakdown; byChannel: Breakdown } | null;
 }
 
 const shown = (n: number) => (n < THRESHOLD ? null : n);
@@ -64,84 +58,59 @@ export function lastFinishedDay(now: Date): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)).toISOString().slice(0, 10);
 }
 
-// The first day of the oldest month shown, MONTHS months up to the one holding `through`.
-export function firstDay(through: string): string {
-  const [year, month] = through.split("-").map(Number);
-  return new Date(Date.UTC(year!, month! - MONTHS, 1)).toISOString().slice(0, 10);
-}
-
 const daysInMonth = (month: string) => {
   const [year, number] = month.split("-").map(Number);
   return new Date(Date.UTC(year!, number!, 0)).getUTCDate();
 };
 
+// The last month that ends on or before `through`.
+function lastFinishedMonth(through: string): string {
+  const [year, month, day] = through.split("-").map(Number);
+  const finished = day === daysInMonth(through.slice(0, 7)) ? month! : month! - 1;
+  return new Date(Date.UTC(year!, finished - 1, 1)).toISOString().slice(0, 7);
+}
+
+// The first day of the oldest month shown: MONTHS finished months, up to the one before `through`.
+export function firstDay(through: string): string {
+  const [year, month] = lastFinishedMonth(through).split("-").map(Number);
+  return new Date(Date.UTC(year!, month! - MONTHS, 1)).toISOString().slice(0, 10);
+}
+
 export function publish(days: DayTotal[], cells: MonthCell[], through: string): PublicStats {
-  const throughMonth = through.slice(0, 7);
-  const months = new Map<string, { active: number; pings: number; peak: number }>();
-  for (const cell of cells) {
-    const entry = months.get(cell.month) ?? { active: 0, pings: 0, peak: 0 };
-    entry.active += cell.active;
-    months.set(cell.month, entry);
-  }
-  for (const { day, pings } of days) {
-    const entry = months.get(day.slice(0, 7)) ?? { active: 0, pings: 0, peak: 0 };
-    entry.pings += pings;
-    entry.peak = Math.max(entry.peak, pings);
-    months.set(day.slice(0, 7), entry);
-  }
-
-  const publicMonths = [...months.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, { active, pings, peak }]) => {
-      const partial = month === throughMonth && Number(through.slice(8)) < daysInMonth(month);
-      const daysCounted = partial ? Number(through.slice(8)) : daysInMonth(month);
-      return {
-        month,
-        active: shown(active),
-        averageDaily: shown(Math.round(pings / daysCounted)),
-        peakDaily: shown(peak),
-        partial,
-      };
-    });
-
-  const details: PublicDetail[] = [];
-  for (const month of [...new Set(cells.map((cell) => cell.month))].sort()) {
-    let others = 0;
-    const kept: PublicDetail[] = [];
-    for (const cell of cells.filter((c) => c.month === month)) {
-      if (cell.active < THRESHOLD) others += cell.active;
-      else kept.push({ month, version: cell.version, channel: cell.channel, active: rounded(cell.active) });
-    }
-    kept.sort((a, b) => compareVersions(b.version, a.version) || a.channel.localeCompare(b.channel));
-    details.push(...kept);
-    if (others > 0) details.push({ month, version: "autres", channel: "tous", active: rounded(others) });
-  }
-
-  const month = publicMonths.findLast((m) => !m.partial) ?? publicMonths.at(-1);
+  const last = lastFinishedMonth(through);
+  const publicDays = [...days].sort((a, b) => a.day.localeCompare(b.day)).map(({ day, pings }) => ({ day, installations: shown(pings) }));
+  const months = [...new Set(cells.map((cell) => cell.month))].filter((month) => month <= last).sort();
   return {
     through,
-    months: publicMonths,
-    days: [...days].sort((a, b) => a.day.localeCompare(b.day)).map(({ day, pings }) => ({ day, installations: shown(pings) })),
-    details,
-    reference: month
-      ? { month, byVersion: breakdown(cells, month.month, "version"), byChannel: breakdown(cells, month.month, "channel") }
-      : null,
+    months: months.map((month) => {
+      const own = cells.filter((cell) => cell.month === month);
+      const daily = publicDays.filter((d) => d.day.startsWith(month)).map((d) => d.installations ?? 0);
+      return {
+        month,
+        active: shown(own.reduce((sum, cell) => sum + cell.active, 0)),
+        averageDaily: shown(Math.round(daily.reduce((sum, n) => sum + n, 0) / daysInMonth(month))),
+        peakDaily: shown(Math.max(0, ...daily)),
+        byVersion: breakdown(own, "version"),
+        byChannel: breakdown(own, "channel"),
+      };
+    }),
+    days: publicDays,
   };
 }
 
-// The actives of one month split by version or by channel, small keys merged, the rest rounded.
-function breakdown(cells: MonthCell[], month: string, by: "version" | "channel"): Breakdown {
+// The actives of one month split by version or by channel. The keys under the threshold are merged;
+// while that merge is under the threshold too, the smallest shown key joins it.
+function breakdown(cells: MonthCell[], by: "version" | "channel"): Breakdown {
   const totals = new Map<string, number>();
-  for (const cell of cells) if (cell.month === month) totals.set(cell[by], (totals.get(cell[by]) ?? 0) + cell.active);
-  const shares: Share[] = [];
+  for (const cell of cells) totals.set(cell[by], (totals.get(cell[by]) ?? 0) + cell.active);
+  const kept = [...totals].sort(([, a], [, b]) => a - b);
   let count = 0;
   let small = 0;
-  for (const [key, active] of totals) {
-    if (active < THRESHOLD) {
-      count += 1;
-      small += active;
-    } else shares.push({ key, active: rounded(active)! });
+  while (kept.length && (kept[0]![1] < THRESHOLD || (count > 0 && small < THRESHOLD))) {
+    small += kept.shift()![1];
+    count += 1;
   }
+  const shares = kept.map(([key, active]) => ({ key, active: rounded(active)! }));
   shares.sort((a, b) => b.active - a.active || (by === "version" ? compareVersions(b.key, a.key) : a.key.localeCompare(b.key)));
   return { shares, others: count > 0 ? { count, active: rounded(small) } : null };
 }
@@ -166,28 +135,40 @@ export function compareVersions(a: string, b: string): number {
 
 // ---- Open data files ----
 
-type Value = string | number | boolean | null;
+type Value = string | number | null;
 type Row = Record<string, Value>;
 
 // Each file: its columns, in order, and its rows. Values under the threshold are null (empty in CSV).
 export const DATASETS = {
   mensuel: {
-    columns: ["mois", "actives", "moyenne_jour", "pic_jour", "partiel"],
+    columns: ["mois", "actives", "moyenne_jour", "pic_jour"],
     rows: (s: PublicStats): Row[] =>
-      s.months.map((m) => ({ mois: m.month, actives: m.active, moyenne_jour: m.averageDaily, pic_jour: m.peakDaily, partiel: m.partial })),
+      s.months.map((m) => ({ mois: m.month, actives: m.active, moyenne_jour: m.averageDaily, pic_jour: m.peakDaily })),
   },
   quotidien: {
     columns: ["jour", "installations"],
     rows: (s: PublicStats): Row[] => s.days.map((d) => ({ jour: d.day, installations: d.installations })),
   },
+  // One block per month and dimension; "autres" holds the merged keys.
   details: {
-    columns: ["mois", "version", "mode", "actives"],
-    rows: (s: PublicStats): Row[] => s.details.map((d) => ({ mois: d.month, version: d.version, mode: d.channel, actives: d.active })),
+    columns: ["mois", "par", "valeur", "actives"],
+    rows: (s: PublicStats): Row[] =>
+      s.months.flatMap((m) =>
+        (
+          [
+            ["version", m.byVersion],
+            ["mode", m.byChannel],
+          ] as const
+        ).flatMap(([par, { shares, others }]) => [
+          ...shares.map((share) => ({ mois: m.month, par, valeur: share.key, actives: share.active })),
+          ...(others ? [{ mois: m.month, par, valeur: "autres", actives: others.active }] : []),
+        ]),
+      ),
   },
 } as const;
 export type Dataset = keyof typeof DATASETS;
 
 export function toCsv(columns: readonly string[], rows: Row[]): string {
-  const cell = (value: Value) => (value === null ? "" : typeof value === "boolean" ? (value ? "oui" : "non") : String(value));
+  const cell = (value: Value) => (value === null ? "" : String(value));
   return [columns.join(","), ...rows.map((row) => columns.map((c) => cell(row[c] ?? null)).join(","))].join("\n") + "\n";
 }

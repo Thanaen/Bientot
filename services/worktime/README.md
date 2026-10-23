@@ -43,10 +43,14 @@ day of the month, or every day so far for the current month.
 `src/stats.ts` holds the publication rules, tested in `stats.test.ts`:
 
 - only finished UTC days: the current day appears the next day;
-- no figure under 10: the cell is empty (`null`), or a version joins `autres`;
-- the version and channel figures are rounded to the nearest 5, so that a hidden cell cannot be
-  found by subtracting the others from the month's exact total;
-- the last 12 calendar months.
+- monthly figures only for finished months, so that two snapshots of a growing total never show
+  what one day added;
+- no figure under 10: the cell is empty (`null`), or the key joins `autres`. While `autres` is
+  under 10, the smallest shown key joins it too, so that no hidden figure can be found by
+  subtracting the shown ones from the month's exact total;
+- the version and channel figures are rounded to the nearest 5;
+- a month's daily average and peak come from the published days, a hidden day counting as 0;
+- the last 12 finished months.
 
 The figures change once a day, so they cost almost nothing to serve. On a cache miss the function
 runs two `GROUP BY` queries over the primary key, a few hundred rows, and keeps the result in memory

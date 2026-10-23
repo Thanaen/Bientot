@@ -38,7 +38,6 @@ interface Bar {
   value: number | null;
   x: string;
   label?: string;
-  className?: string;
   colClass?: string;
   tick?: boolean;
   keepOnPhone?: boolean;
@@ -53,7 +52,7 @@ function bars(items: Bar[], aria: string, { height, gap }: { height: number; gap
       const label = b.label === undefined ? "" : `<span class="val${b.value === null ? " low" : ""}">${b.label}</span>`;
       const classes = ["col", b.colClass, b.keepOnPhone ? "show-sm" : ""].filter(Boolean).join(" ");
       // A hidden value (under 10) gets a dashed stub, so that it does not read as zero.
-      const bar = b.value === null ? "bar hidden" : `bar ${b.className ?? ""}`;
+      const bar = b.value === null ? "bar hidden" : "bar";
       return `<div class="${classes}"><div class="${bar}" style="height:${b.value === null ? "3px" : pc(b.value)}">${label}</div></div>`;
     })
     .join("");
@@ -71,8 +70,7 @@ function kpis(stats: PublicStats, month: PublicMonth): string {
   const name = monthName(month.month);
   const previous = stats.months[stats.months.indexOf(month) - 1];
   let hint: string;
-  if (month.partial) hint = `Mois en cours, jusqu’au ${format(stats.through, { day: "numeric", month: "long" })}`;
-  else if (previous?.active && month.active) {
+  if (previous?.active && month.active) {
     const change = Math.round(((month.active - previous.active) / previous.active) * 100);
     const sign = change > 0 ? "+" : change < 0 ? "−" : "";
     hint = `<span${change > 0 ? ' class="up"' : ""}>${sign}${Math.abs(change)}&nbsp;%</span> par rapport à ${monthName(previous.month)}`;
@@ -94,24 +92,18 @@ function kpis(stats: PublicStats, month: PublicMonth): string {
 }
 
 function monthsChart(stats: PublicStats): string {
-  const partial = stats.months.find((m) => m.partial);
-  const days = partial ? Number(stats.through.slice(8)) : 0;
   const items = stats.months.map<Bar>((m, i) => ({
     value: m.active,
     x: monthShort(m.month),
-    label: m.active === null ? LESS : m.partial ? `${n(m.active)}<span class="dd"> · ${days}&nbsp;j</span>` : n(m.active),
-    className: m.partial ? "hatch" : "",
+    label: m.active === null ? LESS : n(m.active),
     keepOnPhone: i >= stats.months.length - 2,
   }));
   const aria = `Installations actives par mois : ${stats.months
-    .map((m) => `${monthName(m.month)} ${m.month.slice(0, 4)}${m.partial ? " (en cours)" : ""} ${m.active ?? "moins de 10"}`)
+    .map((m) => `${monthName(m.month)} ${m.month.slice(0, 4)} ${m.active ?? "moins de 10"}`)
     .join(", ")}.`;
   return `<section class="card" aria-labelledby="by-month">
       <div class="card-head"><h2 id="by-month">Installations actives par mois</h2><p>Au moins un signal dans le mois</p></div>
       ${bars(items, aria, { height: 200, gap: 16 })}
-      <div class="legend"><span><i></i>Mois terminé</span>${
-        partial ? `<span><i class="hatch"></i>${capitalize(monthName(partial.month))}, en cours (jusqu’au ${days})</span>` : ""
-      }</div>
     </section>`;
 }
 
@@ -143,7 +135,7 @@ function versionsCard(month: string, { shares, others }: Breakdown): string {
   return `<section class="card" aria-labelledby="by-version">
         <div class="card-head"><h2 id="by-version">Par version</h2><p>${capitalize(monthName(month))} ${month.slice(0, 4)}</p></div>
         <div class="hbars">${shares.map((s) => row(escape(s.key), s.active)).join("")}${others ? row(`autres (${others.count})`, others.active, true) : ""}</div>
-        <p class="note">Une version utilisée par moins de 10 installations rejoint «&nbsp;autres&nbsp;».</p>
+        <p class="note">Une version utilisée par moins de 10 installations rejoint «&nbsp;autres&nbsp;», avec au besoin les plus petites versions suivantes.</p>
       </section>`;
 }
 
@@ -174,7 +166,7 @@ function daysChart(stats: PublicStats, month: string): string {
 }
 
 export function renderContent(stats: PublicStats): string {
-  const reference = stats.reference;
+  const reference = stats.months.at(-1);
   const stamp = `Données jusqu’au ${format(stats.through, { day: "numeric", month: "long", year: "numeric" })} <span class="nb">· mises à jour chaque nuit</span>`;
   const head = `<div class="wrap head">
     <p class="eyebrow">Statistiques publiques</p>
@@ -182,21 +174,23 @@ export function renderContent(stats: PublicStats): string {
     <p class="lede">Chaque jour, WorkTime envoie un signal anonyme, que l’on peut couper dans Paramètres&nbsp;›&nbsp;Général. Voici ce que ces signaux permettent de compter, en accès libre et sans compte à créer.</p>
     <p class="stamp">${stamp}</p>
   </div>`;
-  if (!reference || reference.month.active === null) {
+  if (!stats.months.some((m) => m.active !== null)) {
     return `${head}
   <div class="wrap main">
-    <section class="card empty"><h2>Moins de 10 installations pour l’instant</h2><p>Les chiffres apparaîtront ici dès que 10 installations auront envoyé leur signal dans le même mois. En dessous, ils pourraient désigner quelqu’un. Les fichiers de données, plus bas, sont déjà en ligne.</p></section>
+    <section class="card empty"><h2>Moins de 10 installations pour l’instant</h2><p>Les chiffres apparaîtront ici à la fin du premier mois qui comptera au moins 10 installations. En dessous, ils pourraient désigner quelqu’un. Les fichiers de données, plus bas, sont déjà en ligne.</p></section>
   </div>`;
   }
-  const month = reference.month.month;
-  return `${head}
-  <div class="wrap">${kpis(stats, reference.month)}</div>
-  <div class="wrap main">
-    ${monthsChart(stats)}
+  const { month, active, byChannel, byVersion } = reference!;
+  // A month under 10 has nothing to split: its breakdowns are a single hidden "autres".
+  const split = active === null ? "" : `
     <div class="two">
-      ${channelsCard(month, reference.byChannel)}
-      ${versionsCard(month, reference.byVersion)}
-    </div>
+      ${channelsCard(month, byChannel)}
+      ${versionsCard(month, byVersion)}
+    </div>`;
+  return `${head}
+  <div class="wrap">${kpis(stats, reference!)}</div>
+  <div class="wrap main">
+    ${monthsChart(stats)}${split}
     ${daysChart(stats, month)}
   </div>`;
 }

@@ -185,10 +185,10 @@ describe("the statistics", () => {
   });
 
   test("leaves out the current day and caches until the next one", async () => {
-    clock = new Date("2026-10-12T09:00:00Z");
+    clock = new Date("2026-10-31T09:00:00Z");
     await pings(12);
     await pings(30, "zip", "0.1.0-alpha.250");
-    clock = new Date("2026-10-13T09:00:00Z");
+    clock = new Date("2026-11-01T09:00:00Z");
     await pings(15);
     const response = await page();
     expect(response.headers.get("cache-control")).toBe("public, max-age=600");
@@ -196,21 +196,41 @@ describe("the statistics", () => {
     expect(response.headers.get("vercel-cdn-cache-control")).toBe("max-age=54300, stale-while-revalidate=3600");
     const html = await response.text();
     expect(html).toContain("Installations actives en octobre");
-    expect(html).toContain("Données jusqu’au 12 octobre 2026");
-    expect(await (await file("quotidien.csv")).text()).toBe("jour,installations\n2026-10-12,42\n");
+    expect(html).toContain("Données jusqu’au 31 octobre 2026");
+    expect(await (await file("quotidien.csv")).text()).toBe("jour,installations\n2026-10-31,42\n");
+  });
+
+  test("publishes a month once it is over", async () => {
+    clock = new Date("2026-10-30T09:00:00Z");
+    await pings(12);
+    clock = new Date("2026-10-31T09:00:00Z");
+    expect(await (await page()).text()).toContain("Moins de 10 installations pour l’instant");
+    expect(await (await file("mensuel.csv")).text()).toBe("mois,actives,moyenne_jour,pic_jour\n");
+    expect(await (await file("quotidien.csv")).text()).toBe("jour,installations\n2026-10-30,12\n");
+  });
+
+  test("still shows the earlier months when the last one is under 10", async () => {
+    clock = new Date("2026-09-15T09:00:00Z");
+    await pings(100);
+    clock = new Date("2026-10-15T09:00:00Z");
+    await pings(5);
+    clock = new Date("2026-11-01T09:00:00Z");
+    const html = await (await page()).text();
+    expect(html).toContain('class="kpis"');
+    expect(html).toContain("Installations actives en octobre");
+    expect(html).toContain("septembre 2026 100");
+    expect(html).not.toContain("Par mode d’installation");
   });
 
   test("serves the open data files, readable from other sites", async () => {
-    clock = new Date("2026-10-12T09:00:00Z");
+    clock = new Date("2026-10-31T09:00:00Z");
     await pings(12);
-    clock = new Date("2026-10-13T09:00:00Z");
+    clock = new Date("2026-11-01T09:00:00Z");
     const csv = await file("details.csv");
     expect(csv.headers.get("content-type")).toBe("text/csv; charset=utf-8");
     expect(csv.headers.get("access-control-allow-origin")).toBe("*");
-    expect(await csv.text()).toBe("mois,version,mode,actives\n2026-10,0.2.0,direct,10\n");
-    expect(await (await file("mensuel.json")).json()).toEqual([
-      { mois: "2026-10", actives: 12, moyenne_jour: null, pic_jour: 12, partiel: true },
-    ]);
+    expect(await csv.text()).toBe("mois,par,valeur,actives\n2026-10,version,0.2.0,10\n2026-10,mode,direct,10\n");
+    expect(await (await file("mensuel.json")).json()).toEqual([{ mois: "2026-10", actives: 12, moyenne_jour: null, pic_jour: 12 }]);
   });
 
   test("answers 304 to a browser that has the same day's figures", async () => {

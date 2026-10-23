@@ -84,10 +84,6 @@ h3 { font: 600 16px/24px var(--font-sans); }
 .card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; }
 .card-head p, .note { font-size: 13px; line-height: 18px; color: var(--text-muted); }
 .alt { background: var(--surface); border-block: 1px solid var(--border-variant); }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; line-height: 16px; color: var(--text-muted); }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; flex: none; background: var(--accent); }
-.hatch { background: repeating-linear-gradient(135deg, var(--accent) 0 1.5px, var(--accent-background) 1.5px 6px) !important; box-shadow: inset 0 0 0 1px var(--accent); }
 /* Deuxième série : même teinte que l'accent, en trame de points, pour ne pas dépendre de la couleur seule. */
 .dotfill { background: radial-gradient(circle, var(--accent) 1.3px, var(--accent-background) 1.6px) 0 0 / 5px 5px !important; box-shadow: inset 0 0 0 1px var(--accent); }
 
@@ -163,7 +159,6 @@ footer a { color: var(--text-muted); }
   .card { padding: 16px; }
   .vbars .val { display: none; }
   .vbars .show-sm .val { display: block; }
-  .vbars .val .dd { display: none; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .kpis .kpi:last-child { grid-column: 1 / -1; }
   .kpi { padding: 16px; }
@@ -199,9 +194,9 @@ footer a { color: var(--text-muted); }
         <div class="card">
           <h3>Ce que l’on ne publie pas</h3>
           <ul>
-            <li>Aucun chiffre en dessous de 10.</li>
+            <li>Aucun chiffre en dessous de 10. Un groupe sous 10 rejoint «&nbsp;autres&nbsp;», avec au besoin les plus petits groupes suivants, jusqu’à atteindre 10.</li>
             <li>Les chiffres par version et par mode sont arrondis à 5&nbsp;près.</li>
-            <li>La journée en cours&nbsp;: elle paraît le lendemain.</li>
+            <li>Le mois en cours&nbsp;: ses totaux sont publiés une fois le mois terminé, et les chiffres de chaque jour le lendemain.</li>
           </ul>
         </div>
         <div class="card">
