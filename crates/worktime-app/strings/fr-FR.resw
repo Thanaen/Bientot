@@ -409,7 +409,13 @@
   <data name="SettingsImportDialogLossOutside" xml:space="preserve"><value>Les jours enregistrés sur ce PC en dehors de la période du fichier ne seront plus dans l’historique.</value></data>
   <data name="SettingsImportDialogLossAll" xml:space="preserve"><value>Ce PC n’aura plus aucun historique.</value></data>
   <data name="SettingsBackupTitle" xml:space="preserve"><value>Copie d’avant l’import</value></data>
-  <data name="SettingsBackupDescriptionFormat" xml:space="preserve"><value>Enregistrée le {0:d MMMM yyyy}. Importez-la pour revenir aux données remplacées.</value></data>
+  <data name="SettingsBackupDescriptionFormat" xml:space="preserve"><value>Enregistrée le {0:d MMMM yyyy}. Restaurez-la pour revenir aux données remplacées.</value></data>
+  <data name="SettingsRestoreAction" xml:space="preserve"><value>Restaurer…</value></data>
+  <data name="SettingsRestoreReading" xml:space="preserve"><value>Lecture de la copie…</value></data>
+  <data name="SettingsRestoreReadFailed" xml:space="preserve"><value>WorkTime n’a pas pu lire cette copie. Affichez-la dans l’Explorateur, puis importez-la depuis « Importer… ».</value></data>
+  <data name="SettingsRestoreFailed" xml:space="preserve"><value>WorkTime n’a pas pu restaurer cette copie. Vos données n’ont pas changé. Réessayez.</value></data>
+  <data name="SettingsRestoreDialogPeriodFormat" xml:space="preserve"><value>Cette copie, enregistrée le {0:d MMMM yyyy}, contient votre historique du {1:d MMMM yyyy} au {2:d MMMM yyyy}.</value></data>
+  <data name="SettingsRestoreDialogEmptyFormat" xml:space="preserve"><value>Cette copie, enregistrée le {0:d MMMM yyyy}, ne contient aucun historique.</value></data>
   <data name="SettingsShowInExplorer" xml:space="preserve"><value>Afficher dans l’Explorateur</value></data>
   <data name="SettingsImportCancel" xml:space="preserve"><value>Annuler</value></data>
   <data name="SettingsImportConfirm" xml:space="preserve"><value>Remplacer et redémarrer</value></data>

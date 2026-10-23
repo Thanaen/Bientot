@@ -1,11 +1,11 @@
-//! The « Données » page: « Exporter… », « Importer… » and the copy the last import saved, each
-//! row telling how its action went. The import asks first in the window's dialog, drawn by
-//! [`SettingsView::dialog`].
+//! The « Données » page: « Exporter… », « Importer… » and « Restaurer… » the copy the last
+//! import saved, each row telling how its action went. The import and the restore ask first in
+//! the window's dialog, drawn by [`SettingsView::dialog`].
 
 use gpui::{Context, FontWeight, Pixels, SharedString, Window, div, prelude::*, px};
 
 use super::{RowText, SettingsView, group, outlined, row_frame};
-use crate::settings::data::{Action, ActionRow, Button, DataPage, Row};
+use crate::settings::data::{Action, ActionRow, DataPage, Row};
 use crate::theme::spacing::*;
 use crate::theme::{Theme, size as token};
 use crate::transfer;
@@ -63,22 +63,18 @@ impl SettingsView {
             match row.row {
                 Row::Export => "export-data",
                 Row::Import => "import-data",
-                Row::Backup => "show-backup",
+                Row::Backup => "restore-backup",
             },
             row.row,
         );
+        let action = row.action;
         let button = if row.enabled {
-            let button = outlined(id, row.label, token::BUTTON_MEDIUM, theme)
+            outlined(id, row.label, token::BUTTON_MEDIUM, theme)
                 .min_w(BUTTON_MIN_WIDTH)
-                .justify_center();
-            match row.button {
-                Button::Run(action) => button.on_click(
+                .justify_center()
+                .on_click(
                     cx.listener(move |view, _, window, cx| view.run_transfer(action, window, cx)),
-                ),
-                Button::Reveal => {
-                    button.on_click(cx.listener(move |view, _, _, cx| view.reveal(which, cx)))
-                }
-            }
+                )
         } else {
             disabled(id, row.label, theme)
         };
@@ -91,7 +87,7 @@ impl SettingsView {
         row_frame(row.into(), button.into_any_element(), reveal, last, theme).into_any_element()
     }
 
-    /// « Exporter… » or « Importer… ».
+    /// « Exporter… », « Importer… » or « Restaurer… ».
     fn run_transfer(&mut self, action: Action, _window: &mut Window, cx: &mut Context<Self>) {
         let Some(directory) = self.data.start(action) else {
             return;
@@ -109,18 +105,20 @@ impl SettingsView {
                 },
                 cx,
             ),
-            Action::Import => transfer::choose_import(
-                directory,
-                move |read, cx| {
+            Action::Import | Action::Restore => {
+                let read = move |read, cx: &mut gpui::App| {
                     view.update(cx, |view, cx| {
                         view.data.read(read);
                         view.focus_dialog = view.data.dialog().is_some();
                         cx.notify();
                     })
                     .ok();
-                },
-                cx,
-            ),
+                };
+                match self.data.backup().filter(|_| action == Action::Restore) {
+                    Some(backup) => transfer::read_import(directory, backup.file.clone(), read, cx),
+                    None => transfer::choose_import(directory, read, cx),
+                }
+            }
         }
         cx.notify();
     }

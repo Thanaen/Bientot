@@ -548,6 +548,12 @@ pub enum Key {
     SettingsPollCardHeader,
     SettingsPollInputAutomationPropertiesName,
     SettingsRecovered,
+    SettingsRestoreAction,
+    SettingsRestoreDialogEmptyFormat,
+    SettingsRestoreDialogPeriodFormat,
+    SettingsRestoreFailed,
+    SettingsRestoreReadFailed,
+    SettingsRestoreReading,
     SettingsRetryContent,
     SettingsSaveFailed,
     SettingsSavedPending,
@@ -802,7 +808,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 794] = [
+pub(super) static ENTRIES: [Entry; 800] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1229,7 +1235,7 @@ pub(super) static ENTRIES: [Entry; 794] = [
     Entry { name: "SettingsAppointmentsDescription", fr: "Réunions, formations, visites… Si vous êtes loin de votre PC pendant l’un de ces rendez-vous, WorkTime compte ce temps comme du travail et, selon le réglage du rendez-vous, vous demande à votre retour de le confirmer.", en: "Meetings, training, visits… If you’re away from your PC during one of these appointments, WorkTime counts that time as work and, depending on the appointment’s setting, asks you to confirm when you’re back." },
     Entry { name: "SettingsAppointmentsEmpty", fr: "Aucun rendez-vous régulier pour l’instant.", en: "No recurring appointments yet." },
     Entry { name: "SettingsAppointmentsGroup", fr: "Rendez-vous réguliers", en: "Recurring appointments" },
-    Entry { name: "SettingsBackupDescriptionFormat", fr: "Enregistrée le {0:d MMMM yyyy}. Importez-la pour revenir aux données remplacées.", en: "Saved on {0:MMMM d, yyyy}. Import it to go back to the replaced data." },
+    Entry { name: "SettingsBackupDescriptionFormat", fr: "Enregistrée le {0:d MMMM yyyy}. Restaurez-la pour revenir aux données remplacées.", en: "Saved on {0:MMMM d, yyyy}. Restore it to go back to the replaced data." },
     Entry { name: "SettingsBackupTitle", fr: "Copie d’avant l’import", en: "Copy from before the import" },
     Entry { name: "SettingsCompletionCard.Description", fr: "Prévenir ce nombre de minutes avant d’atteindre l’objectif.", en: "Notify this many minutes before you reach the daily target." },
     Entry { name: "SettingsCompletionCard.Header", fr: "Objectif quotidien proche", en: "Daily target approaching" },
@@ -1345,6 +1351,12 @@ pub(super) static ENTRIES: [Entry; 794] = [
     Entry { name: "SettingsPollCard.Header", fr: "Intervalle d’interrogation", en: "Polling interval" },
     Entry { name: "SettingsPollInput.AutomationProperties.Name", fr: "Intervalle d’interrogation ActivityWatch en secondes", en: "ActivityWatch polling interval in seconds" },
     Entry { name: "SettingsRecovered", fr: "Les réglages invalides ont été sauvegardés à part et les valeurs par défaut rétablies. Vérifiez vos réglages.", en: "Invalid settings were backed up and the defaults restored. Review your settings." },
+    Entry { name: "SettingsRestoreAction", fr: "Restaurer…", en: "Restore…" },
+    Entry { name: "SettingsRestoreDialogEmptyFormat", fr: "Cette copie, enregistrée le {0:d MMMM yyyy}, ne contient aucun historique.", en: "This copy, saved on {0:MMMM d, yyyy}, holds no history." },
+    Entry { name: "SettingsRestoreDialogPeriodFormat", fr: "Cette copie, enregistrée le {0:d MMMM yyyy}, contient votre historique du {1:d MMMM yyyy} au {2:d MMMM yyyy}.", en: "This copy, saved on {0:MMMM d, yyyy}, holds your history from {1:MMMM d, yyyy} to {2:MMMM d, yyyy}." },
+    Entry { name: "SettingsRestoreFailed", fr: "WorkTime n’a pas pu restaurer cette copie. Vos données n’ont pas changé. Réessayez.", en: "WorkTime could not restore this copy. Your data has not changed. Try again." },
+    Entry { name: "SettingsRestoreReadFailed", fr: "WorkTime n’a pas pu lire cette copie. Affichez-la dans l’Explorateur, puis importez-la depuis «\u{a0}Importer…\u{a0}».", en: "WorkTime could not read this copy. Show it in File Explorer, then import it with “Import…”." },
+    Entry { name: "SettingsRestoreReading", fr: "Lecture de la copie…", en: "Reading the copy…" },
     Entry { name: "SettingsRetry.Content", fr: "Réessayer", en: "Retry" },
     Entry { name: "SettingsSaveFailed", fr: "Impossible d’enregistrer les paramètres. Vérifiez l’accès au disque et réessayez.", en: "Settings could not be saved. Check disk access and try again." },
     Entry { name: "SettingsSavedPending", fr: "Réglages enregistrés. Actualisez pour mettre à jour votre journée.", en: "Settings saved. Select Refresh to update your workday." },

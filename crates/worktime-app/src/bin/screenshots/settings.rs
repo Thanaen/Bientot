@@ -101,11 +101,13 @@ enum DataState {
     Restarting,
     ImportFailed,
     Backup,
+    RestoreConfirm,
+    RestoreUnreadable,
     Demo,
 }
 
 impl DataState {
-    const ALL: [Self; 12] = [
+    const ALL: [Self; 14] = [
         Self::Ready,
         Self::Exporting,
         Self::Exported,
@@ -117,6 +119,8 @@ impl DataState {
         Self::Restarting,
         Self::ImportFailed,
         Self::Backup,
+        Self::RestoreConfirm,
+        Self::RestoreUnreadable,
         Self::Demo,
     ];
 
@@ -133,15 +137,22 @@ impl DataState {
             Self::Restarting => "restarting",
             Self::ImportFailed => "import-failed",
             Self::Backup => "backup",
+            Self::RestoreConfirm => "restore-confirm",
+            Self::RestoreUnreadable => "restore-unreadable",
             Self::Demo => "demo",
         })
     }
 
     fn page(self, language: Language) -> DataPage {
-        let backup = matches!(self, Self::Backup).then(|| Backup {
-            file: PathBuf::from(
-                r"C:\Users\Camille\AppData\Local\WorkTime\backups\before-import-2026-10-22-11-30-00.worktime",
-            ),
+        let backup_file = PathBuf::from(
+            r"C:\Users\Camille\AppData\Local\WorkTime\backups\before-import-2026-10-22-11-30-00.worktime",
+        );
+        let backup = matches!(
+            self,
+            Self::Backup | Self::RestoreConfirm | Self::RestoreUnreadable
+        )
+        .then(|| Backup {
+            file: backup_file.clone(),
             saved_on: date(2026, 10, 22),
         });
         let directory = (!matches!(self, Self::Demo)).then(|| {
@@ -187,6 +198,23 @@ impl DataState {
                 Some((date(2025, 9, 1), date(2026, 10, 21))),
             ),
             Self::ConfirmEmpty => confirm(&mut page, None, year),
+            // The copy of the data an import of an older export replaced.
+            Self::RestoreConfirm => {
+                page.start(Action::Restore);
+                page.read(Some(Ok(Chosen {
+                    file: backup_file,
+                    contents: Contents {
+                        exported_at: "2026-10-22T09:30:00Z".parse().unwrap(),
+                        days: Some((date(2025, 9, 1), date(2026, 10, 22))),
+                    },
+                    exported_on: date(2026, 10, 22),
+                    this_pc: Some((date(2025, 9, 1), date(2026, 9, 30))),
+                })));
+            }
+            Self::RestoreUnreadable => {
+                page.start(Action::Restore);
+                page.read(Some(Err(Refusal::Unreadable)));
+            }
             Self::Restarting | Self::ImportFailed => {
                 confirm(&mut page, year, None);
                 page.confirm();

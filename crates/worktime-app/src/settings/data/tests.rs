@@ -245,25 +245,29 @@ fn confirming_hands_the_file_over_and_waits_for_the_restart() {
     assert!(page.ready());
 }
 
-#[test]
-fn the_copy_of_the_last_import_is_offered_in_file_explorer() {
-    let backup = Backup {
+fn backup() -> Backup {
+    Backup {
         file: PathBuf::from("backups/before-import-2026-10-22-11-30-00.worktime"),
         saved_on: date(2026, 10, 22),
-    };
-    let page = DataPage::new(Language::French, here(), Some(backup.clone()));
+    }
+}
+
+#[test]
+fn the_copy_of_the_last_import_is_offered_to_restore_and_in_file_explorer() {
+    let page = DataPage::new(Language::French, here(), Some(backup()));
 
     let shown = row(&page, Row::Backup);
 
     assert_eq!(shown.title, "Copie d’avant l’import");
     assert_eq!(
         shown.description,
-        "Enregistrée le 22\u{a0}octobre\u{a0}2026. Importez-la pour revenir aux données remplacées."
+        "Enregistrée le 22\u{a0}octobre\u{a0}2026. Restaurez-la pour revenir aux données remplacées."
     );
-    assert_eq!(shown.label, "Afficher dans l’Explorateur");
-    assert_eq!(shown.button, Button::Reveal);
+    assert_eq!(shown.label, "Restaurer…");
+    assert_eq!(shown.action, Action::Restore);
     assert!(shown.enabled);
-    assert_eq!(page.revealed(Row::Backup), Some(backup.file.as_path()));
+    assert_eq!(shown.reveal, Some("Afficher dans l’Explorateur"));
+    assert_eq!(page.revealed(Row::Backup), Some(backup().file.as_path()));
     assert_eq!(
         DataPage::new(Language::French, here(), None)
             .view()
@@ -271,6 +275,67 @@ fn the_copy_of_the_last_import_is_offered_in_file_explorer() {
             .len(),
         2
     );
+}
+
+#[test]
+fn restoring_the_copy_asks_like_an_import_and_stages_the_copy() {
+    let mut page = DataPage::new(Language::French, here(), Some(backup()));
+
+    assert_eq!(page.start(Action::Restore), here());
+    let view = page.view();
+    assert_eq!(view.status, Some("Lecture de la copie…"));
+    assert!(view.rows.iter().all(|row| !row.enabled));
+
+    page.read(Some(Ok(Chosen {
+        file: backup().file,
+        ..chosen(
+            Some((date(2026, 9, 1), date(2026, 10, 22))),
+            Some((date(2026, 9, 1), date(2026, 10, 23))),
+        )
+    })));
+
+    let dialog = page.dialog().unwrap();
+    assert_eq!(dialog.title, "Remplacer les données de ce PC\u{202f}?");
+    assert_eq!(
+        dialog.paragraphs[0],
+        "Cette copie, enregistrée le 21\u{a0}octobre\u{a0}2026, contient votre historique du \
+         1er\u{a0}septembre\u{a0}2026 au 22\u{a0}octobre\u{a0}2026."
+    );
+    assert_eq!(dialog.confirm, "Remplacer et redémarrer");
+    assert_eq!(page.confirm(), Some((backup().file, here().unwrap())));
+
+    page.import_failed();
+    assert_eq!(
+        row(&page, Row::Backup).error,
+        Some("WorkTime n’a pas pu restaurer cette copie. Vos données n’ont pas changé. Réessayez.")
+    );
+    assert_eq!(row(&page, Row::Import).error, None);
+}
+
+#[test]
+fn a_copy_that_no_longer_reads_says_so_on_its_row() {
+    let mut page = DataPage::new(Language::French, here(), Some(backup()));
+    page.start(Action::Restore);
+
+    page.read(Some(Err(Refusal::Unreadable)));
+
+    assert_eq!(
+        row(&page, Row::Backup).error,
+        Some(
+            "WorkTime n’a pas pu lire cette copie. Affichez-la dans l’Explorateur, puis importez-la \
+             depuis «\u{a0}Importer…\u{a0}»."
+        )
+    );
+    assert_eq!(row(&page, Row::Import).error, None);
+    assert!(page.ready());
+}
+
+#[test]
+fn without_a_copy_nothing_restores() {
+    let mut page = DataPage::new(Language::French, here(), None);
+
+    assert_eq!(page.start(Action::Restore), None);
+    assert!(page.ready());
 }
 
 #[test]

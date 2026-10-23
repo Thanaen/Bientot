@@ -409,7 +409,13 @@
   <data name="SettingsImportDialogLossOutside" xml:space="preserve"><value>Days recorded on this PC outside the file’s period will no longer be in the history.</value></data>
   <data name="SettingsImportDialogLossAll" xml:space="preserve"><value>This PC will have no history left.</value></data>
   <data name="SettingsBackupTitle" xml:space="preserve"><value>Copy from before the import</value></data>
-  <data name="SettingsBackupDescriptionFormat" xml:space="preserve"><value>Saved on {0:MMMM d, yyyy}. Import it to go back to the replaced data.</value></data>
+  <data name="SettingsBackupDescriptionFormat" xml:space="preserve"><value>Saved on {0:MMMM d, yyyy}. Restore it to go back to the replaced data.</value></data>
+  <data name="SettingsRestoreAction" xml:space="preserve"><value>Restore…</value></data>
+  <data name="SettingsRestoreReading" xml:space="preserve"><value>Reading the copy…</value></data>
+  <data name="SettingsRestoreReadFailed" xml:space="preserve"><value>WorkTime could not read this copy. Show it in File Explorer, then import it with “Import…”.</value></data>
+  <data name="SettingsRestoreFailed" xml:space="preserve"><value>WorkTime could not restore this copy. Your data has not changed. Try again.</value></data>
+  <data name="SettingsRestoreDialogPeriodFormat" xml:space="preserve"><value>This copy, saved on {0:MMMM d, yyyy}, holds your history from {1:MMMM d, yyyy} to {2:MMMM d, yyyy}.</value></data>
+  <data name="SettingsRestoreDialogEmptyFormat" xml:space="preserve"><value>This copy, saved on {0:MMMM d, yyyy}, holds no history.</value></data>
   <data name="SettingsShowInExplorer" xml:space="preserve"><value>Show in File Explorer</value></data>
   <data name="SettingsImportCancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="SettingsImportConfirm" xml:space="preserve"><value>Replace and restart</value></data>
