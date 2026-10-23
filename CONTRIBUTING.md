@@ -109,7 +109,8 @@ A green Linux run does not prove these:
   skips the other jobs.
 - **Rust** (Ubuntu) checks formatting, lints and tests the Cargo workspace, and
   renders the screenshots when the app crate changes. **Publish screenshots**
-  pushes them to a `ci-screenshots/<pull request>` branch.
+  pushes them to the `refs/ci-screenshots/<pull request>` ref (not a
+  branch, so Vercel ignores it) and links them from the job summary.
 - **Rust on Windows** tests `worktime-store` and `worktime-windows`, builds the
   release executable and measures its size, startup time and memory. Then
   `scripts/measure-performance.ps1` runs it with the built-in activity source,

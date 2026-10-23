@@ -333,7 +333,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  # Publishes the screenshots on a branch so reviewers and Claude can open them without
+  # Publishes the screenshots in the repository so reviewers and Claude can open them without
   # downloading an archive. Kept apart from the Rust job so no pull request code runs with
   # write access.
   screenshots:
@@ -366,7 +366,9 @@ jobs:
             exit 1
           fi
 
-      - name: Push screenshot branch
+      # The screenshots go to a ref outside refs/heads: a branch push makes Vercel try a
+      # preview of a commit without services/worktime, which fails and sends an email.
+      - name: Push screenshot ref
         working-directory: screenshots
         env:
           GH_TOKEN: ${{ github.token }}
@@ -374,24 +376,25 @@ jobs:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          branch="ci-screenshots/${PULL_REQUEST}"
-          git init -q -b "$branch"
+          ref="refs/ci-screenshots/${PULL_REQUEST}"
+          git init -q
           git add .
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "Screenshots for #${PULL_REQUEST} at ${HEAD_SHA}"
-          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git" "HEAD:refs/heads/${branch}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git" "HEAD:${ref}"
+          commit=$(git rev-parse HEAD)
 
           {
             echo "## Screenshots"
             echo
-            echo "Branch \`${branch}\`, captured from ${HEAD_SHA}."
+            echo "Ref \`${ref}\` (commit ${commit}), captured from ${HEAD_SHA}."
             echo
             echo "| Window | fr-dark | fr-light | en-dark | en-light |"
             echo "| --- | --- | --- | --- | --- |"
             for file in $(cd fr-dark && ls *.png); do
               row="| ${file%.png} |"
               for variant in fr-dark fr-light en-dark en-light; do
-                row="${row} [view](https://github.com/${REPOSITORY}/blob/${branch}/${variant}/${file}) |"
+                row="${row} [view](https://github.com/${REPOSITORY}/blob/${commit}/${variant}/${file}) |"
               done
               echo "$row"
             done
