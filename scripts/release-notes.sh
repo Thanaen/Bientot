@@ -33,6 +33,8 @@ done < <(git log --no-merges --format='%H %s' "$range")
 kept=0
 lines=()
 while IFS= read -r line; do
+    # GitHub may end the lines of the notes with CRLF.
+    line=${line%$'\r'}
     if [[ $line =~ /pull/([0-9]+)$ ]]; then
         [[ -n ${app[${BASH_REMATCH[1]}]:-} ]] || continue
         [[ $line == "* @"*" made their first contribution "* ]] || kept=$((kept + 1))
