@@ -259,9 +259,12 @@ fn run_on(
             None => std::sync::Arc::new(move |settings| store.save(settings)),
         };
         let forced = launch.language;
+        // A demo's folder is thrown away, so it offers no import.
+        let import = launch.demo.is_none().then(|| directory.clone());
         onboarding_view::open(
             settings,
             forced,
+            import,
             save,
             Box::new(move |settings, cx| {
                 let loaded = LoadedSettings {

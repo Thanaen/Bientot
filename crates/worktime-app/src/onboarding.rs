@@ -1,7 +1,9 @@
 //! The first-run « Bienvenue dans WorkTime » window as a model: its steps, their drafts, what
 //! each page shows and what the end saves. Ported from `Services/Onboarding/OnboardingState.cs`,
 //! `OnboardingCompletion.cs` and `Presentation/Onboarding/OnboardingPresentation.cs`, without
-//! the activity source step: v1 reads the built-in detection only. Nothing here knows GPUI.
+//! the activity source step: v1 reads the built-in detection only. The first step also offers
+//! the import of « Paramètres › Données », for a PC that takes over from another one. Nothing
+//! here knows GPUI.
 
 use jiff::SignedDuration;
 use jiff::civil::Time;
@@ -9,10 +11,12 @@ use worktime_core::settings::EditError;
 use worktime_core::settings::number::{self, format_target_duration};
 use worktime_domain::configuration::{SettingsError, WorkTimeSettings};
 use worktime_domain::sources::ActivitySourceKind;
+use worktime_store::data_directory::DataDirectory;
 use worktime_store::settings::SaveSettingsError;
 use worktime_windows::startup::StartupRegistrationState;
 
 use crate::adjust::TimeField;
+use crate::settings::data::{DataPage, ImportDialog, Row};
 use crate::settings::startup::{self, StartupPort};
 use crate::settings::{
     Clock, Control, Details, Field, LanguageChoice, PingDetails, RowView, Setting, Switch,
@@ -86,6 +90,8 @@ pub struct PageView {
     pub saving: bool,
     /// The end could not be saved; « Commencer » tries again.
     pub failure: Option<&'static str>,
+    /// An import is being chosen, confirmed or staged: « Suivant » waits for it.
+    pub importing: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -94,6 +100,8 @@ pub enum Body {
         /// The name of the group of choices.
         name: &'static str,
         options: Vec<LanguageOption>,
+        /// `None` in a demo, which has no data of its own to replace.
+        import: Option<ImportOffer>,
     },
     Rows {
         rows: Vec<RowView>,
@@ -107,6 +115,20 @@ pub struct LanguageOption {
     pub choice: LanguageChoice,
     pub label: &'static str,
     pub selected: bool,
+}
+
+/// « Importer des données… » under the languages, with what the import of « Paramètres ›
+/// Données » tells along the way.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ImportOffer {
+    pub lead: &'static str,
+    pub action: &'static str,
+    /// What runs, the file being read or the restart, while the action waits.
+    pub status: Option<&'static str>,
+    /// Why the file was refused, or why the import failed.
+    pub error: Option<&'static str>,
+    /// The file read, to import once confirmed, in place of the action.
+    pub confirmation: Option<ImportDialog>,
 }
 
 pub struct Onboarding {
@@ -129,6 +151,8 @@ pub struct Onboarding {
     /// `None` until the registration has been read.
     startup: Option<StartupRegistrationState>,
     ending: Ending,
+    /// The import of the first step, on the data folder this PC would use.
+    import: Option<DataPage>,
 }
 
 fn time_field(time: Time) -> TimeField {
@@ -137,15 +161,17 @@ fn time_field(time: Time) -> TimeField {
 
 impl Onboarding {
     /// Starts on `settings`, the defaults on a first run. A new installation reads the built-in
-    /// detection (FR-044).
+    /// detection (FR-044). The first step offers to import into `directory`, unless it is `None`.
     pub fn new(
         mut settings: WorkTimeSettings,
         usage_ping: UsagePingFacts,
         forced: Option<Language>,
+        directory: Option<DataDirectory>,
     ) -> Self {
         settings
             .activity_source
             .get_or_insert(ActivitySourceKind::BuiltIn);
+        let language = Language::resolve(forced, settings.language_override.as_deref());
         Self {
             step: Step::Language,
             preferred_minimum: settings.minimum_effective_target,
@@ -160,6 +186,7 @@ impl Onboarding {
             usage_ping,
             startup: None,
             ending: Ending::Editing,
+            import: directory.map(|directory| DataPage::new(language, Some(directory), None)),
         }
     }
 
@@ -176,14 +203,32 @@ impl Onboarding {
         self.ending == Ending::Saving
     }
 
+    /// An import is being chosen, confirmed or staged: the steps wait for it.
+    fn is_importing(&self) -> bool {
+        self.import.as_ref().is_some_and(|page| !page.ready())
+    }
+
+    /// The import, while the first step shows and nothing is being saved.
+    pub fn import_mut(&mut self) -> Option<&mut DataPage> {
+        if self.step != Step::Language || self.is_saving() {
+            return None;
+        }
+        self.import.as_mut()
+    }
+
     /// The registration as read.
     pub fn show_startup(&mut self, state: StartupRegistrationState) {
         self.startup = Some(state);
     }
 
+    /// Ignored while an import is chosen, confirmed or staged, as « Suivant » is.
     pub fn choose_language(&mut self, choice: LanguageChoice) {
-        if self.step == Step::Language && !self.is_saving() {
+        if self.step == Step::Language && !self.is_saving() && !self.is_importing() {
             self.settings.language_override = choice.language_override();
+            let language = self.language();
+            if let Some(page) = &mut self.import {
+                page.set_language(language);
+            }
         }
     }
 
@@ -254,7 +299,7 @@ impl Onboarding {
 
     /// « Précédent »: the schedule keeps its drafts, valid or not.
     pub fn back(&mut self) {
-        if self.is_saving() {
+        if self.is_saving() || self.is_importing() {
             return;
         }
         self.commit_schedule();
@@ -266,7 +311,7 @@ impl Onboarding {
     /// « Suivant »: the next step once this one is valid. On the last step, « Commencer » returns
     /// the choices to save through [`complete`], then [`Self::finished`] says how it went.
     pub fn advance(&mut self) -> Option<WorkTimeSettings> {
-        if self.is_saving() || !self.commit_schedule() {
+        if self.is_saving() || self.is_importing() || !self.commit_schedule() {
             return None;
         }
         match self.step.next() {
@@ -380,6 +425,7 @@ impl Onboarding {
             saving: self.is_saving(),
             failure: (self.ending == Ending::Failed)
                 .then(|| language.text(Key::OnboardingSaveFailed)),
+            importing: self.is_importing(),
         }
     }
 
@@ -400,6 +446,10 @@ impl Onboarding {
                     selected: choice == saved,
                 })
                 .collect(),
+            import: self
+                .import
+                .as_ref()
+                .map(|page| import_offer(page, language)),
         }
     }
 
@@ -492,6 +542,29 @@ impl Onboarding {
                 }
             }),
         }
+    }
+}
+
+/// The import of « Paramètres › Données » as the first step offers it: its confirmation asks to
+/// import rather than to replace, since a PC being set up has usually nothing to replace, and
+/// says the remaining steps are skipped; when this PC holds days, it says what it would lose.
+fn import_offer(page: &DataPage, language: Language) -> ImportOffer {
+    let view = page.view();
+    ImportOffer {
+        lead: language.text(Key::OnboardingImportLead),
+        action: language.text(Key::OnboardingImportAction),
+        status: view.status,
+        error: view
+            .rows
+            .iter()
+            .find(|row| row.row == Row::Import)
+            .and_then(|row| row.error),
+        confirmation: page.dialog().map(|dialog| ImportDialog {
+            title: language.text(Key::OnboardingImportTitle),
+            message: language.text(Key::OnboardingImportMessage),
+            confirm: language.text(Key::OnboardingImportConfirm),
+            ..dialog
+        }),
     }
 }
 

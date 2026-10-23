@@ -9,6 +9,7 @@ mod json;
 mod language;
 
 use dialog::Dialog;
+pub(crate) use dialog::warning;
 
 use std::path::PathBuf;
 use std::sync::Arc;

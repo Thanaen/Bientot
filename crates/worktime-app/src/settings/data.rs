@@ -165,6 +165,11 @@ impl DataPage {
         }
     }
 
+    /// The texts follow the language chosen since, as in the onboarding.
+    pub fn set_language(&mut self, language: Language) {
+        self.language = language;
+    }
+
     fn available(&self) -> bool {
         self.directory.is_some()
     }

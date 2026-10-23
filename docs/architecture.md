@@ -32,7 +32,10 @@ holds it, the launch hands its activation over, logs `instance.redirected` and
 exits before it opens the settings, the ledger or the log. A `--data-dir` or a
 `--demo` launch uses another folder, so it runs on its own.
 
-On a first run, the onboarding window opens before anything else. Otherwise
+On a first run, the onboarding window opens before anything else. Its first
+step can import a `.worktime` file instead (`transfer.rs`): WorkTime then
+restarts, applies it before it loads the settings, and skips the onboarding,
+since the file brings its settings. Otherwise
 the app loads the settings and opens the day (`live.rs`): the diagnostic log,
 the migrated ledger, the built-in source behind the source router, the weekly
 recalculation and the tracking commands. When it cannot start, it opens a

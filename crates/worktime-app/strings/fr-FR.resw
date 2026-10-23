@@ -644,6 +644,12 @@
   <data name="OnboardingConnectionsIntro" xml:space="preserve"><value>Vous pourrez tout changer plus tard dans Paramètres › Général.</value></data>
   <data name="OnboardingConnectionsPrivacy" xml:space="preserve"><value>Vos heures et votre activité restent sur ce PC.</value></data>
   <data name="OnboardingUsagePingAllSent" xml:space="preserve"><value>C’est tout ce qui est envoyé.</value></data>
+  <data name="OnboardingImportLead" xml:space="preserve"><value>Vous utilisez déjà WorkTime sur un autre PC ?
+Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</value></data>
+  <data name="OnboardingImportAction" xml:space="preserve"><value>Importer des données…</value></data>
+  <data name="OnboardingImportTitle" xml:space="preserve"><value>Importer ce fichier ?</value></data>
+  <data name="OnboardingImportConfirm" xml:space="preserve"><value>Importer et redémarrer</value></data>
+  <data name="OnboardingImportMessage" xml:space="preserve"><value>WorkTime redémarre ensuite avec ces données, sans les étapes suivantes.</value></data>
   <data name="TimelineKindWork" xml:space="preserve"><value>Travail</value></data>
   <data name="TimelineKindManual" xml:space="preserve"><value>Correction manuelle</value></data>
   <data name="TimelineKindPause" xml:space="preserve"><value>Pause</value></data>
