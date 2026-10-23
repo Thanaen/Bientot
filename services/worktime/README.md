@@ -7,17 +7,30 @@ their updates.
 | Route | Answer |
 | --- | --- |
 | `GET /` | The homepage, `site/index.html` |
-| `GET /fonts/<file>` | One of the IBM Plex fonts in `site/fonts/` (SIL OFL); `404` for any other name |
+| `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png` | The files listed in `src/site.ts`; `404` for any other path |
+| `GET /robots.txt`, `/sitemap.xml` | Generated from the pages listed in `src/site.ts` |
 | `POST /v1/ping` | `204`; `400` for any other shape, `413` above 256 bytes |
 | `GET /v1/stats` | The last 12 calendar months, with `Authorization: Bearer $STATS_TOKEN` |
 | `GET /updates/<file>` | `302` to that file of the Velopack release in the Blob store; `404` for a name vpk never writes |
 | `GET /download` | `302` to the latest `Setup.exe` |
 
-## Homepage
+## Pages
 
-`site/index.html` is a static page in French, in the app's WorkTime One theme. It uses no
-script, no cookie and no third-party request: the fonts are Latin subsets of the app's IBM
-Plex fonts, made with `pyftsubset`. A new font must also be listed in `src/site.ts`.
+`site/index.html` is a static page in French, in the app's WorkTime One theme. It runs no
+script, sets no cookie and makes no third-party request: the fonts are Latin subsets of the
+app's IBM Plex fonts, made with `pyftsubset`.
+
+`src/site.ts` lists the pages and the files they use. Each page has `<!-- head -->` in its
+`<head>`; the service fills it with the title, description, canonical URL, link-preview tags
+(Open Graph, `summary_large_image`), icons and theme colours, and adds the page to
+`/sitemap.xml`. A new page or file must be listed there.
+
+Each page has a 1200 × 630 share image, drawn from an HTML source next to it. After changing
+`site/og/home.html`, regenerate the PNG:
+
+```sh
+playwright screenshot --viewport-size=1200,630 "file://$PWD/site/og/home.html" site/og/home.png
+```
 
 ## Usage signal
 

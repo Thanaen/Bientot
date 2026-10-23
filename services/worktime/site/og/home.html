@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Image de partage · accueil</title>
+<!-- Source of /og/home.png (1200 × 630). Regenerate it with the command in the service README. -->
+<style>
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; src: url("../fonts/IBMPlexSans-Regular.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; src: url("../fonts/IBMPlexSans-Medium.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; src: url("../fonts/IBMPlexSans-SemiBold.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; src: url("../fonts/IBMPlexMono-Medium.woff2") format("woff2"); }
+:root {
+  --background: #dcdcdd; --surface: #ebebec; --editor: #fafafa;
+  --border: #c9c9ca; --border-variant: #dfdfe0; --element-active: #cacaca;
+  --text: #242529; --text-muted: #58585a; --accent: #4560c4; --success: #3f6e34;
+  --desktop: #c3c8cf; --taskbar: #e6e8eb; --element-hover: #dfdfe0;
+  --font-sans: "IBM Plex Sans", sans-serif; --font-mono: "IBM Plex Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { width: 1200px; height: 630px; overflow: hidden; background: var(--editor); color: var(--text); font-family: var(--font-sans); display: grid; grid-template-columns: 1fr 520px; }
+.copy { padding: 60px 24px 52px 56px; display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: 12px; font: 600 30px/36px var(--font-sans); }
+.brand svg { width: 36px; height: 36px; }
+h1 { font: 600 70px/1.05 var(--font-sans); letter-spacing: -0.025em; margin: auto 0; text-wrap: balance; }
+.foot { display: grid; gap: 4px; font: 500 26px/34px var(--font-mono); color: #3f3f42; }
+.foot b { font-weight: 500; color: var(--accent); }
+.desk { margin: 72px 0 0; background: linear-gradient(160deg, #d3d8e0 0%, #c3c8cf 55%, #b7bdc7 100%); border: 1px solid var(--border); border-right: 0; border-bottom: 0; border-radius: 16px 0 0 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; overflow: hidden; }
+.flyout { width: 440px; margin: 0 24px 18px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 3px 6px rgba(0,0,0,.08), 0 8px 18px rgba(0,0,0,.06); font-size: 18px; line-height: 24px; overflow: hidden; }
+.fl-head { display: flex; align-items: center; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--border-variant); font-size: 22px; color: var(--success); }
+.fl-head svg { width: 22px; height: 22px; }
+.fl-body { padding: 20px; display: grid; gap: 20px; }
+.label { font-size: 19px; line-height: 24px; color: var(--text-muted); }
+.hero { font: 600 68px/76px var(--font-sans); font-variant-numeric: tabular-nums; }
+.row { display: flex; justify-content: space-between; align-items: baseline; }
+.val { font: 500 30px/36px var(--font-sans); font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 3px; background: var(--element-active); overflow: hidden; margin-top: 8px; }
+.bar i { display: block; height: 100%; width: 81%; background: var(--accent); }
+.taskbar { align-self: stretch; height: 56px; background: var(--taskbar); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding: 0 24px; font: 400 16px/19px var(--font-sans); }
+.taskbar svg { width: 24px; height: 24px; border-radius: 50%; box-shadow: 0 0 0 6px var(--element-hover); }
+.taskbar span { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="t-green" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#15803d" stroke="#fff" stroke-width="2"/><path d="M9.5 16.5l4.5 4.5 8.5-9.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20zM9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+<div class="copy">
+  <div class="brand"><svg><use href="#t-green"/></svg>WorkTime</div>
+  <h1>À quelle heure pourrez-vous partir aujourd’hui&nbsp;?</h1>
+  <div class="foot"><span>Gratuit · open source · pour Windows</span><b>worktime.thanaen.dev</b></div>
+</div>
+<div class="desk">
+  <div class="flyout">
+    <div class="fl-head"><svg><use href="#i-check"/></svg>Dans les temps</div>
+    <div class="fl-body">
+      <div><div class="label">Départ prévu</div><div class="hero">16:54</div></div>
+      <div>
+        <div class="row"><span class="label">Temps travaillé</span><span class="val">6 h 00 min</span></div>
+        <div class="bar"><i></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="taskbar"><svg><use href="#t-green"/></svg><span>15:30<br>08/10/2026</span></div>
+</div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import { MAX_BODY_BYTES, parsePing, utcDay } from "./ping";
 import { SETUP, redirect, releaseUrl } from "./releases";
-import { font, homepage } from "./site";
+import { siteRoutes } from "./site";
 import type { UsageStore } from "./store";
 
 export interface AppOptions {
@@ -14,14 +14,7 @@ export interface AppOptions {
 // Nothing here logs the request, its body or the caller's address.
 export function createApp({ store, statsToken, releasesUrl, now = () => new Date() }: AppOptions) {
   return {
-    "/": {
-      GET: homepage,
-    },
-    "/fonts/:file": {
-      GET(request: Request & { params: { file: string } }): Response {
-        return font(request.params.file);
-      },
-    },
+    ...siteRoutes(),
     "/v1/ping": {
       async POST(request: Request): Promise<Response> {
         const text = await request.text();

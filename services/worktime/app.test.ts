@@ -137,32 +137,58 @@ describe("GET /updates/:file", () => {
   });
 });
 
-describe("the homepage", () => {
+describe("the site", () => {
+  // The site's routes are generated, so the app's type does not name them.
+  const get = async (path: string) => {
+    const routes: Record<string, unknown> = app;
+    const route = routes[path] as { GET?: () => Response | Promise<Response> } | undefined;
+    return route?.GET ? route.GET() : null;
+  };
+  const html = async () => (await get("/"))!.text();
+
   test("/ serves the page, which downloads through /download", async () => {
-    const response = app["/"].GET();
+    const response = (await get("/"))!;
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
-    const html = await response.text();
-    expect(html).toContain("<title>WorkTime");
-    expect(html).toContain('href="/download"');
+    const page = await response.text();
+    expect(page).toContain("<title>WorkTime");
+    expect(page).toContain('href="/download"');
+    expect(page).not.toContain("<!-- head -->");
   });
 
-  test("every font the page asks for is served", async () => {
-    const html = await app["/"].GET().text();
-    const files = [...html.matchAll(/\/fonts\/([\w-]+\.woff2)/g)].map((match) => match[1] ?? "");
-    expect(files.length).toBeGreaterThan(0);
-    for (const file of new Set(files)) {
-      const response = app["/fonts/:file"].GET(
-        Object.assign(new Request(`http://local/fonts/${file}`), { params: { file } }),
-      );
-      expect(response.headers.get("content-type")).toBe("font/woff2");
-      expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(1000);
+  test("the page describes itself for search engines and link previews", async () => {
+    const page = await html();
+    expect(page).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/">');
+    expect(page).toContain('<meta property="og:image" content="https://worktime.thanaen.dev/og/home.png">');
+    expect(page).toContain('<meta name="twitter:card" content="summary_large_image">');
+  });
+
+  test("every local file the page links to is served", async () => {
+    const paths = new Set(
+      [...(await html()).matchAll(/(?:href|src|content)="(?:https:\/\/worktime\.thanaen\.dev)?(\/[\w./-]+\.\w+)"/g)].map(
+        (match) => match[1] ?? "",
+      ),
+    );
+    expect(paths).toContain("/og/home.png");
+    expect(paths).toContain("/fonts/IBMPlexSans-Regular.woff2");
+    for (const path of paths) {
+      const response = await get(path);
+      expect(response?.status, path).toBe(200);
+      expect((await response!.arrayBuffer()).byteLength, path).toBeGreaterThan(100);
     }
   });
 
-  test.each(["..", "OFL.txt", "toString", "IBMPlexSans-Regular.ttf"])("serves no font named %p", (file) => {
-    const response = app["/fonts/:file"].GET(
-      Object.assign(new Request(`http://local/fonts/${file}`), { params: { file } }),
-    );
-    expect(response.status).toBe(404);
+  test("the share image is a 1200 × 630 PNG", async () => {
+    const bytes = new DataView(await (await get("/og/home.png"))!.arrayBuffer());
+    expect(bytes.getUint32(16)).toBe(1200);
+    expect(bytes.getUint32(20)).toBe(630);
+  });
+
+  test("robots.txt points at the sitemap, which lists the page", async () => {
+    expect(await (await get("/robots.txt"))!.text()).toContain("Sitemap: https://worktime.thanaen.dev/sitemap.xml");
+    expect(await (await get("/sitemap.xml"))!.text()).toContain("<loc>https://worktime.thanaen.dev/</loc>");
+  });
+
+  test.each(["/fonts/OFL.txt", "/og/home.html", "/fonts/IBMPlexSans-Regular.ttf"])("serves no file at %p", async (path) => {
+    expect(await get(path)).toBeNull();
   });
 });
