@@ -1,52 +1,68 @@
 #!/usr/bin/env bash
-# Writes the notes of a release of the app in Markdown: its commits since the previous release,
-# grouped by Conventional Commits type. Commits scoped `site` or `repo` are left out, as are
-# unscoped ones that change nothing the app is built from.
+# Keeps, from the release notes GitHub generates (stdin), the pull requests that change the app:
+# those scoped `app`, and those with no scope that change what the app is built from. The pull
+# requests scoped `site` or `repo` are left out; every other line is kept as GitHub wrote it.
 #
-#   scripts/release-notes.sh <previous-tag or empty> <commit>
+#   gh api repos/<owner>/<repo>/releases/generate-notes … --jq .body |
+#       scripts/release-notes.sh <previous-tag or empty> <commit>
 set -euo pipefail
 
 previous=$1
-target=${2:?usage: release-notes.sh <previous-tag or empty> <commit>}
+target=${2:?usage: release-notes.sh <previous-tag or empty> <commit> < generated-notes}
 range=$target
 [[ -z $previous ]] || range="$previous..$target"
 
-# What the app is built from, for the commits that name no scope.
+# What the app is built from, for the pull requests that name no scope.
 app_paths=(crates packaging Cargo.toml Cargo.lock rust-toolchain.toml)
 
-declare -A sections
-order=(feat fix perf other)
-declare -A titles=([feat]="New" [fix]="Fixes" [perf]="Performance" [other]="Other changes")
-
+# The pull requests of the app, by number: squash-merged, their commit subject ends with (#N).
+declare -A app
 while IFS= read -r line; do
     sha=${line%% *}
     subject=${line#* }
-    if [[ $subject =~ ^([a-z]+)(\(([a-z-]+)\))?!?:\ (.+)$ ]]; then
-        type=${BASH_REMATCH[1]} scope=${BASH_REMATCH[3]} text=${BASH_REMATCH[4]}
-    else
-        type="" scope="" text=$subject
-    fi
+    [[ $subject =~ \(#([0-9]+)\)$ ]] || continue
+    number=${BASH_REMATCH[1]}
+    scope=""
+    [[ $subject =~ ^[a-z]+\(([a-z-]+)\)!?: ]] && scope=${BASH_REMATCH[1]}
     case $scope in
-        app) ;;
-        "") [[ -n $(git diff-tree --root --no-commit-id --name-only -r "$sha" -- "${app_paths[@]}") ]] || continue ;;
-        *) continue ;;
+        app) app[$number]=1 ;;
+        "") [[ -z $(git diff-tree --no-commit-id --name-only -r "$sha" -- "${app_paths[@]}") ]] || app[$number]=1 ;;
     esac
-    # What changes nothing a user sees.
-    case $type in
-        feat | fix | perf) section=$type ;;
-        ci | docs | refactor | style | test | chore) continue ;;
-        *) section=other ;;
-    esac
-    sections[$section]+="- ${text^}"$'\n'
 done < <(git log --no-merges --format='%H %s' "$range")
 
-printed=false
-for section in "${order[@]}"; do
-    [[ -n ${sections[$section]:-} ]] || continue
-    printf '## %s\n\n%s\n' "${titles[$section]}" "${sections[$section]}"
-    printed=true
+kept=0
+lines=()
+while IFS= read -r line; do
+    # GitHub may end the lines of the notes with CRLF.
+    line=${line%$'\r'}
+    if [[ $line =~ /pull/([0-9]+)$ ]]; then
+        [[ -n ${app[${BASH_REMATCH[1]}]:-} ]] || continue
+        [[ $line == "* @"*" made their first contribution "* ]] || kept=$((kept + 1))
+    fi
+    lines+=("$line")
+    if [[ $line == "## What's Changed" ]]; then
+        changes=${#lines[@]}
+    fi
 done
-[[ $printed == true ]] || printf 'Maintenance release: nothing changes in the app.\n\n'
-if [[ -n $previous && -n ${GITHUB_REPOSITORY:-} ]]; then
-    printf '**Full changelog**: https://github.com/%s/compare/%s...%s\n' "$GITHUB_REPOSITORY" "$previous" "$target"
+if ((kept == 0)) && [[ -n ${changes:-} ]]; then
+    lines=("${lines[@]:0:changes}" "No change to the app." "${lines[@]:changes}")
 fi
+
+# A section whose lines all went, such as "New Contributors", goes too.
+skip=0
+for i in "${!lines[@]}"; do
+    if ((skip > 0)); then
+        skip=$((skip - 1))
+        continue
+    fi
+    if [[ ${lines[i]} == "## "* ]]; then
+        for ((j = i + 1; j < ${#lines[@]}; j++)); do
+            [[ ${lines[j]} == "## "* || ${lines[j]} == "**Full Changelog**"* || -n ${lines[j]} ]] && break
+        done
+        if ((j == ${#lines[@]})) || [[ ${lines[j]} == "## "* || ${lines[j]} == "**Full Changelog**"* ]]; then
+            skip=$((j - i - 1))
+            continue
+        fi
+    fi
+    printf '%s\n' "${lines[i]}"
+done
