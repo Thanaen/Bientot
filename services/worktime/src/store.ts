@@ -92,7 +92,8 @@ export class PostHogStore implements UsageStore {
     const response = await fetch(`${apiUrl}/api/projects/${projectId}/endpoints/${ENDPOINT.name}/run?version=${ENDPOINT.version}`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ refresh: "cache", limit: 10000 }),
+      // Bypass PostHog's cache, which could still hold a snapshot taken before the day ended.
+      body: JSON.stringify({ refresh: "force", limit: 10000 }),
       signal: AbortSignal.timeout(20000),
     });
     if (!response.ok) throw new Error(`PostHog endpoint answered ${response.status}`);

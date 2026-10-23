@@ -73,9 +73,10 @@ service answers `500` and the app tries again within the hour.
 
 The figures come from the `usage_daily` endpoint of the PostHog project, a saved SQL query
 pinned to its version in `src/store.ts` (`ENDPOINT`). It answers one row per UTC day, version and
-channel over the last 400 days: the signals, and the first-of-month signals among them. PostHog
-caches its answer for a day. The service calls it with a project secret API key limited to
-`endpoint:read`, `POSTHOG_PERSONAL_API_KEY`; without it, the page and the files answer `500`.
+channel over the last 400 days: the signals, and the first-of-month signals among them. The
+service asks for a fresh answer (`refresh: "force"`), since a cached one could predate the end of
+the day it publishes; it does so once per finished day and instance. The service calls it with a
+project secret API key limited to `endpoint:read`, `POSTHOG_PERSONAL_API_KEY`; without it, the page and the files answer `500`.
 
 ```sql
 SELECT

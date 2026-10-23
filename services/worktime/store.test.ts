@@ -69,6 +69,8 @@ describe("PostHogStore.totals", () => {
     expect(posthog.calls).toHaveLength(1);
     expect(posthog.calls[0]!.url).toBe(`https://eu.posthog.com/api/projects/42/endpoints/${ENDPOINT.name}/run?version=${ENDPOINT.version}`);
     expect((posthog.calls[0]!.init.headers as Record<string, string>).authorization).toBe("Bearer phx_test");
+    // A cached answer could predate the end of the day being published.
+    expect(JSON.parse(String(posthog.calls[0]!.init.body)).refresh).toBe("force");
     expect(totals).toEqual({
       days: [
         { day: "2026-10-01", pings: 15 },
