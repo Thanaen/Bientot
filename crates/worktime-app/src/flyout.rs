@@ -89,7 +89,7 @@ pub const BODY_PADDING: Pixels = BASE_16;
 const KEY_CONTEXT: &str = "Flyout";
 
 /// The least height of the flyout while the palette is open over it, so that the palette shows
-/// six commands of its list rather than three of a short card.
+/// six commands of its list rather than three of a short card. A shorter work area wins.
 const PALETTE_ROOM: Pixels = px(360.);
 
 /// The keystrokes of the flyout's actions. The key caps and accessible names are read from
@@ -694,7 +694,7 @@ impl Render for Flyout {
             .rounded(radius::LG)
             .overflow_hidden()
             .when(self.palette.is_some(), |content| {
-                content.min_h(PALETTE_ROOM)
+                content.min_h(max_height.map_or(PALETTE_ROOM, |height| PALETTE_ROOM.min(height)))
             })
             .when_some(max_height, |content, height| content.max_h(height))
             .child(self.header(&theme))
