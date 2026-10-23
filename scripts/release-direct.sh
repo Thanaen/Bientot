@@ -87,7 +87,8 @@ mkdir -p "$output"
 if [[ ${FIRST_RELEASE:-} == 1 ]]; then
     echo "first release: no previous one at $feed"
 else
-    "$vpk" download http --url "$feed" --outputDir "$output" ||
+    # Without the channel, vpk reads the feed of the host OS (releases.linux.json).
+    "$vpk" download http --channel win --url "$feed" --outputDir "$output" ||
         fail "no previous release at $feed (FIRST_RELEASE=1 for the first one)"
 fi
 "$vpk" "[win]" pack --runtime win-x64 \
