@@ -36,7 +36,7 @@ if [[ ${RELEASE_ANY_BRANCH:-} != 1 ]]; then
     [[ $(git -C "$root" rev-parse HEAD) == $(git -C "$root" rev-parse origin/main) ]] ||
         fail "releases come from origin/main as pushed (RELEASE_ANY_BRANCH=1 for a test feed)"
 fi
-[[ ! -e $output || -z $(ls -A "$output") ]] || fail "$output is not empty: publish-release.ts would upload what it holds"
+[[ ! -e $output || -z $(ls -A "$output") ]] || fail "$output is not empty: its files would be published with the release"
 
 # Every commit of main gets a higher version than the one before.
 # tr: jq.exe ends its lines with CRLF under Git Bash on Windows.
