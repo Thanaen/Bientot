@@ -94,24 +94,7 @@ impl SettingsView {
                                     .into_iter()
                                     .map(|paragraph| div().child(paragraph)),
                             )
-                            .children(text.warning.map(|warning| {
-                                div()
-                                    .flex()
-                                    .items_start()
-                                    .gap(BASE_08)
-                                    .text_color(theme.warning)
-                                    .child(
-                                        div()
-                                            .h(text::LABEL_MD.line_height)
-                                            .flex()
-                                            .items_center()
-                                            .child(
-                                                widgets::icon("triangle-alert", theme.warning)
-                                                    .size(token::ICON_SM),
-                                            ),
-                                    )
-                                    .child(div().flex_1().min_w_0().child(warning))
-                            }))
+                            .children(text.warning.map(|loss| warning(loss, theme)))
                             .child(text.message),
                     )
                     .child(
@@ -129,6 +112,23 @@ impl SettingsView {
                     ),
             )
     }
+}
+
+/// What an action loses, after its triangle, in the warning colour.
+pub(crate) fn warning(message: SharedString, theme: &Theme) -> impl IntoElement {
+    div()
+        .flex()
+        .items_start()
+        .gap(BASE_08)
+        .text_color(theme.warning)
+        .child(
+            div()
+                .h(text::LABEL_MD.line_height)
+                .flex()
+                .items_center()
+                .child(widgets::icon("triangle-alert", theme.warning).size(token::ICON_SM)),
+        )
+        .child(div().flex_1().min_w_0().child(message))
 }
 
 /// The dialog over the window: unsaved changes, or an import to confirm.

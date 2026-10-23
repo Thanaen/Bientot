@@ -305,6 +305,11 @@ pub enum Key {
     OnboardingDepartureInputAutomationPropertiesName,
     OnboardingDepartureInputHeader,
     OnboardingFinishButtonContent,
+    OnboardingImportAction,
+    OnboardingImportConfirm,
+    OnboardingImportLead,
+    OnboardingImportMessage,
+    OnboardingImportTitle,
     OnboardingLanguageEnglishContent,
     OnboardingLanguageFrenchContent,
     OnboardingLanguageInputAutomationPropertiesName,
@@ -797,7 +802,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 789] = [
+pub(super) static ENTRIES: [Entry; 794] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1097,6 +1102,11 @@ pub(super) static ENTRIES: [Entry; 789] = [
     Entry { name: "OnboardingDepartureInput.AutomationProperties.Name", fr: "Heure limite de départ souhaitée", en: "Preferred latest departure time" },
     Entry { name: "OnboardingDepartureInput.Header", fr: "Heure limite de départ souhaitée", en: "Preferred latest departure" },
     Entry { name: "OnboardingFinishButton.Content", fr: "Terminer", en: "Finish" },
+    Entry { name: "OnboardingImportAction", fr: "Importer des données…", en: "Import data…" },
+    Entry { name: "OnboardingImportConfirm", fr: "Importer et redémarrer", en: "Import and restart" },
+    Entry { name: "OnboardingImportLead", fr: "Vous utilisez déjà WorkTime sur un autre PC\u{202f}?\nImportez le fichier exporté depuis Paramètres\u{a0}›\u{a0}Données sur ce PC-là.", en: "Already using WorkTime on another PC?\nImport the file you exported from Settings\u{a0}›\u{a0}Data on that PC." },
+    Entry { name: "OnboardingImportMessage", fr: "WorkTime redémarre ensuite avec ces données, sans les étapes suivantes.", en: "WorkTime then restarts with this data and skips the remaining setup." },
+    Entry { name: "OnboardingImportTitle", fr: "Importer ce fichier\u{202f}?", en: "Import this file?" },
     Entry { name: "OnboardingLanguageEnglish.Content", fr: "English", en: "English" },
     Entry { name: "OnboardingLanguageFrench.Content", fr: "Français", en: "Français" },
     Entry { name: "OnboardingLanguageInput.AutomationProperties.Name", fr: "Langue", en: "Language" },

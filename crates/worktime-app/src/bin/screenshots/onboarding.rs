@@ -1,11 +1,16 @@
 //! Each step of the onboarding, `onboarding-<step>[-<state>].png`.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use gpui::{AppContext as _, HeadlessAppContext, size};
+use jiff::civil::date;
 use worktime_app::onboarding::Onboarding;
 use worktime_app::onboarding_view::{self, OnboardingView};
+use worktime_app::settings::data::{Action, Chosen, Refusal};
 use worktime_app::strings::Language;
+use worktime_store::data_directory::DataDirectory;
+use worktime_store::transfer::Contents;
 use worktime_windows::startup::StartupRegistrationState;
 
 use super::capture;
@@ -26,6 +31,12 @@ pub fn capture_steps(
 #[derive(Clone, Copy)]
 enum OnboardingShot {
     Language,
+    /// « Importer des données… » clicked: the file dialog runs, or the file is read.
+    LanguageImportReading,
+    /// The file exported on the previous PC, read and waiting for « Importer et redémarrer ».
+    LanguageImportConfirm,
+    /// A file that is no WorkTime export.
+    LanguageImportRefused,
     Schedule,
     /// The daily target typed as « 7h », then « Suivant ».
     ScheduleInvalid,
@@ -39,8 +50,11 @@ enum OnboardingShot {
 }
 
 impl OnboardingShot {
-    const ALL: [OnboardingShot; 7] = [
+    const ALL: [OnboardingShot; 10] = [
         Self::Language,
+        Self::LanguageImportReading,
+        Self::LanguageImportConfirm,
+        Self::LanguageImportRefused,
         Self::Schedule,
         Self::ScheduleInvalid,
         Self::Connections,
@@ -52,6 +66,9 @@ impl OnboardingShot {
     fn slug(self) -> &'static str {
         match self {
             Self::Language => "language",
+            Self::LanguageImportReading => "language-import-reading",
+            Self::LanguageImportConfirm => "language-import-confirm",
+            Self::LanguageImportRefused => "language-import-refused",
             Self::Schedule => "schedule",
             Self::ScheduleInvalid => "schedule-invalid",
             Self::Connections => "connections",
@@ -65,7 +82,10 @@ impl OnboardingShot {
         view.onboarding_mut()
             .show_startup(StartupRegistrationState::Enabled);
         let steps = match self {
-            Self::Language => 0,
+            Self::Language
+            | Self::LanguageImportReading
+            | Self::LanguageImportConfirm
+            | Self::LanguageImportRefused => 0,
             Self::Schedule | Self::ScheduleInvalid => 1,
             Self::Connections
             | Self::ConnectionsDetails
@@ -74,6 +94,26 @@ impl OnboardingShot {
         };
         for _ in 0..steps {
             view.onboarding_mut().advance();
+        }
+        let importing = matches!(
+            self,
+            Self::LanguageImportReading | Self::LanguageImportConfirm | Self::LanguageImportRefused
+        );
+        if importing && let Some(page) = view.onboarding_mut().import_mut() {
+            page.start(Action::Import);
+        }
+        match self {
+            Self::LanguageImportConfirm => view.read_import(Some(Ok(Chosen {
+                file: PathBuf::from(r"D:\WorkTime-2026-10-21.worktime"),
+                contents: Contents {
+                    exported_at: "2026-10-21T16:04:00Z".parse().unwrap(),
+                    days: Some((date(2025, 9, 1), date(2026, 10, 21))),
+                },
+                exported_on: date(2026, 10, 21),
+                this_pc: None,
+            }))),
+            Self::LanguageImportRefused => view.read_import(Some(Err(Refusal::NotATransfer))),
+            _ => {}
         }
         if let Self::ScheduleInvalid = self {
             view.type_target("7h", cx);
@@ -105,8 +145,14 @@ fn capture_onboarding(
             if let OnboardingShot::ConnectionsZip = shot {
                 usage_ping.build = SettingsState::Zip.usage_ping().build;
             }
-            let onboarding =
-                Onboarding::new(SettingsState::Saved.settings(), usage_ping, Some(language));
+            let directory =
+                DataDirectory::from(PathBuf::from(r"C:\Users\Camille\AppData\Local\WorkTime"));
+            let onboarding = Onboarding::new(
+                SettingsState::Saved.settings(),
+                usage_ping,
+                Some(language),
+                Some(directory),
+            );
             cx.new(|cx| {
                 OnboardingView::new(
                     onboarding,
