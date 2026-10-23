@@ -31,13 +31,36 @@ while IFS= read -r line; do
 done < <(git log --no-merges --format='%H %s' "$range")
 
 kept=0
+lines=()
 while IFS= read -r line; do
     if [[ $line =~ /pull/([0-9]+)$ ]]; then
         [[ -n ${app[${BASH_REMATCH[1]}]:-} ]] || continue
-        kept=$((kept + 1))
-    elif [[ $line =~ ^\*\*Full\ Changelog\*\* && $kept == 0 ]]; then
-        printf 'No change to the app.\n\n'
-        kept=-1
+        [[ $line == "* @"*" made their first contribution "* ]] || kept=$((kept + 1))
     fi
-    printf '%s\n' "$line"
+    lines+=("$line")
+    if [[ $line == "## What's Changed" ]]; then
+        changes=${#lines[@]}
+    fi
+done
+if ((kept == 0)) && [[ -n ${changes:-} ]]; then
+    lines=("${lines[@]:0:changes}" "No change to the app." "${lines[@]:changes}")
+fi
+
+# A section whose lines all went, such as "New Contributors", goes too.
+skip=0
+for i in "${!lines[@]}"; do
+    if ((skip > 0)); then
+        skip=$((skip - 1))
+        continue
+    fi
+    if [[ ${lines[i]} == "## "* ]]; then
+        for ((j = i + 1; j < ${#lines[@]}; j++)); do
+            [[ ${lines[j]} == "## "* || ${lines[j]} == "**Full Changelog**"* || -n ${lines[j]} ]] && break
+        done
+        if ((j == ${#lines[@]})) || [[ ${lines[j]} == "## "* || ${lines[j]} == "**Full Changelog**"* ]]; then
+            skip=$((j - i - 1))
+            continue
+        fi
+    fi
+    printf '%s\n' "${lines[i]}"
 done
