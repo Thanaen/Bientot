@@ -150,6 +150,7 @@ h2 { font: 600 32px/40px var(--font-sans); letter-spacing: -0.01em; }
 footer { border-top: 1px solid var(--border-variant); padding-block: 28px; font-size: 13px; color: var(--text-muted); }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; }
 footer a { color: var(--text-muted); }
+footer .foot-note { flex-basis: 100%; }
 
 @media (max-width: 860px) {
   .hero, .two { grid-template-columns: minmax(0, 1fr); }
@@ -294,6 +295,6 @@ footer a { color: var(--text-muted); }
     </div>
   </section>
 
-  <footer><div class="wrap"><span>WorkTime · licence MIT</span><a href="https://github.com/Thanaen/WorkTime">GitHub</a><a href="/download">Télécharger</a></div></footer>
+  <footer><div class="wrap"><span>WorkTime · licence MIT</span><a href="https://github.com/Thanaen/WorkTime">GitHub</a><a href="/download">Télécharger</a><span class="foot-note">Audience mesurée par Vercel, <a href="https://github.com/Thanaen/WorkTime/blob/main/docs/privacy.md#the-website">sans cookie</a>.</span></div></footer>
 </body>
 </html>
