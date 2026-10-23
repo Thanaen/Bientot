@@ -135,14 +135,27 @@ its no-break space, or when a text uses a straight apostrophe.
 ## Commits and pull requests
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) with a
-  scope when it helps: `feat(updates): …`, `fix(tray): …`, `test(perf): …`,
-  `docs: …`, `ci: …`, `build(app): …`, `chore(spec-kit): …`.
+  scope that names the part of the project the change is for:
+  - `app`: the Windows app (`crates/`, `packaging/`, its dependencies);
+  - `site`: the website and the web service (`services/worktime/`);
+  - `repo`: everything else, such as CI, the release workflow and the
+    repository's documentation.
+
+  Types: `feat`, `fix`, `perf`, `refactor`, `build`, `ci`, `docs`, `style`,
+  `test`, `chore`, `revert`. For example `feat(app): …`, `fix(site): …`,
+  `ci(repo): …`. A change to several parts takes the scope of the one a user
+  notices.
+- The release notes list the `feat`, `fix`, `perf`, `build` and `revert`
+  commits scoped `app`, by type (`scripts/release-notes.sh`). Commits scoped
+  `site` or `repo` are not listed.
 - Write the subject in the imperative, lower case after the colon, without a
   final period.
 - Explain the why in the body. Name the task ID when the commit completes one
   (for example "Completes T111").
-- Pull requests are squash-merged; the merged subject ends with the pull
-  request number, as in `feat(updates): … (#119)`.
+- Pull requests are squash-merged, so the pull request title becomes the
+  commit subject on `main`, followed by the pull request number, as in
+  `feat(app): … (#119)`. The `Pull request title` check fails when the title
+  does not follow the convention above.
 - Include tests in proportion to the behavioral risk, and update the spec when
   a user-visible rule changes
   ([constitution](.specify/memory/constitution.md), "Development workflow").

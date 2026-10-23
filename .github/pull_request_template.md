@@ -1,3 +1,6 @@
+<!-- Title: <type>(<scope>): <subject>, with the scope app, site or repo, for example
+"fix(app): keep the flyout on the current screen". See CONTRIBUTING.md. -->
+
 ## What and why
 
 <!-- What this change does, and the problem it solves. -->
