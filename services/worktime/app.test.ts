@@ -217,6 +217,7 @@ describe("the statistics", () => {
     clock = new Date("2026-10-13T09:00:00Z");
     const etag = (await page()).headers.get("etag")!;
     expect((await page({ "if-none-match": etag })).status).toBe(304);
+    expect((await page({ "if-none-match": `"other", W/${etag}` })).status).toBe(304);
     clock = new Date("2026-10-14T09:00:00Z");
     expect((await page({ "if-none-match": etag })).status).toBe(200);
   });

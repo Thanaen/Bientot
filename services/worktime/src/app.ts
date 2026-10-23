@@ -30,7 +30,9 @@ export function createApp({ store, statsToken, releasesUrl, now = () => new Date
   const statsResponse = async (request: Request, name: string, type: string, body: (stats: PublicStats) => string | Promise<string>) => {
     const stats = await publicStats();
     const headers = statsHeaders(now(), `"${name}-${stats.through}"`, type);
-    if (request.headers.get("if-none-match") === headers.etag) return new Response(null, { status: 304, headers });
+    // Vercel compresses the answer and turns the ETag into a weak one (W/"…"), which browsers send back.
+    const known = (request.headers.get("if-none-match") ?? "").split(",").map((tag) => tag.trim().replace(/^W\//, ""));
+    if (known.includes(headers.etag)) return new Response(null, { status: 304, headers });
     return new Response(await body(stats), { headers });
   };
 
