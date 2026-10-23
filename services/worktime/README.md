@@ -86,11 +86,12 @@ with whoever publishes: the packages are unsigned, so whoever can write to the s
 what every installed copy runs at its next start.
 
 The project is connected to GitHub, with `main` as the production branch: a push to `main`
-deploys to production, and a push to another branch builds a preview. The project's Ignored
-Build Step, `git diff --quiet "${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}" HEAD -- .`, skips a commit
-when nothing in this folder changed since the branch's last deployment, so a push that only
-touches files outside this folder neither builds nor turns a pull request red. On a branch's
-first deployment there is no previous deployment, so it compares with the parent commit only.
+deploys to production, and a push to another branch builds a preview. The `ignoreCommand` in
+`vercel.json` skips a commit when nothing in this folder changed since the branch's last
+deployment, so a push that only touches files outside this folder neither builds nor turns a
+pull request red. On a branch's first deployment there is no previous deployment, so it
+compares with the parent commit. When that commit is gone, after a squash merge or a force
+push, it builds instead of failing.
 Builds run on Vercel and use no GitHub Actions minutes.
 
 To redeploy without a commit, run `vercel deploy --prod` from the repository root.
