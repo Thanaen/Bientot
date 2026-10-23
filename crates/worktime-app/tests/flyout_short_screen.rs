@@ -1,7 +1,8 @@
 //! A flyout taller than its work area allows: its window stops at the panel's allowed height
 //! and Tab still reaches the controls of its scrolled body, scrolled into view. A flyout that
-//! fits keeps the height of its content, and a click on its text leaves the focus with it. It
-//! needs the headless GPUI of the `screenshots` feature.
+//! fits keeps the height of its content, and the open palette grows it no further than its work
+//! area allows. A click on its text leaves the focus with it. It needs the headless GPUI of the
+//! `screenshots` feature.
 #![cfg(all(feature = "screenshots", target_os = "linux"))]
 
 use std::cell::Cell;
@@ -128,6 +129,14 @@ fn a_flyout_taller_than_its_work_area_stops_at_the_height_the_panel_is_allowed()
     );
 
     let (mut cx, window, _) = open(Some(allowed));
+    assert_eq!(window_height(&mut cx, window), allowed);
+}
+
+#[test]
+fn the_open_palette_keeps_the_flyout_within_its_work_area() {
+    let allowed = px(300.);
+    let (mut cx, window, _) = open_with(Alerts::default(), Some(allowed));
+    press(&mut cx, window, "ctrl-shift-p");
     assert_eq!(window_height(&mut cx, window), allowed);
 }
 

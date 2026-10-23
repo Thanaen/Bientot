@@ -79,10 +79,10 @@ fn healthy() -> SourceHealth {
     SourceHealth::healthy("activitywatch", computed_at())
 }
 
-fn projection(is_visible: bool) -> DepartureProjection {
+fn projection(lunch_over: bool) -> DepartureProjection {
     DepartureProjection {
         projected_departure: utc(DAY, 17, 30),
-        is_visible,
+        lunch_over,
     }
 }
 
@@ -184,11 +184,11 @@ fn summary_workday_is_the_accounting_workday() {
 }
 
 #[test]
-fn incomplete_summary_preserves_departure_projection_visibility() {
-    for is_visible in [false, true] {
+fn incomplete_summary_preserves_whether_lunch_is_over() {
+    for lunch_over in [false, true] {
         let projection = DepartureProjection {
             projected_departure: utc(DAY, 17, 30),
-            is_visible,
+            lunch_over,
         };
 
         let summary = DailySummary::new(parts(

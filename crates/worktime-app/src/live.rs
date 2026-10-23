@@ -1049,13 +1049,7 @@ impl<'a> LiveHost<'a> {
             .coordinator
             .current()
             .map_or(&unpublished, |publication| &publication.summary);
-        let mut view = DayView::present(
-            state,
-            &self.settings,
-            &self.zones.local().1,
-            self.clock.now(),
-            language,
-        );
+        let mut view = DayView::present(state, &self.settings, &self.zones.local().1, language);
         view.appointment_review = self
             .closed_reviews()
             .into_iter()

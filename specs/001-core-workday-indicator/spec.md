@@ -495,7 +495,9 @@ The ratified model is:
 4. Add any still-future portion of the configured lunch window as expected
    non-working time.
 5. Hide the numeric departure forecast until the configured lunch end, but
-   continue using the internal forecast for the tray colour.
+   continue using the internal forecast for the tray colour. Revised on
+   2026-10-23 (D-015): the forecast is shown all day, with the planned lunch
+   end until then.
 6. Compare the projected departure with:
    - green: `projection <= latest departure - warning margin`;
    - orange: above that threshold and `projection <= latest departure`;

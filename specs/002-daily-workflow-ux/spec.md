@@ -57,6 +57,9 @@ save its correction and confirm that the other period remains unresolved.
 
 ### US4. Understand the outlook before lunch, P2
 
+Superseded on 2026-10-23 (D-015): the flyout shows the exact departure before
+lunch too, and says that lunch is planned until its configured end.
+
 As a user before lunch, I can see whether the planned pause leaves comfortable
 margin, little margin, or would require a departure after my preferred time.
 

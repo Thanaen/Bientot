@@ -3,16 +3,16 @@ use jiff::{SignedDuration, Timestamp};
 use super::{InvalidForecastInput, check_work_and_target};
 use crate::intervals::UtcInterval;
 
-/// Forecast for an incomplete workday. The departure stays available to the indicator even
-/// while its value is hidden from the user.
+/// Forecast for an incomplete workday.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DepartureProjection {
     pub projected_departure: Timestamp,
-    pub is_visible: bool,
+    /// The lunch window has ended: the departure no longer reserves any of it.
+    pub lunch_over: bool,
 }
 
 /// When the remaining work ends if it accrues one for one from `now`, keeping the rest of lunch
-/// free. `None` once the target is reached. Hidden until lunch is over.
+/// free. `None` once the target is reached.
 pub fn project_departure(
     now: Timestamp,
     credited_work: SignedDuration,
@@ -31,7 +31,7 @@ pub fn project_departure(
     }
     Ok(Some(DepartureProjection {
         projected_departure,
-        is_visible: now >= lunch.end(),
+        lunch_over: now >= lunch.end(),
     }))
 }
 
@@ -63,10 +63,10 @@ mod tests {
         .unwrap()
     }
 
-    fn projection(projected_departure: Timestamp, is_visible: bool) -> Option<DepartureProjection> {
+    fn projection(projected_departure: Timestamp, lunch_over: bool) -> Option<DepartureProjection> {
         Some(DepartureProjection {
             projected_departure,
-            is_visible,
+            lunch_over,
         })
     }
 

@@ -13,8 +13,9 @@ Transparency and easy correction matter more than audit-grade immutability.
 ### D-002 — Compact tray experience
 
 Use a coloured tray icon, textual tooltip, and a left-click compact flyout. The
-departure time is shown in the flyout/tooltip after lunch because Windows does
-not reliably support permanent text beside a standard tray icon.
+departure time is shown in the flyout and the tooltip, all day since D-015 was
+revised, because Windows does not reliably support permanent text beside a
+standard tray icon.
 
 ### D-003 — Default accounting matrix
 
@@ -218,11 +219,16 @@ ActivityWatch, when selected, stays strictly read-only.
 
 ### D-015 — Forecast semantics
 
-Before and during the usual lunch window, the internal projection reserves the
+Before and during the usual lunch window, the projection reserves the
 still-future lunch time. After lunch, it uses actual credited time and assumes
-remaining elapsed minutes accrue one-for-one. The numeric projection remains
-hidden until the configured lunch end (14:00 by default), but the colour is
-available all day. An earlier unlock does not move the display point.
+remaining elapsed minutes accrue one-for-one.
+
+Revised on 2026-10-23: the departure time is shown all day. Until the
+configured lunch end (14:00 by default), the flyout adds that lunch is planned
+until then. Before this revision, the time stayed hidden until lunch end and the
+flyout gave a qualitative margin instead, which read as too complex. Active work
+inside the window is still credited, so the shown time can only move earlier
+once lunch is over.
 
 ### D-016 — Distribution and updates
 

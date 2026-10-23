@@ -1,6 +1,5 @@
 //! The flyout that opens from the notification-area icon: the day's status, the planned
-//! departure, the time worked, the Store update on offer, the notices, the privacy line and the
-//! tracking actions.
+//! departure, the time worked, the Store update on offer, the notices and the tracking actions.
 
 use std::rc::Rc;
 
@@ -17,11 +16,11 @@ use crate::palette_view::{Opened, PaletteView};
 use crate::shell;
 use crate::strings::{Key, Language};
 use crate::theme::spacing::*;
-use crate::theme::{Theme, TypeStyled as _, motion, radius, size, tabular_figures, text};
+use crate::theme::{Theme, TypeStyled as _, motion, radius, size, text};
 use crate::tray_model::ReviewCommand;
 use crate::updates::Updates;
 use crate::widgets::disabled_control;
-use crate::widgets::{Notice, NoticeKind, icon, scroll_thumb, small};
+use crate::widgets::{Notice, NoticeKind, icon, scroll_thumb};
 use crate::workday::{self, DayView, TrackingStatus};
 
 mod body;
@@ -88,6 +87,10 @@ pub struct HideTrustOffer(pub String);
 pub const BODY_PADDING: Pixels = BASE_16;
 
 const KEY_CONTEXT: &str = "Flyout";
+
+/// The least height of the flyout while the palette is open over it, so that the palette shows
+/// six commands of its list rather than three of a short card. A shorter work area wins.
+const PALETTE_ROOM: Pixels = px(360.);
 
 /// The keystrokes of the flyout's actions. The key caps and accessible names are read from
 /// them, so what the flyout shows is what it binds.
@@ -373,7 +376,6 @@ fn tone_style(tone: workday::Tone, theme: &Theme) -> ToneStyle {
         workday::Tone::NearLimit => (theme.warning, "triangle-alert"),
         workday::Tone::Late => (theme.error, "circle-x"),
         workday::Tone::Complete => (theme.accent, "circle-arrow-up"),
-        workday::Tone::Pending => (theme.text_muted, "clock"),
         workday::Tone::NonWorkingDay => (theme.text_muted, "calendar-off"),
         workday::Tone::SourceProblem => (theme.warning, "activity"),
         // A pause is the user's choice, not a fault.
@@ -494,48 +496,41 @@ impl Flyout {
         .child(control_icon(id, icon_name, theme))
     }
 
-    /// A disabled item keeps its place, dimmed, as the .NET app greys a command it cannot run.
-    fn list_item(
+    /// One of the three tracking buttons, sharing the row equally. Its short `label` is read
+    /// first, with the shortcut, and the command's full `name` describes it. A disabled button
+    /// keeps its place, dimmed, as the .NET app greys a command it cannot run.
+    fn action_button(
         &self,
         id: &'static str,
-        icon_name: &str,
         label: Key,
+        name: Key,
         keystroke: &str,
         enabled: bool,
         theme: &Theme,
     ) -> gpui::Stateful<gpui::Div> {
         let label = self.text(label);
-        let (item, cap_text) = if enabled {
-            (
-                control(id, label.into(), theme).child(control_icon(id, icon_name, theme)),
-                theme.text_muted,
-            )
+        let accessible = shortcut_name(label, keystroke, self.language);
+        // `control` already brightens the fill on hover.
+        let button = if enabled {
+            control(id, accessible, theme)
         } else {
-            (
-                disabled_control(id, label.into(), theme)
-                    .child(icon(icon_name, theme.text_placeholder)),
-                theme.text_placeholder,
-            )
+            disabled_control(id, accessible, theme)
         };
-        item.h(size::BUTTON_MEDIUM)
+        button
+            .bg(theme.element)
+            .border_color(theme.border_variant)
+            .aria_description(self.text(name))
+            .flex_1()
+            .min_w_0()
+            .h(size::BUTTON_LARGE)
             .px(BASE_08)
             .flex()
             .items_center()
-            .gap(BASE_08)
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .whitespace_nowrap()
-                    .overflow_hidden()
-                    .text_ellipsis()
-                    .child(label),
-            )
-            .child(tinted_keys(
-                key_caps(keystroke, self.language),
-                cap_text,
-                theme,
-            ))
+            .justify_center()
+            .whitespace_nowrap()
+            .overflow_hidden()
+            .text_ellipsis()
+            .child(label)
     }
 
     fn header(&self, theme: &Theme) -> impl IntoElement {
@@ -544,39 +539,28 @@ impl Flyout {
         div()
             .flex_none()
             .flex()
-            .items_start()
+            .items_center()
             .gap(BASE_08)
-            .pt(BASE_12)
-            .pr(BASE_12)
-            .pb(BASE_12)
+            .py(BASE_08)
+            .pr(BASE_08)
             .pl(BASE_16)
             .border_b_1()
             .border_color(theme.border_variant)
             .child(
                 div()
+                    .id("status")
+                    .role(Role::Status)
+                    .aria_label(shown.status.clone())
                     .flex_1()
                     .min_w_0()
                     .flex()
-                    .flex_col()
-                    .gap(BASE_02)
-                    .child(
-                        div()
-                            .id("status")
-                            .role(Role::Status)
-                            .aria_label(shown.status.clone())
-                            .flex()
-                            .items_center()
-                            .gap(BASE_06)
-                            .type_style(text::LABEL_LG)
-                            .font_weight(FontWeight::MEDIUM)
-                            .text_color(tone.color)
-                            .child(icon(tone.icon, tone.color))
-                            .child(shown.status.clone()),
-                    )
-                    .child(div().font_features(tabular_figures()).child(small(
-                        readable("date", self.day.date_line.clone()),
-                        theme.text_muted,
-                    ))),
+                    .items_center()
+                    .gap(BASE_06)
+                    .type_style(text::LABEL_LG)
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(tone.color)
+                    .child(icon(tone.icon, tone.color))
+                    .child(shown.status.clone()),
             )
             .child(
                 self.icon_button(
@@ -600,107 +584,73 @@ impl Flyout {
             )
     }
 
-    fn actions(&self, theme: &Theme) -> impl IntoElement {
-        let (pause_icon, pause_label) = match self.tracking.state() {
-            TrackingState::Running => ("pause", Key::TrayPauseCommand),
-            TrackingState::Paused | TrackingState::Finished => ("play", Key::TrayResumeCommand),
+    /// The tracking buttons, or nothing on a day off, when none of them can run.
+    fn actions(&self, theme: &Theme) -> Option<impl IntoElement> {
+        let (pause_label, pause_name) = match self.tracking.state() {
+            TrackingState::Running => (Key::FlyoutPauseButton, Key::TrayPauseCommand),
+            TrackingState::Paused | TrackingState::Finished => {
+                (Key::FlyoutResumeButton, Key::TrayResumeCommand)
+            }
         };
         let (can_toggle, can_correct, can_finish) = (
             self.tracking.can_toggle(),
             self.tracking.can_correct_time(),
             self.tracking.can_finish(),
         );
-        div()
+        if !(can_toggle || can_correct || can_finish) {
+            return None;
+        }
+        let row = div()
             .flex_none()
             .flex()
-            .flex_col()
-            .gap(BASE_02)
-            .py(BASE_04)
+            .gap(BASE_04)
+            .pt(BASE_08)
             .px(BASE_08)
+            .pb(BASE_08)
             .border_t_1()
             .border_color(theme.border_variant)
             .child(
-                self.list_item(
+                self.action_button(
                     "toggle-pause",
-                    pause_icon,
                     pause_label,
+                    pause_name,
                     keystroke::TOGGLE_PAUSE,
                     can_toggle,
                     theme,
                 )
-                .when(can_toggle, |item| {
-                    item.on_click(|_, window, cx| window.dispatch_action(Box::new(TogglePause), cx))
+                .when(can_toggle, |button| {
+                    button
+                        .on_click(|_, window, cx| window.dispatch_action(Box::new(TogglePause), cx))
                 }),
             )
             .child(
-                self.list_item(
+                self.action_button(
                     "adjust-time",
-                    "pencil",
+                    Key::FlyoutAdjustButton,
                     Key::FlyoutAdjustTime,
                     keystroke::ADJUST_TIME,
                     can_correct,
                     theme,
                 )
-                .when(can_correct, |item| {
-                    item.on_click(|_, window, cx| window.dispatch_action(Box::new(AdjustTime), cx))
+                .when(can_correct, |button| {
+                    button
+                        .on_click(|_, window, cx| window.dispatch_action(Box::new(AdjustTime), cx))
                 }),
             )
             .child(
-                self.list_item(
+                self.action_button(
                     "finish-day",
-                    "flag",
+                    Key::FlyoutFinishButton,
                     Key::TrayFinishCommand,
                     keystroke::FINISH_DAY,
                     can_finish,
                     theme,
                 )
-                .when(can_finish, |item| {
-                    item.on_click(|_, window, cx| window.dispatch_action(Box::new(FinishDay), cx))
+                .when(can_finish, |button| {
+                    button.on_click(|_, window, cx| window.dispatch_action(Box::new(FinishDay), cx))
                 }),
-            )
-    }
-
-    fn status_bar(&self, theme: &Theme) -> impl IntoElement {
-        let commands = self.text(Key::FlyoutCommands);
-        div()
-            .flex_none()
-            .h(size::STATUSBAR_HEIGHT)
-            // GPUI clips children to the panel's rectangle, not its rounded corners.
-            .rounded_b(radius::LG - px(1.))
-            .px(BASE_08)
-            .flex()
-            .items_center()
-            .gap(BASE_12)
-            .bg(theme.background)
-            .border_t_1()
-            .border_color(theme.border_variant)
-            .type_style(text::LABEL_SM)
-            .text_color(theme.text_muted)
-            .whitespace_nowrap()
-            .children(
-                self.day
-                    .status_bar_tracking(self.tracking)
-                    .map(|tracking| tracking_status(tracking, self.language, theme)),
-            )
-            .child(
-                div()
-                    .id("commands")
-                    .role(Role::Group)
-                    .aria_label(shortcut_name(
-                        commands,
-                        keystroke::OPEN_COMMANDS,
-                        self.language,
-                    ))
-                    .ml_auto()
-                    .flex()
-                    .items_center()
-                    .gap(BASE_06)
-                    .child(keys(
-                        key_caps(keystroke::OPEN_COMMANDS, self.language),
-                        theme,
-                    ))
-                    .child(commands),
-            )
+            );
+        Some(row)
     }
 }
 
@@ -743,6 +693,9 @@ impl Render for Flyout {
             .border_color(theme.border)
             .rounded(radius::LG)
             .overflow_hidden()
+            .when(self.palette.is_some(), |content| {
+                content.min_h(max_height.map_or(PALETTE_ROOM, |height| PALETTE_ROOM.min(height)))
+            })
             .when_some(max_height, |content, height| content.max_h(height))
             .child(self.header(&theme))
             .child(
@@ -765,8 +718,7 @@ impl Render for Flyout {
                     )
                     .child(scroll_thumb(self.body_scroll.clone(), &theme)),
             )
-            .child(self.actions(&theme))
-            .child(self.status_bar(&theme))
+            .children(self.actions(&theme))
             .children(
                 self.palette
                     .as_ref()

@@ -69,13 +69,12 @@ p { margin: 0; text-wrap: pretty; }
 .tray { width: 20px; height: 20px; display: block; flex: none; }
 
 .flyout { width: 360px; max-width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-modal); font-size: 14px; line-height: 20px; overflow: hidden; text-align: left; }
-.fl-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border-variant); }
+.fl-head { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--border-variant); }
 .fl-head .st { font: 400 16px/24px var(--font-sans); color: var(--success); display: flex; align-items: center; gap: 6px; }
 .fl-head .st svg { width: 16px; height: 16px; }
-.fl-head .date { margin-left: auto; font-size: 12px; color: var(--text-muted); }
 .fl-body { padding: 16px; display: grid; gap: 16px; }
 .fl-label { font-size: 12px; line-height: 16px; color: var(--text-muted); }
-.fl-hero { font: 600 32px/40px var(--font-sans); font-variant-numeric: tabular-nums; }
+.fl-hero { font: 600 40px/48px var(--font-sans); font-variant-numeric: tabular-nums; margin-bottom: 2px; }
 .fl-hint { font-size: 12px; line-height: 16px; color: var(--text-muted); }
 .fl-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 8px; }
 .fl-val { white-space: nowrap; }
@@ -83,12 +82,9 @@ p { margin: 0; text-wrap: pretty; }
 .fl-val small { font-size: 14px; color: var(--text-muted); font-weight: 400; }
 .fl-bar { height: 4px; border-radius: 2px; background: var(--element-active); overflow: hidden; margin-top: 6px; }
 .fl-bar i { display: block; height: 100%; width: 81%; background: var(--accent); }
-.fl-actions { border-top: 1px solid var(--border-variant); padding: 4px; display: grid; }
-.fl-actions div { display: flex; align-items: center; height: 28px; padding: 0 8px; border-radius: 4px; color: var(--text); }
-.fl-actions div:first-child { background: var(--element-hover); }
-.kbd { margin-left: auto; display: inline-flex; gap: 2px; }
-.kbd kbd { font: 400 11px/16px var(--font-sans); color: var(--text-muted); border: 1px solid var(--border); border-radius: 2px; padding: 0 4px; background: var(--editor); }
-.fl-foot { padding: 6px 16px; border-top: 1px solid var(--border-variant); background: var(--background); font-size: 12px; line-height: 16px; color: var(--text-muted); }
+.fl-actions { border-top: 1px solid var(--border-variant); padding: 8px; display: flex; gap: 4px; }
+.fl-actions div { flex: 1; min-width: 0; display: block; text-align: center; height: 32px; line-height: 30px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--border-variant); background: var(--element); font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 400px) { .fl-actions div { font-size: 12px; } }
 
 .tl { display: grid; gap: 6px; }
 .tl-row { display: grid; grid-template-columns: 56px 1fr 84px; align-items: center; gap: 12px; }
@@ -220,27 +216,25 @@ footer .foot-note { flex-basis: 100%; }
   <div class="flyout" role="img" aria-label="Le panneau de WorkTime ouvert depuis la barre des tâches : dans les temps, départ prévu à 16:54.">
     <div class="fl-head">
       <span class="st"><svg><use href="#i-check"/></svg>Dans les temps</span>
-      <span class="date tnum">Jeu. 8 oct. · 15:30</span>
     </div>
     <div class="fl-body">
       <div>
         <div class="fl-label">Départ prévu</div>
         <div class="fl-hero">16:54</div>
-        <div class="fl-hint">Marge de <span class="nb">1 h 36 min</span> avant votre heure limite (18:30).</div>
+        <div class="fl-hint">Marge de <span class="nb">1 h 36 min</span> avant votre heure limite (18:30)</div>
       </div>
       <div>
         <div class="fl-row"><span class="fl-label">Temps travaillé</span><span class="fl-val">6 h 00 min</span></div>
         <div class="fl-bar"><i></i></div>
         <div class="fl-hint" style="margin-top:6px">Objectif&nbsp;: <span class="nb">7 h 24 min</span></div>
       </div>
-      <div class="fl-row"><span class="fl-label">Crédit encore disponible</span><span class="fl-val" style="font-size:16px;line-height:24px">35 min</span></div>
+      <div class="fl-row"><span class="fl-label">Crédit de la semaine</span><span class="fl-hint">35 min</span></div>
     </div>
     <div class="fl-actions">
-      <div>Mettre le suivi en pause<span class="kbd"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>P</kbd></span></div>
-      <div>Corriger le temps…<span class="kbd"><kbd>Ctrl</kbd><kbd>E</kbd></span></div>
-      <div>Terminer la journée<span class="kbd"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>F</kbd></span></div>
+      <div>Mettre en pause</div>
+      <div>Corriger…</div>
+      <div>Fin de journée</div>
     </div>
-    <div class="fl-foot">Votre temps de travail reste sur ce PC.</div>
   </div>
       <div class="taskbar" aria-hidden="true">
         <svg class="tb-ic" viewBox="0 0 16 16"><path fill="none" stroke="currentColor" stroke-width="1.3" d="M2 6h2.5L8 3v10L4.5 10H2zM11 5.5a3.5 3.5 0 0 1 0 5"/></svg>

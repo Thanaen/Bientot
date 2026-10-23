@@ -129,7 +129,7 @@ fn build_summary(
         effective_target: TARGET,
         departure_projection: (!complete).then_some(DepartureProjection {
             projected_departure: at(18, 20, 0),
-            is_visible: true,
+            lunch_over: true,
         }),
         indicator_state: if complete {
             IndicatorState::Blue

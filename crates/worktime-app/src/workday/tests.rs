@@ -29,7 +29,6 @@ fn summary_of(view: &DayView) -> Vec<String> {
     let worked = view.worked.as_ref();
     [
         Some(format!("{:?} {}", view.tone, view.status)),
-        Some(view.date_line.to_string()),
         Some(format!(
             "{} {} {}",
             headline.label.as_deref().unwrap_or("-"),
@@ -41,6 +40,7 @@ fn summary_of(view: &DayView) -> Vec<String> {
             }
         )),
         headline.hint.as_ref().map(|hint| hint.to_string()),
+        headline.lunch.as_ref().map(|lunch| lunch.to_string()),
         headline
             .qualifier
             .as_ref()
@@ -73,9 +73,8 @@ fn on_track_shows_the_departure_and_the_margin_left() {
         summary_of(&day(DemoScenario::OnTrack, Language::French)),
         [
             "OnTrack Dans les temps",
-            "Lun._31_août · 16:00",
             "Départ prévu 17:00 (large)",
-            "Marge de 1_h_30_min avant votre heure limite (18:30).",
+            "Marge de 1_h_30_min avant votre heure limite (18:30)",
             "Temps travaillé 6_h_00_min / 7_h_00_min at 0.86",
             "tray: Dans les temps · 6_h_00_min/7_h_00_min · Départ 17:00",
         ]
@@ -84,10 +83,9 @@ fn on_track_shows_the_departure_and_the_margin_left() {
         summary_of(&day(DemoScenario::OnTrack, Language::English)),
         [
             "OnTrack On track",
-            "Mon, Aug_31 · 4:00_PM",
             "Projected departure 5:00_PM (large)",
-            "1h_30m to spare before your latest departure (6:30_PM).",
-            "Worked 6h_00m / 7h_00m at 0.86",
+            "1h_30m to spare before your latest departure (6:30_PM)",
+            "Time worked 6h_00m / 7h_00m at 0.86",
             "tray: On track · 6h_00m/7h_00m · Departure 5:00_PM",
         ]
     );
@@ -99,9 +97,8 @@ fn late_shows_how_far_the_departure_overruns() {
         summary_of(&day(DemoScenario::Late, Language::French)),
         [
             "Late En retard",
-            "Lun._31_août · 16:00",
             "Départ prévu 19:00 (large)",
-            "Dépassement de 30_min sur votre heure limite (18:30).",
+            "Dépassement de 30_min sur votre heure limite (18:30)",
             "Temps travaillé 4_h_00_min / 7_h_00_min at 0.57",
             "tray: Départ après la limite · 4_h_00_min/7_h_00_min · Départ 19:00",
         ]
@@ -114,9 +111,8 @@ fn a_complete_day_shows_the_overtime() {
         summary_of(&day(DemoScenario::Complete, Language::French)),
         [
             "Complete Objectif atteint",
-            "Lun._31_août · 18:00",
             "Heures supplémentaires 1_h_00_min (large)",
-            "Ce temps s’ajoute à votre crédit de la semaine.",
+            "Ce temps s’ajoute à votre crédit de la semaine",
             "Temps travaillé 8_h_00_min / 7_h_00_min at 1.00",
             "tray: Objectif atteint · 8_h_00_min/7_h_00_min · Heures sup. 1_h_00_min",
         ]
@@ -124,16 +120,16 @@ fn a_complete_day_shows_the_overtime() {
 }
 
 #[test]
-fn before_lunch_ends_the_departure_waits() {
+fn before_lunch_ends_the_departure_leaves_lunch_free() {
     assert_eq!(
         summary_of(&day(DemoScenario::Morning, Language::English)),
         [
-            "Pending Day in progress",
-            "Mon, Aug_31 · 11:00_AM",
-            "Projected departure Available after lunch (message)",
-            "Comfortable margin with planned lunch, if you keep working outside the pause",
-            "Worked 2h_00m / 7h_00m at 0.29",
-            "tray: Day in progress · 2h_00m/7h_00m · Planned lunch: comfortable margin",
+            "OnTrack On track",
+            "Projected departure 6:00_PM (large)",
+            "30m to spare before your latest departure (6:30_PM)",
+            "Lunch break planned until 2:00_PM",
+            "Time worked 2h_00m / 7h_00m at 0.29",
+            "tray: On track · 2h_00m/7h_00m · Departure 6:00_PM",
         ]
     );
 }
@@ -143,15 +139,15 @@ fn an_unavailable_demo_source_reads_as_the_built_in_one() {
     let lines = summary_of(&day(DemoScenario::Unavailable, Language::French));
     assert_eq!(lines[0], "SourceProblem Suivi à vérifier");
     assert_eq!(
-        lines[2..4],
+        lines[1..3],
         [
             "Départ prévu Prévision indisponible (message)",
-            "Recalculée dès que le suivi reprend.",
+            "Recalculée dès que le suivi reprend",
         ]
     );
-    assert!(lines[4].starts_with("Temps connu "), "{lines:?}");
+    assert!(lines[3].starts_with("Temps connu "), "{lines:?}");
     assert_eq!(
-        lines[5..],
+        lines[4..],
         [
             "OpenSettings: WorkTime ne parvient pas à lire votre dernière utilisation du clavier ou \
              de la souris. Ce temps reste non renseigné. La lecture reprend d’elle-même.",
@@ -166,12 +162,10 @@ fn an_estimated_forecast_says_what_it_is_based_on() {
         summary_of(&day(DemoScenario::ProblemPeriods, Language::French)),
         [
             "OnTrack Dans les temps",
-            "Lun._31_août · 16:00",
             "Départ prévu 17:55 (large)",
-            "Marge de 34_min avant votre heure limite (18:30).",
+            "Marge de 34_min avant votre heure limite (18:30)",
             "Selon le travail enregistré",
             "Temps travaillé 5_h_04_min / 7_h_00_min at 0.73",
-            "Crédit encore disponible 0_min",
             "Unrecorded: Temps non renseigné · 26_min en 2_créneaux, entre 09:40 et 14:20. \
              Travailliez-vous\u{202f}? Indiquez les horaires.",
             "tray: Dans les temps · 5_h_04_min/7_h_00_min · Départ 17:55 · Selon le travail enregistré",
@@ -285,11 +279,9 @@ fn the_credit_day_spends_monday_s_hour_on_its_target() {
         summary_of(&day(DemoScenario::Credit, Language::French)),
         [
             "Late En retard",
-            "Mar._1_sept. · 16:00",
             "Départ prévu 21:48 (large)",
-            "Dépassement de 3_h_18_min sur votre heure limite (18:30).",
+            "Dépassement de 3_h_18_min sur votre heure limite (18:30)",
             "Temps travaillé 12_min / 6_h_00_min at 0.03",
-            "Crédit encore disponible 0_min",
             "tray: Départ après la limite · 12_min/6_h_00_min · Départ 21:48",
         ]
     );
@@ -304,10 +296,8 @@ fn the_stored_friday_has_overtime_but_no_credit_left() {
         summary_of(&day(DemoScenario::HistoryWeek, Language::French)),
         [
             "Complete Objectif atteint",
-            "Ven._4_sept. · 18:00",
             "Heures supplémentaires 2_h_00_min (large)",
             "Temps travaillé 9_h_00_min / 7_h_00_min at 1.00",
-            "Crédit encore disponible 0_min",
             "tray: Objectif atteint · 9_h_00_min/7_h_00_min · Heures sup. 2_h_00_min",
         ]
     );
@@ -354,11 +344,6 @@ fn source_in_trouble(source_id: &str, freshness: SourceFreshness) -> DayView {
         &state,
         &WorkTimeSettings::default(),
         &TimeZone::UTC,
-        date(2026, 10, 8)
-            .at(15, 30, 0, 0)
-            .in_tz("UTC")
-            .unwrap()
-            .timestamp(),
         Language::French,
     )
 }
@@ -371,9 +356,8 @@ fn a_failed_built_in_source_names_its_cause_in_the_tray() {
         summary_of(&view),
         [
             "SourceProblem Suivi à vérifier",
-            "Jeu._8_oct. · 15:30",
             "Départ prévu Prévision indisponible (message)",
-            "Recalculée dès que le suivi reprend.",
+            "Recalculée dès que le suivi reprend",
             "OpenSettings: WorkTime ne parvient pas à lire votre dernière utilisation du clavier ou \
              de la souris. Ce temps reste non renseigné. La lecture reprend d’elle-même.",
             "tray: Lecture des saisies impossible · Ouvrez WorkTime",
@@ -436,8 +420,8 @@ fn the_tray_icon_keeps_the_day_s_colour_and_badges_a_source_in_trouble() {
             (DemoScenario::Unavailable, "indicator-red-degraded"),
             (DemoScenario::Credit, "indicator-red"),
             (DemoScenario::HistoryWeek, "indicator-blue"),
-            (DemoScenario::MorningWarning, "indicator-green"),
-            (DemoScenario::MorningLate, "indicator-green"),
+            (DemoScenario::MorningWarning, "indicator-orange"),
+            (DemoScenario::MorningLate, "indicator-red"),
             (DemoScenario::ProblemPeriods, "indicator-green-degraded"),
             (DemoScenario::FragmentedDay, "indicator-green-degraded"),
             (
@@ -634,39 +618,9 @@ fn a_running_day_keeps_its_forecast() {
             "OnTrack On track",
             "Projected departure",
             "5:00_PM",
-            "1h_30m to spare before your latest departure (6:30_PM).",
+            "1h_30m to spare before your latest departure (6:30_PM)",
         ]
     );
-}
-
-/// The status bar says the tracking state unless the header already says it in place of the
-/// forecast: never twice. A day off leaves it empty too, as the commands are greyed.
-#[test]
-fn the_status_bar_says_the_tracking_state_the_header_does_not() {
-    use TrackingState::{Finished, Paused, Running};
-    let says = |tracking| Some(TrackingStatus::Tracking(tracking));
-    let working = |tracking| Tracking::new(tracking, true);
-    let on_track = day(DemoScenario::OnTrack, Language::English);
-    let in_trouble = day(DemoScenario::Unavailable, Language::English);
-    let without_summary = unavailable_source(BuiltInActivitySource::SOURCE_ID);
-    for (view, tracking, status_bar) in [
-        (&on_track, working(Running), says(Running)),
-        (&on_track, working(Paused), None),
-        (&on_track, working(Finished), None),
-        (&in_trouble, working(Running), says(Running)),
-        (&in_trouble, working(Paused), says(Paused)),
-        (&in_trouble, working(Finished), says(Finished)),
-        (&without_summary, working(Paused), says(Paused)),
-        (&without_summary, working(Finished), says(Finished)),
-        (&without_summary, Tracking::new(Running, false), None),
-    ] {
-        assert_eq!(
-            view.status_bar_tracking(tracking),
-            status_bar,
-            "{}, {tracking:?}",
-            view.status
-        );
-    }
 }
 
 /// Without a summary there is no forecast to hide: the source problem stays in front.
@@ -683,7 +637,7 @@ fn a_paused_or_finished_day_without_a_summary_keeps_the_source_problem() {
                     "SourceProblem Suivi à vérifier",
                     "Départ prévu",
                     "Prévision indisponible",
-                    "Recalculée dès que le suivi reprend.",
+                    "Recalculée dès que le suivi reprend",
                 ],
                 "{tracking:?}"
             );

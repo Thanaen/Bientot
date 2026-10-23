@@ -354,7 +354,6 @@ fn a_failing_source_is_read_again_by_a_catch_up_only_on_a_new_day() {
 
     clock.set("2026-10-10T00:02:00Z".parse().unwrap());
     assert!(today.catch_up());
-    assert!(today.view().date_line.starts_with("Sat, Oct"));
     assert_eq!(today.view().status, "Check activity tracking");
     clock.advance(SignedDuration::from_mins(1));
     assert!(!today.catch_up());

@@ -54,7 +54,7 @@ proptest! {
             let earliest = minute(now) + minutes(target - credited);
             prop_assert!(projection.projected_departure >= earliest);
             prop_assert!(projection.projected_departure <= earliest + lunch.duration());
-            prop_assert_eq!(projection.is_visible, minute(now) >= lunch.end());
+            prop_assert_eq!(projection.lunch_over, minute(now) >= lunch.end());
             prop_assert!(!lunch.contains(projection.projected_departure) || projection.projected_departure == lunch.start());
         }
     }
