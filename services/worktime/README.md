@@ -20,11 +20,11 @@ their updates.
 `site/index.html` is a static page in French, in the app's WorkTime One theme. It sets no
 cookie: the fonts are Latin subsets of the app's IBM Plex fonts, made with `pyftsubset`. Its
 only scripts measure the audience and the loading speed with PostHog (see `docs/privacy.md`):
-PostHog's library from `https://e.worktime.thanaen.dev`, then `site/analytics.js`, which starts
+PostHog's library from `https://eu-assets.i.posthog.com`, then `site/analytics.js`, which starts
 it in cookieless mode with Web Vitals and nothing else (no autocapture, no session recording, no
-surveys, no feature flags). `e.worktime.thanaen.dev` is PostHog's managed reverse proxy for the
-WorkTime project (a CNAME on Cloudflare, DNS only), so ad blockers that block PostHog's own
-domains still let the page load.
+surveys, no feature flags), sending to `https://eu.i.posthog.com`. A managed reverse proxy,
+`e.worktime.thanaen.dev` (a CNAME on Cloudflare, DNS only), is set up but PostHog has not issued
+its certificate yet; once it serves, both addresses can move to it.
 
 `src/site.ts` lists the pages and the files they use. Each page has `<!-- head -->` in its
 `<head>`; the service fills it with the title, description, canonical URL, link-preview tags
