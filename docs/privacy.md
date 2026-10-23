@@ -87,6 +87,19 @@ WorkTime makes two kinds of request.
    reach 10), and the figures per version and channel rounded to the nearest 5,
    so that no figure points at a few installations.
 
+## The website
+
+The app never loads the website. The pages of `https://worktime.thanaen.dev`
+measure their audience and speed with Vercel Web Analytics and Speed
+Insights. Both scripts are served from the site's own address and set no
+cookie. Vercel counts a visit with a hash of the request that it discards
+after 24 hours. For each page view, it keeps the time, the page address, the
+referring site, the country and region, the operating system, the browser and
+the device type. Speed Insights also keeps loading-speed measurements (Core
+Web Vitals) for the page. Vercel's
+[privacy page](https://vercel.com/docs/analytics/privacy-policy) gives the
+details. A content blocker that stops `/_vercel/` scripts stops both.
+
 ## Diagnostic export
 
 **Export diagnostics…** in the tray menu saves a ZIP where you choose.

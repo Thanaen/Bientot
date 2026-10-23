@@ -1,8 +1,8 @@
 // The /statistiques page: site/statistiques.html with its figures, drawn on the server as HTML and
 // CSS bars, so that the page needs no script, like the homepage.
+import { STATISTICS, head } from "./site";
 import type { Breakdown, PublicMonth, PublicStats } from "./stats";
 
-const TEMPLATE = new URL("../site/statistiques.html", import.meta.url);
 
 const CHANNELS: Record<string, { label: string; swatch: string }> = {
   direct: { label: "Programme d’installation du site", swatch: 'class="ch-direct"' },
@@ -196,5 +196,5 @@ export function renderContent(stats: PublicStats): string {
 }
 
 export async function renderPage(stats: PublicStats): Promise<string> {
-  return (await Bun.file(TEMPLATE).text()).replace("<!--content-->", renderContent(stats));
+  return (await Bun.file(STATISTICS.file).text()).replace("<!-- head -->", head(STATISTICS)).replace("<!--content-->", renderContent(stats));
 }

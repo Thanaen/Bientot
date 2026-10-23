@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "bunVersion": "1.4.x"
+  "bunVersion": "1.4.x",
+  "ignoreCommand": "R=\"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\"; git cat-file -e \"$R^{commit}\" 2>/dev/null || exit 1; git diff --quiet \"$R\" HEAD -- ."
 }

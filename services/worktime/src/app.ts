@@ -1,6 +1,6 @@
 import { MAX_BODY_BYTES, parsePing, utcDay } from "./ping";
 import { SETUP, redirect, releaseUrl } from "./releases";
-import { font, homepage } from "./site";
+import { siteRoutes } from "./site";
 import { DATASETS, type Dataset, type PublicStats, firstDay, lastFinishedDay, publish, toCsv } from "./stats";
 import { renderPage } from "./stats-page";
 import type { UsageStore } from "./store";
@@ -37,14 +37,7 @@ export function createApp({ store, statsToken, releasesUrl, now = () => new Date
   };
 
   return {
-    "/": {
-      GET: homepage,
-    },
-    "/fonts/:file": {
-      GET(request: Request & { params: { file: string } }): Response {
-        return font(request.params.file);
-      },
-    },
+    ...siteRoutes(),
     "/v1/ping": {
       async POST(request: Request): Promise<Response> {
         const text = await request.text();
