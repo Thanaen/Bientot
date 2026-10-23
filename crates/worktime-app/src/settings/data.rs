@@ -1,6 +1,7 @@
 //! The « Données » page: exports the folder's history and settings to one file, or imports a
-//! file exported on another PC, which replaces them once WorkTime restarts, and shows the copy
-//! the last import saved. Nothing here knows GPUI; [`crate::transfer`] does the work.
+//! file exported on another PC, which replaces them once WorkTime restarts, and restores the
+//! copy the last import saved the same way. Nothing here knows GPUI; [`crate::transfer`] does
+//! the work.
 
 use std::path::{Path, PathBuf};
 
@@ -15,6 +16,8 @@ use crate::strings::{Key, Language};
 pub enum Action {
     Export,
     Import,
+    /// Imports the copy the last import saved.
+    Restore,
 }
 
 /// A row of the page.
@@ -24,14 +27,6 @@ pub enum Row {
     Import,
     /// The copy of the data the last import replaced.
     Backup,
-}
-
-/// What a row's button does.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Button {
-    Run(Action),
-    /// Shows the row's file in File Explorer.
-    Reveal,
 }
 
 /// How an export ended, once the save dialog chose where.
@@ -47,12 +42,13 @@ enum Step {
     Idle,
     /// The save dialog or the export runs.
     Exporting,
-    /// The open dialog runs, or the chosen file is read.
-    Reading,
+    /// The open dialog runs, or the chosen file is read: by [`Action::Import`] or
+    /// [`Action::Restore`], as are the next two steps.
+    Reading(Action),
     /// The dialog asks to replace this PC's data with the file's.
-    Confirming(Box<Chosen>),
+    Confirming(Action, Box<Chosen>),
     /// The file is staged and WorkTime restarts.
-    Importing,
+    Importing(Action),
 }
 
 /// A file read for an import, and the data it would replace.
@@ -70,8 +66,8 @@ pub struct Chosen {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Ending {
     Exported(Exported),
-    Refused(Refusal),
-    ImportFailed,
+    Refused(Action, Refusal),
+    ImportFailed(Action),
 }
 
 /// Why the chosen file cannot be imported.
@@ -124,7 +120,7 @@ pub struct DataView {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ActionRow {
     pub row: Row,
-    pub button: Button,
+    pub action: Action,
     pub title: &'static str,
     pub description: String,
     pub tone: RowTone,
@@ -133,7 +129,7 @@ pub struct ActionRow {
     /// How the row's last action went.
     pub status: Option<String>,
     pub error: Option<&'static str>,
-    /// The link under the status that shows the exported file in File Explorer.
+    /// The link under the status that shows the row's file in File Explorer.
     pub reveal: Option<&'static str>,
 }
 
@@ -179,15 +175,20 @@ impl DataPage {
         self.available() && self.step == Step::Idle
     }
 
-    /// Starts exporting or importing: the data folder it works on, `None` when it may not start
-    /// now.
+    /// The copy « Restaurer… » imports, when the last import saved one.
+    pub fn backup(&self) -> Option<&Backup> {
+        self.backup.as_ref()
+    }
+
+    /// Starts exporting, importing or restoring: the data folder it works on, `None` when it may
+    /// not start now.
     pub fn start(&mut self, action: Action) -> Option<DataDirectory> {
-        if !self.ready() {
+        if !self.ready() || (action == Action::Restore && self.backup.is_none()) {
             return None;
         }
         self.step = match action {
             Action::Export => Step::Exporting,
-            Action::Import => Step::Reading,
+            Action::Import | Action::Restore => Step::Reading(action),
         };
         self.ending = None;
         self.directory.clone()
@@ -205,20 +206,20 @@ impl DataPage {
     /// The chosen file was read: the dialog asks to import it. `None` once the open dialog was
     /// cancelled.
     pub fn read(&mut self, read: Option<Result<Chosen, Refusal>>) {
-        if self.step != Step::Reading {
+        let Step::Reading(action) = self.step else {
             return;
-        }
+        };
         self.step = Step::Idle;
         match read {
             None => {}
-            Some(Ok(chosen)) => self.step = Step::Confirming(Box::new(chosen)),
-            Some(Err(refusal)) => self.ending = Some(Ending::Refused(refusal)),
+            Some(Ok(chosen)) => self.step = Step::Confirming(action, Box::new(chosen)),
+            Some(Err(refusal)) => self.ending = Some(Ending::Refused(action, refusal)),
         }
     }
 
     /// « Annuler », or Escape: nothing changes.
     pub fn cancel(&mut self) {
-        if matches!(self.step, Step::Confirming(_)) {
+        if matches!(self.step, Step::Confirming(..)) {
             self.step = Step::Idle;
         }
     }
@@ -226,11 +227,13 @@ impl DataPage {
     /// « Remplacer et redémarrer »: the file to stage before the restart, and the data folder
     /// it replaces.
     pub fn confirm(&mut self) -> Option<(PathBuf, DataDirectory)> {
-        if !matches!(self.step, Step::Confirming(_)) {
+        let Step::Confirming(action, _) = self.step else {
             return None;
-        }
+        };
         let directory = self.directory.clone()?;
-        let Step::Confirming(chosen) = std::mem::replace(&mut self.step, Step::Importing) else {
+        let Step::Confirming(_, chosen) =
+            std::mem::replace(&mut self.step, Step::Importing(action))
+        else {
             unreachable!();
         };
         Some((chosen.file, directory))
@@ -238,9 +241,9 @@ impl DataPage {
 
     /// Staging the file, or the restart, failed: this PC's data has not changed.
     pub fn import_failed(&mut self) {
-        if self.step == Step::Importing {
+        if let Step::Importing(action) = self.step {
             self.step = Step::Idle;
-            self.ending = Some(Ending::ImportFailed);
+            self.ending = Some(Ending::ImportFailed(action));
         }
     }
 
@@ -254,18 +257,27 @@ impl DataPage {
     }
 
     pub fn dialog(&self) -> Option<ImportDialog> {
-        let Step::Confirming(chosen) = &self.step else {
+        let Step::Confirming(action, chosen) = &self.step else {
             return None;
         };
         let language = self.language;
-        let mut paragraphs = vec![match chosen.contents.days {
-            Some((first, last)) => language.format_dates(
+        // A copy was saved, not exported.
+        let (period, empty) = if *action == Action::Restore {
+            (
+                Key::SettingsRestoreDialogPeriodFormat,
+                Key::SettingsRestoreDialogEmptyFormat,
+            )
+        } else {
+            (
                 Key::SettingsImportDialogPeriodFormat,
-                &[chosen.exported_on, first, last],
-            ),
-            None => {
-                language.format_dates(Key::SettingsImportDialogEmptyFormat, &[chosen.exported_on])
+                Key::SettingsImportDialogEmptyFormat,
+            )
+        };
+        let mut paragraphs = vec![match chosen.contents.days {
+            Some((first, last)) => {
+                language.format_dates(period, &[chosen.exported_on, first, last])
             }
+            None => language.format_dates(empty, &[chosen.exported_on]),
         }];
         if let Some((first, last)) = chosen.this_pc {
             paragraphs
@@ -298,21 +310,31 @@ impl DataPage {
         let (status, busy) = match self.step {
             _ if !self.available() => (Some(Key::SettingsTransferDemo), false),
             Step::Exporting => (Some(Key::SettingsExporting), true),
-            Step::Reading => (Some(Key::SettingsImportReading), true),
-            Step::Importing => (Some(Key::SettingsImportRestarting), true),
-            Step::Idle | Step::Confirming(_) => (None, false),
+            Step::Reading(Action::Restore) => (Some(Key::SettingsRestoreReading), true),
+            Step::Reading(_) => (Some(Key::SettingsImportReading), true),
+            Step::Importing(_) => (Some(Key::SettingsImportRestarting), true),
+            Step::Idle | Step::Confirming(..) => (None, false),
         };
         let error = |row: Row| {
             let key = match (&self.ending, row) {
                 (Some(Ending::Exported(Exported::Failed)), Row::Export) => {
                     Key::SettingsExportFailed
                 }
-                (Some(Ending::Refused(refusal)), Row::Import) => match refusal {
+                (Some(Ending::Refused(Action::Import, refusal)), Row::Import) => match refusal {
                     Refusal::NotATransfer => Key::SettingsImportNotATransfer,
                     Refusal::NewerVersion => Key::SettingsImportNewer,
                     Refusal::Unreadable => Key::SettingsImportReadFailed,
                 },
-                (Some(Ending::ImportFailed), Row::Import) => Key::SettingsImportFailed,
+                (Some(Ending::Refused(Action::Restore, refusal)), Row::Backup) => match refusal {
+                    Refusal::NewerVersion => Key::SettingsImportNewer,
+                    Refusal::NotATransfer | Refusal::Unreadable => Key::SettingsRestoreReadFailed,
+                },
+                (Some(Ending::ImportFailed(Action::Import)), Row::Import) => {
+                    Key::SettingsImportFailed
+                }
+                (Some(Ending::ImportFailed(Action::Restore)), Row::Backup) => {
+                    Key::SettingsRestoreFailed
+                }
                 _ => return None,
             };
             Some(language.text(key))
@@ -327,7 +349,7 @@ impl DataPage {
         let mut rows = vec![
             ActionRow {
                 row: Row::Export,
-                button: Button::Run(Action::Export),
+                action: Action::Export,
                 title: language.text(Key::SettingsExportTitle),
                 description: language.text(Key::SettingsExportDescription).to_owned(),
                 tone,
@@ -342,7 +364,7 @@ impl DataPage {
             },
             ActionRow {
                 row: Row::Import,
-                button: Button::Run(Action::Import),
+                action: Action::Import,
                 title: language.text(Key::SettingsImportTitle),
                 description: language.text(Key::SettingsImportDescription).to_owned(),
                 tone,
@@ -356,16 +378,16 @@ impl DataPage {
         if let Some(backup) = &self.backup {
             rows.push(ActionRow {
                 row: Row::Backup,
-                button: Button::Reveal,
+                action: Action::Restore,
                 title: language.text(Key::SettingsBackupTitle),
                 description: language
                     .format_dates(Key::SettingsBackupDescriptionFormat, &[backup.saved_on]),
                 tone,
-                label: show,
-                enabled: self.available(),
+                label: language.text(Key::SettingsRestoreAction),
+                enabled: self.ready(),
                 status: None,
-                error: None,
-                reveal: None,
+                error: error(Row::Backup),
+                reveal: self.available().then_some(show),
             });
         }
         DataView {

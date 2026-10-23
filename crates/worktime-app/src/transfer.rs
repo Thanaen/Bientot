@@ -62,9 +62,8 @@ pub fn export(
     .detach();
 }
 
-/// Asks which file to import, then reads it and the days the ledger of `directory` holds off
-/// the main thread, and hands `done` what the import would replace, or `None` when the dialog
-/// was cancelled.
+/// Asks which file to import, then hands `done` what [`read_import`] reads of it, or `None` when
+/// the dialog was cancelled.
 pub fn choose_import(
     directory: DataDirectory,
     done: impl FnOnce(Option<Result<Chosen, Refusal>>, &mut App) + 'static,
@@ -74,31 +73,7 @@ pub fn choose_import(
     cx.spawn(async move |cx| {
         let read = match file_dialogs::pick_open(file_type, EXTENSION, cx).await {
             Ok(None) => None,
-            Ok(Some(file)) => {
-                let inspected = cx
-                    .background_executor()
-                    .spawn(async move {
-                        let contents = transfer::inspect(&file)?;
-                        // This PC's days only add a line to the dialog.
-                        let this_pc = transfer::ledger_days(&directory).unwrap_or_else(|error| {
-                            log::warn!("cannot read the days of the ledger: {error}");
-                            None
-                        });
-                        Ok(Chosen {
-                            exported_on: contents.exported_at.to_zoned(TimeZone::system()).date(),
-                            file,
-                            contents,
-                            this_pc,
-                        })
-                    })
-                    .await;
-                Some(inspected.map_err(|error: TransferError| {
-                    if matches!(error, TransferError::Io(_) | TransferError::Sqlite(_)) {
-                        failed(&error, cx);
-                    }
-                    Refusal::from(&error)
-                }))
-            }
+            Ok(Some(file)) => Some(inspect(directory, file, cx).await),
             Err(error) => {
                 failed(&error, cx);
                 Some(Err(Refusal::Unreadable))
@@ -107,6 +82,51 @@ pub fn choose_import(
         cx.update(|cx| done(read, cx));
     })
     .detach();
+}
+
+/// Reads `file`, here the copy the last import saved, and the days the ledger of `directory`
+/// holds off the main thread, then hands `done` what the import would replace.
+pub fn read_import(
+    directory: DataDirectory,
+    file: PathBuf,
+    done: impl FnOnce(Option<Result<Chosen, Refusal>>, &mut App) + 'static,
+    cx: &mut App,
+) {
+    cx.spawn(async move |cx| {
+        let read = inspect(directory, file, cx).await;
+        cx.update(|cx| done(Some(read), cx));
+    })
+    .detach();
+}
+
+async fn inspect(
+    directory: DataDirectory,
+    file: PathBuf,
+    cx: &mut AsyncApp,
+) -> Result<Chosen, Refusal> {
+    let inspected = cx
+        .background_executor()
+        .spawn(async move {
+            let contents = transfer::inspect(&file)?;
+            // This PC's days only add a line to the dialog.
+            let this_pc = transfer::ledger_days(&directory).unwrap_or_else(|error| {
+                log::warn!("cannot read the days of the ledger: {error}");
+                None
+            });
+            Ok(Chosen {
+                exported_on: contents.exported_at.to_zoned(TimeZone::system()).date(),
+                file,
+                contents,
+                this_pc,
+            })
+        })
+        .await;
+    inspected.map_err(|error: TransferError| {
+        if matches!(error, TransferError::Io(_) | TransferError::Sqlite(_)) {
+            failed(&error, cx);
+        }
+        Refusal::from(&error)
+    })
 }
 
 /// The copy the last import of `directory` saved, and the local day it was saved.

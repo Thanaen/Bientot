@@ -28,7 +28,7 @@ temporary `WorkTimeDemo` folder.
 | `worktime.db` | SQLite database: which activity source was selected from which time, the active and idle periods, session, lock and power events with their times, pause and finish commands, manual corrections with their optional reason, long-lock decisions, daily summaries, weekly credit, and which notifications were already shown. |
 | `secrets\*.secret` | Secrets encrypted with DPAPI for your Windows account. Only the ActivityWatch API key of the first WorkTime version was ever stored there; the current version writes none. |
 | `import.worktime` | An import chosen in **Settings › Data** or on the first step of the onboarding, waiting for the next start to apply it. |
-| `backups\` | The data an import replaced (**Settings › Data**), saved as a `.worktime` file so the import can be undone. |
+| `backups\` | The data an import replaced (**Settings › Data**), saved as a `.worktime` file so that its **Restore…** button can undo the import. |
 | `logs\worktime-*.jsonl` | Diagnostic events, at most 5 files of 1 MiB, each deleted after 14 days. |
 
 The diagnostic log also redacts at write time. Properties named like an API
