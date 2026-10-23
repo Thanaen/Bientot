@@ -251,13 +251,24 @@ pub fn stage(file: &Path, directory: &DataDirectory) -> Result<Contents, Transfe
 /// Applies the import [`stage`] left in `directory`, if any: exports the ledger and settings in
 /// place to `backups`, then replaces them. Call it before anything opens the ledger. A staged
 /// file that does not read is moved aside, so that the next start does not try it again; one
-/// that failed for another reason stays for the next start.
+/// that failed for another reason stays for the next start, and so does one a crash interrupted
+/// after it was renamed: that start may have left the new settings beside the previous ledger,
+/// which then go to `backups` together.
 pub fn apply_staged(
     directory: &DataDirectory,
     now: Timestamp,
     zone: &TimeZone,
 ) -> Result<Option<Applied>, TransferError> {
     let pending = directory.pending_import_file();
+    let applying = file::sibling(&pending, ".applying");
+    if applying.exists() {
+        if pending.exists() {
+            // Staged since, it replaces whatever the interrupted import left.
+            fs::remove_file(&applying)?;
+        } else {
+            fs::rename(&applying, &pending)?;
+        }
+    }
     if !pending.exists() {
         return Ok(None);
     }
@@ -283,7 +294,6 @@ pub fn apply_staged(
     };
     // Once the data is replaced, a start must not apply the file again over what was recorded
     // since: from here it no longer has the staged name, and a failure puts that name back.
-    let applying = file::sibling(&pending, ".applying");
     fs::rename(&pending, &applying)?;
     let temporary = file::sibling(&ledger, &format!(".{}.tmp", file::random_hex()));
     let replaced = prepare(&applying, &temporary)
@@ -293,7 +303,7 @@ pub fn apply_staged(
         let _ = fs::rename(&applying, &pending);
         return Err(error);
     }
-    // Left behind, it is only a copy of the file the user chose.
+    // Left behind, the next start applies it again, after saving what was recorded since.
     let _ = fs::remove_file(&applying);
     Ok(Some(Applied { contents, backup }))
 }
