@@ -249,6 +249,7 @@ describe("the statistics", () => {
     expect(html).toContain('class="kpis"');
     expect(html).toContain("Installations actives en octobre");
     expect(html).toContain("septembre 2026 100");
+    expect(html).toContain("Septembre&nbsp;: 100");
     expect(html).not.toContain("Par mode d’installation");
   });
 

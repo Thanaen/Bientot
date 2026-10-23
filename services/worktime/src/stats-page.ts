@@ -70,7 +70,8 @@ function kpis(stats: PublicStats, month: PublicMonth): string {
   const name = monthName(month.month);
   const previous = stats.months[stats.months.indexOf(month) - 1];
   let hint: string;
-  if (previous?.active && month.active) {
+  if (!month.active && previous?.active) hint = `${capitalize(monthName(previous.month))}&nbsp;: ${n(previous.active)}`;
+  else if (previous?.active && month.active) {
     const change = Math.round(((month.active - previous.active) / previous.active) * 100);
     const sign = change > 0 ? "+" : change < 0 ? "−" : "";
     hint = `<span${change > 0 ? ' class="up"' : ""}>${sign}${Math.abs(change)}&nbsp;%</span> par rapport à ${monthName(previous.month)}`;

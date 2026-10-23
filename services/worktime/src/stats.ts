@@ -85,17 +85,28 @@ export function publish(days: DayTotal[], cells: MonthCell[], through: string): 
     months: months.map((month) => {
       const own = cells.filter((cell) => cell.month === month);
       const daily = publicDays.filter((d) => d.day.startsWith(month)).map((d) => d.installations ?? 0);
+      const published = daily.reduce((sum, n) => sum + n, 0);
+      const active = own.reduce((sum, cell) => sum + cell.active, 0);
+      // Each first-of-month signal is also one of the day's signals, so the actives cannot exceed the
+      // days' total. When they exceed the published days, they tell how much the hidden days hold at
+      // least (10 and a hidden day under an exact 19 make that day 9): the month stays hidden.
+      const hidden = active > published;
       return {
         month,
-        active: shown(own.reduce((sum, cell) => sum + cell.active, 0)),
-        averageDaily: shown(Math.round(daily.reduce((sum, n) => sum + n, 0) / daysInMonth(month))),
+        active: hidden ? null : shown(active),
+        averageDaily: shown(Math.round(published / daysInMonth(month))),
         peakDaily: shown(Math.max(0, ...daily)),
-        byVersion: breakdown(own, "version"),
-        byChannel: breakdown(own, "channel"),
+        byVersion: hidden ? suppressed(own, "version") : breakdown(own, "version"),
+        byChannel: hidden ? suppressed(own, "channel") : breakdown(own, "channel"),
       };
     }),
     days: publicDays,
   };
+}
+
+// Every key merged into a hidden "autres".
+function suppressed(cells: MonthCell[], by: "version" | "channel"): Breakdown {
+  return { shares: [], others: { count: new Set(cells.map((cell) => cell[by])).size, active: null } };
 }
 
 // The actives of one month split by version or by channel. The keys under the threshold are merged;

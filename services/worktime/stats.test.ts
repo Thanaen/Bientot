@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { compareVersions, firstDay, lastFinishedDay, publish, toCsv, DATASETS } from "./src/stats";
 
 const cell = (month: string, version: string, channel: string, active: number) => ({ month, version, channel, active });
+// A busy day, so that the month's actives stay under the published days' total.
+const busy = (month: string) => [{ day: `${month}-15`, pings: 1000 }];
 const detailsCsv = (stats: ReturnType<typeof publish>) => toCsv(DATASETS.details.columns, DATASETS.details.rows(stats));
 
 describe("publish", () => {
@@ -32,7 +34,7 @@ describe("publish", () => {
 
   test("keeps month totals exact and rounds the version and channel figures to 5", () => {
     const stats = publish(
-      [],
+      busy("2027-03"),
       [cell("2027-03", "1.2.0", "direct", 162), cell("2027-03", "1.2.0", "zip", 12), cell("2027-03", "1.1.2", "direct", 87), cell("2027-03", "1.0.4", "zip", 4), cell("2027-03", "1.0.3", "zip", 3), cell("2027-03", "1.0.1", "direct", 5)],
       "2027-04-14",
     );
@@ -44,17 +46,17 @@ describe("publish", () => {
   // Pullfrog's counterexamples on PR #16: each one let a figure under 10 be worked out.
   test("merges a small key with the smallest shown ones until the merge reaches 10", () => {
     // Exact total 11 with a single shown 10 would give the hidden 1 away.
-    const stats = publish([], [cell("2027-03", "1.2.0", "direct", 10), cell("2027-03", "1.1.0", "direct", 1)], "2027-03-31");
+    const stats = publish(busy("2027-03"), [cell("2027-03", "1.2.0", "direct", 10), cell("2027-03", "1.1.0", "direct", 1)], "2027-03-31");
     expect(stats.months[0]?.active).toBe(11);
     expect(stats.months[0]?.byVersion).toEqual({ shares: [], others: { count: 2, active: 10 } });
     // Small keys already at 10 together stay apart from the shown ones.
     expect(
-      publish([], [cell("2027-03", "1.2.0", "direct", 40), cell("2027-03", "1.1.0", "direct", 6), cell("2027-03", "1.0.0", "direct", 4)], "2027-03-31").months[0]
+      publish(busy("2027-03"), [cell("2027-03", "1.2.0", "direct", 40), cell("2027-03", "1.1.0", "direct", 6), cell("2027-03", "1.0.0", "direct", 4)], "2027-03-31").months[0]
         ?.byVersion,
     ).toEqual({ shares: [{ key: "1.2.0", active: 40 }], others: { count: 2, active: 10 } });
     // And the merge reaches 10 with the next smallest, not the biggest.
     expect(
-      publish([], [cell("2027-03", "1.2.0", "direct", 300), cell("2027-03", "1.1.0", "direct", 20), cell("2027-03", "1.0.0", "direct", 3)], "2027-03-31").months[0]
+      publish(busy("2027-03"), [cell("2027-03", "1.2.0", "direct", 300), cell("2027-03", "1.1.0", "direct", 20), cell("2027-03", "1.0.0", "direct", 3)], "2027-03-31").months[0]
         ?.byVersion,
     ).toEqual({ shares: [{ key: "1.2.0", active: 300 }], others: { count: 2, active: 25 } });
   });
@@ -85,8 +87,22 @@ describe("publish", () => {
     expect(publish([], cells, "2027-04-30").months.map((m) => m.month)).toEqual(["2027-03", "2027-04"]);
   });
 
+  test("hides a month whose actives exceed its published days", () => {
+    // A shown 10, a hidden day and an exact 19 actives would make the hidden day 9: each first-of-month
+    // signal is also one of the day's signals.
+    const days = [
+      { day: "2027-03-01", pings: 10 },
+      { day: "2027-03-02", pings: 9 },
+    ];
+    const stats = publish(days, [cell("2027-03", "1.2.0", "direct", 19)], "2027-03-31");
+    expect(stats.months[0]).toMatchObject({ active: null, byVersion: { shares: [], others: { count: 1, active: null } } });
+    expect(stats.days.map((d) => d.installations)).toEqual([10, null]);
+    // Once the published days alone cover the actives, the hidden days bound nothing.
+    expect(publish([...days, { day: "2027-03-03", pings: 10 }], [cell("2027-03", "1.2.0", "direct", 19)], "2027-03-31").months[0]?.active).toBe(19);
+  });
+
   test("the details file lists each month by version, then by channel", () => {
-    const stats = publish([], [cell("2027-03", "1.2.0", "direct", 248), cell("2027-03", "1.1.0", "zip", 41), cell("2027-03", "1.0.0", "zip", 6), cell("2027-03", "0.9.0", "zip", 4)], "2027-03-31");
+    const stats = publish(busy("2027-03"), [cell("2027-03", "1.2.0", "direct", 248), cell("2027-03", "1.1.0", "zip", 41), cell("2027-03", "1.0.0", "zip", 6), cell("2027-03", "0.9.0", "zip", 4)], "2027-03-31");
     expect(detailsCsv(stats)).toBe(
       "mois,par,valeur,actives\n2027-03,version,1.2.0,250\n2027-03,version,1.1.0,40\n2027-03,version,autres,10\n2027-03,mode,direct,250\n2027-03,mode,zip,50\n",
     );
@@ -114,6 +130,6 @@ test("versions sort by number, releases after their pre-releases", () => {
 test("CSV leaves hidden figures empty and keeps its header without rows", () => {
   const stats = publish([{ day: "2027-03-13", pings: 4 }], [cell("2027-03", "1.2.0", "direct", 40)], "2027-04-14");
   expect(toCsv(DATASETS.quotidien.columns, DATASETS.quotidien.rows(stats))).toBe("jour,installations\n2027-03-13,\n");
-  expect(toCsv(DATASETS.mensuel.columns, DATASETS.mensuel.rows(stats))).toBe("mois,actives,moyenne_jour,pic_jour\n2027-03,40,,\n");
+  expect(toCsv(DATASETS.mensuel.columns, DATASETS.mensuel.rows(stats))).toBe("mois,actives,moyenne_jour,pic_jour\n2027-03,,,\n");
   expect(toCsv(DATASETS.details.columns, [])).toBe("mois,par,valeur,actives\n");
 });

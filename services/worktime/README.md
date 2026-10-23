@@ -65,6 +65,8 @@ day of the month, or every day so far for the current month.
   subtracting the shown ones from the month's exact total;
 - the version and channel figures are rounded to the nearest 5;
 - a month's daily average and peak come from the published days, a hidden day counting as 0;
+- a month whose actives exceed the total of its published days stays hidden: every first-of-month
+  signal is also a day's signal, so the excess would tell what the hidden days hold;
 - the last 12 finished months.
 
 The figures change once a day, so they cost almost nothing to serve. On a cache miss the function
