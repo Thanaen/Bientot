@@ -9,7 +9,10 @@ rust-version = "1.97"
 publish = false
 license = "MIT"
 
-# Smaller executable without slowing the app: thin LTO keeps release builds affordable in CI.
+# The shipped exe must stay under the 20 MB gate (issue #17). Optimising for size takes it
+# from 23 MB to 15.4 MB; whole-program LTO in one codegen unit alone only reaches 19.8 MB.
 [profile.release]
-lto = "thin"
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
 strip = true
