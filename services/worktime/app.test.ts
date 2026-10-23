@@ -210,7 +210,7 @@ describe("the statistics", () => {
     await pings(9);
     clock = new Date("2026-10-13T08:00:00Z");
     const html = await (await page()).text();
-    expect(html).toContain("Moins de 10 installations pour l’instant");
+    expect(html).toContain("Pas encore de chiffres");
     expect(html).not.toContain('class="kpis"');
   });
 
@@ -234,7 +234,7 @@ describe("the statistics", () => {
     clock = new Date("2026-10-30T09:00:00Z");
     await pings(12);
     clock = new Date("2026-10-31T09:00:00Z");
-    expect(await (await page()).text()).toContain("Moins de 10 installations pour l’instant");
+    expect(await (await page()).text()).toContain("Pas encore de chiffres");
     expect(await (await file("mensuel.csv")).text()).toBe("mois,actives,moyenne_jour,pic_jour\n");
     expect(await (await file("quotidien.csv")).text()).toBe("jour,installations\n2026-10-30,12\n");
   });
@@ -275,6 +275,32 @@ describe("the statistics", () => {
 
   test.each(["stats.csv", "mensuel.xml", "..", "mensuel.csv.bak"])("serves no file named %p", async (name) => {
     expect((await file(name)).status).toBe(404);
+  });
+
+  test("withholds a month without saying it is under 10", async () => {
+    // A shown 10, a hidden 9 and 19 actives (the stats.test.ts case): March is withheld at 19.
+    clock = new Date("2026-10-01T09:00:00Z");
+    await pings(10);
+    clock = new Date("2026-10-02T09:00:00Z");
+    await pings(9);
+    clock = new Date("2026-11-01T09:00:00Z");
+    const alone = await (await page()).text();
+    expect(alone).toContain("Pas encore de chiffres");
+    expect(alone).not.toContain("Moins de 10");
+  });
+
+  test("labels a withheld month after a published one as not published", async () => {
+    clock = new Date("2026-09-15T09:00:00Z");
+    await pings(100);
+    clock = new Date("2026-10-01T09:00:00Z");
+    await pings(10);
+    clock = new Date("2026-10-02T09:00:00Z");
+    await pings(9);
+    clock = new Date("2026-11-01T09:00:00Z");
+    expect(await (await file("mensuel.csv")).text()).toBe("mois,actives,moyenne_jour,pic_jour\n2026-09,100,,100\n2026-10,,,10\n");
+    const html = await (await page()).text();
+    expect(html).toContain('Installations actives en octobre</span><span class="v small">non publié</span>');
+    expect(html).toContain("octobre 2026 non publié");
   });
 
   test("the homepage links to the page, and the sitemap lists it", async () => {

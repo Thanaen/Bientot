@@ -22,6 +22,8 @@ const monthShort = (month: string) => format(`${month}-01`, { month: "short" });
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const isWeekend = (day: string) => [0, 6].includes(dateOf(day).getUTCDay());
 const LESS = "moins de&nbsp;10";
+// A month's actives can be withheld at 10 or more too (stats.ts), so they never say why.
+const WITHHELD = "non publié";
 
 // The top of the axis: 1, 2 or 5 times a power of ten, with at most four steps.
 // When the tallest bar nearly reaches the last tick, the axis goes half a step higher, so that its
@@ -75,16 +77,16 @@ function kpis(stats: PublicStats, month: PublicMonth): string {
     const change = Math.round(((month.active - previous.active) / previous.active) * 100);
     const sign = change > 0 ? "+" : change < 0 ? "−" : "";
     hint = `<span${change > 0 ? ' class="up"' : ""}>${sign}${Math.abs(change)}&nbsp;%</span> par rapport à ${monthName(previous.month)}`;
-  } else if (previous) hint = `${capitalize(monthName(previous.month))}&nbsp;: ${LESS}`;
+  } else if (previous) hint = `${capitalize(monthName(previous.month))}&nbsp;: ${WITHHELD}`;
   else hint = "Premier mois publié";
 
   const record = stats.days.filter((d) => d.day.startsWith(month.month)).reduce<{ day: string; installations: number } | null>(
     (best, d) => (d.installations !== null && (!best || d.installations > best.installations) ? { day: d.day, installations: d.installations } : best),
     null,
   );
-  const value = (v: number | null) => (v === null ? `<span class="v small">${LESS}</span>` : `<span class="v">${n(v)}</span>`);
+  const value = (v: number | null, none = LESS) => (v === null ? `<span class="v small">${none}</span>` : `<span class="v">${n(v)}</span>`);
   return `<div class="kpis">
-      <div class="kpi"><span class="l">Installations actives en ${name}</span>${value(month.active)}<span class="h">${hint}</span></div>
+      <div class="kpi"><span class="l">Installations actives en ${name}</span>${value(month.active, WITHHELD)}<span class="h">${hint}</span></div>
       <div class="kpi"><span class="l">Installations par jour en ${name}</span>${value(month.averageDaily)}<span class="h">En moyenne, week&#8209;ends compris</span></div>
       <div class="kpi"><span class="l">Record sur une journée en ${name}</span>${value(record?.installations ?? null)}<span class="h">${
         record ? capitalize(format(record.day, { weekday: "long", day: "numeric", month: "long" })) : "Aucun jour à 10 installations ou plus"
@@ -96,11 +98,11 @@ function monthsChart(stats: PublicStats): string {
   const items = stats.months.map<Bar>((m, i) => ({
     value: m.active,
     x: monthShort(m.month),
-    label: m.active === null ? LESS : n(m.active),
+    label: m.active === null ? WITHHELD : n(m.active),
     keepOnPhone: i >= stats.months.length - 2,
   }));
   const aria = `Installations actives par mois : ${stats.months
-    .map((m) => `${monthName(m.month)} ${m.month.slice(0, 4)} ${m.active ?? "moins de 10"}`)
+    .map((m) => `${monthName(m.month)} ${m.month.slice(0, 4)} ${m.active ?? "non publié"}`)
     .join(", ")}.`;
   return `<section class="card" aria-labelledby="by-month">
       <div class="card-head"><h2 id="by-month">Installations actives par mois</h2><p>Au moins un signal dans le mois</p></div>
@@ -178,7 +180,7 @@ export function renderContent(stats: PublicStats): string {
   if (!stats.months.some((m) => m.active !== null)) {
     return `${head}
   <div class="wrap main">
-    <section class="card empty"><h2>Moins de 10 installations pour l’instant</h2><p>Les chiffres apparaîtront ici à la fin du premier mois qui comptera au moins 10 installations. En dessous, ils pourraient désigner quelqu’un. Les fichiers de données, plus bas, sont déjà en ligne.</p></section>
+    <section class="card empty"><h2>Pas encore de chiffres</h2><p>Les chiffres d’un mois sont publiés une fois ce mois terminé, et jamais pour moins de 10 installations, car ils pourraient désigner quelqu’un. Les fichiers de données, plus bas, sont déjà en ligne.</p></section>
   </div>`;
   }
   const { month, active, byChannel, byVersion } = reference!;
