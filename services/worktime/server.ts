@@ -12,7 +12,7 @@ const store = process.env.VERCEL
   : new MemoryStore();
 
 Bun.serve({
-  routes: createApp({ store, releasesUrl: process.env.RELEASES_URL }),
+  routes: createApp({ store }),
   fetch() {
     return new Response(null, { status: 404 });
   },

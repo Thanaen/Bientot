@@ -1,18 +1,24 @@
-// The Velopack releases of WorkTime, kept in a Vercel Blob store under `updates/` by
-// scripts/publish-release.ts. The installed app reads its feed at /updates/ (FEED_URL in
-// crates/worktime-app/src/updates/direct.rs); the service only points at the store's public
-// files, at RELEASES_URL. It never holds the store's read-write token: whoever writes there
-// chooses what every installed copy runs.
+// The Velopack releases of WorkTime, published as GitHub Releases by the Release workflow
+// (.github/workflows/release.yml). The installed app reads its feed at /updates/ (FEED_URL in
+// crates/worktime-app/src/updates/direct.rs), and /download serves the installer: both stay at
+// this address and redirect to the release files, wherever those live.
 
-// The names vpk gives: releases.win.json, Thanaen.WorkTime-1.0.0-full.nupkg, …-win-Setup.exe.
-const FILE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const RELEASES = "https://github.com/Thanaen/WorkTime/releases";
 
 export const SETUP = "Thanaen.WorkTime-win-Setup.exe";
 
-// Where `file` lives in the store at `releasesUrl`, or null for a name vpk never writes.
-export function releaseUrl(releasesUrl: string, file: string): string | null {
-  if (!FILE.test(file) || file.includes("..")) return null;
-  return `${releasesUrl.replace(/\/+$/, "")}/updates/${file}`;
+// The packages vpk names after their version, which names their release: v<version>.
+const PACKAGE = /^Thanaen\.WorkTime-(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)-(?:full|delta)\.nupkg$/;
+
+// The files of which only the latest release's copy matters: its feed lists every package.
+const LATEST = new Set(["releases.win.json", SETUP, "Thanaen.WorkTime-win-Portable.zip"]);
+
+// Where `file` is published, or null for a name the Release workflow never publishes.
+export function releaseUrl(file: string): string | null {
+  const version = PACKAGE.exec(file)?.[1];
+  if (version) return `${RELEASES}/download/v${version}/${file}`;
+  if (LATEST.has(file)) return `${RELEASES}/latest/download/${file}`;
+  return null;
 }
 
 // A redirect nobody caches, so a new feed is read as soon as it is published.

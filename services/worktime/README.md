@@ -12,7 +12,7 @@ their updates.
 | `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png`, `/analytics.js` | The files listed in `src/site.ts`; `404` for any other path |
 | `GET /robots.txt`, `/sitemap.xml` | Generated from the pages listed in `src/site.ts` |
 | `POST /v1/ping` | `204`; `400` for any other shape, `413` above 256 bytes |
-| `GET /updates/<file>` | `302` to that file of the Velopack release in the Blob store; `404` for a name vpk never writes |
+| `GET /updates/<file>` | `302` to that file in the GitHub Releases (see Updates); `404` for a name the Release workflow never publishes |
 | `GET /download` | `302` to the latest `Setup.exe` |
 
 ## Pages
@@ -101,17 +101,16 @@ with no script.
 
 ## Updates
 
-`scripts/release-direct.sh` (repository root) builds the release: `Setup.exe`, the packages and
-the `releases.win.json` feed. `scripts/publish-release.ts` uploads that folder to the
-`worktime-releases` Blob store under `updates/`, packages first and the feed last:
+The Release workflow (`.github/workflows/release.yml`) publishes each release as a GitHub Release
+named `v<version>`: `Setup.exe`, the packages and the `releases.win.json` feed, which lists every
+package. The app reads `https://worktime.thanaen.dev/updates/releases.win.json` with no query
+string and no identifier. The service redirects, without caching:
 
-```sh
-BLOB_READ_WRITE_TOKEN=… bun scripts/publish-release.ts <output-dir>
-```
+- the feed, `Setup.exe` (also at `/download`) and the portable ZIP to the latest release's copy;
+- a package, `Thanaen.WorkTime-<version>-full.nupkg` or `-delta.nupkg`, to the release of its
+  version.
 
-The app reads `https://worktime.thanaen.dev/updates/releases.win.json` with no query string and
-no identifier. The redirects are not cached; the feed, the installer and the portable ZIP are
-cached for a minute at most in the store.
+These addresses stay the same wherever the files live.
 
 ## Run
 
@@ -124,15 +123,13 @@ bun run dev        # http://localhost:3000, signals kept in memory
 ## Deploy
 
 Vercel project `worktime`, root directory `services/worktime`, Bun runtime (`vercel.json`),
-function region `dub1` (a project setting), domain `worktime.thanaen.dev`. Variables:
-`POSTHOG_PERSONAL_API_KEY` (above), and `RELEASES_URL`, the public URL of the
-`worktime-releases` Blob store (`https://<store>.public.blob.vercel-storage.com`), which
-publish-release.ts prints. The PostHog project token and id are in `server.ts`: the token only
+function region `dub1` (a project setting), domain `worktime.thanaen.dev`. Variable:
+`POSTHOG_PERSONAL_API_KEY` (above). The PostHog project token and id are in `server.ts`: the token only
 lets one send events. Outside Vercel, the signals stay in memory.
 
-The `worktime-releases` store is not connected to the project, and its read-write token stays
-with whoever publishes: the packages are unsigned, so whoever can write to the store chooses
-what every installed copy runs at its next start.
+The packages are unsigned, so whoever can publish a release chooses what every installed copy
+runs at its next start: only the Release workflow's publish job can write to the repository's
+releases.
 
 The project is connected to GitHub, with `main` as the production branch: a push to `main`
 deploys to production, and a push to another branch builds a preview. The `ignoreCommand` in

@@ -7,13 +7,11 @@ import type { UsageStore } from "./store";
 
 export interface AppOptions {
   store: UsageStore;
-  // The public URL of the Blob store that holds the releases; without it, they are not found.
-  releasesUrl?: string;
   now?: () => Date;
 }
 
 // Nothing here logs the request, its body or the caller's address.
-export function createApp({ store, releasesUrl, now = () => new Date() }: AppOptions) {
+export function createApp({ store, now = () => new Date() }: AppOptions) {
   // The public figures only change when a UTC day ends: a warm function computes them once per day,
   // and the CDN keeps each answer until the next day (statsHeaders), so PostHog is rarely asked.
   let cached: { through: string; stats: Promise<PublicStats> } | undefined;
@@ -79,12 +77,12 @@ export function createApp({ store, releasesUrl, now = () => new Date() }: AppOpt
     },
     "/updates/:file": {
       GET(request: Request & { params: { file: string } }): Response {
-        return redirect(releasesUrl ? releaseUrl(releasesUrl, request.params.file) : null);
+        return redirect(releaseUrl(request.params.file));
       },
     },
     "/download": {
       GET(): Response {
-        return redirect(releasesUrl ? releaseUrl(releasesUrl, SETUP) : null);
+        return redirect(releaseUrl(SETUP));
       },
     },
   };

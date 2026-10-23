@@ -38,37 +38,32 @@ describe("POST /v1/ping", () => {
 });
 
 describe("GET /updates/:file", () => {
-  const releases = createApp({
-    store: new MemoryStore(),
-    releasesUrl: "https://store.public.blob.vercel-storage.com/",
-  });
   const get = (file: string) =>
-    releases["/updates/:file"].GET(Object.assign(new Request(`http://local/updates/${file}`), { params: { file } }));
+    app["/updates/:file"].GET(Object.assign(new Request(`http://local/updates/${file}`), { params: { file } }));
+  const releases = "https://github.com/Thanaen/WorkTime/releases";
 
-  test("points at the file in the Blob store, uncached", () => {
+  test("points at the latest release's feed, uncached", () => {
     const response = get("releases.win.json");
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe(
-      "https://store.public.blob.vercel-storage.com/updates/releases.win.json",
-    );
+    expect(response.headers.get("location")).toBe(`${releases}/latest/download/releases.win.json`);
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
-  test.each(["..", ".hidden", "a/b", "a%2Fb", ""])("finds no file named %p", (file) => {
-    expect(get(file).status).toBe(404);
+  test.each(["full", "delta"])("points at a %s package in the release of its version", (kind) => {
+    const file = `Thanaen.WorkTime-0.2.0-alpha.13-${kind}.nupkg`;
+    expect(get(file).headers.get("location")).toBe(`${releases}/download/v0.2.0-alpha.13/${file}`);
   });
 
-  test("finds nothing without a store", () => {
-    const file = "releases.win.json";
-    const response = app["/updates/:file"].GET(
-      Object.assign(new Request(`http://local/updates/${file}`), { params: { file } }),
-    );
-    expect(response.status).toBe(404);
-  });
+  test.each(["..", ".hidden", "a/b", "a%2Fb", "", "RELEASES", "Thanaen.WorkTime-x-full.nupkg", "Other-1.0.0-full.nupkg"])(
+    "finds no file named %p",
+    (file) => {
+      expect(get(file).status).toBe(404);
+    },
+  );
 
-  test("/download points at the installer", () => {
-    expect(releases["/download"].GET().headers.get("location")).toBe(
-      "https://store.public.blob.vercel-storage.com/updates/Thanaen.WorkTime-win-Setup.exe",
+  test("/download points at the latest installer", () => {
+    expect(app["/download"].GET().headers.get("location")).toBe(
+      `${releases}/latest/download/Thanaen.WorkTime-win-Setup.exe`,
     );
   });
 });
