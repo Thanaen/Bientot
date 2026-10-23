@@ -283,6 +283,7 @@
   <data name="SettingsSavedPending" xml:space="preserve"><value>Réglages enregistrés. Actualisez pour mettre à jour votre journée.</value></data>
   <data name="SettingsRecovered" xml:space="preserve"><value>Les réglages invalides ont été sauvegardés à part et les valeurs par défaut rétablies. Vérifiez vos réglages.</value></data>
   <data name="InitializationFailed" xml:space="preserve"><value>WorkTime n’a pas pu démarrer. Vérifiez les paramètres et la base locale, puis relancez l’application.</value></data>
+  <data name="ImportWaitsForNextStart" xml:space="preserve"><value>WorkTime n’a pas pu redémarrer. Vos données seront importées au prochain démarrage. Si l’icône WorkTime est encore dans la zone de notification, choisissez « Quitter WorkTime » dans son menu. Relancez ensuite WorkTime.</value></data>
   <data name="StartupFailureTitle" xml:space="preserve"><value>WorkTime n’a pas pu démarrer</value></data>
   <data name="StartupFailureMessage" xml:space="preserve"><value>Vérifiez les paramètres et la base de données locale, puis relancez WorkTime. Si le problème persiste, exportez le diagnostic.</value></data>
   <data name="StartupFailureDetailsHeader" xml:space="preserve"><value>Détails</value></data>
@@ -392,7 +393,13 @@
   <data name="SettingsImportDialogLossOutside" xml:space="preserve"><value>Les jours enregistrés sur ce PC en dehors de la période du fichier ne seront plus dans l’historique.</value></data>
   <data name="SettingsImportDialogLossAll" xml:space="preserve"><value>Ce PC n’aura plus aucun historique.</value></data>
   <data name="SettingsBackupTitle" xml:space="preserve"><value>Copie d’avant l’import</value></data>
-  <data name="SettingsBackupDescriptionFormat" xml:space="preserve"><value>Enregistrée le {0:d MMMM yyyy}. Importez-la pour revenir aux données remplacées.</value></data>
+  <data name="SettingsBackupDescriptionFormat" xml:space="preserve"><value>Enregistrée le {0:d MMMM yyyy}. Restaurez-la pour revenir aux données remplacées.</value></data>
+  <data name="SettingsRestoreAction" xml:space="preserve"><value>Restaurer…</value></data>
+  <data name="SettingsRestoreReading" xml:space="preserve"><value>Lecture de la copie…</value></data>
+  <data name="SettingsRestoreReadFailed" xml:space="preserve"><value>WorkTime n’a pas pu lire cette copie. Affichez-la dans l’Explorateur, puis importez-la depuis « Importer… ».</value></data>
+  <data name="SettingsRestoreFailed" xml:space="preserve"><value>WorkTime n’a pas pu restaurer cette copie. Vos données n’ont pas changé. Réessayez.</value></data>
+  <data name="SettingsRestoreDialogPeriodFormat" xml:space="preserve"><value>Cette copie, enregistrée le {0:d MMMM yyyy}, contient votre historique du {1:d MMMM yyyy} au {2:d MMMM yyyy}.</value></data>
+  <data name="SettingsRestoreDialogEmptyFormat" xml:space="preserve"><value>Cette copie, enregistrée le {0:d MMMM yyyy}, ne contient aucun historique.</value></data>
   <data name="SettingsShowInExplorer" xml:space="preserve"><value>Afficher dans l’Explorateur</value></data>
   <data name="SettingsImportCancel" xml:space="preserve"><value>Annuler</value></data>
   <data name="SettingsImportConfirm" xml:space="preserve"><value>Remplacer et redémarrer</value></data>

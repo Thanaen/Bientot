@@ -9,6 +9,7 @@ use gpui::{App, AsyncApp};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use worktime_store::data_directory::DataDirectory;
+use worktime_store::settings::SettingsStore;
 use worktime_store::transfer::{self, EXTENSION, TransferError};
 
 use crate::file_dialogs;
@@ -62,9 +63,8 @@ pub fn export(
     .detach();
 }
 
-/// Asks which file to import, then reads it and the days the ledger of `directory` holds off
-/// the main thread, and hands `done` what the import would replace, or `None` when the dialog
-/// was cancelled.
+/// Asks which file to import, then hands `done` what [`read_import`] reads of it, or `None` when
+/// the dialog was cancelled.
 pub fn choose_import(
     directory: DataDirectory,
     done: impl FnOnce(Option<Result<Chosen, Refusal>>, &mut App) + 'static,
@@ -74,31 +74,7 @@ pub fn choose_import(
     cx.spawn(async move |cx| {
         let read = match file_dialogs::pick_open(file_type, EXTENSION, cx).await {
             Ok(None) => None,
-            Ok(Some(file)) => {
-                let inspected = cx
-                    .background_executor()
-                    .spawn(async move {
-                        let contents = transfer::inspect(&file)?;
-                        // This PC's days only add a line to the dialog.
-                        let this_pc = transfer::ledger_days(&directory).unwrap_or_else(|error| {
-                            log::warn!("cannot read the days of the ledger: {error}");
-                            None
-                        });
-                        Ok(Chosen {
-                            exported_on: contents.exported_at.to_zoned(TimeZone::system()).date(),
-                            file,
-                            contents,
-                            this_pc,
-                        })
-                    })
-                    .await;
-                Some(inspected.map_err(|error: TransferError| {
-                    if matches!(error, TransferError::Io(_) | TransferError::Sqlite(_)) {
-                        failed(&error, cx);
-                    }
-                    Refusal::from(&error)
-                }))
-            }
+            Ok(Some(file)) => Some(inspect(directory, file, cx).await),
             Err(error) => {
                 failed(&error, cx);
                 Some(Err(Refusal::Unreadable))
@@ -107,6 +83,51 @@ pub fn choose_import(
         cx.update(|cx| done(read, cx));
     })
     .detach();
+}
+
+/// Reads `file`, here the copy the last import saved, and the days the ledger of `directory`
+/// holds off the main thread, then hands `done` what the import would replace.
+pub fn read_import(
+    directory: DataDirectory,
+    file: PathBuf,
+    done: impl FnOnce(Option<Result<Chosen, Refusal>>, &mut App) + 'static,
+    cx: &mut App,
+) {
+    cx.spawn(async move |cx| {
+        let read = inspect(directory, file, cx).await;
+        cx.update(|cx| done(Some(read), cx));
+    })
+    .detach();
+}
+
+async fn inspect(
+    directory: DataDirectory,
+    file: PathBuf,
+    cx: &mut AsyncApp,
+) -> Result<Chosen, Refusal> {
+    let inspected = cx
+        .background_executor()
+        .spawn(async move {
+            let contents = transfer::inspect(&file)?;
+            // This PC's days only add a line to the dialog.
+            let this_pc = transfer::ledger_days(&directory).unwrap_or_else(|error| {
+                log::warn!("cannot read the days of the ledger: {error}");
+                None
+            });
+            Ok(Chosen {
+                exported_on: contents.exported_at.to_zoned(TimeZone::system()).date(),
+                file,
+                contents,
+                this_pc,
+            })
+        })
+        .await;
+    inspected.map_err(|error: TransferError| {
+        if matches!(error, TransferError::Io(_) | TransferError::Sqlite(_)) {
+            failed(&error, cx);
+        }
+        Refusal::from(&error)
+    })
 }
 
 /// The copy the last import of `directory` saved, and the local day it was saved.
@@ -181,6 +202,28 @@ pub fn wait_for_restart(restarted_from: Option<u32>) {
     let _ = (id, RESTART_WAIT);
 }
 
+/// After a restart for an import that gave up waiting, the WorkTime that started it still owns
+/// the folder: whether the import staged in `directory` now waits for the next start, and the
+/// language of the settings it would replace, to tell the user so.
+pub fn import_left_waiting(
+    restarted_from: Option<u32>,
+    directory: &DataDirectory,
+    forced: Option<Language>,
+) -> Option<Language> {
+    if restarted_from.is_none() || !directory.pending_import_file().exists() {
+        return None;
+    }
+    let saved = SettingsStore::new(directory.settings_file())
+        .ok()
+        .and_then(|store| store.peek());
+    Some(Language::resolve(
+        forced,
+        saved
+            .as_ref()
+            .and_then(|settings| settings.language_override.as_deref()),
+    ))
+}
+
 /// Applies the import staged in `directory`, before anything opens its ledger: what the first
 /// flyout then tells, `None` when nothing was staged.
 pub fn apply_staged(directory: &DataDirectory) -> Option<Announcement> {
@@ -219,3 +262,6 @@ fn failed(error: &dyn std::fmt::Display, cx: &mut AsyncApp) {
         }
     });
 }
+
+#[cfg(test)]
+mod tests;
