@@ -8,7 +8,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@libsql/client": "0.15.15",
     "@vercel/blob": "2.8.2"
   },
   "devDependencies": {

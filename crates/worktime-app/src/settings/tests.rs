@@ -576,8 +576,9 @@ fn see_what_is_sent_shows_the_next_signal_and_the_last_send() {
                      installé WorkTime (ici, le Microsoft\u{a0}Store) et «\u{a0}first_this_month\u{a0}» \
                      vaut true pour le premier envoi du mois."
                 .to_owned(),
-            server: "Le serveur ne conserve qu’un total par jour, par version et par canal. \
-                     Il ne garde ni votre adresse IP ni rien qui permette de vous reconnaître.",
+            server: "Le serveur ne garde rien et transmet ce signal à PostHog, hébergé dans \
+                     l’Union européenne, sans votre adresse IP ni rien qui permette de vous \
+                     reconnaître.",
             last_sent: "Dernier envoi\u{a0}: aujourd’hui".to_owned(),
         })
     );

@@ -487,9 +487,9 @@ fn see_what_is_sent_shows_the_body_and_what_the_server_keeps() {
                 body: "{\n  \"version\": \"1.0.0\",\n  \"channel\": \"store\",\n  \
                        \"first_this_month\": true\n}"
                     .to_owned(),
-                note: "C’est tout ce qui est envoyé. Le serveur ne conserve qu’un total par \
-                       jour, par version et par canal. Il ne garde ni votre adresse IP ni rien \
-                       qui permette de vous reconnaître."
+                note: "C’est tout ce qui est envoyé. Le serveur ne garde rien et transmet ce \
+                       signal à PostHog, hébergé dans l’Union européenne, sans votre adresse IP \
+                       ni rien qui permette de vous reconnaître."
                     .to_owned(),
             }),
         })
@@ -514,8 +514,9 @@ fn see_what_is_sent_shows_the_body_and_what_the_server_keeps() {
     };
     assert_eq!(
         note,
-        "That’s everything that gets sent. The server keeps only a daily total per version and \
-         channel. It keeps neither your IP address nor anything that could identify you."
+        "That’s everything that gets sent. The server keeps nothing and passes this signal on to \
+         PostHog, hosted in the European Union, without your IP address or anything that could \
+         identify you."
     );
 }
 

@@ -370,7 +370,7 @@
   <data name="SettingsUsagePingFieldsFormat" xml:space="preserve"><value>That’s everything that gets sent. “channel” says where you installed WorkTime (here, {0}) and “first_this_month” is true for the first signal of the month.</value></data>
   <data name="UsagePingChannelStore" xml:space="preserve"><value>the Microsoft Store</value></data>
   <data name="UsagePingChannelZip" xml:space="preserve"><value>the ZIP download</value></data>
-  <data name="SettingsUsagePingServerText" xml:space="preserve"><value>The server keeps only a daily total per version and channel. It keeps neither your IP address nor anything that could identify you.</value></data>
+  <data name="SettingsUsagePingServerText" xml:space="preserve"><value>The server keeps nothing and passes this signal on to PostHog, hosted in the European Union, without your IP address or anything that could identify you.</value></data>
   <data name="SettingsUsagePingLastSentFormat" xml:space="preserve"><value>Last sent: {0}</value></data>
   <data name="SettingsUsagePingLastSentNever" xml:space="preserve"><value>never</value></data>
   <data name="SettingsUsagePingLastSentToday" xml:space="preserve"><value>today</value></data>

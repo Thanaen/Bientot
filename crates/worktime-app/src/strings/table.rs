@@ -1410,7 +1410,7 @@ pub(super) static ENTRIES: [Entry; 789] = [
     Entry { name: "SettingsUsagePingLastSentToday", fr: "aujourd’hui", en: "today" },
     Entry { name: "SettingsUsagePingLastSentYesterday", fr: "hier", en: "yesterday" },
     Entry { name: "SettingsUsagePingOffText", fr: "Désactivé\u{a0}: WorkTime n’envoie aucun signal.", en: "Off: WorkTime sends no signal." },
-    Entry { name: "SettingsUsagePingServerText", fr: "Le serveur ne conserve qu’un total par jour, par version et par canal. Il ne garde ni votre adresse IP ni rien qui permette de vous reconnaître.", en: "The server keeps only a daily total per version and channel. It keeps neither your IP address nor anything that could identify you." },
+    Entry { name: "SettingsUsagePingServerText", fr: "Le serveur ne garde rien et transmet ce signal à PostHog, hébergé dans l’Union européenne, sans votre adresse IP ni rien qui permette de vous reconnaître.", en: "The server keeps nothing and passes this signal on to PostHog, hosted in the European Union, without your IP address or anything that could identify you." },
     Entry { name: "SettingsVersionCard.Header", fr: "Version", en: "Version" },
     Entry { name: "SettingsVersionReleasedFormat", fr: "Publiée le {0:d MMMM yyyy}", en: "Released {0:MMMM d, yyyy}" },
     Entry { name: "SettingsWholeNumberRequired", fr: "Saisissez un nombre entier de minutes.", en: "Enter a whole number of minutes." },

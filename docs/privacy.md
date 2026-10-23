@@ -71,9 +71,13 @@ WorkTime makes two kinds of request.
    `version` is the WorkTime version. `channel` is `store`, `direct` or `zip`,
    depending on where you installed WorkTime. `first_this_month` is `true` for
    the first signal of a calendar month. The request carries no identifier, no
-   cookie, no date and no time-tracking data. The server keeps only one count
-   per day, version and channel. It stores no IP address, no identifier and no
-   request body, and logs nothing (`services/worktime`). WorkTime keeps only
+   cookie, no date and no time-tracking data. The server stores nothing and logs
+   nothing (`services/worktime`). It passes the three fields on to
+   [PostHog](https://posthog.com/privacy), hosted in the European Union
+   (Frankfurt), as one event dated at midnight UTC of the day, with a random id
+   used only once, no IP address and no person profile. PostHog keeps each
+   signal as an anonymous event, and never sees the address of your PC: the
+   request to PostHog comes from the server. WorkTime keeps only
    the date of the last signal the server recorded, in `app-state.json`. After
    a failure, WorkTime tries again at most once an hour. Debug builds, demo
    launches and launches with `--data-dir` never send it. Turn off **Send an
@@ -90,15 +94,17 @@ WorkTime makes two kinds of request.
 ## The website
 
 The app never loads the website. The pages of `https://worktime.thanaen.dev`
-measure their audience and speed with Vercel Web Analytics and Speed
-Insights. Both scripts are served from the site's own address and set no
-cookie. Vercel counts a visit with a hash of the request that it discards
-after 24 hours. For each page view, it keeps the time, the page address, the
-referring site, the country and region, the operating system, the browser and
-the device type. Speed Insights also keeps loading-speed measurements (Core
-Web Vitals) for the page. Vercel's
-[privacy page](https://vercel.com/docs/analytics/privacy-policy) gives the
-details. A content blocker that stops `/_vercel/` scripts stops both.
+measure their audience and loading speed with PostHog, hosted in the European
+Union, through `https://e.worktime.thanaen.dev`, an address PostHog runs for
+the site. The script sets no cookie and stores nothing in the browser
+(cookieless mode). PostHog counts a visit with a hash of the IP address and
+the browser that changes every day, and keeps no IP address. For each page
+view, it keeps the time, the page address, the referring site, the operating
+system, the browser, the device type, the screen size, the language and the
+time zone, and the loading-speed measurements of the page (Core Web Vitals). It records no
+clicks, no keystrokes and no session replay. PostHog's
+[privacy page](https://posthog.com/privacy) gives the details. A content
+blocker that stops `e.worktime.thanaen.dev` stops it.
 
 ## Diagnostic export
 
