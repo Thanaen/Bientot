@@ -96,7 +96,7 @@ describe("the site", () => {
     expect(page).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/">');
     expect(page).toContain('<meta property="og:image" content="https://worktime.thanaen.dev/og/home.png">');
     expect(page).toContain('<meta name="twitter:card" content="summary_large_image">');
-    expect(page).toContain(`<script defer crossorigin="anonymous" src="https://e.worktime.thanaen.dev/static/array.js"></script>`);
+    expect(page).toContain(`<script defer crossorigin="anonymous" src="https://eu-assets.i.posthog.com/static/array.js"></script>`);
     expect(page).toContain(`<script defer src="/analytics.js"></script>`);
     expect(page).not.toContain("/_vercel/");
   });
