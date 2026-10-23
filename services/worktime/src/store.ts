@@ -1,5 +1,6 @@
 import type { Client } from "@libsql/client";
 import type { Ping } from "./ping";
+import type { DayTotal, MonthCell } from "./stats";
 
 // One row per day, version and channel: counters only, nothing that identifies a person.
 const SCHEMA = `CREATE TABLE IF NOT EXISTS usage_daily (
@@ -44,6 +45,35 @@ export class UsageStore {
               first_of_month = first_of_month + excluded.first_of_month`,
       args: [day, ping.version, ping.channel, first],
     });
+  }
+
+  // Raw totals of the finished days from `from` to `through`, summed in the database so that only a
+  // few hundred rows travel: one per day, and one per month, version and channel.
+  async totals(from: string, through: string): Promise<{ days: DayTotal[]; cells: MonthCell[] }> {
+    await this.#migrate();
+    const [days, cells] = await this.db.batch(
+      [
+        {
+          sql: `SELECT day, SUM(pings) AS pings FROM usage_daily WHERE day BETWEEN ? AND ? GROUP BY day`,
+          args: [from, through],
+        },
+        {
+          sql: `SELECT substr(day, 1, 7) AS month, version, channel, SUM(first_of_month) AS active
+                FROM usage_daily WHERE day BETWEEN ? AND ? GROUP BY month, version, channel`,
+          args: [from, through],
+        },
+      ],
+      "read",
+    );
+    return {
+      days: days!.rows.map((row) => ({ day: String(row.day), pings: Number(row.pings) })),
+      cells: cells!.rows.map((row) => ({
+        month: String(row.month),
+        version: String(row.version),
+        channel: String(row.channel),
+        active: Number(row.active),
+      })),
+    };
   }
 
   // The `count` calendar months up to `now` (UTC). "Active this month" counts first-of-month

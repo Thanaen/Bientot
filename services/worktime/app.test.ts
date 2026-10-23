@@ -166,3 +166,66 @@ describe("the homepage", () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe("the statistics", () => {
+  const page = (headers: Record<string, string> = {}) =>
+    app["/statistiques"].GET(new Request("http://local/statistiques", { headers }));
+  const file = (name: string) =>
+    app["/statistiques/:file"].GET(Object.assign(new Request(`http://local/statistiques/${name}`), { params: { file: name } }));
+  const pings = async (count: number, channel = "direct", version = "0.2.0") => {
+    for (let i = 0; i < count; i++) await ping({ version, channel, first_this_month: true });
+  };
+
+  test("shows nothing but a notice below 10 installations", async () => {
+    await pings(9);
+    clock = new Date("2026-10-13T08:00:00Z");
+    const html = await (await page()).text();
+    expect(html).toContain("Moins de 10 installations pour l’instant");
+    expect(html).not.toContain('class="kpis"');
+  });
+
+  test("leaves out the current day and caches until the next one", async () => {
+    clock = new Date("2026-10-12T09:00:00Z");
+    await pings(12);
+    await pings(30, "zip", "0.1.0-alpha.250");
+    clock = new Date("2026-10-13T09:00:00Z");
+    await pings(15);
+    const response = await page();
+    expect(response.headers.get("cache-control")).toBe("public, max-age=600");
+    // 09:00 to 00:05 the next day.
+    expect(response.headers.get("vercel-cdn-cache-control")).toBe("max-age=54300, stale-while-revalidate=3600");
+    const html = await response.text();
+    expect(html).toContain("Installations actives en octobre");
+    expect(html).toContain("Données jusqu’au 12 octobre 2026");
+    expect(await (await file("quotidien.csv")).text()).toBe("jour,installations\n2026-10-12,42\n");
+  });
+
+  test("serves the open data files, readable from other sites", async () => {
+    clock = new Date("2026-10-12T09:00:00Z");
+    await pings(12);
+    clock = new Date("2026-10-13T09:00:00Z");
+    const csv = await file("details.csv");
+    expect(csv.headers.get("content-type")).toBe("text/csv; charset=utf-8");
+    expect(csv.headers.get("access-control-allow-origin")).toBe("*");
+    expect(await csv.text()).toBe("mois,version,mode,actives\n2026-10,0.2.0,direct,10\n");
+    expect(await (await file("mensuel.json")).json()).toEqual([
+      { mois: "2026-10", actives: 12, moyenne_jour: null, pic_jour: 12, partiel: true },
+    ]);
+  });
+
+  test("answers 304 to a browser that has the same day's figures", async () => {
+    clock = new Date("2026-10-13T09:00:00Z");
+    const etag = (await page()).headers.get("etag")!;
+    expect((await page({ "if-none-match": etag })).status).toBe(304);
+    clock = new Date("2026-10-14T09:00:00Z");
+    expect((await page({ "if-none-match": etag })).status).toBe(200);
+  });
+
+  test.each(["stats.csv", "mensuel.xml", "..", "mensuel.csv.bak"])("serves no file named %p", async (name) => {
+    expect((await file(name)).status).toBe(404);
+  });
+
+  test("the homepage links to the page", async () => {
+    expect(await app["/"].GET().text()).toContain('href="/statistiques"');
+  });
+});
