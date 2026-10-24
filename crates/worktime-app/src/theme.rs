@@ -338,6 +338,11 @@ pub mod size {
     /// The « maintenant » line and how far it overhangs the strip.
     pub const NOW_LINE_WIDTH: Pixels = px(2.);
     pub const NOW_LINE_OVERHANG: Pixels = px(3.);
+    /// The bracket over a recurring appointment's planned hours: its stroke, the height of its
+    /// ticks, and the room between it and the strip.
+    pub const APPOINTMENT_MARKER_STROKE: Pixels = px(2.);
+    pub const APPOINTMENT_MARKER_HEIGHT: Pixels = px(4.);
+    pub const APPOINTMENT_MARKER_GAP: Pixels = px(7.);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

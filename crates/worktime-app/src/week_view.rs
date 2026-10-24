@@ -272,6 +272,12 @@ impl WeekView {
         self.dragging = edge;
     }
 
+    /// Where the open day's strip was last drawn, for the screenshots.
+    #[cfg(feature = "screenshots")]
+    pub fn strip_bounds(&self) -> Option<Bounds<Pixels>> {
+        self.strip_bounds.get()
+    }
+
     /// How wide the open day's strip was last drawn.
     fn strip_width(&self) -> Option<f32> {
         self.strip_bounds

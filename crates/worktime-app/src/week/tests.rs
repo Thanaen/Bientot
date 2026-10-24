@@ -1,8 +1,10 @@
 //! The week model against literal texts and geometry, and its commands recorded on a demo
 //! ledger as the window records them.
 
+use jiff::civil::time;
 use worktime_core::demo::DemoScenario;
 use worktime_domain::adjustments::ManualClassification;
+use worktime_domain::configuration::{RecurringAppointment, WorkTimeSettings};
 
 use super::test_support::{Throwaway, date, nb};
 use super::*;
@@ -964,4 +966,152 @@ fn a_repeated_correction_offers_an_appointment_in_the_result_bar() {
     state.answer_proposal();
     assert_eq!(state.proposal(), None);
     assert_eq!(state.info_bar().unwrap().offer, None);
+}
+
+/// The history week with `appointments` in its settings, as the window reads it.
+fn with_appointments(appointments: Vec<RecurringAppointment>) -> (Demo, WeekState) {
+    let (mut demo, _) = Demo::open(DemoScenario::HistoryWeek);
+    let settings = WorkTimeSettings {
+        recurring_appointments: appointments,
+        ..demo.host.settings().clone()
+    };
+    demo.host.save_settings(&settings).unwrap();
+    let state = WeekState::new(demo.read(), Language::French);
+    (demo, state)
+}
+
+fn appointment(
+    id: &str,
+    name: &str,
+    weekday: Weekday,
+    start: Time,
+    end: Time,
+) -> RecurringAppointment {
+    RecurringAppointment {
+        id: id.to_owned(),
+        name: name.to_owned(),
+        weekday,
+        start,
+        end,
+        enabled: true,
+        since: None,
+        alternate_weeks_from: None,
+        automatic: false,
+    }
+}
+
+/// Each day's brackets as hours of the axis, and whether each end has its tick.
+fn markers(state: &WeekState) -> Vec<(Date, String, String, bool, bool)> {
+    let (start_hour, end_hour) = (state.timeline.start_hour, state.timeline.end_hour);
+    let clock = |fraction: f32| {
+        let minutes = (f64::from(start_hour) * 60.
+            + f64::from(fraction) * f64::from(end_hour - start_hour) * 60.)
+            .round() as i32;
+        format!("{:02}:{:02}", minutes / 60, minutes % 60)
+    };
+    state
+        .timeline
+        .days
+        .iter()
+        .flat_map(|day| {
+            day.appointments.iter().map(|marker| {
+                (
+                    day.date,
+                    clock(marker.start),
+                    clock(marker.start + marker.length),
+                    marker.opens,
+                    marker.closes,
+                )
+            })
+        })
+        .collect()
+}
+
+/// An appointment gets its bracket on each day it falls on that shows some time, cut at the
+/// axis and at now; one switched off, not started yet or still to come gets none.
+#[test]
+fn an_appointment_is_marked_over_its_hours_up_to_now() {
+    let at = |hour, minute| time(hour, minute, 0, 0);
+    let (_demo, state) = with_appointments(vec![
+        appointment(
+            "wednesday",
+            "Réunion d’équipe",
+            Weekday::Wednesday,
+            at(10, 0),
+            at(12, 0),
+        ),
+        // Before the axis, which starts at 8:00.
+        appointment("thursday", "", Weekday::Thursday, at(7, 0), at(9, 0)),
+        // Around now, Friday at 18:00, then after it.
+        appointment("friday", "", Weekday::Friday, at(17, 0), at(19, 30)),
+        appointment("evening", "", Weekday::Friday, at(18, 30), at(19, 0)),
+        RecurringAppointment {
+            enabled: false,
+            ..appointment("monday", "", Weekday::Monday, at(10, 0), at(11, 0))
+        },
+        RecurringAppointment {
+            since: Some(date(9, 7)),
+            ..appointment("tuesday", "", Weekday::Tuesday, at(10, 0), at(11, 0))
+        },
+    ]);
+
+    assert_eq!(
+        (state.timeline.start_hour, state.timeline.end_hour),
+        (8, 19)
+    );
+    let marker = |day, start: &str, end: &str, opens, closes| {
+        (
+            date(9, day),
+            start.to_owned(),
+            end.to_owned(),
+            opens,
+            closes,
+        )
+    };
+    assert_eq!(
+        markers(&state),
+        [
+            marker(2, "10:00", "12:00", true, true),
+            marker(3, "08:00", "09:00", false, true),
+            marker(4, "17:00", "18:00", true, false),
+        ]
+    );
+}
+
+/// A bracket is named after its appointment and the hours planned, even when it is cut at now.
+#[test]
+fn a_marker_is_named_after_its_appointment_and_its_planned_hours() {
+    let at = |hour, minute| time(hour, minute, 0, 0);
+    let (_demo, state) = with_appointments(vec![
+        appointment(
+            "wednesday",
+            "Réunion d’équipe",
+            Weekday::Wednesday,
+            at(10, 0),
+            at(12, 0),
+        ),
+        appointment("friday", "", Weekday::Friday, at(17, 0), at(19, 30)),
+    ]);
+    let names = |language| {
+        WeekPage::project(&state.timeline, date(9, 4), language)
+            .days
+            .into_iter()
+            .flat_map(|row| row.markers)
+            .map(|marker| marker.accessible_name)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        names(Language::French),
+        [
+            "Réunion d’équipe, horaire prévu 10:00–12:00",
+            "Rendez-vous du vendredi, horaire prévu 17:00–19:30",
+        ]
+    );
+    assert_eq!(
+        names(Language::English),
+        [
+            "Réunion d’équipe, scheduled 10:00–12:00",
+            "Friday appointment, scheduled 17:00–19:30",
+        ]
+    );
 }

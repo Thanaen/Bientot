@@ -6,13 +6,14 @@ use jiff::civil::{Date, Time};
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp};
 use worktime_domain::accounting::{AdjustmentId, LongLockReviewId};
+use worktime_domain::configuration::RecurringAppointment;
 use worktime_domain::history::{CurrentWeek, CurrentWeekDay};
 use worktime_domain::intervals::UtcInterval;
 use worktime_domain::time::{LocalWorkday, TimeZoneProvider};
 
 use super::{
-    CountedCorrection, Credit, DEFAULT_END_HOUR, DEFAULT_START_HOUR, Lock, LockReview, Offer,
-    Segment, SegmentId, SegmentKind, details, is_correctable,
+    AppointmentMarker, CountedCorrection, Credit, DEFAULT_END_HOUR, DEFAULT_START_HOUR, Lock,
+    LockReview, Offer, Segment, SegmentId, SegmentKind, details, is_correctable,
 };
 use crate::workday::MINIMUM_REPORTED_MISSING_TIME;
 
@@ -47,6 +48,8 @@ pub struct DayTimeline {
     pub availability: Availability,
     pub figures: Option<Figures>,
     pub segments: Vec<Segment>,
+    /// The recurring appointments planned on the day, over the strip.
+    pub appointments: Vec<AppointmentMarker>,
     /// Where the « maintenant » line falls, when it is within the drawn hours.
     pub now: Option<f32>,
     /// Today, even when the line falls outside the drawn hours.
@@ -109,12 +112,14 @@ impl WeekTimeline {
     /// `reviews` are the locks the week awaits an answer for; a review segment whose lock is
     /// not among them is only drawn. `offers` say what the week offers on each correction its
     /// summaries count; one they do not name is [`Offer::Unknown`]. `confirmed` are the locks
-    /// confirmed as work, whose sleep the ledger leaves uncounted.
+    /// confirmed as work, whose sleep the ledger leaves uncounted. Each of `appointments`
+    /// gets a marker on the days it falls on that show some time, up to now.
     pub fn project(
         week: &CurrentWeek,
         reviews: &[LockReview],
         offers: &HashMap<AdjustmentId, Offer>,
         confirmed: &[(AdjustmentId, UtcInterval)],
+        appointments: &[RecurringAppointment],
         now: Timestamp,
         zones: &dyn TimeZoneProvider,
     ) -> Self {
@@ -124,18 +129,18 @@ impl WeekTimeline {
             .iter()
             .map(|day| place_day(day, reviews, offers, confirmed, now, zones, &local))
             .collect();
-        let hours: Vec<f64> = placed
+        let drawn: Vec<f64> = placed
             .iter()
             .flat_map(|(_, pieces, _)| pieces.iter().flat_map(|piece| [piece.from, piece.to]))
             .collect();
-        let start_hour = hours
+        let start_hour = drawn
             .iter()
             .copied()
             .reduce(f64::min)
             .map_or(DEFAULT_START_HOUR, |hour| {
                 DEFAULT_START_HOUR.min(hour.floor() as i8)
             });
-        let end_hour = hours
+        let end_hour = drawn
             .iter()
             .copied()
             .reduce(f64::max)
@@ -147,6 +152,27 @@ impl WeekTimeline {
         let days = placed
             .into_iter()
             .map(|(mut day, pieces, now_hour)| {
+                // Hours past now are not drawn yet, nor are hours outside the axis.
+                let shown = (
+                    f64::from(start_hour),
+                    now_hour.map_or(f64::from(end_hour), |now| now.min(f64::from(end_hour))),
+                );
+                day.appointments = appointments
+                    .iter()
+                    .filter(|appointment| !pieces.is_empty() && appointment.falls_on(day.date))
+                    .filter_map(|appointment| {
+                        let planned = (hours(appointment.start), hours(appointment.end));
+                        let (from, to) = (planned.0.max(shown.0), planned.1.min(shown.1));
+                        (from < to).then(|| AppointmentMarker {
+                            name: appointment.name.clone(),
+                            planned: (appointment.start, appointment.end),
+                            start: fraction(from),
+                            length: ((to - from) / span) as f32,
+                            opens: from == planned.0,
+                            closes: to == planned.1,
+                        })
+                    })
+                    .collect();
                 day.segments = pieces
                     .into_iter()
                     .map(|piece| Segment {
@@ -270,6 +296,7 @@ fn place_day(
         availability,
         figures: None,
         segments: Vec::new(),
+        appointments: Vec::new(),
         now: None,
         is_today: false,
     };

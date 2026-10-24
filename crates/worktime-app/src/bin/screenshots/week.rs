@@ -12,10 +12,16 @@
 //!   back to the lock before it, and Monday's gaps in the problem periods;
 //! - `week-range-work-motion-<0|8|17|50|100>.png`, the entrance of the popover a click opens;
 //! - `week-proposal.png`, the result bar of a correction made the third Wednesday in a row,
-//!   which offers to make it an appointment.
+//!   which offers to make it an appointment;
+//! - `week-appointments.png`, the brackets of three recurring appointments: Wednesday's over its
+//!   lock, Thursday's cut at the axis and Friday's cut at now; `-tooltip` with the pointer on
+//!   Friday's, `-bubble` with Wednesday's lock open.
 
 use anyhow::Context as _;
-use gpui::{AppContext as _, HeadlessAppContext, WindowHandle, size};
+use gpui::{
+    AppContext as _, HeadlessAppContext, Modifiers, MouseMoveEvent, PlatformInput, WindowHandle,
+    point, px, size,
+};
 use jiff::civil::{Weekday, time};
 use worktime_app::adjust::window::Opener;
 use worktime_app::demo::{self, DemoHost};
@@ -26,7 +32,9 @@ use worktime_app::week::{Answer, Edge, Recorded, SegmentKind};
 use worktime_app::week_view::WeekView;
 use worktime_core::demo::DemoScenario;
 use worktime_domain::accounting::AdjustmentId;
-use worktime_domain::configuration::{AppointmentProposal, Occurrence};
+use worktime_domain::configuration::{
+    AppointmentProposal, Occurrence, RecurringAppointment, WorkTimeSettings,
+};
 
 use super::shared::{adjust_form, demo_day, open_adjust, open_segment, read_demo_week};
 use super::{HISTORY_WEEK_MEETING, MENU_FRAMES, capture, capture_entrance};
@@ -119,7 +127,111 @@ pub fn capture_weeks(
     }
     capture_answered_locks(cx, language, output)?;
     capture_proposal(cx, language, output)?;
+    capture_appointments(cx, language, output)?;
     capture_ranges(cx, language, output)
+}
+
+/// The history week with a recurring appointment on Wednesday from 10:00 to 12:00, over its
+/// lock, on Thursday from 7:00 to 9:00, before the axis, and on Friday from 17:00 to 19:30, past
+/// now.
+fn capture_appointments(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    let appointment = |id: &str, name: &str, weekday, start, end| RecurringAppointment {
+        id: id.to_owned(),
+        name: name.to_owned(),
+        weekday,
+        start,
+        end,
+        enabled: true,
+        since: None,
+        alternate_weeks_from: None,
+        automatic: false,
+    };
+    let appointments = vec![
+        appointment(
+            "wednesday",
+            "Réunion d’équipe",
+            Weekday::Wednesday,
+            time(10, 0, 0, 0),
+            time(12, 0, 0, 0),
+        ),
+        appointment(
+            "thursday",
+            "",
+            Weekday::Thursday,
+            time(7, 0, 0, 0),
+            time(9, 0, 0, 0),
+        ),
+        appointment(
+            "friday",
+            "",
+            Weekday::Friday,
+            time(17, 0, 0, 0),
+            time(19, 30, 0, 0),
+        ),
+    ];
+    let directory = demo::throwaway_directory();
+    let read = DemoHost::open(DemoScenario::HistoryWeek, &directory).and_then(|mut host| {
+        let settings = WorkTimeSettings {
+            recurring_appointments: appointments,
+            ..host.settings().clone()
+        };
+        host.save_settings(&settings)?;
+        host.refresh(language)?;
+        host.week()
+    });
+    std::fs::remove_dir_all(&directory).ok();
+    let week = read?;
+    let window = cx.open_window(
+        size(token::WEEK_WINDOW_WIDTH, token::WEEK_WINDOW_HEIGHT),
+        |window, cx| cx.new(|cx| WeekView::new(Some(week), language, window, cx)),
+    )?;
+    capture(cx, window.into(), &output.join("week-appointments.png"))?;
+    let pointer = cx.update(|cx| {
+        window.update(cx, |view, _, _| {
+            let bounds = view.strip_bounds()?;
+            let state = view.state_mut()?;
+            let friday = state.page().days.into_iter().find(|row| row.is_today)?;
+            let marker = friday.markers.first()?;
+            let width = f32::from(bounds.size.width);
+            Some(point(
+                bounds.origin.x + px((marker.start + marker.length / 2.) * width),
+                bounds.origin.y
+                    - token::APPOINTMENT_MARKER_GAP
+                    - token::APPOINTMENT_MARKER_HEIGHT / 2.,
+            ))
+        })
+    })?;
+    let pointer = pointer.context("Friday draws its appointment")?;
+    cx.update_window(window.into(), |_, window, cx| {
+        window.dispatch_event(
+            PlatformInput::MouseMove(MouseMoveEvent {
+                position: pointer,
+                pressed_button: None,
+                modifiers: Modifiers::default(),
+            }),
+            cx,
+        );
+    })?;
+    // The tooltip shows once the pointer has rested on the bracket.
+    cx.run_until_parked();
+    cx.advance_clock(std::time::Duration::from_millis(600));
+    capture(
+        cx,
+        window.into(),
+        &output.join("week-appointments-tooltip.png"),
+    )?;
+    open_segment(cx, window, "Wednesday's lock", |segment| {
+        segment.kind == SegmentKind::Review && segment.local_start.date() == demo_day(2)
+    })?;
+    capture(
+        cx,
+        window.into(),
+        &output.join("week-appointments-bubble.png"),
+    )
 }
 
 /// Wednesday's long lock counted as work, its result offering « Compter chaque mercredi… » as

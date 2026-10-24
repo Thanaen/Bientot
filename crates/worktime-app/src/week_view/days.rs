@@ -5,9 +5,9 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use gpui::{
-    AnyElement, App, BorderStyle, Bounds, ClickEvent, Context, Corners, Hsla, IntoElement, Pixels,
-    Role, SharedString, TextAlign, Window, canvas, div, fill, pattern_slash, point, prelude::*, px,
-    quad, relative, size, transparent_black,
+    AnyElement, App, BorderStyle, Bounds, ClickEvent, Context, Corners, Edges, Hsla, IntoElement,
+    Pixels, Role, SharedString, TextAlign, Window, canvas, div, fill, pattern_slash, point,
+    prelude::*, px, quad, relative, size, transparent_black,
 };
 
 use super::{Layout, WeekView, button, row_with_trailing, tone_color, value_color};
@@ -229,6 +229,22 @@ impl WeekView {
                 }
             })
             .collect::<Vec<_>>();
+        // Each appointment's bracket is painted too: a node over it names it and shows its
+        // tooltip, a little taller than the bracket to be easier to point at.
+        let markers = row.markers.iter().enumerate().map(|(position, marker)| {
+            let name = SharedString::from(marker.accessible_name.clone());
+            div()
+                .id(("appointment", index * 1000 + position))
+                .role(Role::Label)
+                .aria_value(name.clone())
+                .absolute()
+                .top(-(size::APPOINTMENT_MARKER_GAP + size::APPOINTMENT_MARKER_HEIGHT + BASE_04))
+                .h(size::APPOINTMENT_MARKER_HEIGHT + BASE_06)
+                .left(relative(marker.start))
+                .w(relative(marker.length))
+                .min_w(px(week::MINIMUM_SEGMENT_WIDTH))
+                .tooltip(widgets::tooltip(name))
+        });
         let strip_area = div()
             .id(("strip", index))
             .relative()
@@ -244,6 +260,7 @@ impl WeekView {
                 theme,
             ))
             .children(overlays)
+            .children(markers)
             .children(
                 bubble
                     .as_ref()
@@ -502,8 +519,9 @@ fn paint_text(
     line.width
 }
 
-/// The strip of one day: its track, its segments, the open day's labels and the « maintenant »
-/// line, painted by hand as the design system's Frise. `bounds` keeps where it was painted.
+/// The strip of one day: its track, its segments, the open day's labels, the « maintenant »
+/// line and the brackets of its appointments above it, painted by hand as the design system's
+/// Frise. `bounds` keeps where it was painted.
 /// While a range is `selected`, only the segments starting in it keep their label: the others
 /// are dimmed, under its handles.
 fn strip(
@@ -513,6 +531,7 @@ fn strip(
     theme: &Theme,
 ) -> impl IntoElement {
     let segments = row.segments.clone();
+    let markers = row.markers.clone();
     let (focused, future, now) = (row.focused, row.future, row.now);
     let theme = theme.clone();
     canvas(
@@ -575,6 +594,36 @@ fn strip(
                     )
                     .corner_radii(Corners::all(size::NOW_LINE_WIDTH / 2.)),
                 );
+            }
+            for marker in &markers {
+                let (x, w) = week::place(marker.start, marker.length, width);
+                // An end cut by the axis or by now is left open, without its tick.
+                let end = |drawn: bool, width| if drawn { width } else { px(0.) };
+                window.paint_quad(quad(
+                    Bounds::new(
+                        point(
+                            bounds.origin.x + px(x),
+                            bounds.origin.y
+                                - size::APPOINTMENT_MARKER_GAP
+                                - size::APPOINTMENT_MARKER_HEIGHT,
+                        ),
+                        size(px(w), size::APPOINTMENT_MARKER_HEIGHT),
+                    ),
+                    Corners {
+                        top_left: end(marker.opens, radius::XS),
+                        top_right: end(marker.closes, radius::XS),
+                        ..Corners::default()
+                    },
+                    transparent_black(),
+                    Edges {
+                        top: size::APPOINTMENT_MARKER_STROKE,
+                        left: end(marker.opens, size::APPOINTMENT_MARKER_STROKE),
+                        right: end(marker.closes, size::APPOINTMENT_MARKER_STROKE),
+                        bottom: px(0.),
+                    },
+                    theme.text_muted,
+                    BorderStyle::Solid,
+                ));
             }
         },
     )

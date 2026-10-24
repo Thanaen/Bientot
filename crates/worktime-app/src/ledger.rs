@@ -22,7 +22,9 @@ use worktime_domain::accounting::{
 use worktime_domain::adjustments::{
     AdjustmentValidationError, ManualAdjustment, ManualClassification,
 };
-use worktime_domain::configuration::{AppointmentProposal, ObservedDay, WorkTimeSettings};
+use worktime_domain::configuration::{
+    AppointmentProposal, ObservedDay, RecurringAppointment, WorkTimeSettings,
+};
 use worktime_domain::history::DailySummaryDisposition;
 use worktime_domain::history::{CurrentWeek, DailySummarySnapshot};
 use worktime_domain::intervals::UtcInterval;
@@ -75,10 +77,12 @@ impl<Day: Clone + PartialEq> GainsCache<Day> {
 }
 
 /// The current week as the ledger stores it, placed on its timeline, with the locks it awaits
-/// an answer for as `accounting` resolves them and what it offers on each correction.
+/// an answer for as `accounting` resolves them, what it offers on each correction and the
+/// planned hours of `appointments`.
 pub fn read_week(
     connection: &Connection,
     accounting: &WorkdayAccounting,
+    appointments: &[RecurringAppointment],
     clock: &dyn Clock,
     zones: &dyn TimeZoneProvider,
     cache: &GainsCache,
@@ -92,6 +96,7 @@ pub fn read_week(
         &reviews,
         &offers,
         &confirmed,
+        appointments,
         clock.now(),
         zones,
     ))

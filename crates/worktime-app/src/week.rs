@@ -254,6 +254,36 @@ impl Segment {
     }
 }
 
+/// A recurring appointment planned on a day, as the bracket over its strip shows it. `start`
+/// and `length` are fractions of the week's hour range, as [`Segment`]'s, cut at the drawn
+/// hours and at now.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AppointmentMarker {
+    /// As the settings hold it, empty for the name derived from the weekday.
+    pub name: String,
+    pub planned: (Time, Time),
+    pub start: f32,
+    pub length: f32,
+    /// The planned start is drawn, with a tick; a start cut by the axis is left open.
+    pub opens: bool,
+    /// The planned end is drawn, with a tick; an end cut by now or the axis is left open.
+    pub closes: bool,
+}
+
+impl AppointmentMarker {
+    /// « Réunion du jeudi, horaire prévu 14:00–16:00 », for its tooltip and screen readers.
+    pub fn accessible_name(&self, date: Date, language: Language) -> String {
+        let (start, end) = self.planned;
+        language.format(
+            Key::TimelineAppointmentNameFormat,
+            &[
+                &appointment_name(&self.name, date.weekday(), language),
+                &range_text(date.to_datetime(start), date.to_datetime(end), language),
+            ],
+        )
+    }
+}
+
 /// The narrowest a segment is drawn, so that a short one stays visible.
 pub const MINIMUM_SEGMENT_WIDTH: f32 = 3.;
 
@@ -334,6 +364,16 @@ pub struct SegmentView {
     pub role: SegmentRole,
 }
 
+/// The bracket over a recurring appointment's planned hours, see [`AppointmentMarker`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct MarkerView {
+    pub start: f32,
+    pub length: f32,
+    pub opens: bool,
+    pub closes: bool,
+    pub accessible_name: String,
+}
+
 /// What a screen reader meets for a segment, always under its `accessible_name`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SegmentRole {
@@ -390,6 +430,7 @@ pub struct DayRow {
     pub is_today: bool,
     pub now: Option<f32>,
     pub segments: Vec<SegmentView>,
+    pub markers: Vec<MarkerView>,
     pub focus: Option<DayFocus>,
 }
 
@@ -543,6 +584,17 @@ fn project_row(
             },
         })
         .collect();
+    let markers = day
+        .appointments
+        .iter()
+        .map(|marker| MarkerView {
+            start: marker.start,
+            length: marker.length,
+            opens: marker.opens,
+            closes: marker.closes,
+            accessible_name: marker.accessible_name(day.date, language),
+        })
+        .collect();
     let future = day.availability == Availability::Future;
     // A future day keeps the target it is expected to have, so its column lines up.
     let target = figures
@@ -577,6 +629,7 @@ fn project_row(
         is_today: day.is_today,
         now: day.now,
         segments,
+        markers,
         focus: focused.then(|| project_focus(day, language)),
     }
 }

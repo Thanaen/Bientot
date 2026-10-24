@@ -667,6 +667,7 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="TimelineKindSleep" xml:space="preserve"><value>Sleep</value></data>
   <data name="TimelineKindReview" xml:space="preserve"><value>To review</value></data>
   <data name="TimelineSegmentNameFormat" xml:space="preserve"><value>{0}, {1} ({2})</value></data>
+  <data name="TimelineAppointmentNameFormat" xml:space="preserve"><value>{0}, scheduled {1}</value></data>
   <data name="HistoryRefresh.AutomationProperties.Name" xml:space="preserve"><value>Refresh</value></data>
   <data name="HistoryRefresh.ToolTipService.ToolTip" xml:space="preserve"><value>Refresh the week</value></data>
   <data name="HistoryWeekTitleSameMonth" xml:space="preserve"><value>Week of {0:MMMM d}–{1:%d}</value></data>

@@ -1,13 +1,13 @@
 //! What WorkTime's windows draw alike: the title bar over a transparent titlebar, the icons,
 //! the disclosures, the small labels and capitals, the notices and the privacy footnote, the
-//! thumb of a scroll bar and the shade of a scrolled edge, and a text shaped on one line and how
-//! wide it is.
+//! thumb of a scroll bar and the shade of a scrolled edge, the tooltips, and a text shaped on
+//! one line and how wide it is.
 
 use gpui::{
-    App, Bounds, ClickEvent, Div, ElementId, FocusHandle, Font, FontFeatures, Hsla, Pixels, Role,
-    ScrollHandle, ShapedLine, SharedString, Stateful, TextRun, Window, WindowControlArea, canvas,
-    div, fill, font, hsla, linear_color_stop, linear_gradient, point, prelude::*, px, size, svg,
-    transparent_black,
+    AnyView, App, Bounds, ClickEvent, Context, Div, ElementId, FocusHandle, Font, FontFeatures,
+    Hsla, Pixels, Role, ScrollHandle, ShapedLine, SharedString, Stateful, TextRun, Window,
+    WindowControlArea, canvas, div, fill, font, hsla, linear_color_stop, linear_gradient, point,
+    prelude::*, px, size, svg, transparent_black,
 };
 
 use crate::assets::{FONT_FAMILY, MONO_FONT_FAMILY};
@@ -304,6 +304,34 @@ pub(crate) fn caps(label: &str, theme: &Theme) -> Div {
         .type_style(text::LABEL_XS)
         .text_color(theme.text_muted)
         .child(label.to_uppercase())
+}
+
+/// The design system's Tooltip: a short text on an elevated surface, on one line so that a time
+/// range is never wrapped at its dash.
+struct Tooltip(SharedString);
+
+impl Render for Tooltip {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = Theme::current(window, cx);
+        div()
+            .whitespace_nowrap()
+            .px(BASE_08)
+            .py(BASE_04)
+            .rounded(radius::LG)
+            .border_1()
+            .border_color(theme.border)
+            .bg(theme.elevated_surface)
+            .shadow(theme.shadow_elevated())
+            .type_style(text::LABEL_SM)
+            .font_features(tabular_figures())
+            .text_color(theme.text)
+            .child(self.0.clone())
+    }
+}
+
+/// What `.tooltip()` shows on hover: `text` in a [`Tooltip`].
+pub(crate) fn tooltip(text: SharedString) -> impl Fn(&mut Window, &mut App) -> AnyView {
+    move |_, cx| cx.new(|_| Tooltip(text.clone())).into()
 }
 
 /// How wide `text` is on one line in `style`.

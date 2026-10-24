@@ -648,6 +648,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="TimelineKindSleep" xml:space="preserve"><value>Veille</value></data>
   <data name="TimelineKindReview" xml:space="preserve"><value>À vérifier</value></data>
   <data name="TimelineSegmentNameFormat" xml:space="preserve"><value>{0}, {1} ({2})</value></data>
+  <data name="TimelineAppointmentNameFormat" xml:space="preserve"><value>{0}, horaire prévu {1}</value></data>
   <data name="HistoryRefresh.AutomationProperties.Name" xml:space="preserve"><value>Actualiser</value></data>
   <data name="HistoryRefresh.ToolTipService.ToolTip" xml:space="preserve"><value>Actualiser la semaine</value></data>
   <data name="HistoryWeekTitleSameMonth" xml:space="preserve"><value>Semaine du {0:%d} au {1:d MMMM}</value></data>
