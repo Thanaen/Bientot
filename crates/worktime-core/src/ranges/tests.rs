@@ -335,15 +335,98 @@ fn a_range_inside_a_correction_keeps_both_of_its_ends() {
             ),
             (
                 id("range.2"),
-                AdjustmentKind::Reclassification {
+                AdjustmentKind::Exclusion {
                     interval: interval((14, 0), (15, 0)),
-                    classification: EXCLUDED,
-                    confirms_review_id: None,
                 }
             ),
         ]
     );
     assert_eq!(day.credited(), before + hours(1.));
+}
+
+/// The kinds of the corrections the range recorded after `skip` saved ones.
+fn recorded(day: &Day, skip: usize) -> Vec<(AdjustmentId, AdjustmentKind)> {
+    day.stored()
+        .iter()
+        .skip(skip)
+        .map(|adjustment| (adjustment.id().clone(), adjustment.kind().clone()))
+        .collect()
+}
+
+#[test]
+fn a_range_inside_an_interval_of_work_keeps_its_far_end_as_work() {
+    let day = Day::new();
+    day.save(
+        ManualAdjustment::interval_work(
+            id("lunch-call"),
+            workday(),
+            interval((11, 50), (12, 30)),
+            at(17, 0),
+        )
+        .unwrap(),
+    );
+    let before = day.credited();
+
+    day.record((12, 0), (12, 10), EXCLUDED).unwrap();
+
+    assert_eq!(
+        recorded(&day, 1),
+        [
+            (
+                id("range.1"),
+                AdjustmentKind::IntervalWork {
+                    interval: interval((11, 50), (12, 0))
+                }
+            ),
+            (
+                id("range.2"),
+                AdjustmentKind::IntervalWork {
+                    interval: interval((12, 10), (12, 30))
+                }
+            ),
+        ]
+    );
+    assert_eq!(day.credited(), before - SignedDuration::from_mins(10));
+}
+
+/// An interval of work recorded over activity, as one saved before the activity was known:
+/// its far end could not be recorded as work there, so it counts the same as a reclassification.
+#[test]
+fn a_far_end_over_activity_is_kept_as_a_reclassification() {
+    let day = Day::new();
+    day.save(
+        ManualAdjustment::interval_work(
+            id("lunch-call"),
+            workday(),
+            interval((12, 0), (14, 0)),
+            at(17, 0),
+        )
+        .unwrap(),
+    );
+    let before = day.credited();
+
+    day.record((12, 10), (12, 20), EXCLUDED).unwrap();
+
+    assert_eq!(
+        recorded(&day, 1),
+        [
+            (
+                id("range.1"),
+                AdjustmentKind::IntervalWork {
+                    interval: interval((12, 0), (12, 10))
+                }
+            ),
+            (
+                id("range.2"),
+                AdjustmentKind::Reclassification {
+                    interval: interval((12, 20), (14, 0)),
+                    classification: CREDITED,
+                    confirms_review_id: None,
+                }
+            ),
+        ]
+    );
+    assert_eq!(day.credited(), before - SignedDuration::from_mins(10));
 }
 
 #[test]
