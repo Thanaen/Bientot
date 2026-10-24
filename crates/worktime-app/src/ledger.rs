@@ -16,7 +16,9 @@ use worktime_core::ranges::{RangeCommand, RangeCorrections, RangeError};
 use worktime_core::reviews::{
     FinishLongLockReviewCommand, LongLockReviews, ReviewError, resolution_interval,
 };
-use worktime_domain::accounting::{AccountingLabel, AdjustmentId, LongLockReviewId};
+use worktime_domain::accounting::{
+    AccountingLabel, AccountingResult, AdjustmentId, LongLockReviewId,
+};
 use worktime_domain::adjustments::{
     AdjustmentValidationError, ManualAdjustment, ManualClassification,
 };
@@ -35,34 +37,39 @@ use crate::week::{Gains, LockReview, Offer, WeekCommand, WeekTimeline};
 
 /// What each answer on a lock would change, kept from one week read to the next: a dry run
 /// records the answer and rolls it back, which the week would otherwise do twice per lock on
-/// every read. A day's fingerprint covers its timeline, its reviews and the settings, so an
-/// entry holds only while the answer it measured stays the same. Only the locks of the last
-/// read are kept.
-#[derive(Debug, Default)]
-pub struct GainsCache {
-    measured: RefCell<HashMap<(LongLockReviewId, String), Option<Gains>>>,
+/// every read. An entry holds only while the day it was measured on stays the same: the
+/// fresh calculation of that day and the settings it ran with, as live activity can change
+/// a day between two refreshes of its summary. Only the locks of the last read are kept.
+#[derive(Debug)]
+pub struct GainsCache<Day = (AccountingResult, WorkTimeSettings)> {
+    measured: RefCell<HashMap<LongLockReviewId, (Day, Option<Gains>)>>,
 }
 
-impl GainsCache {
-    /// The gains of `review` on the day `fingerprint` describes, measured by `measure` the
-    /// first time they are asked for.
+impl<Day> Default for GainsCache<Day> {
+    fn default() -> Self {
+        Self {
+            measured: RefCell::default(),
+        }
+    }
+}
+
+impl<Day: Clone + PartialEq> GainsCache<Day> {
+    /// The gains of `review` on `day`, measured by `measure` the first time they are asked
+    /// for.
     fn gains(
         &self,
         review: &LongLockReviewId,
-        fingerprint: &str,
-        kept: &mut HashMap<(LongLockReviewId, String), Option<Gains>>,
+        day: &Day,
+        kept: &mut HashMap<LongLockReviewId, (Day, Option<Gains>)>,
         measure: impl FnOnce() -> Option<Gains>,
     ) -> Option<Gains> {
-        let key = (review.clone(), fingerprint.to_owned());
-        let known = kept
-            .get(&key)
-            .copied()
-            .or_else(|| self.measured.borrow().get(&key).copied());
-        let gains = match known {
-            Some(gains) => gains,
-            None => measure(),
+        let known = |entry: Option<&(Day, Option<Gains>)>| {
+            entry.and_then(|(measured_on, gains)| (measured_on == day).then_some(*gains))
         };
-        kept.insert(key, gains);
+        let gains = known(kept.get(review))
+            .or_else(|| known(self.measured.borrow().get(review)))
+            .unwrap_or_else(measure);
+        kept.insert(review.clone(), (day.clone(), gains));
         gains
     }
 }
@@ -247,6 +254,7 @@ fn pending_locks(
         if current.timeline().window().workday != *workday {
             continue;
         }
+        let day = (current.clone(), context.settings.clone());
         let reviews: Vec<_> = current
             .pending_reviews()
             .iter()
@@ -283,12 +291,7 @@ fn pending_locks(
                 is_open: review.is_open,
                 appointment: review.appointment_name(&context.settings.recurring_appointments),
                 weekday: workday.date.weekday(),
-                gains: cache.gains(
-                    &review.id,
-                    snapshot.input_fingerprint(),
-                    &mut kept,
-                    measured,
-                ),
+                gains: cache.gains(&review.id, &day, &mut kept, measured),
             }
         }));
     }

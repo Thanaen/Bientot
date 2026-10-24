@@ -15,7 +15,7 @@ use super::*;
 use crate::demo::Typing;
 use crate::strings::keep_together;
 use crate::tray_model::{self, MenuEntry, MenuState};
-use crate::week::{Answer, Recorded, SegmentId, SegmentKind, WeekState};
+use crate::week::{Answer, Gains, Lock, Recorded, SegmentId, SegmentKind, WeekState};
 use crate::workday::SourceHint;
 
 struct Machine {
@@ -1315,4 +1315,55 @@ fn four_confirmations_in_a_row_offer_to_count_automatically() {
     host.hide_offer(&offer.appointment_id);
     assert_eq!(host.view(Language::French).trust_offer, None);
     assert_eq!(machine.log(), "");
+}
+
+/// Thursday's appointment absence as the week offers it.
+fn thursday_absence(host: &LiveHost) -> Lock {
+    host.week()
+        .unwrap()
+        .day(jiff::civil::date(2026, 10, 8))
+        .unwrap()
+        .segments
+        .iter()
+        .find_map(|segment| segment.review.clone())
+        .expect("the absence awaits an answer")
+}
+
+/// An absence read while it goes on, then once it ended, is measured on the day as it stands
+/// at each read, though its summary was not refreshed in between.
+#[test]
+fn an_absence_that_ended_since_the_last_refresh_offers_its_gains() {
+    let machine = Machine::new();
+    let mut host = start_after_a_night_asleep(&machine);
+    let mut settings = host.settings().clone();
+    settings.recurring_appointments = vec![thursday_meeting(false)];
+    host.save_settings(&settings).unwrap();
+    host.prepare_lifecycle(|| Some(SessionState::Unlocked), std::iter::empty());
+    host.poll();
+    machine.work(&mut host, SignedDuration::from_mins(120));
+    host.record_lifecycle(&change(
+        &machine,
+        LifecycleChange::Power(PowerState::Suspended),
+    ));
+    machine.clock.advance(SignedDuration::from_hours(1));
+    host.refresh();
+    let away = thursday_absence(&host);
+    assert!(away.is_open);
+    assert_eq!(away.gains, None);
+
+    host.record(&change(
+        &machine,
+        LifecycleChange::Power(PowerState::Active),
+    ));
+    machine.work(&mut host, SignedDuration::from_mins(5));
+    let back = thursday_absence(&host);
+
+    assert!(!back.is_open);
+    assert_eq!(
+        back.gains,
+        Some(Gains {
+            count: SignedDuration::ZERO,
+            exclude: -SignedDuration::from_hours(1),
+        })
+    );
 }
