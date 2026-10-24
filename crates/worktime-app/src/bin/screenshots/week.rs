@@ -13,9 +13,9 @@
 //! - `week-range-work-motion-<0|8|17|50|100>.png`, the entrance of the popover a click opens;
 //! - `week-proposal.png`, the result bar of a correction made the third Wednesday in a row,
 //!   which offers to make it an appointment;
-//! - `week-appointments.png`, the brackets of three recurring appointments: Wednesday's over its
-//!   lock, Thursday's cut at the axis and Friday's cut at now; `-tooltip` with the pointer on
-//!   Friday's, `-bubble` with Wednesday's lock open.
+//! - `week-appointments.png`, the brackets of three recurring appointments: Monday's cut at the
+//!   axis, Thursday's over the sleep it turned into an absence to review and Friday's cut at now;
+//!   `-tooltip` with the pointer on Friday's, `-bubble` with Thursday's absence open.
 
 use anyhow::Context as _;
 use gpui::{
@@ -131,9 +131,8 @@ pub fn capture_weeks(
     capture_ranges(cx, language, output)
 }
 
-/// The history week with a recurring appointment on Wednesday from 10:00 to 12:00, over its
-/// lock, on Thursday from 7:00 to 9:00, before the axis, and on Friday from 17:00 to 19:30, past
-/// now.
+/// The history week with a recurring appointment on Monday from 7:00 to 9:00, before the axis,
+/// on Thursday from 11:00 to 12:00, over its sleep, and on Friday from 17:00 to 19:30, past now.
 fn capture_appointments(
     cx: &mut HeadlessAppContext,
     language: Language,
@@ -152,18 +151,18 @@ fn capture_appointments(
     };
     let appointments = vec![
         appointment(
-            "wednesday",
-            "Réunion d’équipe",
-            Weekday::Wednesday,
-            time(10, 0, 0, 0),
-            time(12, 0, 0, 0),
+            "monday",
+            "",
+            Weekday::Monday,
+            time(7, 0, 0, 0),
+            time(9, 0, 0, 0),
         ),
         appointment(
             "thursday",
-            "",
+            "Réunion d’équipe",
             Weekday::Thursday,
-            time(7, 0, 0, 0),
-            time(9, 0, 0, 0),
+            time(11, 0, 0, 0),
+            time(12, 0, 0, 0),
         ),
         appointment(
             "friday",
@@ -200,7 +199,7 @@ fn capture_appointments(
             Some(point(
                 bounds.origin.x + px((marker.start + marker.length / 2.) * width),
                 bounds.origin.y
-                    - token::APPOINTMENT_MARKER_GAP
+                    - token::APPOINTMENT_MARKER_GAP_FOCUSED
                     - token::APPOINTMENT_MARKER_HEIGHT / 2.,
             ))
         })
@@ -216,17 +215,18 @@ fn capture_appointments(
             cx,
         );
     })?;
-    // The tooltip shows once the pointer has rested on the bracket.
     cx.run_until_parked();
-    cx.advance_clock(std::time::Duration::from_millis(600));
     capture(
         cx,
         window.into(),
         &output.join("week-appointments-tooltip.png"),
     )?;
-    open_segment(cx, window, "Wednesday's lock", |segment| {
-        segment.kind == SegmentKind::Review && segment.local_start.date() == demo_day(2)
-    })?;
+    open_segment(
+        cx,
+        window,
+        "Thursday's absence in its appointment",
+        |segment| segment.is_appointment() && segment.local_start.date() == demo_day(3),
+    )?;
     capture(
         cx,
         window.into(),

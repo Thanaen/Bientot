@@ -173,6 +173,7 @@ pub enum Key {
     HistoryLabelOvernightLock,
     HistoryLabelSuspended,
     HistoryLabelUnknown,
+    HistoryLegendAppointmentText,
     HistoryLegendGapText,
     HistoryLegendManualText,
     HistoryLegendNotWorkedText,
@@ -804,7 +805,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 796] = [
+pub(super) static ENTRIES: [Entry; 797] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -972,12 +973,13 @@ pub(super) static ENTRIES: [Entry; 796] = [
     Entry { name: "HistoryLabelOvernightLock", fr: "Verrouillé la nuit", en: "Locked overnight" },
     Entry { name: "HistoryLabelSuspended", fr: "Suspension", en: "Suspended" },
     Entry { name: "HistoryLabelUnknown", fr: "Inconnu", en: "Unknown" },
+    Entry { name: "HistoryLegendAppointment.Text", fr: "Rendez-vous prévu", en: "Planned appointment" },
     Entry { name: "HistoryLegendGap.Text", fr: "Trou ou veille, à régler", en: "Gap or sleep, to settle" },
     Entry { name: "HistoryLegendManual.Text", fr: "Correction manuelle", en: "Manual correction" },
     Entry { name: "HistoryLegendNotWorked.Text", fr: "Non travaillé", en: "Not worked" },
     Entry { name: "HistoryLegendNow.Text", fr: "Maintenant", en: "Now" },
     Entry { name: "HistoryLegendPause.Text", fr: "Pause", en: "Break" },
-    Entry { name: "HistoryLegendReview.Text", fr: "Verrouillage à vérifier", en: "Lock to review" },
+    Entry { name: "HistoryLegendReview.Text", fr: "À vérifier", en: "To review" },
     Entry { name: "HistoryLegendWork.Text", fr: "Travail", en: "Work" },
     Entry { name: "HistoryLoadFailed", fr: "Impossible de charger l’historique. Les dernières données chargées restent visibles\u{202f}; vérifiez le stockage local et réessayez.", en: "History could not be loaded. Your last loaded data remains visible; check local storage and retry." },
     Entry { name: "HistoryManualTitle.Text", fr: "Corrections manuelles", en: "Manual corrections" },

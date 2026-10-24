@@ -13,7 +13,8 @@ use worktime_domain::time::{LocalWorkday, TimeZoneProvider};
 
 use super::{
     AppointmentMarker, CountedCorrection, Credit, DEFAULT_END_HOUR, DEFAULT_START_HOUR, Lock,
-    LockReview, Offer, Segment, SegmentId, SegmentKind, details, is_correctable,
+    LockReview, MarkerEnd, Offer, PlannedAppointment, Segment, SegmentId, SegmentKind, details,
+    is_correctable,
 };
 use crate::workday::MINIMUM_REPORTED_MISSING_TIME;
 
@@ -157,22 +158,20 @@ impl WeekTimeline {
                     f64::from(start_hour),
                     now_hour.map_or(f64::from(end_hour), |now| now.min(f64::from(end_hour))),
                 );
-                day.appointments = appointments
-                    .iter()
-                    .filter(|appointment| !pieces.is_empty() && appointment.falls_on(day.date))
-                    .filter_map(|appointment| {
-                        let planned = (hours(appointment.start), hours(appointment.end));
-                        let (from, to) = (planned.0.max(shown.0), planned.1.min(shown.1));
-                        (from < to).then(|| AppointmentMarker {
-                            name: appointment.name.clone(),
-                            planned: (appointment.start, appointment.end),
-                            start: fraction(from),
-                            length: ((to - from) / span) as f32,
-                            opens: from == planned.0,
-                            closes: to == planned.1,
-                        })
-                    })
-                    .collect();
+                day.appointments = markers(
+                    appointments
+                        .iter()
+                        .filter(|appointment| !pieces.is_empty() && appointment.falls_on(day.date)),
+                    shown,
+                    now_hour.is_some_and(|now| now < f64::from(end_hour)),
+                )
+                .into_iter()
+                .map(|(from, to, marker)| AppointmentMarker {
+                    start: fraction(from),
+                    length: ((to - from) / span) as f32,
+                    ..marker
+                })
+                .collect();
                 day.segments = pieces
                     .into_iter()
                     .map(|piece| Segment {
@@ -447,6 +446,71 @@ fn place_day(
         _ => Vec::new(),
     };
     (timeline, pieces, now_hour)
+}
+
+/// The brackets of `appointments` on a day drawn over the hours `shown`, which end at now when
+/// `cut_by_now`, with the hours each spans. Appointments whose hours overlap share one bracket
+/// over their union, so that each stays named in its tooltip.
+fn markers<'a>(
+    appointments: impl Iterator<Item = &'a RecurringAppointment>,
+    shown: (f64, f64),
+    cut_by_now: bool,
+) -> Vec<(f64, f64, AppointmentMarker)> {
+    let mut cut: Vec<_> = appointments
+        .filter_map(|appointment| {
+            let planned = (hours(appointment.start), hours(appointment.end));
+            let (from, to) = (planned.0.max(shown.0), planned.1.min(shown.1));
+            let end = |planned_here: bool, cut: MarkerEnd| {
+                if planned_here {
+                    MarkerEnd::Planned
+                } else {
+                    cut
+                }
+            };
+            (from < to).then(|| {
+                (
+                    from,
+                    to,
+                    AppointmentMarker {
+                        appointments: vec![PlannedAppointment {
+                            name: appointment.name.clone(),
+                            planned: (appointment.start, appointment.end),
+                        }],
+                        start: 0.,
+                        length: 0.,
+                        left: end(from == planned.0, MarkerEnd::Axis),
+                        right: end(
+                            to == planned.1,
+                            if cut_by_now {
+                                MarkerEnd::Now
+                            } else {
+                                MarkerEnd::Axis
+                            },
+                        ),
+                    },
+                )
+            })
+        })
+        .collect();
+    cut.sort_by(|a, b| a.0.total_cmp(&b.0));
+    let mut merged: Vec<(f64, f64, AppointmentMarker)> = Vec::new();
+    for (from, to, marker) in cut {
+        match merged.last_mut() {
+            Some((start, end, last)) if from < *end => {
+                // On a tie, the one that goes on past the end sets how it is drawn.
+                if from == *start && marker.left != MarkerEnd::Planned {
+                    last.left = marker.left;
+                }
+                if to > *end || (to == *end && marker.right != MarkerEnd::Planned) {
+                    *end = to;
+                    last.right = marker.right;
+                }
+                last.appointments.extend(marker.appointments);
+            }
+            _ => merged.push((from, to, marker)),
+        }
+    }
+    merged
 }
 
 fn hours(time: Time) -> f64 {

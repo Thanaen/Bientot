@@ -23,8 +23,9 @@ use crate::settings_view;
 use crate::strings::{Key, Language};
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, motion, radius, size, tabular_figures, text};
-use crate::week::{self, Answer, DayTone, Edge, SegmentKind, Severity, WeekState, WeekTimeline};
+use crate::week::{self, Answer, DayTone, Edge, LegendMark, Severity, WeekState, WeekTimeline};
 use crate::widgets::{self, Hue, HueColors};
+use days::bracket_glyph;
 pub(crate) use days::{segment_quad, swatch};
 use sizing::{Layout, WindowSizes};
 
@@ -216,6 +217,9 @@ pub struct WeekView {
     days_scroll: ScrollHandle,
     /// The details just opened: the next render scrolls them into view.
     reveal_details: bool,
+    /// The appointment bracket under the pointer, whose tooltip shows until the pointer leaves
+    /// it or the open day or the selection changes.
+    hovered_marker: Option<MarkerHover>,
     _keep_focus: Subscription,
 }
 
@@ -251,6 +255,7 @@ impl WeekView {
             palette: None,
             days_scroll: ScrollHandle::new(),
             reveal_details: false,
+            hovered_marker: None,
             _keep_focus: keep_focus,
         }
     }
@@ -478,6 +483,55 @@ impl WeekView {
 
     fn text(&self, key: Key) -> &'static str {
         self.language.text(key)
+    }
+}
+
+/// The bracket the pointer rests on, its day's and its place among the day's brackets, and what
+/// the week showed open then: its tooltip belongs to that view of the week only.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct MarkerHover {
+    marker: (jiff::civil::Date, usize),
+    focused: jiff::civil::Date,
+    selection: Option<week::Selection>,
+}
+
+impl WeekView {
+    /// The bracket whose tooltip shows: none once the open day or the selection changed.
+    fn shown_marker(&self) -> Option<(jiff::civil::Date, usize)> {
+        let state = self.state.as_ref()?;
+        self.hovered_marker
+            .filter(|hover| {
+                hover.focused == state.focused() && hover.selection == state.selection()
+            })
+            .map(|hover| hover.marker)
+    }
+
+    /// The pointer entered the bracket `marker`, or left it.
+    fn hover_marker(&mut self, marker: (jiff::civil::Date, usize), hovered: bool) -> bool {
+        let Some(state) = &self.state else {
+            return false;
+        };
+        let hover = if hovered {
+            Some(MarkerHover {
+                marker,
+                focused: state.focused(),
+                selection: state.selection(),
+            })
+        } else {
+            self.hovered_marker.filter(|hover| hover.marker != marker)
+        };
+        let changed = self.hovered_marker != hover;
+        self.hovered_marker = hover;
+        changed
+    }
+
+    /// The text of the tooltip shown, for the tests.
+    #[cfg(feature = "screenshots")]
+    pub fn appointment_tooltip(&self) -> Option<Vec<String>> {
+        let (date, position) = self.shown_marker()?;
+        let page = self.state.as_ref()?.page();
+        let row = page.days.into_iter().find(|row| row.date == date)?;
+        row.markers.get(position).map(|marker| marker.names.clone())
     }
 }
 
@@ -961,19 +1015,7 @@ impl WeekView {
             .into_any_element()
     }
 
-    fn legend(&self, theme: &Theme) -> impl IntoElement {
-        let entries = [
-            (Some(SegmentKind::Work), Key::HistoryLegendWorkText),
-            (Some(SegmentKind::Manual), Key::HistoryLegendManualText),
-            (Some(SegmentKind::Pause), Key::HistoryLegendPauseText),
-            (Some(SegmentKind::Gap), Key::HistoryLegendGapText),
-            (Some(SegmentKind::Review), Key::HistoryLegendReviewText),
-            (
-                Some(SegmentKind::NotWorked),
-                Key::HistoryLegendNotWorkedText,
-            ),
-            (None, Key::HistoryFuture),
-        ];
+    fn legend(&self, page: &week::WeekPage, theme: &Theme) -> impl IntoElement {
         div()
             .flex()
             .flex_none()
@@ -982,27 +1024,24 @@ impl WeekView {
             .gap_y(BASE_08)
             .type_style(text::LABEL_SM)
             .text_color(theme.text_muted)
-            .children(entries.into_iter().map(|(kind, key)| {
+            .children(page.legend().into_iter().map(|(mark, key)| {
+                let glyph = match mark {
+                    LegendMark::Segment(kind) => swatch(Some(kind), theme).into_any_element(),
+                    LegendMark::Future => swatch(None, theme).into_any_element(),
+                    LegendMark::Appointment => bracket_glyph(theme).into_any_element(),
+                    LegendMark::Now => div()
+                        .w(size::NOW_LINE_WIDTH)
+                        .h(size::ICON_XS)
+                        .bg(theme.tl_now)
+                        .into_any_element(),
+                };
                 div()
                     .flex()
                     .items_center()
                     .gap(BASE_06)
-                    .child(swatch(kind, theme))
+                    .child(glyph)
                     .child(self.text(key))
             }))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(BASE_06)
-                    .child(
-                        div()
-                            .w(size::NOW_LINE_WIDTH)
-                            .h(size::ICON_XS)
-                            .bg(theme.tl_now),
-                    )
-                    .child(self.text(Key::HistoryLegendNowText)),
-            )
     }
 
     fn status_bar(&self, theme: &Theme) -> impl IntoElement {
@@ -1079,7 +1118,7 @@ impl Render for WeekView {
                     .child(self.header(&state, &theme, cx))
                     .children(self.info_bar(&state, &theme, cx))
                     .child(self.days(&state, &theme, window, cx))
-                    .child(self.legend(&theme));
+                    .child(self.legend(&state.page(), &theme));
             }
             None => {
                 main = main.child(

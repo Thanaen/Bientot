@@ -1000,8 +1000,8 @@ fn appointment(
     }
 }
 
-/// Each day's brackets as hours of the axis, and whether each end has its tick.
-fn markers(state: &WeekState) -> Vec<(Date, String, String, bool, bool)> {
+/// Each day's brackets as hours of the axis, and how each end is drawn.
+fn markers(state: &WeekState) -> Vec<(Date, String, String, MarkerEnd, MarkerEnd)> {
     let (start_hour, end_hour) = (state.timeline.start_hour, state.timeline.end_hour);
     let clock = |fraction: f32| {
         let minutes = (f64::from(start_hour) * 60.
@@ -1019,8 +1019,8 @@ fn markers(state: &WeekState) -> Vec<(Date, String, String, bool, bool)> {
                     day.date,
                     clock(marker.start),
                     clock(marker.start + marker.length),
-                    marker.opens,
-                    marker.closes,
+                    marker.left,
+                    marker.right,
                 )
             })
         })
@@ -1059,21 +1059,16 @@ fn an_appointment_is_marked_over_its_hours_up_to_now() {
         (state.timeline.start_hour, state.timeline.end_hour),
         (8, 19)
     );
-    let marker = |day, start: &str, end: &str, opens, closes| {
-        (
-            date(9, day),
-            start.to_owned(),
-            end.to_owned(),
-            opens,
-            closes,
-        )
+    let marker = |day, start: &str, end: &str, left, right| {
+        (date(9, day), start.to_owned(), end.to_owned(), left, right)
     };
+    use MarkerEnd::{Axis, Now, Planned};
     assert_eq!(
         markers(&state),
         [
-            marker(2, "10:00", "12:00", true, true),
-            marker(3, "08:00", "09:00", false, true),
-            marker(4, "17:00", "18:00", true, false),
+            marker(2, "10:00", "12:00", Planned, Planned),
+            marker(3, "08:00", "09:00", Axis, Planned),
+            marker(4, "17:00", "18:00", Planned, Now),
         ]
     );
 }
@@ -1112,6 +1107,140 @@ fn a_marker_is_named_after_its_appointment_and_its_planned_hours() {
         [
             "Réunion d’équipe, scheduled 10:00–12:00",
             "Friday appointment, scheduled 17:00–19:30",
+        ]
+    );
+}
+
+/// Two appointments over the same hours share one bracket, whose tooltip names both: drawn one
+/// over the other, only one could be pointed at.
+#[test]
+fn appointments_over_the_same_hours_share_one_bracket_naming_each() {
+    let at = |hour, minute| time(hour, minute, 0, 0);
+    let (_demo, state) = with_appointments(vec![
+        appointment(
+            "standup",
+            "Point d’équipe",
+            Weekday::Wednesday,
+            at(10, 0),
+            at(11, 0),
+        ),
+        appointment(
+            "review",
+            "Revue de code",
+            Weekday::Wednesday,
+            at(10, 0),
+            at(11, 0),
+        ),
+        // Overlapping the first two, past their end.
+        appointment("late", "", Weekday::Wednesday, at(10, 30), at(11, 30)),
+        // Only touching it: a bracket of its own.
+        appointment("after", "", Weekday::Wednesday, at(11, 30), at(12, 0)),
+    ]);
+
+    use MarkerEnd::Planned;
+    let marker = |start: &str, end: &str| {
+        (
+            date(9, 2),
+            start.to_owned(),
+            end.to_owned(),
+            Planned,
+            Planned,
+        )
+    };
+    assert_eq!(
+        markers(&state),
+        [marker("10:00", "11:30"), marker("11:30", "12:00")]
+    );
+    let page = WeekPage::project(&state.timeline, date(9, 2), Language::French);
+    let wednesday = page
+        .days
+        .into_iter()
+        .find(|row| row.date == date(9, 2))
+        .unwrap();
+    assert_eq!(
+        wednesday.markers[0].names,
+        [
+            "Point d’équipe, horaire prévu 10:00–11:00",
+            "Revue de code, horaire prévu 10:00–11:00",
+            "Rendez-vous du mercredi, horaire prévu 10:30–11:30",
+        ]
+    );
+    assert_eq!(
+        wednesday.markers[0].accessible_name,
+        "Point d’équipe, horaire prévu 10:00–11:00\u{202f}; \
+         Revue de code, horaire prévu 10:00–11:00\u{202f}; \
+         Rendez-vous du mercredi, horaire prévu 10:30–11:30"
+    );
+}
+
+/// A bracket that runs on past now is drawn as going on, even merged with one that ends there.
+#[test]
+fn a_bracket_running_past_now_goes_on_after_one_ending_there() {
+    let at = |hour, minute| time(hour, minute, 0, 0);
+    let (_demo, state) = with_appointments(vec![
+        appointment("ends", "", Weekday::Friday, at(17, 0), at(18, 0)),
+        appointment("goes-on", "", Weekday::Friday, at(17, 30), at(19, 0)),
+    ]);
+    let ends: Vec<_> = markers(&state)
+        .into_iter()
+        .map(|(_, start, end, left, right)| (start, end, left, right))
+        .collect();
+    assert_eq!(
+        ends,
+        [(
+            "17:00".to_owned(),
+            "18:00".to_owned(),
+            MarkerEnd::Planned,
+            MarkerEnd::Now
+        )]
+    );
+}
+
+/// The legend explains the bracket only in a week that draws one, and calls the review segment
+/// « À vérifier » whatever its cause.
+#[test]
+fn the_legend_explains_the_bracket_only_in_a_week_that_draws_one() {
+    let at = |hour, minute| time(hour, minute, 0, 0);
+    let legend = |state: &WeekState, language: Language| {
+        WeekPage::project(&state.timeline, date(9, 4), language)
+            .legend()
+            .into_iter()
+            .map(|(_, key)| language.text(key))
+            .collect::<Vec<_>>()
+    };
+    let (_demo, plain) = with_appointments(Vec::new());
+    assert_eq!(
+        legend(&plain, Language::French),
+        [
+            "Travail",
+            "Correction manuelle",
+            "Pause",
+            "Trou ou veille, à régler",
+            "À vérifier",
+            "Non travaillé",
+            "Jour à venir",
+            "Maintenant",
+        ]
+    );
+    let (_demo, marked) = with_appointments(vec![appointment(
+        "friday",
+        "",
+        Weekday::Friday,
+        at(17, 0),
+        at(19, 30),
+    )]);
+    assert_eq!(
+        legend(&marked, Language::English),
+        [
+            "Work",
+            "Manual correction",
+            "Break",
+            "Gap or sleep, to settle",
+            "To review",
+            "Not worked",
+            "Upcoming day",
+            "Planned appointment",
+            "Now",
         ]
     );
 }

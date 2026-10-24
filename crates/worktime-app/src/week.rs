@@ -254,33 +254,56 @@ impl Segment {
     }
 }
 
-/// A recurring appointment planned on a day, as the bracket over its strip shows it. `start`
-/// and `length` are fractions of the week's hour range, as [`Segment`]'s, cut at the drawn
-/// hours and at now.
+/// The recurring appointments planned on a day whose hours overlap, as one bracket over its
+/// strip shows them. `start` and `length` are fractions of the week's hour range, as
+/// [`Segment`]'s, spanning their union cut at the drawn hours and at now.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AppointmentMarker {
-    /// As the settings hold it, empty for the name derived from the weekday.
-    pub name: String,
-    pub planned: (Time, Time),
+    /// In the order they start, never empty.
+    pub appointments: Vec<PlannedAppointment>,
     pub start: f32,
     pub length: f32,
-    /// The planned start is drawn, with a tick; a start cut by the axis is left open.
-    pub opens: bool,
-    /// The planned end is drawn, with a tick; an end cut by now or the axis is left open.
-    pub closes: bool,
+    pub left: MarkerEnd,
+    pub right: MarkerEnd,
+}
+
+/// One appointment under a bracket: its name as the settings hold it, empty for the name derived
+/// from the weekday, and its planned hours.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlannedAppointment {
+    pub name: String,
+    pub planned: (Time, Time),
+}
+
+/// How an end of a bracket is drawn.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MarkerEnd {
+    /// At the planned hour, with a tick.
+    Planned,
+    /// Cut by the axis, left open.
+    Axis,
+    /// Cut by now while the appointment goes on: it stops short of the « maintenant » line and
+    /// fades out.
+    Now,
 }
 
 impl AppointmentMarker {
-    /// « Réunion du jeudi, horaire prévu 14:00–16:00 », for its tooltip and screen readers.
-    pub fn accessible_name(&self, date: Date, language: Language) -> String {
-        let (start, end) = self.planned;
-        language.format(
-            Key::TimelineAppointmentNameFormat,
-            &[
-                &appointment_name(&self.name, date.weekday(), language),
-                &range_text(date.to_datetime(start), date.to_datetime(end), language),
-            ],
-        )
+    /// « Réunion du jeudi, horaire prévu 14:00–16:00 » for each appointment, for its tooltip and
+    /// screen readers.
+    pub fn names(&self, date: Date, language: Language) -> Vec<String> {
+        self.appointments
+            .iter()
+            .map(|appointment| {
+                let (start, end) = appointment.planned;
+                language.format(
+                    Key::TimelineAppointmentNameFormat,
+                    &[
+                        &appointment_name(&appointment.name, date.weekday(), language),
+                        &range_text(date.to_datetime(start), date.to_datetime(end), language),
+                    ],
+                )
+            })
+            .collect()
     }
 }
 
@@ -364,13 +387,16 @@ pub struct SegmentView {
     pub role: SegmentRole,
 }
 
-/// The bracket over a recurring appointment's planned hours, see [`AppointmentMarker`].
+/// The bracket over recurring appointments' planned hours, see [`AppointmentMarker`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct MarkerView {
     pub start: f32,
     pub length: f32,
-    pub opens: bool,
-    pub closes: bool,
+    pub left: MarkerEnd,
+    pub right: MarkerEnd,
+    /// One line of its tooltip per appointment.
+    pub names: Vec<String>,
+    /// The lines joined, for screen readers.
     pub accessible_name: String,
 }
 
@@ -450,7 +476,54 @@ pub struct WeekPage {
     pub days: Vec<DayRow>,
 }
 
+/// A mark the legend under the days explains.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LegendMark {
+    Segment(SegmentKind),
+    Future,
+    /// The bracket over an appointment's planned hours.
+    Appointment,
+    Now,
+}
+
 impl WeekPage {
+    /// The marks the legend explains and their labels; the bracket only in a week that draws one.
+    pub fn legend(&self) -> Vec<(LegendMark, Key)> {
+        let bracketed = self.days.iter().any(|day| !day.markers.is_empty());
+        [
+            (
+                LegendMark::Segment(SegmentKind::Work),
+                Key::HistoryLegendWorkText,
+            ),
+            (
+                LegendMark::Segment(SegmentKind::Manual),
+                Key::HistoryLegendManualText,
+            ),
+            (
+                LegendMark::Segment(SegmentKind::Pause),
+                Key::HistoryLegendPauseText,
+            ),
+            (
+                LegendMark::Segment(SegmentKind::Gap),
+                Key::HistoryLegendGapText,
+            ),
+            (
+                LegendMark::Segment(SegmentKind::Review),
+                Key::HistoryLegendReviewText,
+            ),
+            (
+                LegendMark::Segment(SegmentKind::NotWorked),
+                Key::HistoryLegendNotWorkedText,
+            ),
+            (LegendMark::Future, Key::HistoryFuture),
+            (LegendMark::Appointment, Key::HistoryLegendAppointmentText),
+            (LegendMark::Now, Key::HistoryLegendNowText),
+        ]
+        .into_iter()
+        .filter(|(mark, _)| bracketed || *mark != LegendMark::Appointment)
+        .collect()
+    }
+
     pub fn project(timeline: &WeekTimeline, focused: Date, language: Language) -> Self {
         // Days not summarized yet are expected to keep the latest known target.
         let expected_target = timeline
@@ -587,12 +660,19 @@ fn project_row(
     let markers = day
         .appointments
         .iter()
-        .map(|marker| MarkerView {
-            start: marker.start,
-            length: marker.length,
-            opens: marker.opens,
-            closes: marker.closes,
-            accessible_name: marker.accessible_name(day.date, language),
+        .map(|marker| {
+            let names = marker.names(day.date, language);
+            MarkerView {
+                start: marker.start,
+                length: marker.length,
+                left: marker.left,
+                right: marker.right,
+                accessible_name: names.join(match language {
+                    Language::French => "\u{202f}; ",
+                    Language::English => "; ",
+                }),
+                names,
+            }
         })
         .collect();
     let future = day.availability == Availability::Future;
