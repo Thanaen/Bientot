@@ -109,12 +109,31 @@ fn the_callouts_closed_today_are_written_beside_the_last_send_and_read_back() {
         })
     );
     assert_eq!(store.load().unwrap(), state);
-    let closed = &state.closed_callouts;
+}
+
+#[test]
+fn a_callout_is_closed_for_its_day_only() {
+    let mut closed = ClosedCallouts::default();
+    let today = date(2026, 10, 24);
+    let tomorrow = date(2026, 10, 25);
+
+    assert!(closed.close_offer(today, "thursday-1000"));
+    assert!(!closed.close_offer(today, "thursday-1000"));
+    assert!(closed.close_count(today, "automatic:thursday"));
+    assert!(closed.has_offer(today, "thursday-1000"));
+    assert!(closed.has_count(today, "automatic:thursday"));
+    assert!(!closed.has_offer(tomorrow, "thursday-1000"));
+
+    assert!(closed.close_offer(tomorrow, "friday-0900"));
+
     assert_eq!(
-        closed.on(date(2026, 10, 24)),
-        (&closed.counts[..], &closed.offers[..])
+        closed,
+        ClosedCallouts {
+            date: Some(tomorrow),
+            counts: Vec::new(),
+            offers: vec!["friday-0900".into()],
+        }
     );
-    assert_eq!(closed.on(date(2026, 10, 25)), (&[][..], &[][..]));
 }
 
 #[test]
@@ -166,4 +185,40 @@ fn unreadable_closed_callouts_read_as_none_closed_and_keep_the_last_send() {
         );
         assert_eq!(state.closed_callouts, ClosedCallouts::default(), "{closed}");
     }
+}
+
+#[test]
+fn updates_from_two_threads_all_survive() {
+    let directory = TempDir::new().unwrap();
+    let store = store(&directory);
+    let today = date(2026, 10, 24);
+    let writers: Vec<_> = [true, false]
+        .into_iter()
+        .map(|counts| {
+            let store = store.clone();
+            std::thread::spawn(move || {
+                for index in 0..50 {
+                    let id = index.to_string();
+                    store
+                        .update(|state| {
+                            let closed = &mut state.closed_callouts;
+                            if counts {
+                                closed.close_count(today, &id);
+                            } else {
+                                closed.close_offer(today, &id);
+                            }
+                        })
+                        .unwrap();
+                }
+            })
+        })
+        .collect();
+    for writer in writers {
+        writer.join().unwrap();
+    }
+
+    let closed = store.load().unwrap().closed_callouts;
+
+    assert_eq!(closed.counts.len(), 50);
+    assert_eq!(closed.offers.len(), 50);
 }

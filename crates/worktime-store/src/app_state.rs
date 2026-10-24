@@ -5,6 +5,7 @@
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use jiff::civil::Date;
 use serde_json::{Map, Value};
@@ -31,26 +32,61 @@ pub struct ClosedCallouts {
 }
 
 impl ClosedCallouts {
-    /// What the user closed on `today`, nothing when the callouts were closed another day.
-    pub fn on(&self, today: Date) -> (&[String], &[String]) {
-        if self.date == Some(today) {
-            (&self.counts, &self.offers)
-        } else {
-            (&[], &[])
+    /// Whether the user closed the callout of the count `id` on `today`.
+    pub fn has_count(&self, today: Date, id: &str) -> bool {
+        self.date == Some(today) && self.counts.iter().any(|count| count == id)
+    }
+
+    /// Whether the user closed the offer of the appointment `id` on `today`.
+    pub fn has_offer(&self, today: Date, id: &str) -> bool {
+        self.date == Some(today) && self.offers.iter().any(|offer| offer == id)
+    }
+
+    /// Closes the callout of the count `id` on `today`, forgetting those of another day. False
+    /// when it was already closed.
+    pub fn close_count(&mut self, today: Date, id: &str) -> bool {
+        self.start(today);
+        insert(&mut self.counts, id)
+    }
+
+    /// Closes the offer of the appointment `id` on `today`, forgetting those of another day.
+    /// False when it was already closed.
+    pub fn close_offer(&mut self, today: Date, id: &str) -> bool {
+        self.start(today);
+        insert(&mut self.offers, id)
+    }
+
+    fn start(&mut self, today: Date) {
+        if self.date != Some(today) {
+            *self = Self {
+                date: Some(today),
+                ..Self::default()
+            };
         }
     }
 }
 
-/// Reads and writes one `app-state.json`.
+fn insert(ids: &mut Vec<String>, id: &str) -> bool {
+    let absent = !ids.iter().any(|known| known == id);
+    if absent {
+        ids.push(id.to_owned());
+    }
+    absent
+}
+
+/// Reads and writes one `app-state.json`. Its clones share one lock, so that the usage signal
+/// on its thread and the flyout never interleave their updates.
 #[derive(Clone, Debug)]
 pub struct AppStateStore {
     path: PathBuf,
+    lock: Arc<Mutex<()>>,
 }
 
 impl AppStateStore {
     pub fn new(path: impl AsRef<Path>) -> io::Result<Self> {
         Ok(Self {
             path: std::path::absolute(path)?,
+            lock: Arc::default(),
         })
     }
 
@@ -71,6 +107,24 @@ impl AppStateStore {
 
     /// Replaces the file atomically, the way `settings.json` is replaced.
     pub fn save(&self, state: &AppState) -> io::Result<()> {
+        let _held = self.hold();
+        self.write(state)
+    }
+
+    /// Reads the saved state, changes it with `change` and saves it, all under the lock of the
+    /// store, so that each writer keeps what the others saved.
+    pub fn update(&self, change: impl FnOnce(&mut AppState)) -> io::Result<()> {
+        let _held = self.hold();
+        let mut state = self.load()?;
+        change(&mut state);
+        self.write(&state)
+    }
+
+    fn hold(&self) -> MutexGuard<'_, ()> {
+        self.lock.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn write(&self, state: &AppState) -> io::Result<()> {
         if let Some(directory) = self.path.parent() {
             fs::create_dir_all(directory)?;
         }
@@ -95,14 +149,6 @@ impl AppStateStore {
         let mut text = serde_json::to_string_pretty(&Value::Object(object))?;
         text.push('\n');
         file::replace(&self.path, text.as_bytes())
-    }
-
-    /// Reads the saved state, changes it with `change` and saves it, so that each writer keeps
-    /// what the others saved.
-    pub fn update(&self, change: impl FnOnce(&mut AppState)) -> io::Result<()> {
-        let mut state = self.load()?;
-        change(&mut state);
-        self.save(&state)
     }
 }
 

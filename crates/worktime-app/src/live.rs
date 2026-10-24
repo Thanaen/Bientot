@@ -217,10 +217,9 @@ pub struct LiveHost<'a> {
     /// The local day the week was last recalculated on. Its publication is that day's summary,
     /// or the summary kept beside a source failure.
     recalculated_on: Option<Date>,
-    /// The automatic counts and the appointments whose callout the user closed, for the rest
-    /// of the session and, through `app-state.json`, of the day.
-    hidden_counts: HashSet<AdjustmentId>,
-    hidden_offers: HashSet<String>,
+    /// The automatic counts and the appointments whose callout the user closed today, kept in
+    /// `app-state.json` for the rest of the day.
+    closed: ClosedCallouts,
     /// The automatic counts whose save failed, not retried before WorkTime starts again.
     failed_counts: HashSet<AdjustmentId>,
     /// The earlier days of the week read for automatic counts, by the stored summary they had.
@@ -333,8 +332,7 @@ impl<'a> LiveHost<'a> {
             announcements,
             refresh_failed: false,
             recalculated_on: None,
-            hidden_counts: HashSet::new(),
-            hidden_offers: HashSet::new(),
+            closed: ClosedCallouts::default(),
             failed_counts: HashSet::new(),
             scanned_days: HashMap::new(),
             gains: ledger::GainsCache::default(),
@@ -346,34 +344,15 @@ impl<'a> LiveHost<'a> {
 
     /// The callouts the user closed earlier today, before WorkTime started again.
     fn restore_closed_callouts(&mut self) {
-        let state = match self.app_state.load() {
-            Ok(state) => state,
-            Err(error) => {
-                log::warn!("cannot read the app state: {error}");
-                return;
-            }
-        };
-        let (counts, offers) = state.closed_callouts.on(self.today());
-        self.hidden_counts
-            .extend(counts.iter().filter_map(|id| AdjustmentId::new(id).ok()));
-        self.hidden_offers.extend(offers.iter().cloned());
+        match self.app_state.load() {
+            Ok(state) => self.closed = state.closed_callouts,
+            Err(error) => log::warn!("cannot read the app state: {error}"),
+        }
     }
 
-    /// Keeps the closed callouts in `app-state.json` for the rest of the day.
+    /// Keeps the callouts closed today in `app-state.json`, for the rest of the day.
     fn save_closed_callouts(&mut self) {
-        let mut counts: Vec<_> = self
-            .hidden_counts
-            .iter()
-            .map(|id| id.as_str().to_owned())
-            .collect();
-        let mut offers: Vec<_> = self.hidden_offers.iter().cloned().collect();
-        counts.sort();
-        offers.sort();
-        let closed = ClosedCallouts {
-            date: Some(self.today()),
-            counts,
-            offers,
-        };
+        let closed = self.closed.clone();
         if let Err(error) = self
             .app_state
             .update(|state| state.closed_callouts = closed)
@@ -1129,7 +1108,7 @@ impl<'a> LiveHost<'a> {
         let local = |instant: Timestamp| instant.to_zoned(zone.clone()).time();
         automatic::in_effect(&recorded)
             .into_iter()
-            .filter(|count| !self.hidden_counts.contains(count.id()))
+            .filter(|count| !self.closed.has_count(self.today(), count.id().as_str()))
             .filter_map(|count| {
                 let interval = count.interval()?;
                 let review = automatic::counted_review(count.id())?;
@@ -1167,7 +1146,7 @@ impl<'a> LiveHost<'a> {
             if resolution != ManualResolution::ConfirmWork
                 || !appointment.enabled
                 || appointment.automatic
-                || self.hidden_offers.contains(&appointment.id)
+                || self.closed.has_offer(self.today(), &appointment.id)
             {
                 return None;
             }
@@ -1198,14 +1177,14 @@ impl<'a> LiveHost<'a> {
 
     /// The cross of the callout of an absence counted automatically.
     pub fn hide_count(&mut self, id: &AdjustmentId) {
-        if self.hidden_counts.insert(id.clone()) {
+        if self.closed.close_count(self.today(), id.as_str()) {
             self.save_closed_callouts();
         }
     }
 
     /// The cross of « Compter automatiquement à l’avenir », or the offer taken.
     pub fn hide_offer(&mut self, appointment_id: &str) {
-        if self.hidden_offers.insert(appointment_id.to_owned()) {
+        if self.closed.close_offer(self.today(), appointment_id) {
             self.save_closed_callouts();
         }
     }
