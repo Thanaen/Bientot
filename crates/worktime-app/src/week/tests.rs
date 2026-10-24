@@ -802,6 +802,32 @@ fn the_first_of_several_unrecorded_gaps_says_where_the_next_one_starts() {
     assert_eq!(state.bubble().unwrap().notes, Vec::<String>::new());
 }
 
+/// The note holds across a reload while its gaps stay unrecorded, and goes once one of them is
+/// counted, as the flyout's « Oui, compter » does while the range stays selected.
+#[test]
+fn the_first_gap_note_goes_once_its_gaps_are_counted() {
+    let (mut demo, mut state) = Demo::open(DemoScenario::ProblemPeriods);
+    let gaps = [
+        interval("2026-08-31T09:40:12Z", "2026-08-31T09:45:42Z"),
+        interval("2026-08-31T14:00:00Z", "2026-08-31T14:20:00Z"),
+    ];
+    state.show_unrecorded(date(8, 31), &gaps);
+    state.reload(demo.read(), true);
+    assert_eq!(state.bubble().unwrap().notes.len(), 1);
+
+    let counted = worktime_domain::adjustments::ManualAdjustment::interval_work(
+        AdjustmentId::new("counted").unwrap(),
+        LocalWorkday::new(date(8, 31), "UTC"),
+        gaps[1],
+        demo.host.correction_time(),
+    )
+    .unwrap();
+    demo.host.save_adjustment(&counted).unwrap();
+    state.reload(demo.read(), true);
+    assert_eq!(state.selection().unwrap().range, gaps[0]);
+    assert_eq!(state.bubble().unwrap().notes, Vec::<String>::new());
+}
+
 #[test]
 fn unrecorded_time_shown_from_the_flyout_opens_its_bubble() {
     let (_demo, mut state) = Demo::open(DemoScenario::ProblemPeriods);

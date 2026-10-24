@@ -7,7 +7,10 @@ use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp};
 use worktime_domain::intervals::UtcInterval;
 
-use super::{Availability, DayTimeline, Segment, SegmentId, WeekState, WeekTimeline};
+use super::{
+    Availability, DayTimeline, Segment, SegmentId, SegmentKind, UnrecordedNote, WeekState,
+    WeekTimeline,
+};
 use crate::strings::Key;
 use crate::time_text::minutes_text;
 
@@ -386,10 +389,37 @@ impl WeekState {
                         &self.language.short_time(next.time()),
                     ],
                 );
-                (selection, note)
+                UnrecordedNote {
+                    selection,
+                    gaps: intervals.to_vec(),
+                    text: note,
+                }
             });
         self.focused = date;
         self.selection = Some(selection);
+    }
+
+    /// After a reload: the note of the first gap goes once one of its gaps is no longer wholly
+    /// unrecorded, as its count, total and next start would describe time since counted.
+    pub(super) fn revalidate_unrecorded_note(&mut self) {
+        let Some(note) = &self.unrecorded_note else {
+            return;
+        };
+        let still_unrecorded = self.timeline.day(note.selection.date).is_some_and(|day| {
+            note.gaps.iter().all(|gap| {
+                let unrecorded: SignedDuration = day
+                    .segments
+                    .iter()
+                    .filter(|segment| segment.kind == SegmentKind::Gap)
+                    .filter_map(|segment| segment.interval.intersect(*gap))
+                    .map(UtcInterval::duration)
+                    .sum();
+                unrecorded == gap.duration()
+            })
+        });
+        if !still_unrecorded {
+            self.unrecorded_note = None;
+        }
     }
 
     /// After a reload: the range covers again each lock to review it now touches, or closes

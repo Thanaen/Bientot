@@ -872,7 +872,16 @@ pub struct WeekState {
     details_open: bool,
     /// « Premier des 2 créneaux non renseignés… », while « Voir sur la frise » of the flyout
     /// selects only the first of its gaps: the note of that selection.
-    unrecorded_note: Option<(Selection, String)>,
+    unrecorded_note: Option<UnrecordedNote>,
+}
+
+/// The note of the first unrecorded gap selected, with every gap it counts: it holds while
+/// they all stay unrecorded.
+#[derive(Clone, Debug, PartialEq)]
+struct UnrecordedNote {
+    selection: Selection,
+    gaps: Vec<UtcInterval>,
+    text: String,
 }
 
 /// Why the week shown may miss what the ledger holds.
@@ -924,10 +933,10 @@ impl WeekState {
         let selection = self.selection?;
         let day = self.timeline.day(selection.date)?;
         let mut bubble = Bubble::project(day, selection, day.is_today, self.language)?;
-        if let Some((noted, note)) = &self.unrecorded_note
-            && *noted == selection
+        if let Some(note) = &self.unrecorded_note
+            && note.selection == selection
         {
-            bubble.notes.insert(0, note.clone());
+            bubble.notes.insert(0, note.text.clone());
         }
         if self.stale == Some(Stale::RefreshPending) {
             for action in &mut bubble.actions {
@@ -948,6 +957,7 @@ impl WeekState {
             self.stale = None;
         }
         self.renormalize_selection();
+        self.revalidate_unrecorded_note();
         if self.bubble().is_none() {
             self.selection = None;
         }
