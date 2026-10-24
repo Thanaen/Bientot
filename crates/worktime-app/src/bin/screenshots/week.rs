@@ -7,9 +7,10 @@
 //! - `week-history-week-gap-bubble.png`, the bubble of Wednesday's gap in the history week;
 //! - `adjust-declare-work-week.png`, « Déclarer du temps travaillé… » of that gap's day;
 //! - `week-history-week-<bound|locked>-bubble.png`, the bubble of its long lock once answered;
-//! - `week-range-<work|extended|lock|gaps>.png`, ranges selected on the timeline: Wednesday's
-//!   work at 12:00, then stretched over the gap after it while its handle is dragged, then
-//!   back to the lock before it, and Monday's gaps in the problem periods;
+//! - `week-range-<work|extended|lock|short|gaps>.png`, ranges selected on the timeline:
+//!   Wednesday's work at 12:00, then stretched over the gap after it while its handle is
+//!   dragged, then back to the lock before it; Monday's first gap in the problem periods, six
+//!   minutes long, then its gaps up to 13:00;
 //! - `week-range-unrecorded.png`, the unrecorded time of the problem periods as « Voir sur la
 //!   frise » of the flyout selects its first gap, with the note that links it to the flyout's
 //!   total;
@@ -409,6 +410,7 @@ fn capture_ranges(
     open_segment(cx, window, "a gap to settle", |segment| {
         segment.kind == SegmentKind::Gap && segment.needs_action
     })?;
+    capture(cx, window.into(), &output.join("week-range-short.png"))?;
     change(cx, window, &|view| {
         if let Some(state) = view.state_mut() {
             for _ in 0..4 {

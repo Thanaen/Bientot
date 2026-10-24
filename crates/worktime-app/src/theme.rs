@@ -320,6 +320,8 @@ pub mod size {
     pub const RANGE_MIN_WIDTH: Pixels = px(16.);
     /// Where the pointer catches a range handle, wider than it shows.
     pub const RANGE_HANDLE_HIT: Pixels = px(24.);
+    /// Between a range handle and the outline, on its outer side.
+    pub const RANGE_HANDLE_GAP: Pixels = px(4.);
     /// The command palette, narrower over a narrower window.
     pub const PALETTE_WIDTH: Pixels = px(520.);
     pub const WEEK_WINDOW_WIDTH: Pixels = px(980.);

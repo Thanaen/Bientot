@@ -60,12 +60,17 @@ impl WeekView {
                 .mt(-size::RANGE_HANDLE_HEIGHT / 2.)
                 // The pointer finds it on a wider area than it shows, reaching away from the range
                 // so that the two never overlap on a short one. Outside the outline, even past the
-                // strip's ends, over the gap beside it.
+                // strip's ends, over the gap beside it. It shows a little away from the outline,
+                // so that on a short range the two handles and the outline stay three marks
+                // rather than one.
                 .map(|handle| {
-                    let offset = -size::RANGE_HANDLE_HIT - px(1.);
+                    let offset = -size::RANGE_HANDLE_HIT;
                     match edge {
-                        Edge::Start => handle.left(offset).justify_end(),
-                        Edge::End => handle.right(offset).justify_start(),
+                        Edge::Start => handle.left(offset).justify_end().pr(size::RANGE_HANDLE_GAP),
+                        Edge::End => handle
+                            .right(offset)
+                            .justify_start()
+                            .pl(size::RANGE_HANDLE_GAP),
                     }
                 })
                 .w(size::RANGE_HANDLE_HIT)
