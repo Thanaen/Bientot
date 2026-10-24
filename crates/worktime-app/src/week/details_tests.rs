@@ -8,6 +8,7 @@ use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use worktime_core::demo::DemoScenario;
 use worktime_domain::accounting::AccountingLabel;
+use worktime_domain::configuration::RecurringAppointment;
 use worktime_domain::history::{
     CurrentWeek, DailySummaryBreakdown, DailySummaryBreakdownEntry, DailySummaryRevision,
     DailySummarySnapshotParts,
@@ -21,7 +22,7 @@ use super::*;
 use crate::adjust::AdjustForm;
 use crate::host::{Source, Today};
 use crate::week::test_support::{Throwaway, date, nb};
-use crate::week::{Answer, Offer, Recorded, SegmentKind, WeekCommand, WeekTimeline};
+use crate::week::{Answer, Availability, Offer, Recorded, SegmentKind, WeekCommand, WeekTimeline};
 
 fn workday(date: Date) -> LocalWorkday {
     LocalWorkday::new(date, "UTC")
@@ -484,7 +485,7 @@ fn owing_thursday_offering(language: Language, offers: &HashMap<AdjustmentId, Of
     )
     .unwrap();
     let zones = FixedTimeZoneProvider::new("UTC", TimeZone::UTC);
-    let timeline = WeekTimeline::project(&week, &[], offers, &[], at(18, 0), &zones);
+    let timeline = WeekTimeline::project(&week, &[], offers, &[], &[], at(18, 0), &zones);
     let mut state = WeekState::new(timeline, language);
     state.select(date(9, 3));
     state.toggle_details();
@@ -584,9 +585,10 @@ fn a_correction_the_week_cannot_tell_about_offers_nothing_and_says_nothing() {
 }
 
 /// A Thursday of four hours whose summary holds `breakdown`, with a lock from 09:00 to 11:00
-/// confirmed as work by « confirm ».
+/// confirmed as work by « confirm », and the days before it without a summary.
 fn confirmed_thursday(
     breakdown: impl IntoIterator<Item = DailySummaryBreakdownEntry>,
+    appointments: &[RecurringAppointment],
 ) -> WeekTimeline {
     let snapshot = DailySummarySnapshot::new(DailySummarySnapshotParts {
         workday: workday(date(9, 3)),
@@ -622,6 +624,7 @@ fn confirmed_thursday(
         &[],
         &HashMap::from([(id("confirm"), Offer::Locked)]),
         &[(id("confirm"), lock)],
+        appointments,
         at(18, 0),
         &zones,
     )
@@ -632,15 +635,18 @@ fn confirmed_thursday(
 #[test]
 fn sleep_within_a_confirmed_lock_is_settled_and_the_rest_is_not() {
     let confirmation = Some("confirm");
-    let timeline = confirmed_thursday([
-        entry((8, 0), (9, 0), AccountingLabel::ActiveWork, None),
-        entry((9, 0), (10, 0), AccountingLabel::Manual, confirmation),
-        entry((10, 0), (10, 30), AccountingLabel::Suspended, None),
-        entry((10, 30), (10, 45), AccountingLabel::Manual, confirmation),
-        // Asleep across the end of the lock.
-        entry((10, 45), (11, 30), AccountingLabel::Suspended, None),
-        entry((11, 30), (12, 0), AccountingLabel::ActiveWork, None),
-    ]);
+    let timeline = confirmed_thursday(
+        [
+            entry((8, 0), (9, 0), AccountingLabel::ActiveWork, None),
+            entry((9, 0), (10, 0), AccountingLabel::Manual, confirmation),
+            entry((10, 0), (10, 30), AccountingLabel::Suspended, None),
+            entry((10, 30), (10, 45), AccountingLabel::Manual, confirmation),
+            // Asleep across the end of the lock.
+            entry((10, 45), (11, 30), AccountingLabel::Suspended, None),
+            entry((11, 30), (12, 0), AccountingLabel::ActiveWork, None),
+        ],
+        &[],
+    );
 
     let asleep: Vec<_> = timeline
         .day(date(9, 3))
@@ -670,11 +676,14 @@ fn sleep_within_a_confirmed_lock_is_settled_and_the_rest_is_not() {
 /// answer, and says why.
 #[test]
 fn a_lock_asleep_all_along_takes_no_answer() {
-    let timeline = confirmed_thursday([
-        entry((8, 0), (9, 0), AccountingLabel::ActiveWork, None),
-        entry((9, 0), (11, 0), AccountingLabel::Suspended, None),
-        entry((11, 0), (12, 0), AccountingLabel::ActiveWork, None),
-    ]);
+    let timeline = confirmed_thursday(
+        [
+            entry((8, 0), (9, 0), AccountingLabel::ActiveWork, None),
+            entry((9, 0), (11, 0), AccountingLabel::Suspended, None),
+            entry((11, 0), (12, 0), AccountingLabel::ActiveWork, None),
+        ],
+        &[],
+    );
     let asleep = timeline.day(date(9, 3)).unwrap().segments[1].id(date(9, 3));
     let mut state = WeekState::new(timeline, Language::French);
     state.open(asleep);
@@ -685,5 +694,40 @@ fn a_lock_asleep_all_along_takes_no_answer() {
     assert_eq!(
         bubble.notes,
         [Language::French.text(Key::HistoryConfirmationLocked)]
+    );
+}
+
+/// A day without a summary shows no time, so it gets no bracket: only Thursday has one.
+#[test]
+fn a_day_without_a_summary_gets_no_appointment_marker() {
+    let appointment = |id: &str, weekday| RecurringAppointment {
+        id: id.to_owned(),
+        name: String::new(),
+        weekday,
+        start: jiff::civil::time(9, 30, 0, 0),
+        end: jiff::civil::time(10, 30, 0, 0),
+        enabled: true,
+        since: None,
+        alternate_weeks_from: None,
+        automatic: false,
+    };
+    let timeline = confirmed_thursday(
+        [entry((8, 0), (12, 0), AccountingLabel::ActiveWork, None)],
+        &[
+            appointment("wednesday", jiff::civil::Weekday::Wednesday),
+            appointment("thursday", jiff::civil::Weekday::Thursday),
+        ],
+    );
+
+    let marked: Vec<_> = timeline
+        .days
+        .iter()
+        .filter(|day| !day.appointments.is_empty())
+        .map(|day| (day.date, day.availability))
+        .collect();
+    assert_eq!(marked, [(date(9, 3), Availability::Loaded)]);
+    assert_eq!(
+        timeline.day(date(9, 2)).unwrap().availability,
+        Availability::NoSummary
     );
 }

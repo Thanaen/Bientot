@@ -372,6 +372,7 @@ impl DemoHost {
         ledger::read_week(
             &self.connection,
             &accounting,
+            &self.settings.recurring_appointments,
             &self.environment,
             &self.zones,
             &self.gains,

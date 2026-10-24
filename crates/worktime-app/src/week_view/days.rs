@@ -5,9 +5,10 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use gpui::{
-    AnyElement, App, BorderStyle, Bounds, ClickEvent, Context, Corners, Hsla, IntoElement, Pixels,
-    Role, SharedString, TextAlign, Window, canvas, div, fill, pattern_slash, point, prelude::*, px,
-    quad, relative, size, transparent_black,
+    Anchor, AnyElement, App, BorderStyle, Bounds, ClickEvent, Context, Corners, Edges, Hsla,
+    IntoElement, Pixels, Role, SharedString, TextAlign, Window, anchored, canvas, deferred, div,
+    fill, linear_color_stop, linear_gradient, pattern_slash, point, prelude::*, px, quad, relative,
+    size, transparent_black,
 };
 
 use super::{Layout, WeekView, button, row_with_trailing, tone_color, value_color};
@@ -16,7 +17,9 @@ use crate::theme::spacing::*;
 use crate::theme::{
     Theme, TypeStyle, TypeStyled as _, motion, radius, size, tabular_figures, text,
 };
-use crate::week::{self, DayRow, DayTone, SegmentKind, SegmentRole, SegmentView, WeekState};
+use crate::week::{
+    self, DayRow, DayTone, MarkerEnd, MarkerView, SegmentKind, SegmentRole, SegmentView, WeekState,
+};
 use crate::widgets;
 
 impl WeekView {
@@ -229,11 +232,43 @@ impl WeekView {
                 }
             })
             .collect::<Vec<_>>();
+        // Each appointment's bracket is painted too: a node over it names it and shows its
+        // tooltip, as wide as the bracket and taller, to be easier to point at.
+        let gap = marker_gap(row.focused);
+        let markers = row.markers.iter().enumerate().map(|(position, marker)| {
+            let key = (date, position);
+            let hovered = self.shown_marker() == Some(key);
+            let hit = div()
+                .id(("appointment", index * 1000 + position))
+                .role(Role::Label)
+                .aria_value(SharedString::from(marker.accessible_name.clone()))
+                .size_full()
+                .on_hover(cx.listener(move |view, hovered: &bool, _, cx| {
+                    if view.hover_marker(key, *hovered) {
+                        cx.notify();
+                    }
+                }))
+                .children(hovered.then(|| marker_tooltip(marker, theme)));
+            div()
+                .absolute()
+                .top(
+                    -(gap
+                        + size::APPOINTMENT_MARKER_HEIGHT
+                        + (size::APPOINTMENT_MARKER_HIT - size::APPOINTMENT_MARKER_HEIGHT) / 2.),
+                )
+                .h(size::APPOINTMENT_MARKER_HIT)
+                .left(relative(marker.start))
+                .w(relative(marker.length))
+                .min_w(px(week::MINIMUM_SEGMENT_WIDTH))
+                .when(marker.right == MarkerEnd::Now, |span| {
+                    span.pr(now_clearance())
+                })
+                .child(hit)
+        });
         let strip_area = div()
             .id(("strip", index))
             .relative()
-            .flex_1()
-            .min_w_0()
+            .w_full()
             .h(height)
             .child(strip(
                 &row,
@@ -244,6 +279,7 @@ impl WeekView {
                 theme,
             ))
             .children(overlays)
+            .children(markers)
             .children(
                 bubble
                     .as_ref()
@@ -298,18 +334,32 @@ impl WeekView {
                     .child(badge)
             }));
 
+        // The open day's card holds its brackets: room above its strip for them, clear of its
+        // top edge.
+        let bracket_room = (row.focused && !row.markers.is_empty()).then(|| {
+            size::APPOINTMENT_MARKER_INSET
+                + size::APPOINTMENT_MARKER_HEIGHT
+                + size::APPOINTMENT_MARKER_GAP_FOCUSED
+                - CARD_PADDING
+        });
         let line = div()
             .flex()
             .items_center()
             .gap(BASE_16)
             .child(label)
-            .child(strip_area)
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .when_some(bracket_room, |column, room| column.pt(room))
+                    .child(strip_area),
+            )
             .child(total);
         div()
             .flex()
             .flex_col()
             .gap(BASE_12)
-            .py(BASE_08)
+            .py(CARD_PADDING)
             .px(BASE_12)
             .rounded(radius::MD)
             .when(row.focused, |row| row.bg(theme.surface))
@@ -502,8 +552,9 @@ fn paint_text(
     line.width
 }
 
-/// The strip of one day: its track, its segments, the open day's labels and the « maintenant »
-/// line, painted by hand as the design system's Frise. `bounds` keeps where it was painted.
+/// The strip of one day: its track, its segments, the open day's labels, the « maintenant »
+/// line and the brackets of its appointments above it, painted by hand as the design system's
+/// Frise. `bounds` keeps where it was painted.
 /// While a range is `selected`, only the segments starting in it keep their label: the others
 /// are dimmed, under its handles.
 fn strip(
@@ -513,6 +564,7 @@ fn strip(
     theme: &Theme,
 ) -> impl IntoElement {
     let segments = row.segments.clone();
+    let markers = row.markers.clone();
     let (focused, future, now) = (row.focused, row.future, row.now);
     let theme = theme.clone();
     canvas(
@@ -576,9 +628,126 @@ fn strip(
                     .corner_radii(Corners::all(size::NOW_LINE_WIDTH / 2.)),
                 );
             }
+            let gap = marker_gap(focused);
+            for marker in &markers {
+                paint_marker(marker, bounds, gap, &theme, window);
+            }
         },
     )
     .size_full()
+}
+
+/// Inside a day's card, above and below what it holds.
+const CARD_PADDING: Pixels = BASE_08;
+
+/// Between a day's strip and the bracket over it.
+fn marker_gap(focused: bool) -> Pixels {
+    if focused {
+        size::APPOINTMENT_MARKER_GAP_FOCUSED
+    } else {
+        size::APPOINTMENT_MARKER_GAP
+    }
+}
+
+/// How far short of now a bracket cut by now stops: past half the line, then its clearance.
+fn now_clearance() -> Pixels {
+    size::NOW_LINE_WIDTH / 2. + size::APPOINTMENT_MARKER_NOW_CLEARANCE
+}
+
+/// The bracket over `marker`, `gap` above the strip painted in `strip`: a line with a tick at
+/// each planned end. An end cut by the axis is left open; one cut by now fades out short of the
+/// « maintenant » line.
+fn paint_marker(
+    marker: &MarkerView,
+    strip: Bounds<Pixels>,
+    gap: Pixels,
+    theme: &Theme,
+    window: &mut Window,
+) {
+    let (x, w) = week::place(marker.start, marker.length, f32::from(strip.size.width));
+    let left = strip.origin.x + px(x);
+    let mut right = left + px(w);
+    let fade = if marker.right == MarkerEnd::Now {
+        right = (right - now_clearance()).max(left + size::APPOINTMENT_MARKER_STROKE);
+        size::APPOINTMENT_MARKER_FADE.min((right - left) / 2.)
+    } else {
+        px(0.)
+    };
+    let top = strip.origin.y - gap - size::APPOINTMENT_MARKER_HEIGHT;
+    let color = theme.text_muted;
+    let tick = |end: MarkerEnd, width| {
+        if end == MarkerEnd::Planned {
+            width
+        } else {
+            px(0.)
+        }
+    };
+    window.paint_quad(quad(
+        Bounds::new(
+            point(left, top),
+            size(right - fade - left, size::APPOINTMENT_MARKER_HEIGHT),
+        ),
+        Corners {
+            top_left: tick(marker.left, radius::XS),
+            top_right: tick(marker.right, radius::XS),
+            ..Corners::default()
+        },
+        transparent_black(),
+        Edges {
+            top: size::APPOINTMENT_MARKER_STROKE,
+            left: tick(marker.left, size::APPOINTMENT_MARKER_STROKE),
+            right: tick(marker.right, size::APPOINTMENT_MARKER_STROKE),
+            bottom: px(0.),
+        },
+        color,
+        BorderStyle::Solid,
+    ));
+    if fade > px(0.) {
+        window.paint_quad(fill(
+            Bounds::new(
+                point(right - fade, top),
+                size(fade, size::APPOINTMENT_MARKER_STROKE),
+            ),
+            linear_gradient(
+                90.,
+                linear_color_stop(color, 0.),
+                linear_color_stop(color.opacity(0.), 1.),
+            ),
+        ));
+    }
+}
+
+/// The names of `marker`'s appointments, one per line, above its bracket: from its start
+/// rightwards over the strip's first half, from its end leftwards over the second, so that it
+/// stays over the strip and off the day's total, and within the window.
+fn marker_tooltip(marker: &MarkerView, theme: &Theme) -> impl IntoElement {
+    let rightwards = marker.start + marker.length / 2. < 0.5;
+    // From the top of the area the pointer finds the bracket on, centred on the bracket.
+    let above = size::APPOINTMENT_TOOLTIP_GAP
+        - (size::APPOINTMENT_MARKER_HIT - size::APPOINTMENT_MARKER_HEIGHT) / 2.;
+    div()
+        .absolute()
+        .top(-above)
+        .map(|anchor| {
+            if rightwards {
+                anchor.left_0()
+            } else {
+                anchor.right_0()
+            }
+        })
+        .child(
+            deferred(
+                anchored()
+                    .anchor(if rightwards {
+                        Anchor::BottomLeft
+                    } else {
+                        Anchor::BottomRight
+                    })
+                    .snap_to_window_with_margin(BASE_08)
+                    .child(widgets::tooltip_box(theme).children(marker.names.clone())),
+            )
+            .with_priority(2),
+        )
 }
 
 fn paint_label(
@@ -645,6 +814,36 @@ fn axis(start_hour: i8, end_hour: i8, language: Language, theme: &Theme) -> impl
     )
     .h(TICK_TEXT.line_height)
     .w_full()
+}
+
+/// The legend's bracket: the line and both ticks of an appointment's, 12 by 6 px.
+pub(crate) fn bracket_glyph(theme: &Theme) -> impl IntoElement {
+    let color = theme.text_muted;
+    canvas(
+        |_, _, _| {},
+        move |bounds, _, window, _| {
+            window.paint_quad(quad(
+                bounds,
+                Corners {
+                    top_left: radius::XS,
+                    top_right: radius::XS,
+                    ..Corners::default()
+                },
+                transparent_black(),
+                Edges {
+                    top: size::APPOINTMENT_MARKER_STROKE,
+                    left: size::APPOINTMENT_MARKER_STROKE,
+                    right: size::APPOINTMENT_MARKER_STROKE,
+                    bottom: px(0.),
+                },
+                color,
+                BorderStyle::Solid,
+            ))
+        },
+    )
+    .w(px(12.))
+    .h(px(6.))
+    .flex_none()
 }
 
 pub(crate) fn swatch(kind: Option<SegmentKind>, theme: &Theme) -> impl IntoElement {

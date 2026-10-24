@@ -995,6 +995,7 @@ impl<'a> LiveHost<'a> {
             ledger::read_week(
                 self.connection,
                 accounting,
+                &self.settings.recurring_appointments,
                 self.clock,
                 self.zones,
                 &self.gains,

@@ -648,6 +648,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="TimelineKindSleep" xml:space="preserve"><value>Veille</value></data>
   <data name="TimelineKindReview" xml:space="preserve"><value>À vérifier</value></data>
   <data name="TimelineSegmentNameFormat" xml:space="preserve"><value>{0}, {1} ({2})</value></data>
+  <data name="TimelineAppointmentNameFormat" xml:space="preserve"><value>{0}, horaire prévu {1}</value></data>
   <data name="HistoryRefresh.AutomationProperties.Name" xml:space="preserve"><value>Actualiser</value></data>
   <data name="HistoryRefresh.ToolTipService.ToolTip" xml:space="preserve"><value>Actualiser la semaine</value></data>
   <data name="HistoryWeekTitleSameMonth" xml:space="preserve"><value>Semaine du {0:%d} au {1:d MMMM}</value></data>
@@ -684,8 +685,9 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="HistoryLegendManual.Text" xml:space="preserve"><value>Correction manuelle</value></data>
   <data name="HistoryLegendPause.Text" xml:space="preserve"><value>Pause</value></data>
   <data name="HistoryLegendGap.Text" xml:space="preserve"><value>Trou ou veille, à régler</value></data>
-  <data name="HistoryLegendReview.Text" xml:space="preserve"><value>Verrouillage à vérifier</value></data>
+  <data name="HistoryLegendReview.Text" xml:space="preserve"><value>À vérifier</value></data>
   <data name="HistoryLegendNotWorked.Text" xml:space="preserve"><value>Non travaillé</value></data>
+  <data name="HistoryLegendAppointment.Text" xml:space="preserve"><value>Rendez-vous prévu</value></data>
   <data name="HistoryLegendNow.Text" xml:space="preserve"><value>Maintenant</value></data>
   <data name="HistoryBubbleReviewTitle" xml:space="preserve"><value>Verrouillage à vérifier</value></data>
   <data name="HistoryBubbleFrom.Header" xml:space="preserve"><value>De</value></data>

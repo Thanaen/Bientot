@@ -338,6 +338,23 @@ pub mod size {
     /// The « maintenant » line and how far it overhangs the strip.
     pub const NOW_LINE_WIDTH: Pixels = px(2.);
     pub const NOW_LINE_OVERHANG: Pixels = px(3.);
+    /// The bracket over a recurring appointment's planned hours: its stroke, the height of its
+    /// ticks, and the room between it and the strip.
+    pub const APPOINTMENT_MARKER_STROKE: Pixels = px(2.);
+    pub const APPOINTMENT_MARKER_HEIGHT: Pixels = px(4.);
+    pub const APPOINTMENT_MARKER_GAP: Pixels = px(7.);
+    /// On the open day, 4 px clear of a selection's outline, its overhang and its 2 px halo.
+    pub const APPOINTMENT_MARKER_GAP_FOCUSED: Pixels = px(11.);
+    /// On the open day, between the top of its card and the bracket, which stays inside it.
+    pub const APPOINTMENT_MARKER_INSET: Pixels = px(6.);
+    /// How tall the pointer finds the bracket, centred on it.
+    pub const APPOINTMENT_MARKER_HIT: Pixels = px(14.);
+    /// A bracket cut by now stops this far short of the « maintenant » line, after fading out
+    /// over its last pixels.
+    pub const APPOINTMENT_MARKER_NOW_CLEARANCE: Pixels = px(3.);
+    pub const APPOINTMENT_MARKER_FADE: Pixels = px(10.);
+    /// Between the bracket and the bottom edge of its tooltip above it.
+    pub const APPOINTMENT_TOOLTIP_GAP: Pixels = px(4.);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

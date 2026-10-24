@@ -173,6 +173,7 @@ pub enum Key {
     HistoryLabelOvernightLock,
     HistoryLabelSuspended,
     HistoryLabelUnknown,
+    HistoryLegendAppointmentText,
     HistoryLegendGapText,
     HistoryLegendManualText,
     HistoryLegendNotWorkedText,
@@ -705,6 +706,7 @@ pub enum Key {
     StartupUnavailable,
     TimeFieldHoursAutomationPropertiesName,
     TimeFieldMinutesAutomationPropertiesName,
+    TimelineAppointmentNameFormat,
     TimelineHourFormat,
     TimelineKindGap,
     TimelineKindManual,
@@ -803,7 +805,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 795] = [
+pub(super) static ENTRIES: [Entry; 797] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -971,12 +973,13 @@ pub(super) static ENTRIES: [Entry; 795] = [
     Entry { name: "HistoryLabelOvernightLock", fr: "Verrouillé la nuit", en: "Locked overnight" },
     Entry { name: "HistoryLabelSuspended", fr: "Suspension", en: "Suspended" },
     Entry { name: "HistoryLabelUnknown", fr: "Inconnu", en: "Unknown" },
+    Entry { name: "HistoryLegendAppointment.Text", fr: "Rendez-vous prévu", en: "Scheduled appointment" },
     Entry { name: "HistoryLegendGap.Text", fr: "Trou ou veille, à régler", en: "Gap or sleep, to settle" },
     Entry { name: "HistoryLegendManual.Text", fr: "Correction manuelle", en: "Manual correction" },
     Entry { name: "HistoryLegendNotWorked.Text", fr: "Non travaillé", en: "Not worked" },
     Entry { name: "HistoryLegendNow.Text", fr: "Maintenant", en: "Now" },
     Entry { name: "HistoryLegendPause.Text", fr: "Pause", en: "Break" },
-    Entry { name: "HistoryLegendReview.Text", fr: "Verrouillage à vérifier", en: "Lock to review" },
+    Entry { name: "HistoryLegendReview.Text", fr: "À vérifier", en: "To review" },
     Entry { name: "HistoryLegendWork.Text", fr: "Travail", en: "Work" },
     Entry { name: "HistoryLoadFailed", fr: "Impossible de charger l’historique. Les dernières données chargées restent visibles\u{202f}; vérifiez le stockage local et réessayez.", en: "History could not be loaded. Your last loaded data remains visible; check local storage and retry." },
     Entry { name: "HistoryManualTitle.Text", fr: "Corrections manuelles", en: "Manual corrections" },
@@ -1503,6 +1506,7 @@ pub(super) static ENTRIES: [Entry; 795] = [
     Entry { name: "StartupUnavailable", fr: "Le démarrage automatique n’est pas disponible pour cette copie de WorkTime.", en: "Startup registration is unavailable for this copy of WorkTime." },
     Entry { name: "TimeFieldHours.AutomationProperties.Name", fr: "Heures", en: "Hours" },
     Entry { name: "TimeFieldMinutes.AutomationProperties.Name", fr: "Minutes", en: "Minutes" },
+    Entry { name: "TimelineAppointmentNameFormat", fr: "{0}, horaire prévu {1}", en: "{0}, scheduled {1}" },
     Entry { name: "TimelineHourFormat", fr: "{0:00}:00", en: "{0:00}:00" },
     Entry { name: "TimelineKindGap", fr: "Trou", en: "Gap" },
     Entry { name: "TimelineKindManual", fr: "Correction manuelle", en: "Manual correction" },

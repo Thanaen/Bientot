@@ -1,7 +1,7 @@
 //! What WorkTime's windows draw alike: the title bar over a transparent titlebar, the icons,
 //! the disclosures, the small labels and capitals, the notices and the privacy footnote, the
-//! thumb of a scroll bar and the shade of a scrolled edge, and a text shaped on one line and how
-//! wide it is.
+//! thumb of a scroll bar and the shade of a scrolled edge, the tooltips, and a text shaped on
+//! one line and how wide it is.
 
 use gpui::{
     App, Bounds, ClickEvent, Div, ElementId, FocusHandle, Font, FontFeatures, Hsla, Pixels, Role,
@@ -304,6 +304,25 @@ pub(crate) fn caps(label: &str, theme: &Theme) -> Div {
         .type_style(text::LABEL_XS)
         .text_color(theme.text_muted)
         .child(label.to_uppercase())
+}
+
+/// The design system's Tooltip: short lines on an elevated surface, each on one line so that a
+/// time range is never wrapped at its dash. The caller adds the lines as children.
+pub(crate) fn tooltip_box(theme: &Theme) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .whitespace_nowrap()
+        .px(BASE_08)
+        .py(BASE_04)
+        .rounded(radius::LG)
+        .border_1()
+        .border_color(theme.border)
+        .bg(theme.elevated_surface)
+        .shadow(theme.shadow_elevated())
+        .type_style(text::LABEL_SM)
+        .font_features(tabular_figures())
+        .text_color(theme.text)
 }
 
 /// How wide `text` is on one line in `style`.
