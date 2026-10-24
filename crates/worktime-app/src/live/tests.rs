@@ -1243,7 +1243,7 @@ fn an_absence_that_ends_the_next_day_counts_on_its_own_day() {
     assert_eq!(machine.log(), "");
 }
 
-/// The closed callout of an absence counted automatically stays closed.
+/// The closed callout of an absence counted automatically stays closed, after a restart too.
 #[test]
 fn closing_the_callout_of_a_counted_absence_keeps_the_count() {
     let machine = Machine::new();
@@ -1258,10 +1258,17 @@ fn closing_the_callout_of_a_counted_absence_keeps_the_count() {
     host.refresh();
     assert_eq!(host.view(Language::French).counted_absence, None);
     assert_eq!(worked_today(&host), keep_together("3h 05m"));
+
+    drop(host);
+    let mut host = machine.start();
+    host.refresh();
+
+    assert_eq!(host.view(Language::French).counted_absence, None);
+    assert_eq!(machine.log(), "");
 }
 
 /// The fourth « Oui, je travaillais » in a row on the meeting offers to count it automatically,
-/// once: closed, the offer stays closed.
+/// once: closed, the offer stays closed, after a restart too.
 #[test]
 fn four_confirmations_in_a_row_offer_to_count_automatically() {
     let machine = Machine::new();
@@ -1313,6 +1320,12 @@ fn four_confirmations_in_a_row_offer_to_count_automatically() {
         ("thursday-1000", 4)
     );
     host.hide_offer(&offer.appointment_id);
+    assert_eq!(host.view(Language::French).trust_offer, None);
+
+    drop(host);
+    let mut host = machine.start();
+    host.refresh();
+
     assert_eq!(host.view(Language::French).trust_offer, None);
     assert_eq!(machine.log(), "");
 }

@@ -89,6 +89,7 @@ impl<T: UsagePingTransport> UsagePingSender<T> {
     pub fn new(transport: T, store: AppStateStore, build: Build) -> io::Result<Self> {
         let AppState {
             usage_ping_last_sent,
+            ..
         } = store.load()?;
         Ok(Self {
             transport,
@@ -118,10 +119,10 @@ impl<T: UsagePingTransport> UsagePingSender<T> {
         match self.transport.post(&PingRequest::new(ping)) {
             Ok(204) => {
                 state.last_sent = Some(today);
-                let saved = AppState {
-                    usage_ping_last_sent: Some(today),
-                };
-                match self.store.save(&saved) {
+                let saved = self
+                    .store
+                    .update(|saved| saved.usage_ping_last_sent = Some(today));
+                match saved {
                     Ok(()) => UsagePingOutcome::Sent,
                     Err(error) => UsagePingOutcome::SentUnsaved(error),
                 }

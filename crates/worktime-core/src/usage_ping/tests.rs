@@ -57,6 +57,7 @@ impl Fixture {
             .store()
             .save(&AppState {
                 usage_ping_last_sent: Some(last_sent),
+                ..AppState::default()
             })
             .unwrap();
         fixture

@@ -24,7 +24,7 @@ temporary `WorkTimeDemo` folder.
 | --- | --- |
 | `settings.json` | Schedule, recurring appointments, notification rules, language, the built-in idle threshold, the time of the last update check, whether the anonymous usage signal is on. It also keeps the ActivityWatch address and timings of the first WorkTime version, which the current version no longer uses. |
 | `settings.json.invalid-<id>.json` | A copy of a settings file WorkTime could not read. It is kept so nothing is lost when defaults are restored. |
-| `app-state.json` | The date of the last usage signal the server recorded. Nothing else. |
+| `app-state.json` | The date of the last usage signal the server recorded, and which appointment notices you closed in the flyout today (internal ids of the correction and the appointment, with the date). Nothing else. |
 | `worktime.db` | SQLite database: which activity source was selected from which time, the active and idle periods, session, lock and power events with their times, pause and finish commands, manual corrections with their optional reason, long-lock decisions, daily summaries, weekly credit, and which notifications were already shown. |
 | `secrets\*.secret` | Secrets encrypted with DPAPI for your Windows account. Only the ActivityWatch API key of the first WorkTime version was ever stored there; the current version writes none. |
 | `import.worktime` | An import chosen in **Settings › Data** or on the first step of the onboarding, waiting for the next start to apply it. |
