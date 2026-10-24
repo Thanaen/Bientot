@@ -71,7 +71,7 @@ impl WeekView {
             ActionButton {
                 id: "declare-work",
                 label: Key::HistoryDeclareWorkContent,
-                icon: None,
+                icon: Some("plus"),
                 shortcut: None,
                 click: Click::enabled_if(
                     enabled,
