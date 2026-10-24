@@ -6,13 +6,15 @@
 //! - `adjust-declare-work-interval.png` and `adjust-declare-work-blank.png`, declaring work on
 //!   an interval with no day around it, and on none;
 //! - `adjust-declare-work-refresh-pending.png`, a declaration saved before the totals refresh;
+//! - `adjust-declare-work-single-refresh-pending.png`, the same of a lone slot between two
+//!   stretches;
 //! - `flyout-adjust-success-seconds.png`, the flyout once a declaration is saved;
 //! - `adjust-edit-add-<interval|duration>.png`, editing a correction.
 
 use anyhow::Context as _;
 use gpui::HeadlessAppContext;
 use worktime_app::adjust::window::Opener;
-use worktime_app::adjust::{AdjustForm, Editable, Intent, Seed, TimeField};
+use worktime_app::adjust::{AdjustForm, Editable, Intent, Seed, Stretch, TimeField, Unrecorded};
 use worktime_app::adjust_view::AdjustView;
 use worktime_app::demo::{self, DemoHost};
 use worktime_app::strings::{Key, Language};
@@ -109,7 +111,7 @@ pub fn capture_declare_work(
         capture(cx, window.into(), &output.join(format!("{slug}.png")))?;
     }
     let workday = LocalWorkday::new(jiff::civil::date(2026, 8, 31), "UTC");
-    let first = Seed::DeclareWork(Some(unrecorded));
+    let first = Seed::DeclareWork(Some(unrecorded.clone()));
     // Saved, the totals not refreshed: the tallest declaration, which its window fits.
     let mut pending = adjust_form(workday.clone(), first.clone(), now, language);
     pending
@@ -121,6 +123,35 @@ pub fn capture_declare_work(
         cx,
         window.into(),
         &output.join("adjust-declare-work-refresh-pending.png"),
+    )?;
+    // The same of a lone slot, with what came before and after it: the tallest declaration
+    // without a choice of slot.
+    let slot = unrecorded.slots()[unrecorded.first_choice()];
+    let (before, after) = unrecorded.around(slot);
+    let lone = Stretch {
+        kind: unrecorded.kind_of(slot),
+        interval: slot,
+    };
+    let single = Unrecorded::new(
+        vec![slot],
+        [before, Some(lone), after].into_iter().flatten().collect(),
+    )
+    .context("a slot makes a declaration")?;
+    let mut pending = adjust_form(
+        workday.clone(),
+        Seed::DeclareWork(Some(single)),
+        now,
+        language,
+    );
+    pending
+        .submit()
+        .context("the lone slot is declared as it opens")?;
+    pending.finished(Ok(false));
+    let window = open_adjust(cx, pending, Opener::Flyout)?;
+    capture(
+        cx,
+        window.into(),
+        &output.join("adjust-declare-work-single-refresh-pending.png"),
     )?;
     let declared = adjust_form(workday, first, now, language);
     capture_success_seconds(cx, declared, language, output)?;

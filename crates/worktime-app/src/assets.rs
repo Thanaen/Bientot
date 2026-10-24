@@ -46,6 +46,7 @@ const ICONS: &[(&str, &[u8])] = icons![
     "minus",
     "pencil",
     "play",
+    "plus",
     "refresh-cw",
     "repeat",
     "search",
