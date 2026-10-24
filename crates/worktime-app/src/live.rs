@@ -225,6 +225,7 @@ pub struct LiveHost<'a> {
     failed_counts: HashSet<AdjustmentId>,
     /// The earlier days of the week read for automatic counts, by the stored summary they had.
     scanned_days: HashMap<Date, String>,
+    gains: ledger::GainsCache,
 }
 
 /// What a catch-up compares to tell whether the day shown changed.
@@ -336,6 +337,7 @@ impl<'a> LiveHost<'a> {
             hidden_offers: HashSet::new(),
             failed_counts: HashSet::new(),
             scanned_days: HashMap::new(),
+            gains: ledger::GainsCache::default(),
         };
         host.tracking = host.with_tracking(|tracking| tracking.reconcile_current_state())?;
         Ok(host)
@@ -972,7 +974,13 @@ impl<'a> LiveHost<'a> {
     /// The current week as the last refresh stored it.
     pub fn week(&self) -> anyhow::Result<WeekTimeline> {
         self.with_accounting(|accounting| {
-            ledger::read_week(self.connection, accounting, self.clock, self.zones)
+            ledger::read_week(
+                self.connection,
+                accounting,
+                self.clock,
+                self.zones,
+                &self.gains,
+            )
         })
     }
 

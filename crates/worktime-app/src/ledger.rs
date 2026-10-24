@@ -2,6 +2,7 @@
 //! demo hosts. Ported from the commands of `HistoryWorkspace.cs`: each one checks that its day
 //! still shows what the user answered about, and a refusal names the message the week shows.
 
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use jiff::SignedDuration;
@@ -15,7 +16,9 @@ use worktime_core::ranges::{RangeCommand, RangeCorrections, RangeError};
 use worktime_core::reviews::{
     FinishLongLockReviewCommand, LongLockReviews, ReviewError, resolution_interval,
 };
-use worktime_domain::accounting::{AccountingLabel, AdjustmentId};
+use worktime_domain::accounting::{
+    AccountingLabel, AccountingResult, AdjustmentId, LongLockReviewId,
+};
 use worktime_domain::adjustments::{
     AdjustmentValidationError, ManualAdjustment, ManualClassification,
 };
@@ -32,6 +35,45 @@ use worktime_store::sessions::SessionEventRepository;
 use crate::strings::Key;
 use crate::week::{Gains, LockReview, Offer, WeekCommand, WeekTimeline};
 
+/// What each answer on a lock would change, kept from one week read to the next: a dry run
+/// records the answer and rolls it back, which the week would otherwise do twice per lock on
+/// every read. An entry holds only while the day it was measured on stays the same: the
+/// fresh calculation of that day and the settings it ran with, as live activity can change
+/// a day between two refreshes of its summary. Only the locks of the last read are kept.
+#[derive(Debug)]
+pub struct GainsCache<Day = (AccountingResult, WorkTimeSettings)> {
+    measured: RefCell<HashMap<LongLockReviewId, (Day, Option<Gains>)>>,
+}
+
+impl<Day> Default for GainsCache<Day> {
+    fn default() -> Self {
+        Self {
+            measured: RefCell::default(),
+        }
+    }
+}
+
+impl<Day: Clone + PartialEq> GainsCache<Day> {
+    /// The gains of `review` on `day`, measured by `measure` the first time they are asked
+    /// for.
+    fn gains(
+        &self,
+        review: &LongLockReviewId,
+        day: &Day,
+        kept: &mut HashMap<LongLockReviewId, (Day, Option<Gains>)>,
+        measure: impl FnOnce() -> Option<Gains>,
+    ) -> Option<Gains> {
+        let known = |entry: Option<&(Day, Option<Gains>)>| {
+            entry.and_then(|(measured_on, gains)| (measured_on == day).then_some(*gains))
+        };
+        let gains = known(kept.get(review))
+            .or_else(|| known(self.measured.borrow().get(review)))
+            .unwrap_or_else(measure);
+        kept.insert(review.clone(), (day.clone(), gains));
+        gains
+    }
+}
+
 /// The current week as the ledger stores it, placed on its timeline, with the locks it awaits
 /// an answer for as `accounting` resolves them and what it offers on each correction.
 pub fn read_week(
@@ -39,10 +81,11 @@ pub fn read_week(
     accounting: &WorkdayAccounting,
     clock: &dyn Clock,
     zones: &dyn TimeZoneProvider,
+    cache: &GainsCache,
 ) -> anyhow::Result<WeekTimeline> {
     let week = HistoryService::new(DailySummaryRepository::new(connection), clock, zones)
         .current_week()?;
-    let reviews = pending_locks(&week, connection, accounting, clock);
+    let reviews = pending_locks(&week, connection, accounting, clock, cache);
     let (offers, confirmed): (HashMap<_, _>, Vec<_>) = offers(connection, &week);
     Ok(WeekTimeline::project(
         &week,
@@ -187,9 +230,11 @@ fn pending_locks(
     connection: &Connection,
     accounting: &WorkdayAccounting,
     clock: &dyn Clock,
+    cache: &GainsCache,
 ) -> Vec<LockReview> {
     let context = accounting.capture_context();
     let mut locks = Vec::new();
+    let mut kept = HashMap::new();
     let snapshots = week
         .days()
         .iter()
@@ -209,6 +254,7 @@ fn pending_locks(
         if current.timeline().window().workday != *workday {
             continue;
         }
+        let day = (current.clone(), context.settings.clone());
         let reviews: Vec<_> = current
             .pending_reviews()
             .iter()
@@ -217,21 +263,26 @@ fn pending_locks(
             })
             .collect();
         locks.extend(reviews.into_iter().map(|(review, resolved)| {
-            let gain = |classification| {
-                (!review.is_open)
-                    .then(|| {
-                        answered_credit(
-                            connection,
-                            accounting,
-                            &context,
-                            clock,
-                            workday,
-                            resolved,
-                            classification,
-                        )
-                    })
-                    .flatten()
-                    .map(|after| after - current.credited_work())
+            let measured = || {
+                let gain = |classification| {
+                    (!review.is_open)
+                        .then(|| {
+                            answered_credit(
+                                connection,
+                                accounting,
+                                &context,
+                                clock,
+                                workday,
+                                resolved,
+                                classification,
+                            )
+                        })
+                        .flatten()
+                        .map(|after| after - current.credited_work())
+                };
+                gain(ManualClassification::Credited)
+                    .zip(gain(ManualClassification::Excluded))
+                    .map(|(count, exclude)| Gains { count, exclude })
             };
             LockReview {
                 id: review.id.clone(),
@@ -240,12 +291,11 @@ fn pending_locks(
                 is_open: review.is_open,
                 appointment: review.appointment_name(&context.settings.recurring_appointments),
                 weekday: workday.date.weekday(),
-                gains: gain(ManualClassification::Credited)
-                    .zip(gain(ManualClassification::Excluded))
-                    .map(|(count, exclude)| Gains { count, exclude }),
+                gains: cache.gains(&review.id, &day, &mut kept, measured),
             }
         }));
     }
+    *cache.measured.borrow_mut() = kept;
     locks
 }
 
@@ -497,3 +547,6 @@ fn review_refusal(error: ReviewError) -> Refusal {
         error => Refusal::failed(Key::HistoryCorrectionFailed, error),
     }
 }
+
+#[cfg(test)]
+mod tests;

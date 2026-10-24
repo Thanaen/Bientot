@@ -241,6 +241,7 @@ pub struct DemoHost {
     state: Option<WorkdayRefreshState>,
     /// The corrections of the week recorded so far, see [`CorrectionClock`].
     corrections: Cell<i64>,
+    gains: ledger::GainsCache,
 }
 
 /// The demo's clock never moves, but a correction must come strictly after the one it withdraws:
@@ -301,6 +302,7 @@ impl DemoHost {
             store,
             state: None,
             corrections: Cell::new(corrections),
+            gains: ledger::GainsCache::default(),
         };
         if claimed == Claimed::Kept {
             return Ok(host);
@@ -372,6 +374,7 @@ impl DemoHost {
             &accounting,
             &self.environment,
             &self.zones,
+            &self.gains,
         )
     }
 
