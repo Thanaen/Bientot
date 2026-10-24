@@ -268,8 +268,7 @@ impl WeekView {
         let strip_area = div()
             .id(("strip", index))
             .relative()
-            .flex_1()
-            .min_w_0()
+            .w_full()
             .h(height)
             .child(strip(
                 &row,
@@ -335,18 +334,32 @@ impl WeekView {
                     .child(badge)
             }));
 
+        // The open day's card holds its brackets: room above its strip for them, clear of its
+        // top edge.
+        let bracket_room = (row.focused && !row.markers.is_empty()).then(|| {
+            size::APPOINTMENT_MARKER_INSET
+                + size::APPOINTMENT_MARKER_HEIGHT
+                + size::APPOINTMENT_MARKER_GAP_FOCUSED
+                - CARD_PADDING
+        });
         let line = div()
             .flex()
             .items_center()
             .gap(BASE_16)
             .child(label)
-            .child(strip_area)
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .when_some(bracket_room, |column, room| column.pt(room))
+                    .child(strip_area),
+            )
             .child(total);
         div()
             .flex()
             .flex_col()
             .gap(BASE_12)
-            .py(BASE_08)
+            .py(CARD_PADDING)
             .px(BASE_12)
             .rounded(radius::MD)
             .when(row.focused, |row| row.bg(theme.surface))
@@ -623,6 +636,9 @@ fn strip(
     )
     .size_full()
 }
+
+/// Inside a day's card, above and below what it holds.
+const CARD_PADDING: Pixels = BASE_08;
 
 /// Between a day's strip and the bracket over it.
 fn marker_gap(focused: bool) -> Pixels {

@@ -15,7 +15,9 @@
 //!   which offers to make it an appointment;
 //! - `week-appointments.png`, the brackets of three recurring appointments: Monday's cut at the
 //!   axis, Thursday's over the sleep it turned into an absence to review and Friday's cut at now;
-//!   `-tooltip` with the pointer on Friday's, `-bubble` with Thursday's absence open.
+//!   `-tooltip` with the pointer on Friday's, `-bubble` with Thursday's absence open;
+//!   `-tooltip-merged` with the pointer on the one bracket of two appointments whose hours
+//!   overlap on Friday.
 
 use anyhow::Context as _;
 use gpui::{
@@ -28,7 +30,7 @@ use worktime_app::demo::{self, DemoHost};
 use worktime_app::palette_view;
 use worktime_app::strings::Language;
 use worktime_app::theme::{motion, size as token};
-use worktime_app::week::{Answer, Edge, Recorded, SegmentKind};
+use worktime_app::week::{Answer, Edge, Recorded, SegmentKind, WeekTimeline};
 use worktime_app::week_view::WeekView;
 use worktime_core::demo::DemoScenario;
 use worktime_domain::accounting::AdjustmentId;
@@ -132,13 +134,101 @@ pub fn capture_weeks(
 }
 
 /// The history week with a recurring appointment on Monday from 7:00 to 9:00, before the axis,
-/// on Thursday from 11:00 to 12:00, over its sleep, and on Friday from 17:00 to 19:30, past now.
+/// on Thursday from 11:00 to 12:00, over its sleep, and on Friday from 17:00 to 19:30, past now;
+/// then with two on Friday whose hours overlap, under one bracket.
 fn capture_appointments(
     cx: &mut HeadlessAppContext,
     language: Language,
     output: &std::path::Path,
 ) -> anyhow::Result<()> {
-    let appointment = |id: &str, name: &str, weekday, start, end| RecurringAppointment {
+    let week = appointments_week(
+        language,
+        vec![
+            appointment(
+                "monday",
+                "",
+                Weekday::Monday,
+                time(7, 0, 0, 0),
+                time(9, 0, 0, 0),
+            ),
+            appointment(
+                "thursday",
+                "Réunion d’équipe",
+                Weekday::Thursday,
+                time(11, 0, 0, 0),
+                time(12, 0, 0, 0),
+            ),
+            appointment(
+                "friday",
+                "",
+                Weekday::Friday,
+                time(17, 0, 0, 0),
+                time(19, 30, 0, 0),
+            ),
+        ],
+    )?;
+    let window = cx.open_window(
+        size(token::WEEK_WINDOW_WIDTH, token::WEEK_WINDOW_HEIGHT),
+        |window, cx| cx.new(|cx| WeekView::new(Some(week), language, window, cx)),
+    )?;
+    capture(cx, window.into(), &output.join("week-appointments.png"))?;
+    point_at_friday_bracket(cx, window)?;
+    capture(
+        cx,
+        window.into(),
+        &output.join("week-appointments-tooltip.png"),
+    )?;
+    open_segment(
+        cx,
+        window,
+        "Thursday's absence in its appointment",
+        |segment| segment.is_appointment() && segment.local_start.date() == demo_day(3),
+    )?;
+    capture(
+        cx,
+        window.into(),
+        &output.join("week-appointments-bubble.png"),
+    )?;
+
+    let week = appointments_week(
+        language,
+        vec![
+            appointment(
+                "client",
+                "Point client",
+                Weekday::Friday,
+                time(17, 0, 0, 0),
+                time(18, 0, 0, 0),
+            ),
+            appointment(
+                "sprint",
+                "Revue de sprint",
+                Weekday::Friday,
+                time(17, 30, 0, 0),
+                time(19, 30, 0, 0),
+            ),
+        ],
+    )?;
+    let window = cx.open_window(
+        size(token::WEEK_WINDOW_WIDTH, token::WEEK_WINDOW_HEIGHT),
+        |window, cx| cx.new(|cx| WeekView::new(Some(week), language, window, cx)),
+    )?;
+    point_at_friday_bracket(cx, window)?;
+    capture(
+        cx,
+        window.into(),
+        &output.join("week-appointments-tooltip-merged.png"),
+    )
+}
+
+fn appointment(
+    id: &str,
+    name: &str,
+    weekday: Weekday,
+    start: jiff::civil::Time,
+    end: jiff::civil::Time,
+) -> RecurringAppointment {
+    RecurringAppointment {
         id: id.to_owned(),
         name: name.to_owned(),
         weekday,
@@ -148,30 +238,14 @@ fn capture_appointments(
         since: None,
         alternate_weeks_from: None,
         automatic: false,
-    };
-    let appointments = vec![
-        appointment(
-            "monday",
-            "",
-            Weekday::Monday,
-            time(7, 0, 0, 0),
-            time(9, 0, 0, 0),
-        ),
-        appointment(
-            "thursday",
-            "Réunion d’équipe",
-            Weekday::Thursday,
-            time(11, 0, 0, 0),
-            time(12, 0, 0, 0),
-        ),
-        appointment(
-            "friday",
-            "",
-            Weekday::Friday,
-            time(17, 0, 0, 0),
-            time(19, 30, 0, 0),
-        ),
-    ];
+    }
+}
+
+/// The history week once `appointments` are the recurring ones.
+fn appointments_week(
+    language: Language,
+    appointments: Vec<RecurringAppointment>,
+) -> anyhow::Result<WeekTimeline> {
     let directory = demo::throwaway_directory();
     let read = DemoHost::open(DemoScenario::HistoryWeek, &directory).and_then(|mut host| {
         let settings = WorkTimeSettings {
@@ -183,12 +257,14 @@ fn capture_appointments(
         host.week()
     });
     std::fs::remove_dir_all(&directory).ok();
-    let week = read?;
-    let window = cx.open_window(
-        size(token::WEEK_WINDOW_WIDTH, token::WEEK_WINDOW_HEIGHT),
-        |window, cx| cx.new(|cx| WeekView::new(Some(week), language, window, cx)),
-    )?;
-    capture(cx, window.into(), &output.join("week-appointments.png"))?;
+    read
+}
+
+/// Rests the pointer on the middle of the first bracket of today, Friday, the open day.
+fn point_at_friday_bracket(
+    cx: &mut HeadlessAppContext,
+    window: WindowHandle<WeekView>,
+) -> anyhow::Result<()> {
     let pointer = cx.update(|cx| {
         window.update(cx, |view, _, _| {
             let bounds = view.strip_bounds()?;
@@ -216,22 +292,7 @@ fn capture_appointments(
         );
     })?;
     cx.run_until_parked();
-    capture(
-        cx,
-        window.into(),
-        &output.join("week-appointments-tooltip.png"),
-    )?;
-    open_segment(
-        cx,
-        window,
-        "Thursday's absence in its appointment",
-        |segment| segment.is_appointment() && segment.local_start.date() == demo_day(3),
-    )?;
-    capture(
-        cx,
-        window.into(),
-        &output.join("week-appointments-bubble.png"),
-    )
+    Ok(())
 }
 
 /// Wednesday's long lock counted as work, its result offering « Compter chaque mercredi… » as

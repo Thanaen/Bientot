@@ -1239,7 +1239,7 @@ fn the_legend_explains_the_bracket_only_in_a_week_that_draws_one() {
             "To review",
             "Not worked",
             "Upcoming day",
-            "Planned appointment",
+            "Scheduled appointment",
             "Now",
         ]
     );

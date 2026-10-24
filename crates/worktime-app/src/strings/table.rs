@@ -973,7 +973,7 @@ pub(super) static ENTRIES: [Entry; 797] = [
     Entry { name: "HistoryLabelOvernightLock", fr: "Verrouillé la nuit", en: "Locked overnight" },
     Entry { name: "HistoryLabelSuspended", fr: "Suspension", en: "Suspended" },
     Entry { name: "HistoryLabelUnknown", fr: "Inconnu", en: "Unknown" },
-    Entry { name: "HistoryLegendAppointment.Text", fr: "Rendez-vous prévu", en: "Planned appointment" },
+    Entry { name: "HistoryLegendAppointment.Text", fr: "Rendez-vous prévu", en: "Scheduled appointment" },
     Entry { name: "HistoryLegendGap.Text", fr: "Trou ou veille, à régler", en: "Gap or sleep, to settle" },
     Entry { name: "HistoryLegendManual.Text", fr: "Correction manuelle", en: "Manual correction" },
     Entry { name: "HistoryLegendNotWorked.Text", fr: "Non travaillé", en: "Not worked" },
