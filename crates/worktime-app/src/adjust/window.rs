@@ -99,9 +99,11 @@ impl AdjustForm {
                     580.
                 }
             }
+            // Its three lines of explanation, Début and Fin and Motif, then the result: no
+            // more, or the window shows a blank under Motif while the form is filled.
             Opening::Declaration {
                 unrecorded: None, ..
-            } => 560.,
+            } => 500.,
         }
     }
 
