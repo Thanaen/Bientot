@@ -520,7 +520,7 @@ fn a_declaration_of_work_opens_on_the_minutes_of_its_interval() {
         ("10:04".into(), "10:30".into())
     );
     let page = form.page();
-    assert_eq!(page.title, "Record time worked");
+    assert_eq!(page.title, "Log time worked");
     assert_eq!(page.day, nb("Day: Thursday, October~8, 2026"));
     let declaration = page.declaration.unwrap();
     assert_eq!(
@@ -594,7 +594,7 @@ fn a_declaration_of_work_without_one_interval_opens_on_nine_to_ten() {
         ("09:00".into(), "10:00".into())
     );
     let page = form.page();
-    assert_eq!(page.title, "Renseigner un créneau travaillé");
+    assert_eq!(page.title, "Déclarer du temps travaillé");
     assert_eq!(page.day, nb("Journée~: jeudi 8~octobre 2026"));
     assert_eq!(
         page.local_times.as_deref(),

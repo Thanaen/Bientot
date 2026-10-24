@@ -1,4 +1,4 @@
-//! The day around unrecorded time. « Renseigner un créneau travaillé » shows it so that the
+//! The day around unrecorded time. « Déclarer du temps travaillé » shows it so that the
 //! user sees when the time was and what came before and after it, rather than times to recall.
 
 use jiff::civil::{DateTime, DateTimeRound};

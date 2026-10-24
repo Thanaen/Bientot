@@ -23,7 +23,7 @@ impl WeekView {
         }
     }
 
-    /// « Renseigner un créneau », on the open day.
+    /// « Déclarer du temps travaillé… », on the open day.
     fn declare_work(&mut self, cx: &mut Context<Self>) {
         if let Some((workday, seed)) = self.state.as_ref().and_then(WeekState::declare_work) {
             let _ = adjust_view::window::open(Some(workday), seed, Opener::Week, cx);

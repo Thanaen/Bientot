@@ -551,7 +551,7 @@
   <data name="DemoProblemPeriods" xml:space="preserve"><value>Periods to review · 16:00</value></data>
   <data name="HistoryPeriodResolved" xml:space="preserve"><value>This period has changed since it was displayed. Refresh the day to see its current state.</value></data>
   <data name="HistoryCorrectionNotRemovable" xml:space="preserve"><value>This correction comes from a lock review and cannot be removed. The day now shows what you can change.</value></data>
-  <data name="DeclareWorkTitle" xml:space="preserve"><value>Record time worked</value></data>
+  <data name="DeclareWorkTitle" xml:space="preserve"><value>Log time worked</value></data>
   <data name="DeclareWorkDateFormat" xml:space="preserve"><value>Day: {0}</value></data>
   <data name="DeclareWorkExplanation.Text" xml:space="preserve"><value>Enter when you actually worked, for example during a meeting. Work already detected in this interval is counted only once.</value></data>
   <data name="DeclareWorkStart.Header" xml:space="preserve"><value>Start</value></data>
@@ -568,7 +568,7 @@
   <data name="DeclareWorkSlotName" xml:space="preserve"><value>{0} to {1}, {2}</value></data>
   <data name="DeclareWorkUnrecordedSlots" xml:space="preserve"><value>Unrecorded slots</value></data>
   <data name="SourceOpenSettings" xml:space="preserve"><value>Open settings</value></data>
-  <data name="HistoryDeclareWork.Content" xml:space="preserve"><value>Record time worked…</value></data>
+  <data name="HistoryDeclareWork.Content" xml:space="preserve"><value>Log time worked…</value></data>
   <data name="HistoryManualTitle.Text" xml:space="preserve"><value>Manual corrections</value></data>
   <data name="HistoryCreditTitle.Text" xml:space="preserve"><value>Credit</value></data>
   <data name="DemoFragmentedDay" xml:space="preserve"><value>Fragmented day · 16:00</value></data>

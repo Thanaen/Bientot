@@ -532,7 +532,7 @@
   <data name="DemoProblemPeriods" xml:space="preserve"><value>Périodes à examiner · 16:00</value></data>
   <data name="HistoryPeriodResolved" xml:space="preserve"><value>Cette période a changé depuis son affichage. Actualisez la journée pour voir son état actuel.</value></data>
   <data name="HistoryCorrectionNotRemovable" xml:space="preserve"><value>Cette correction vient d’une vérification de verrouillage et ne peut pas être retirée. La journée affiche maintenant ce que vous pouvez modifier.</value></data>
-  <data name="DeclareWorkTitle" xml:space="preserve"><value>Renseigner un créneau travaillé</value></data>
+  <data name="DeclareWorkTitle" xml:space="preserve"><value>Déclarer du temps travaillé</value></data>
   <data name="DeclareWorkDateFormat" xml:space="preserve"><value>Journée : {0}</value></data>
   <data name="DeclareWorkExplanation.Text" xml:space="preserve"><value>Indiquez les horaires réellement travaillés, par exemple pendant une réunion. Le travail déjà détecté dans ce créneau reste compté une seule fois.</value></data>
   <data name="DeclareWorkStart.Header" xml:space="preserve"><value>Début</value></data>
@@ -549,7 +549,7 @@
   <data name="DeclareWorkSlotName" xml:space="preserve"><value>De {0} à {1}, {2}</value></data>
   <data name="DeclareWorkUnrecordedSlots" xml:space="preserve"><value>Créneaux non renseignés</value></data>
   <data name="SourceOpenSettings" xml:space="preserve"><value>Ouvrir les paramètres</value></data>
-  <data name="HistoryDeclareWork.Content" xml:space="preserve"><value>Renseigner un créneau…</value></data>
+  <data name="HistoryDeclareWork.Content" xml:space="preserve"><value>Déclarer du temps travaillé…</value></data>
   <data name="HistoryManualTitle.Text" xml:space="preserve"><value>Corrections manuelles</value></data>
   <data name="HistoryCreditTitle.Text" xml:space="preserve"><value>Crédit</value></data>
   <data name="DemoFragmentedDay" xml:space="preserve"><value>Journée fragmentée · 16:00</value></data>

@@ -1,5 +1,5 @@
 //! Tab and Shift+Tab reach the hours and the minutes of every time field, « Durée » and
-//! « Motif » (#298): in « Renseigner un créneau travaillé », in a correction and in the
+//! « Motif » (#298): in « Déclarer du temps travaillé », in a correction and in the
 //! schedule of « Paramètres »; Shift+Tab comes back to the first action of a bubble of the
 //! week. It needs the headless GPUI of the `screenshots` feature.
 #![cfg(all(feature = "screenshots", target_os = "linux"))]

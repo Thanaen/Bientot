@@ -1,5 +1,5 @@
-//! « Renseigner un créneau » of the week: the
-//! declaration they open, and what saving it records on a demo ledger.
+//! « Déclarer du temps travaillé… » of the week: the declaration they open, and what saving
+//! it records on a demo ledger.
 
 use jiff::civil::date;
 use worktime_domain::adjustments::AdjustmentKind;
@@ -83,7 +83,7 @@ fn part_of_a_gap_is_declared_and_counted_once() {
     );
     let mut form = demo.seeded(wednesday(), seed, "part");
     let page = form.page();
-    assert_eq!(page.title, "Renseigner un créneau travaillé");
+    assert_eq!(page.title, "Déclarer du temps travaillé");
     let context = page.declaration.unwrap().context.unwrap();
     assert_eq!(
         context
@@ -132,8 +132,8 @@ fn part_of_a_gap_is_declared_and_counted_once() {
     );
 }
 
-/// « Renseigner un créneau » declares on the open day, not on today, on its gap to settle;
-/// neither it nor the partial action is offered while a refresh is pending.
+/// « Déclarer du temps travaillé… » declares on the open day, not on today, on its gap to
+/// settle; neither it nor the partial action is offered while a refresh is pending.
 #[test]
 fn work_is_declared_on_the_open_day_of_the_week() {
     let (_demo, mut state) = Demo::open();
@@ -160,7 +160,7 @@ fn work_is_declared_on_the_open_day_of_the_week() {
 }
 
 /// Wednesday's gap with declarations at 14:00:00–14:03:43 and 14:11:17–14:15:00: what is left
-/// of it opens « Renseigner un créneau travaillé » on 14:03–14:11.
+/// of it opens « Déclarer du temps travaillé » on 14:03–14:11.
 fn declared_between_corrections() -> (Demo, AdjustForm) {
     let (mut demo, mut state) = Demo::open();
     for (name, start, end) in [

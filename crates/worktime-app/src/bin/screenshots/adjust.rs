@@ -72,8 +72,8 @@ pub fn capture_declare_work(
     language: Language,
     output: &std::path::Path,
 ) -> anyhow::Result<()> {
-    // « Renseigner un créneau » of the week: on the problem periods, whose two unrecorded
-    // intervals leave the times to the user, on the longest, then on the other.
+    // « Déclarer du temps travaillé… » of the week: on the problem periods, whose two
+    // unrecorded intervals leave the times to the user, on the longest, then on the other.
     let directory = demo::throwaway_directory();
     let mut host = DemoHost::open(DemoScenario::ProblemPeriods, &directory)?;
     host.refresh(language)?;
