@@ -150,8 +150,7 @@ fn a_day_without_work_reports_all_of_its_unrecorded_time() {
                 other => panic!("not unrecorded time: {other:?}"),
             }),
         Some((
-            "Unrecorded time · 9h\u{a0}30m, from 12:00\u{a0}AM to 9:30\u{a0}AM. Were you working? \
-             Enter the times."
+            "Unrecorded time · 9h\u{a0}30m, from 12:00\u{a0}AM to 9:30\u{a0}AM. Were you working?"
                 .into(),
             vec![
                 UtcInterval::new(
@@ -187,8 +186,8 @@ fn a_gap_after_the_first_activity_is_unrecorded() {
                 other => panic!("not unrecorded time: {other:?}"),
             }),
         Some((
-            "Unrecorded time · 1h\u{a0}00m, from 10:00\u{a0}AM to 11:00\u{a0}AM. Were you working? \
-             Enter the times.".into(),
+            "Unrecorded time · 1h\u{a0}00m, from 10:00\u{a0}AM to 11:00\u{a0}AM. Were you working?"
+                .into(),
             vec![
                 UtcInterval::new(
                     "2026-10-08T10:00:00Z".parse().unwrap(),
@@ -208,15 +207,11 @@ fn unrecorded_time_is_reported_from_five_minutes() {
         ("2026-10-08T08:34:59Z", None),
         (
             "2026-10-08T08:35:00Z",
-            Some(
-                "Unrecorded time · 5m, from 8:30\u{a0}AM to 8:35\u{a0}AM. Were you working? Enter the times.",
-            ),
+            Some("Unrecorded time · 5m, from 8:30\u{a0}AM to 8:35\u{a0}AM. Were you working?"),
         ),
         (
             "2026-10-08T08:35:01Z",
-            Some(
-                "Unrecorded time · 5m, from 8:30\u{a0}AM to 8:35\u{a0}AM. Were you working? Enter the times.",
-            ),
+            Some("Unrecorded time · 5m, from 8:30\u{a0}AM to 8:35\u{a0}AM. Were you working?"),
         ),
     ] {
         let machine = Machine::new();
@@ -963,7 +958,7 @@ fn a_lock_still_going_on_into_lunch_cannot_be_answered_yet() {
     for command in [
         WeekCommand::Range {
             workday: workday.clone(),
-            range: state.selection().unwrap().range,
+            ranges: vec![state.selection().unwrap().range],
             classification: ManualClassification::Credited,
         },
         WeekCommand::FinishAtLockStart { workday, review },

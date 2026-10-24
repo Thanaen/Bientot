@@ -9,7 +9,6 @@ use worktime_domain::sources::SourceDiagnostics;
 
 use super::*;
 use crate::demo::DemoHost;
-use crate::week::SegmentKind;
 
 fn day(scenario: DemoScenario, language: Language) -> DayView {
     let directory = tempfile::tempdir().unwrap();
@@ -167,17 +166,17 @@ fn an_estimated_forecast_says_what_it_is_based_on() {
             "Selon le travail enregistré",
             "Temps travaillé 5_h_04_min / 7_h_00_min at 0.73",
             "Unrecorded: Temps non renseigné · 26_min en 2_créneaux, entre 09:40 et 14:20. \
-             Travailliez-vous\u{202f}? Indiquez les horaires.",
+             Travailliez-vous\u{202f}?",
             "tray: Dans les temps · 5_h_04_min/7_h_00_min · Départ 17:55 · Selon le travail enregistré",
         ]
     );
 }
 
 /// `SourceDiagnosticsPresenter.Present` of the .NET app: the unknown time the source could
-/// not record, merged, to the minute, and a way to record the work done then. The message
-/// also says when the time was (#301 follow-up), and the hint keeps the day around it.
+/// not record, merged, to the minute, and whether it was work. The message also says when the
+/// time was (#301 follow-up), and the hint keeps its day and how long it lasts.
 #[test]
-fn unrecorded_time_offers_to_record_the_work_done() {
+fn unrecorded_time_asks_whether_it_was_work() {
     let morning = UtcInterval::new(
         "2026-08-31T09:40:12Z".parse().unwrap(),
         "2026-08-31T09:45:42Z".parse().unwrap(),
@@ -190,85 +189,21 @@ fn unrecorded_time_offers_to_record_the_work_done() {
     .unwrap();
     let Some(SourceHint::Unrecorded {
         message,
+        workday,
         intervals,
-        day,
-    }) = day(DemoScenario::ProblemPeriods, Language::English).source_hint
+        duration,
+    }) = &day(DemoScenario::ProblemPeriods, Language::English).source_hint
     else {
         panic!("the problem periods leave time unrecorded");
     };
     assert_eq!(
         message,
         "Unrecorded time · 26m in 2\u{a0}slots, between 9:40\u{a0}AM and 2:20\u{a0}PM. Were you \
-         working? Enter the times."
+         working?"
     );
-    assert_eq!(intervals, [morning, afternoon]);
-    // From arrival to now, every slot among the day's gaps.
-    assert_eq!(
-        day.first().map(|stretch| stretch.interval.start()),
-        Some("2026-08-31T09:00:00Z".parse().unwrap())
-    );
-    for slot in [morning, afternoon] {
-        assert!(
-            day.iter()
-                .any(|stretch| stretch.kind == SegmentKind::Gap && stretch.interval == slot),
-            "{slot:?} is not a gap of {day:?}"
-        );
-    }
-}
-
-/// A declaration opens on every interval of the unrecorded time, in its day; the .NET app
-/// opened on it only when it was one interval.
-#[test]
-fn a_declaration_opens_on_every_unrecorded_interval() {
-    let morning = UtcInterval::new(
-        "2026-08-31T09:40:12Z".parse().unwrap(),
-        "2026-08-31T09:45:42Z".parse().unwrap(),
-    )
-    .unwrap();
-    let afternoon = UtcInterval::new(
-        "2026-08-31T14:00:00Z".parse().unwrap(),
-        "2026-08-31T14:20:00Z".parse().unwrap(),
-    )
-    .unwrap();
-    let day = vec![Stretch {
-        kind: SegmentKind::Gap,
-        interval: afternoon,
-    }];
-    let unrecorded = |intervals: Vec<UtcInterval>| SourceHint::Unrecorded {
-        message: "".into(),
-        intervals,
-        day: day.clone(),
-    };
-    let declaration = unrecorded(vec![afternoon, morning]).declaration().unwrap();
-    assert_eq!(declaration.slots(), [morning, afternoon]);
-    assert_eq!(declaration.day(), day);
-    assert_eq!(unrecorded(Vec::new()).declaration(), None);
-    let fragment = UtcInterval::new(
-        "2026-08-31T11:00:00Z".parse().unwrap(),
-        "2026-08-31T11:00:20Z".parse().unwrap(),
-    )
-    .unwrap();
-    assert_eq!(
-        unrecorded(vec![morning, fragment])
-            .declaration()
-            .unwrap()
-            .slots(),
-        [morning],
-        "a fragment under a minute is no slot to choose"
-    );
-    assert_eq!(
-        unrecorded(vec![fragment]).declaration().unwrap().slots(),
-        [fragment],
-        "unless the time is all fragments"
-    );
-    assert_eq!(
-        SourceHint::Failure {
-            message: "".into(),
-            remedy: FailureRemedy::OpenSettings,
-        }
-        .declaration(),
-        None
-    );
+    assert_eq!(workday.date, jiff::civil::date(2026, 8, 31));
+    assert_eq!(intervals, &[morning, afternoon]);
+    assert_eq!(*duration, SignedDuration::new(25 * 60 + 30, 0));
 }
 
 /// Monday's hour of credit lowers Tuesday's target to 6 hours and leaves none to carry over;

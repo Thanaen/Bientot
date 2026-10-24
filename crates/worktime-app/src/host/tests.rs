@@ -13,6 +13,7 @@ use crate::flyout;
 use crate::live;
 use crate::tray_model::ReviewAction;
 use crate::week::{Answer, SegmentKind, Severity, WeekState};
+use crate::widgets::NoticeKind;
 use crate::workday::{FailureRemedy, SourceHint};
 
 /// Thursday 8 October 2026, 08:00 UTC, where [`clock`] starts.
@@ -889,3 +890,75 @@ fn a_failed_refresh_is_told_until_one_succeeds() {
 
 #[path = "correction_tests.rs"]
 mod correction_tests;
+
+/// The day of the problem periods, in French, its demo ledger in `folder`.
+fn problem_periods(folder: &Path) -> Today {
+    let host = DemoHost::open(worktime_core::demo::DemoScenario::ProblemPeriods, folder).unwrap();
+    Today::open(Source::Demo(Box::new(host)), Language::French).unwrap()
+}
+
+fn worked(today: &Today) -> String {
+    today.view().worked.as_ref().unwrap().worked.to_string()
+}
+
+/// « Oui, compter 26 min » of the hint as the flyout shows it.
+fn count_shown(today: &Today) -> flyout::CountUnrecorded {
+    let Some(SourceHint::Unrecorded {
+        workday, intervals, ..
+    }) = today.view().source_hint.clone()
+    else {
+        panic!("the problem periods leave time unrecorded");
+    };
+    flyout::CountUnrecorded { workday, intervals }
+}
+
+/// The 26 minutes the hint reports are counted as work at once, the notice says so with
+/// « Annuler », and « Annuler » brings them back unrecorded.
+#[test]
+fn counting_the_unrecorded_time_adds_it_to_the_day_until_undone() {
+    let folder = tempfile::tempdir().unwrap();
+    let mut today = problem_periods(folder.path());
+    let nb = |text: &str| text.replace('~', "\u{a0}");
+    assert_eq!(worked(&today), nb("5~h~04~min"));
+
+    let notice = today.count_unrecorded(&count_shown(&today));
+    assert_eq!(notice.message, nb("26~min comptées comme travail."));
+    assert_eq!(notice.kind, NoticeKind::Success);
+    assert_eq!(worked(&today), nb("5~h~30~min"));
+    assert_eq!(today.view().source_hint, None);
+
+    let undo = notice.undo.expect("the count can be undone");
+    let undone = today.undo(&undo);
+    assert_eq!(undone.message, "Action annulée.");
+    assert_eq!(undone.undo, None);
+    assert_eq!(worked(&today), nb("5~h~04~min"));
+    assert_eq!(
+        today.view().source_hint.as_ref().map(SourceHint::message),
+        Some(
+            &nb(
+                "Temps non renseigné · 26~min en 2~créneaux, entre 09:40 et 14:20. \
+                 Travailliez-vous\u{202f}?"
+            )
+            .into()
+        )
+    );
+}
+
+/// Counted elsewhere since the flyout showed it, the time is not counted twice: the notice
+/// says the day changed.
+#[test]
+fn time_counted_since_the_hint_showed_it_is_refused() {
+    let folder = tempfile::tempdir().unwrap();
+    let mut today = problem_periods(folder.path());
+    let count = count_shown(&today);
+    today.count_unrecorded(&count);
+    let again = today.count_unrecorded(&count);
+    assert_eq!(
+        again.message,
+        "Cette période a changé depuis son affichage. Actualisez la journée pour voir son état \
+         actuel."
+    );
+    assert_eq!(again.kind, NoticeKind::Warning);
+    assert_eq!(again.undo, None);
+    assert_eq!(worked(&today), "5\u{a0}h\u{a0}30\u{a0}min");
+}

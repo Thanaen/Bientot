@@ -1,6 +1,6 @@
-//! The flyout's source hint offers what `MainWindow.OnSourceActionClick` of the .NET app does:
-//! recording the work of unrecorded time, the settings for a failed source; the notice of
-//! restored settings offers the same settings. Each control is reached with Tab and pressed with
+//! The flyout's source hint offers to count unrecorded time as work or to see it in the week,
+//! and the settings for a failed source, as `MainWindow.OnSourceActionClick` of the .NET app;
+//! the notice of restored settings offers the same settings. Each control is reached with Tab and pressed with
 //! Enter, as a keyboard user does. It needs the headless GPUI of the `screenshots` feature.
 #![cfg(all(feature = "screenshots", target_os = "linux"))]
 
@@ -15,8 +15,8 @@ use gpui::{
 use worktime_app::assets::{self, Assets};
 use worktime_app::demo::{self, DemoHost};
 use worktime_app::flyout::{
-    self, AdjustTime, Alerts, DeclareWork, FinishDay, Flyout, OpenGeneralSettings, OpenSettings,
-    OpenWeek, Refresh, TogglePause, UseBuiltInDetection,
+    self, AdjustTime, Alerts, CountUnrecorded, FinishDay, Flyout, OpenGeneralSettings,
+    OpenSettings, OpenWeek, Refresh, ShowUnrecorded, TogglePause, UseBuiltInDetection,
 };
 use worktime_app::live::Tracking;
 use worktime_app::strings::Language;
@@ -27,6 +27,7 @@ use worktime_app::workday::{DayView, SourceHint};
 use worktime_core::demo::DemoScenario;
 use worktime_domain::accounting::TrackingState;
 use worktime_domain::intervals::UtcInterval;
+use worktime_domain::time::LocalWorkday;
 
 type Pressed = Rc<RefCell<Vec<&'static str>>>;
 
@@ -77,15 +78,22 @@ fn tab_stops_with(scenario: DemoScenario, tracking: Tracking, alerts: Alerts) ->
     press_every_tab_stop(day(scenario), tracking, alerts).0
 }
 
-/// Enter on each Tab stop of the flyout of `day`, in Tab order: what each one did, and every
-/// declaration of work it sent.
+/// What the hint's two buttons sent.
+#[derive(Debug, Default, PartialEq)]
+struct Sent {
+    counts: Vec<CountUnrecorded>,
+    shown: Vec<ShowUnrecorded>,
+}
+
+/// Enter on each Tab stop of the flyout of `day`, in Tab order: what each one did, and what the
+/// buttons of unrecorded time sent.
 fn press_every_tab_stop(
     day: DayView,
     tracking: Tracking,
     alerts: Alerts,
-) -> (Vec<&'static str>, Vec<DeclareWork>) {
+) -> (Vec<&'static str>, Sent) {
     let pressed = Pressed::default();
-    let declared = Rc::new(RefCell::new(Vec::new()));
+    let sent = Rc::new(RefCell::new(Sent::default()));
     let text_system = Arc::new(gpui_wgpu::CosmicTextSystem::new_without_system_fonts(
         assets::FONT_FAMILY,
     ));
@@ -104,10 +112,15 @@ fn press_every_tab_stop(
         record::<AdjustTime>(&pressed, "adjust time", cx);
         record::<FinishDay>(&pressed, "finish day", cx);
         // One listener only: the last one registered for an action is the one that runs.
-        let (pressed, declared) = (pressed.clone(), declared.clone());
-        cx.on_action(move |action: &DeclareWork, _| {
-            pressed.borrow_mut().push("declare work");
-            declared.borrow_mut().push(action.clone());
+        let (counted, counts) = (pressed.clone(), sent.clone());
+        cx.on_action(move |action: &CountUnrecorded, _| {
+            counted.borrow_mut().push("count unrecorded");
+            counts.borrow_mut().counts.push(action.clone());
+        });
+        let (shown, shows) = (pressed.clone(), sent.clone());
+        cx.on_action(move |action: &ShowUnrecorded, _| {
+            shown.borrow_mut().push("show unrecorded");
+            shows.borrow_mut().shown.push(action.clone());
         });
     });
     let window = cx
@@ -121,7 +134,7 @@ fn press_every_tab_stop(
         press(&mut cx, window, "enter");
         press(&mut cx, window, "tab");
         if focused(&mut cx, window).as_ref() == Some(&first) {
-            return (pressed.take(), declared.take());
+            return (pressed.take(), sent.take());
         }
         assert!(
             pressed.borrow().len() < 32,
@@ -130,40 +143,19 @@ fn press_every_tab_stop(
     }
 }
 
-/// The unrecorded intervals of the hint of `day`.
-fn unrecorded(day: &DayView) -> Vec<UtcInterval> {
-    match &day.source_hint {
-        Some(SourceHint::Unrecorded { intervals, .. }) => intervals.clone(),
-        hint => panic!("the day has no unrecorded time: {hint:?}"),
-    }
-}
-
-/// What « Renseigner un créneau travaillé » declares on a day whose unrecorded time is
-/// `intervals`.
-fn declared_on(intervals: Vec<UtcInterval>) -> Vec<DeclareWork> {
-    let mut day = day(DemoScenario::ProblemPeriods);
-    let Some(SourceHint::Unrecorded {
-        intervals: shown, ..
-    }) = &mut day.source_hint
-    else {
-        panic!("the problem periods leave unrecorded time");
-    };
-    *shown = intervals;
-    press_every_tab_stop(day, running(true), Alerts::default()).1
-}
-
 fn running(working_day: bool) -> Tracking {
     Tracking::new(TrackingState::Running, working_day)
 }
 
 #[test]
-fn unrecorded_time_offers_to_record_the_work() {
+fn unrecorded_time_offers_to_count_it_or_see_it_in_the_week() {
     assert_eq!(
         tab_stops(DemoScenario::ProblemPeriods, running(true)),
         [
             "open week",
             "open settings",
-            "declare work",
+            "count unrecorded",
+            "show unrecorded",
             "toggle pause",
             "adjust time",
             "finish day",
@@ -171,12 +163,13 @@ fn unrecorded_time_offers_to_record_the_work() {
     );
 }
 
-/// As `UpdateCommands` of the .NET app enables the action only when time can be added.
+/// As `UpdateCommands` of the .NET app enables the action only when time can be added; the
+/// week still shows it.
 #[test]
-fn unrecorded_time_on_a_day_off_cannot_be_recorded() {
+fn unrecorded_time_on_a_day_off_cannot_be_counted() {
     assert_eq!(
         tab_stops(DemoScenario::ProblemPeriods, running(false)),
-        ["open week", "open settings"]
+        ["open week", "open settings", "show unrecorded"]
     );
 }
 
@@ -251,34 +244,39 @@ fn restored_settings_offer_the_settings() {
     );
 }
 
-/// The declaration opens on the unrecorded time, in its day, as the hint reports it.
-fn declared_slots(intervals: Vec<UtcInterval>) -> Vec<Vec<UtcInterval>> {
-    declared_on(intervals)
-        .into_iter()
-        .map(|DeclareWork(unrecorded)| {
-            unrecorded
-                .expect("a declaration on the unrecorded time")
-                .slots()
-                .to_vec()
-        })
-        .collect()
+fn interval(start: &str, end: &str) -> UtcInterval {
+    UtcInterval::new(start.parse().unwrap(), end.parse().unwrap()).unwrap()
 }
 
-/// As `MainWindow.OnSourceActionClick` of the .NET app: the declaration opens on the
-/// unrecorded time when it is one interval.
+/// « Oui, compter 26 min » counts the two unrecorded intervals of the problem periods' day, and
+/// « Voir sur la frise » shows them in the week.
 #[test]
-fn recording_one_unrecorded_interval_declares_that_interval() {
-    let interval = unrecorded(&day(DemoScenario::ProblemPeriods))[0];
-    assert_eq!(declared_slots(vec![interval]), [vec![interval]]);
-}
-
-/// Several intervals are all offered, where the .NET app left the times to the user.
-#[test]
-fn recording_several_unrecorded_intervals_offers_each_of_them() {
-    let intervals = unrecorded(&day(DemoScenario::ProblemPeriods));
-    assert!(
-        intervals.len() > 1,
-        "the problem periods leave several intervals"
+fn the_hint_s_buttons_send_the_unrecorded_time_of_its_day() {
+    let day = day(DemoScenario::ProblemPeriods);
+    let Some(SourceHint::Unrecorded { message, .. }) = &day.source_hint else {
+        panic!("the problem periods leave unrecorded time");
+    };
+    assert_eq!(
+        message,
+        "Temps non renseigné · 26\u{a0}min en 2\u{a0}créneaux, entre 09:40 et 14:20. \
+         Travailliez-vous\u{202f}?"
     );
-    assert_eq!(declared_slots(intervals.clone()), [intervals]);
+    let unrecorded = vec![
+        interval("2026-08-31T09:40:12Z", "2026-08-31T09:45:42Z"),
+        interval("2026-08-31T14:00:00Z", "2026-08-31T14:20:00Z"),
+    ];
+    let sent = press_every_tab_stop(day, running(true), Alerts::default()).1;
+    assert_eq!(
+        sent,
+        Sent {
+            counts: vec![CountUnrecorded {
+                workday: LocalWorkday::new(jiff::civil::date(2026, 8, 31), "UTC"),
+                intervals: unrecorded.clone(),
+            }],
+            shown: vec![ShowUnrecorded {
+                date: jiff::civil::date(2026, 8, 31),
+                intervals: unrecorded,
+            }],
+        }
+    );
 }

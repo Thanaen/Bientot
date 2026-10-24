@@ -391,22 +391,38 @@ pub fn run(
     match command {
         WeekCommand::Range {
             workday,
-            range,
+            ranges,
             classification,
-        } => RangeCorrections::new(
-            accounting,
-            ManualAdjustmentRepository::new(connection),
-            reviews(),
-        )
-        .record(&RangeCommand {
-            workday: workday.clone(),
-            range: *range,
-            classification: *classification,
-            id: new_id(),
-            created_at: clock.now(),
-        })
-        .map(|outcome| outcome.undoable().map(<[_]>::to_vec).unwrap_or_default())
-        .map_err(range_refusal),
+        } => {
+            // One transaction around the ranges: a refused one records none of them.
+            let scope = ManualAdjustmentRepository::new(connection)
+                .scope()
+                .map_err(|error| range_refusal(error.into()))?;
+            let corrections = RangeCorrections::new(
+                accounting,
+                ManualAdjustmentRepository::new(connection),
+                reviews(),
+            );
+            let mut undo = Vec::new();
+            let mut undoable = true;
+            for range in ranges {
+                let outcome = corrections
+                    .record(&RangeCommand {
+                        workday: workday.clone(),
+                        range: *range,
+                        classification: *classification,
+                        id: new_id(),
+                        created_at: clock.now(),
+                    })
+                    .map_err(range_refusal)?;
+                undoable &= !outcome.replaced;
+                undo.extend(outcome.added);
+            }
+            scope
+                .commit()
+                .map_err(|error| Refusal::failed(Key::HistoryCorrectionFailed, error))?;
+            Ok(if undoable { undo } else { Vec::new() })
+        }
         WeekCommand::FinishAtLockStart { workday, review } => {
             let context = accounting.capture_context();
             let calculation = accounting

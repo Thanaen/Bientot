@@ -768,10 +768,11 @@ pub(crate) fn field_error(message: &'static str, theme: &Theme) -> impl IntoElem
 /// The outlined button of a callout or of the dialog, `height` tall.
 pub(crate) fn outlined(
     id: impl Into<gpui::ElementId>,
-    label: &'static str,
+    label: impl Into<SharedString>,
     height: Pixels,
     theme: &Theme,
 ) -> gpui::Stateful<gpui::Div> {
+    let label = label.into();
     let (hover, active, focused) = (
         theme.element_hover,
         theme.element_active,
@@ -780,7 +781,7 @@ pub(crate) fn outlined(
     div()
         .id(id)
         .role(Role::Button)
-        .aria_label(label)
+        .aria_label(label.clone())
         .flex_none()
         .h(height)
         .px(BASE_12)
@@ -834,7 +835,7 @@ pub(crate) fn filled(
 /// but disappears in the dark theme.
 pub(crate) fn outlined_on_tint(
     id: &'static str,
-    label: &'static str,
+    label: impl Into<SharedString>,
     height: Pixels,
     theme: &Theme,
 ) -> gpui::Stateful<gpui::Div> {
