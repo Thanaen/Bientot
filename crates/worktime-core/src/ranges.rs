@@ -14,7 +14,7 @@ use worktime_domain::intervals::UtcInterval;
 use worktime_domain::time::LocalWorkday;
 use worktime_store::adjustments::{ManualAdjustmentError, ManualAdjustmentRepository};
 
-use crate::accounting::{AccountingError, WorkdayAccounting};
+use crate::accounting::{AccountingError, CalculationContext, WorkdayAccounting};
 use crate::corrections::{Binding, binding, history_by_id};
 use crate::reviews::{LongLockReviews, ManualResolution, ReviewError, resolution_interval};
 use crate::weekly::start_of_week;
@@ -157,14 +157,14 @@ impl<'a> RangeCorrections<'a> {
         plan(current, &history, command)?;
         // A lock is settled over the whole of it, so no correction of the user's may stay there.
         let cleared = clear(&history, &resolved, command)?;
-        if !cleared.is_empty() {
-            self.adjustments.append_all_validated(current, &cleared)?;
+        if !cleared.replacements.is_empty() {
+            self.append_cut(workday, &context, current, &cleared)?;
         }
         for review in &locks {
             self.reviews
                 .resolve(self.accounting, workday, review, resolution)?;
         }
-        if !locks.is_empty() || !cleared.is_empty() {
+        if !locks.is_empty() || !cleared.replacements.is_empty() {
             calculation = self.accounting.calculate(workday.date, &context)?;
         }
 
@@ -175,13 +175,7 @@ impl<'a> RangeCorrections<'a> {
         let trims = plan(current, &history, command)?;
         let trimmed = trims.replacements.len() + trims.rests.len();
         if trimmed > 0 {
-            let records: Vec<_> = trims
-                .replacements
-                .iter()
-                .chain(&trims.rests)
-                .cloned()
-                .collect();
-            self.adjustments.append_all_validated(current, &records)?;
+            self.append_cut(workday, &context, current, &trims)?;
             calculation = self.accounting.calculate(workday.date, &context)?;
         }
 
@@ -200,10 +194,36 @@ impl<'a> RangeCorrections<'a> {
                 .map(|addition| addition.id().clone())
                 .collect(),
             replaced: !locks.is_empty()
-                || !cleared.is_empty()
+                || !cleared.replacements.is_empty()
                 || !trims.replacements.is_empty()
                 || !fill.replacements.is_empty(),
         })
+    }
+
+    /// Appends what replaces each correction `cut` trims on the day `current` accounts, then,
+    /// on the day without them, the far ends it keeps: an interval of work kept there may not
+    /// meet the time its original credits until that one is replaced.
+    fn append_cut(
+        &self,
+        workday: &LocalWorkday,
+        context: &CalculationContext,
+        current: &AccountingResult,
+        cut: &Plan,
+    ) -> Result<(), RangeError> {
+        self.adjustments
+            .append_all_validated(current, &cut.replacements)?;
+        if cut.rests.is_empty() {
+            return Ok(());
+        }
+        let calculation = self.accounting.calculate(workday.date, context)?;
+        let current = calculation.summary_input.accounting();
+        let rests: Vec<_> = cut
+            .rests
+            .iter()
+            .map(|rest| settled(rest, current))
+            .collect::<Result<_, _>>()?;
+        self.adjustments.append_all_validated(current, &rests)?;
+        Ok(())
     }
 }
 
@@ -295,13 +315,12 @@ fn plan_from(
         };
         replacements.push(replacement.with_reason(adjustment.reason().unwrap_or_default()));
         if let (Some(_), Some(after)) = (before, after) {
-            // The kept end becomes a correction of its own; as a reclassification, it does not
-            // meet the work its original still credits until the batch replaces it.
-            let rest = ManualAdjustment::reclassification(
-                ids.next().expect("the ids never end"),
-                workday.clone(),
+            // The kept end becomes a correction of its own, recorded once its original is
+            // replaced.
+            let rest = rest_of(
+                adjustment,
                 after,
-                classification,
+                ids.next().expect("the ids never end"),
                 at,
             )?;
             rests.push(rest.with_reason(adjustment.reason().unwrap_or_default()));
@@ -344,7 +363,7 @@ fn clear(
     history: &[ManualAdjustment],
     locks: &[UtcInterval],
     command: &RangeCommand,
-) -> Result<Vec<ManualAdjustment>, RangeError> {
+) -> Result<Plan, RangeError> {
     let mut ids = (1..).map(|index| {
         AdjustmentId::new(format!("{}.lock.{index}", command.id)).expect("the id is not blank")
     });
@@ -354,7 +373,7 @@ fn clear(
         .iter()
         .filter_map(ManualAdjustment::supersedes_id)
         .collect();
-    let mut records = Vec::new();
+    let mut replacements = Vec::new();
     let mut rests = Vec::new();
     for adjustment in history {
         let (Some(interval), Some(classification)) =
@@ -379,7 +398,7 @@ fn clear(
         }
         let mut kept = outside(interval, &cuts).into_iter();
         let id = ids.next().expect("the ids never end");
-        records.push(
+        replacements.push(
             match kept.next() {
                 None => {
                     ManualAdjustment::revocation(id, workday.clone(), adjustment.id().clone(), at)?
@@ -392,14 +411,64 @@ fn clear(
         );
         for rest in kept {
             let id = ids.next().expect("the ids never end");
-            rests.push(
-                ManualAdjustment::reclassification(id, workday.clone(), rest, classification, at)?
-                    .with_reason(reason),
-            );
+            rests.push(rest_of(adjustment, rest, id, at)?.with_reason(reason));
         }
     }
-    records.extend(rests);
-    Ok(records)
+    Ok(Plan {
+        replacements,
+        rests,
+        additions: Vec::new(),
+    })
+}
+
+/// The far end of `adjustment` over `interval`, a correction of its own under `id`, of the same
+/// kind. A lock's confirmation stays with its replacement: the end kept only counts the same
+/// way.
+fn rest_of(
+    adjustment: &ManualAdjustment,
+    interval: UtcInterval,
+    id: AdjustmentId,
+    at: Timestamp,
+) -> Result<ManualAdjustment, InvalidAdjustment> {
+    match adjustment.kind() {
+        AdjustmentKind::Reclassification { classification, .. } => {
+            ManualAdjustment::reclassification(
+                id,
+                adjustment.workday().clone(),
+                interval,
+                *classification,
+                at,
+            )
+        }
+        _ => with_interval(adjustment, interval, id, at),
+    }
+}
+
+/// `rest` as `current` lets the day record it: an interval of work over time the day credits
+/// already, as activity there, counts it as a reclassification instead.
+fn settled(
+    rest: &ManualAdjustment,
+    current: &AccountingResult,
+) -> Result<ManualAdjustment, InvalidAdjustment> {
+    let AdjustmentKind::IntervalWork { interval } = rest.kind() else {
+        return Ok(rest.clone());
+    };
+    let credited = current
+        .timeline()
+        .segments()
+        .iter()
+        .any(|segment| segment.kind().is_credit() && segment.interval().overlaps(*interval));
+    if !credited {
+        return Ok(rest.clone());
+    }
+    Ok(ManualAdjustment::reclassification(
+        rest.id().clone(),
+        rest.workday().clone(),
+        *interval,
+        ManualClassification::Credited,
+        rest.created_at(),
+    )?
+    .with_reason(rest.reason().unwrap_or_default()))
 }
 
 /// What of `interval` lies outside every one of `cuts`, in order.
