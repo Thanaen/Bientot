@@ -159,6 +159,14 @@ pub(crate) fn shortcut_name(label: &str, keystroke: &str, language: Language) ->
         .into()
 }
 
+/// The part of the body, out of the `parts` shown, whose callout the user closed; `answered`
+/// once the day came back after it.
+struct Closing {
+    part: usize,
+    parts: Vec<body::Part>,
+    answered: bool,
+}
+
 /// The notice once « Utiliser la détection intégrée » answered `failure`. A switch that
 /// succeeded ends the failure an earlier one left; the day it shows can still offer the switch,
 /// for the part of the day ActivityWatch was the source.
@@ -191,7 +199,12 @@ pub struct Flyout {
     /// themselves as the body is prepainted, and the next render of the body reads them to
     /// reveal the focus Tab moved, then empties the list for that frame's controls.
     body_controls: body::LaidOutControls,
+    /// The parts the body showed last.
+    shown_parts: Vec<body::Part>,
     reveal_focus: bool,
+    /// The part of the body whose callout the user closed with the focus in it, see
+    /// [`Self::closing_callout`]; forgotten once Tab moves the focus.
+    closing: Option<Closing>,
     _close_on_deactivate: Subscription,
     _show_updates: Subscription,
     _keep_focus: Subscription,
@@ -236,7 +249,9 @@ impl Flyout {
             body_scroll: ScrollHandle::new(),
             body_parts: Vec::new(),
             body_controls: Rc::default(),
+            shown_parts: Vec::new(),
             reveal_focus: false,
+            closing: None,
             _close_on_deactivate: close_on_deactivate,
             _show_updates: show_updates,
             _keep_focus: keep_focus,
@@ -277,6 +292,9 @@ impl Flyout {
             self.alert_entrance.reset();
         }
         self.alerts.refresh_failure = refresh_failure;
+        if let Some(closing) = &mut self.closing {
+            closing.answered = true;
+        }
         if let Some(palette) = &self.palette {
             palette.set_situation(self.situation(), cx);
         }
@@ -335,6 +353,14 @@ impl Flyout {
             .map(|control| control + scrolled)
     }
 
+    /// The part of the body that holds the focus, for the tests.
+    #[cfg(feature = "screenshots")]
+    pub fn focused_part(&self, window: &Window, cx: &App) -> Option<usize> {
+        self.body_parts
+            .iter()
+            .position(|part| part.contains_focused(window, cx))
+    }
+
     fn situation(&self) -> Situation {
         Situation {
             host: Host::Flyout,
@@ -343,13 +369,30 @@ impl Flyout {
         }
     }
 
+    /// A cross or the only button of a callout, pressed with the focus in its part: once the day
+    /// shown without it, the focus goes to the next part rather than back to the first control.
+    fn closing_callout(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.closing = self
+            .body_parts
+            .iter()
+            .position(|part| part.contains_focused(window, cx))
+            .map(|part| Closing {
+                part,
+                parts: self.shown_parts.clone(),
+                answered: false,
+            });
+        cx.propagate();
+    }
+
     fn focus_next(&mut self, _: &FocusNext, window: &mut Window, cx: &mut Context<Self>) {
+        self.closing = None;
         window.focus_next(cx);
         self.reveal_focus = true;
         cx.notify();
     }
 
     fn focus_previous(&mut self, _: &FocusPrevious, window: &mut Window, cx: &mut Context<Self>) {
+        self.closing = None;
         window.focus_prev(cx);
         self.reveal_focus = true;
         cx.notify();
@@ -683,6 +726,18 @@ impl Render for Flyout {
             .on_action(cx.listener(Self::close))
             .on_action(cx.listener(Self::focus_next))
             .on_action(cx.listener(Self::focus_previous))
+            .on_action(
+                cx.listener(|flyout, _: &HideCount, window, cx| flyout.closing_callout(window, cx)),
+            )
+            .on_action(
+                cx.listener(|flyout, _: &UndoCount, window, cx| flyout.closing_callout(window, cx)),
+            )
+            .on_action(cx.listener(|flyout, _: &HideTrustOffer, window, cx| {
+                flyout.closing_callout(window, cx)
+            }))
+            .on_action(cx.listener(|flyout, _: &CountAutomatically, window, cx| {
+                flyout.closing_callout(window, cx)
+            }))
             .w(size::FLYOUT_WIDTH)
             .flex()
             .flex_col()
