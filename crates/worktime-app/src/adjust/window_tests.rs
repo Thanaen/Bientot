@@ -138,7 +138,8 @@ fn only_a_window_shown_again_reports_to_the_view_that_asked() {
 }
 
 /// A declaration has neither the types of correction nor the classification: its window is
-/// shorter. An untouched one gives way to a correction, which opens in a window of its own.
+/// shorter, the more so with no day to show, and taller with a choice of slot. An untouched
+/// one gives way to a correction, which opens in a window of its own.
 #[test]
 fn a_declaration_opens_a_shorter_window_than_a_correction() {
     let meeting = ManualAdjustment::interval_work(
@@ -155,9 +156,19 @@ fn a_declaration_opens_a_shorter_window_than_a_correction() {
         "2026-10-08T15:00:00Z",
     );
     let declaration = thursday(Seed::DeclareWork(None), "first", "2026-10-08T15:00:00Z");
+    let slots = [
+        interval("2026-10-08T10:00:00Z", "2026-10-08T10:30:00Z"),
+        interval("2026-10-08T14:00:00Z", "2026-10-08T14:20:00Z"),
+    ];
+    let lone = thursday(on_slot(slots[0]), "first", "2026-10-08T15:00:00Z");
+    let choice = thursday(
+        Seed::DeclareWork(Unrecorded::new(slots.to_vec(), Vec::new())),
+        "first",
+        "2026-10-08T15:00:00Z",
+    );
     assert_eq!(
-        [&blank, &edit, &declaration].map(AdjustForm::window_height),
-        [680., 680., 500.]
+        [&blank, &edit, &choice, &lone, &declaration].map(AdjustForm::window_height),
+        [680., 680., 676., 646., 500.]
     );
     let correction = thursday(Seed::Blank, "second", "2026-10-08T15:02:00Z");
     assert_eq!(

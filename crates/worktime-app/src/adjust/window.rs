@@ -84,19 +84,21 @@ impl AdjustForm {
     /// another opening gets a window of its own. Each fits its tallest state in French, with
     /// three lines of « Correction enregistrée… » above the footer: for a correction, the four
     /// types, Début and Fin and the classification; for a declaration, which has neither types
-    /// nor classification, three lines of explanation and the day of the unrecorded time.
+    /// nor classification, its explanation and the day of the unrecorded time.
     pub fn window_height(&self) -> f32 {
         match self.opening {
             Opening::Correction { .. } | Opening::Edit { .. } => 680.,
+            // Two lines of explanation, the day with what came before and after the slot,
+            // Début and Fin and Motif, then the result.
             Opening::Declaration {
                 unrecorded: Some(ref unrecorded),
                 ..
             } => {
                 // A choice of slot takes one more row.
                 if unrecorded.offers_choice() {
-                    620.
+                    676.
                 } else {
-                    580.
+                    646.
                 }
             }
             // Its three lines of explanation, Début and Fin and Motif, then the result: no
