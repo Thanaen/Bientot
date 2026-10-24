@@ -480,8 +480,13 @@ impl WeekView {
                             .items_center()
                             .gap(BASE_08)
                             .child(self.adjust_button(can_adjust, theme))
-                            .child(self.declare_button(can_adjust, theme, cx))
-                            .children(self.details_toggle(theme, cx)),
+                            .child(self.declare_button(can_adjust, theme, cx)),
+                    )
+                    // On a row of its own, over the panel it opens, whatever the width and the
+                    // language leave beside the buttons.
+                    .children(
+                        self.details_toggle(theme, cx)
+                            .map(|toggle| div().flex().child(toggle)),
                     )
                     .children(details),
             )
