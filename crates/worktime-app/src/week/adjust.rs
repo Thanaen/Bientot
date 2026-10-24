@@ -8,8 +8,8 @@ use crate::adjust::{Closed, Seed, Stretch, Unrecorded};
 use crate::strings::Key;
 
 impl WeekState {
-    /// « Renseigner un créneau » of the open day, as `HistoryWorkspace.DeclareWorkAsync`: on
-    /// its gaps still to settle, in the day, when it has some.
+    /// « Déclarer du temps travaillé… » of the open day, as `HistoryWorkspace.DeclareWorkAsync`:
+    /// on its gaps still to settle, in the day, when it has some.
     pub fn declare_work(&self) -> Option<(LocalWorkday, Seed)> {
         let workday = self.adjust_target()?;
         let unrecorded = self
@@ -56,7 +56,7 @@ impl WeekState {
     }
 }
 
-/// What `day` holds, as « Renseigner un créneau travaillé » draws it.
+/// What `day` holds, as « Déclarer du temps travaillé » draws it.
 fn stretches(day: &DayTimeline) -> Vec<Stretch> {
     day.segments
         .iter()

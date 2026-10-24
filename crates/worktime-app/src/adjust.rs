@@ -165,7 +165,7 @@ impl TimeField {
 pub enum Seed {
     /// An interval from 09:00 to 10:00, as the .NET dialog opens.
     Blank,
-    /// « Renseigner un créneau travaillé », as `DeclareWorkAsync` of the .NET app opens it from
+    /// « Déclarer du temps travaillé », as `DeclareWorkAsync` of the .NET app opens it from
     /// the flyout's source hint and from the week: an interval counted as work over what was
     /// detected, on the unrecorded time shown in its day, if any: every interval the hint
     /// reports, or the slot of the week to count in part.
@@ -237,7 +237,7 @@ enum Opening {
         original: Option<UtcInterval>,
         selection: Selection,
     },
-    /// « Renseigner un créneau travaillé »: Début–Fin counted as work over what was detected,
+    /// « Déclarer du temps travaillé »: Début–Fin counted as work over what was detected,
     /// with no choice, as `TryCreateDraft` of the .NET app. `unrecorded`, when the form opened
     /// on unrecorded time, is that time in its day, and `chosen` the slot of it the fields were
     /// filled from, kept to the second by an endpoint left on its minute as `original` of an

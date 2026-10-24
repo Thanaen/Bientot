@@ -1,8 +1,8 @@
 //! A slot that closes its day, as Friday evening of a launch on Saturday leaves one:
 //! `week-midnight-gap-bubble.png`, the bubble of the gap from 22:00 to 24:00;
-//! `adjust-declare-work-midnight.png`, the declaration « Renseigner un créneau… » opens on it, whose
-//! « Horaires proposés » end at 24:00; and `week-midnight-declared.png`, the week once the gap
-//! is declared, with the result.
+//! `adjust-declare-work-midnight.png`, the declaration « Déclarer du temps travaillé… » opens
+//! on it, whose « Horaires proposés » end at 24:00; and `week-midnight-declared.png`, the week
+//! once the gap is declared, with the result.
 
 use anyhow::Context as _;
 use gpui::{AppContext as _, HeadlessAppContext, size};
@@ -86,7 +86,7 @@ pub fn capture_midnight(
     cx.update(|cx| {
         window.update(cx, |view, _, cx| {
             if let Some(state) = view.state_mut() {
-                // As « Renseigner un créneau… » leaves it once the window opened.
+                // As « Déclarer du temps travaillé… » leaves it once the window opened.
                 state.close_bubble();
                 state.reload(after, true);
                 state.adjusted(closed);

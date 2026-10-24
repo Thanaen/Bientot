@@ -5,7 +5,7 @@
 //! - `week-<scenario>-bubble.png`, the bubble of its first slot to settle;
 //! - `week-history-week-correction-bubble.png`, the bubble of the history week's meeting;
 //! - `week-history-week-gap-bubble.png`, the bubble of Wednesday's gap in the history week;
-//! - `adjust-declare-work-week.png`, « Renseigner un créneau » of that gap's day;
+//! - `adjust-declare-work-week.png`, « Déclarer du temps travaillé… » of that gap's day;
 //! - `week-history-week-<bound|locked>-bubble.png`, the bubble of its long lock once answered;
 //! - `week-range-<work|extended|lock|gaps>.png`, ranges selected on the timeline: Wednesday's
 //!   work at 12:00, then stretched over the gap after it while its handle is dragged, then
@@ -464,8 +464,8 @@ fn capture_answered_locks(
     Ok(())
 }
 
-/// Wednesday's gap in the history week and its bubble, then « Renseigner un créneau » of its
-/// day.
+/// Wednesday's gap in the history week and its bubble, then « Déclarer du temps travaillé… »
+/// of its day.
 fn capture_declarations(
     cx: &mut HeadlessAppContext,
     window: WindowHandle<WeekView>,

@@ -1,5 +1,5 @@
 //! A click on the minutes of a time field leaves the focus on them, so digits typed next
-//! change the minutes (#295): in « Renseigner un créneau travaillé » and in the schedule of
+//! change the minutes (#295): in « Déclarer du temps travaillé » and in the schedule of
 //! « Paramètres ». It needs the headless GPUI of the `screenshots` feature.
 #![cfg(all(feature = "screenshots", target_os = "linux"))]
 
