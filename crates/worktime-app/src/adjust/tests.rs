@@ -606,9 +606,10 @@ fn a_declaration_of_work_without_one_interval_opens_on_nine_to_ten() {
     );
 }
 
-/// A day with nothing unrecorded opens on the hour after its time: as it is on a past day, up
-/// to midnight late in the evening, and ending at the minute of now on a day still going on,
-/// rather than 09:00 to 10:00 which the day already covers.
+/// A day with nothing unrecorded opens on the hour after its time, from its next whole minute:
+/// as it is on a past day, up to midnight late in the evening, and up to the minute of now on a
+/// day still going on, never before the time it follows; rather than 09:00 to 10:00 which the
+/// day already covers.
 #[test]
 fn a_declaration_after_the_day_opens_on_the_hour_after_it_up_to_now() {
     let fields = |end: &str, now: &str| {
@@ -627,16 +628,25 @@ fn a_declaration_after_the_day_opens_on_the_hour_after_it_up_to_now() {
         ("17:30".into(), "18:30".into())
     );
     assert_eq!(
+        fields("2026-10-07T17:30:43Z", yesterday),
+        ("17:31".into(), "18:31".into())
+    );
+    assert_eq!(
         fields("2026-10-07T23:30:00Z", yesterday),
-        ("23:00".into(), "00:00".into())
+        ("23:30".into(), "00:00".into())
     );
     assert_eq!(
         fields("2026-10-07T16:42:00Z", "2026-10-07T17:05:30Z"),
-        ("16:05".into(), "17:05".into())
+        ("16:42".into(), "17:05".into())
     );
     assert_eq!(
         fields("2026-10-07T00:20:00Z", "2026-10-07T00:40:00Z"),
-        ("00:00".into(), "00:40".into())
+        ("00:20".into(), "00:40".into())
+    );
+    assert_eq!(
+        fields("2026-10-07T17:05:10Z", "2026-10-07T17:05:30Z"),
+        ("09:00".into(), "10:00".into()),
+        "no whole minute left before now"
     );
     assert_eq!(
         fields("2026-10-07T08:00:00Z", "2026-10-06T22:00:00Z"),

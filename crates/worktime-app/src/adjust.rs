@@ -171,7 +171,7 @@ pub enum Seed {
     /// reports, or the slot of the week to count in part.
     DeclareWork(Option<Unrecorded>),
     /// « Déclarer du temps travaillé » of a day with nothing unrecorded, whose time ends at this
-    /// instant: on the hour after it, within the day and up to now.
+    /// instant: on the hour after it from its next whole minute, within the day and up to now.
     DeclareAfter(Timestamp),
     /// « Modifier… » of the week and « Modifier le dernier ajustement… » of the tray, as
     /// `AdjustmentDialogRequest.Edit` of the .NET app: the fields of a correction, saved as its
@@ -826,8 +826,9 @@ fn within_day(interval: UtcInterval, target: &Target, now: Timestamp) -> Option<
     .ok()
 }
 
-/// The hour after `end` within the target day, moved back to end at the minute of `now` when
-/// that hour has not passed yet. `None` when the day has not begun.
+/// The hour from the first whole minute at or after `end`, so that Début on its minute never
+/// overlaps what ends there, cut at the end of the target day and at the minute of `now`.
+/// `None` when nothing of it is left.
 fn hour_after(end: Timestamp, target: &Target, now: Timestamp) -> Option<UtcInterval> {
     let date = target.workday.date;
     let day = UtcInterval::new(
@@ -836,9 +837,19 @@ fn hour_after(end: Timestamp, target: &Target, now: Timestamp) -> Option<UtcInte
     )
     .ok()?;
     let day = within_day(day, target, now)?;
-    let hour = SignedDuration::from_hours(1);
-    let last = (end + hour).clamp(day.start(), day.end());
-    UtcInterval::new((last - hour).max(day.start()), last).ok()
+    let start = end
+        .round(
+            TimestampRound::new()
+                .smallest(Unit::Minute)
+                .mode(RoundMode::Ceil),
+        )
+        .ok()?
+        .max(day.start());
+    UtcInterval::new(
+        start,
+        (start + SignedDuration::from_hours(1)).min(day.end()),
+    )
+    .ok()
 }
 
 /// The first instant of `date` in `zone`.
