@@ -922,7 +922,7 @@ fn counting_the_unrecorded_time_adds_it_to_the_day_until_undone() {
     assert_eq!(worked(&today), nb("5~h~04~min"));
 
     let notice = today.count_unrecorded(&count_shown(&today));
-    assert_eq!(notice.message, nb("26~min comptées comme travail."));
+    assert_eq!(notice.message, nb("Compté comme travail~: 26~min."));
     assert_eq!(notice.kind, NoticeKind::Success);
     assert_eq!(worked(&today), nb("5~h~30~min"));
     assert_eq!(today.view().source_hint, None);
@@ -942,6 +942,20 @@ fn counting_the_unrecorded_time_adds_it_to_the_day_until_undone() {
             .into()
         )
     );
+}
+
+/// The notice reads the same whatever the duration: « 1 min » takes no plural agreement.
+#[test]
+fn the_counted_notice_agrees_with_a_single_minute() {
+    let folder = tempfile::tempdir().unwrap();
+    let mut today = problem_periods(folder.path());
+    let mut count = count_shown(&today);
+    let first = count.intervals[0];
+    count.intervals = vec![
+        UtcInterval::new(first.start(), first.start() + SignedDuration::from_mins(1)).unwrap(),
+    ];
+    let notice = today.count_unrecorded(&count);
+    assert_eq!(notice.message, "Compté comme travail\u{a0}: 1\u{a0}min.");
 }
 
 /// Counted elsewhere since the flyout showed it, the time is not counted twice: the notice

@@ -11,7 +11,8 @@
 //!   work at 12:00, then stretched over the gap after it while its handle is dragged, then
 //!   back to the lock before it, and Monday's gaps in the problem periods;
 //! - `week-range-unrecorded.png`, the unrecorded time of the problem periods as « Voir sur la
-//!   frise » of the flyout selects it;
+//!   frise » of the flyout selects its first gap, with the note that links it to the flyout's
+//!   total;
 //! - `week-range-work-motion-<0|8|17|50|100>.png`, the entrance of the popover a click opens;
 //! - `week-proposal.png`, the result bar of a correction made the third Wednesday in a row,
 //!   which offers to make it an appointment;

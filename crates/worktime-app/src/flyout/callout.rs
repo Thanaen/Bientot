@@ -5,7 +5,7 @@ use gpui::{Action, AnyElement, FontWeight, Role, SharedString, div, prelude::*};
 use super::{
     CountAutomatically, CountUnrecorded, Flyout, HideCount, HideTrustOffer, OpenGeneralSettings,
     Refresh, ResolveReview, ShowUnrecorded, UndoCount, UseBuiltInDetection, control, control_icon,
-    disabled_control, key_caps, keys, keystroke, readable,
+    key_caps, keys, keystroke, readable,
 };
 use crate::settings_view::outlined_on_tint;
 use crate::strings::Key;
@@ -19,7 +19,8 @@ use crate::workday::{FailureRemedy, SourceHint};
 impl Flyout {
     /// What the source reported, and what to do about it: a failure is a warning, with a refresh
     /// to try again; unrecorded time is only information, with « Oui, compter N min » to count
-    /// it as work, filled as the usual answer, and « Voir sur la frise » to settle it in the week.
+    /// it as work, filled as the usual answer, on a day that can be corrected, and « Voir sur la
+    /// frise » to settle it in the week.
     pub(super) fn source_callout(&self, theme: &Theme) -> Option<AnyElement> {
         let hint = self.day.source_hint.as_ref()?;
         let (failure, remedies) = match hint {
@@ -40,12 +41,14 @@ impl Flyout {
                 duration,
                 ..
             } => {
-                let id = "count-unrecorded";
-                let label = self.language.format(
-                    Key::FlyoutCountUnrecordedFormat,
-                    &[&minutes_text(*duration, self.language)],
-                );
-                let count = if self.tracking.can_correct_time() {
+                // Left out on a day off rather than dimmed, as the day's commands are; « Voir
+                // sur la frise » still settles the time in the week.
+                let count = self.tracking.can_correct_time().then(|| {
+                    let id = "count-unrecorded";
+                    let label = self.language.format(
+                        Key::FlyoutCountUnrecordedFormat,
+                        &[&minutes_text(*duration, self.language)],
+                    );
                     let count = CountUnrecorded {
                         workday: workday.clone(),
                         intervals: intervals.clone(),
@@ -56,20 +59,18 @@ impl Flyout {
                             window.dispatch_action(Box::new(count.clone()), cx)
                         }),
                     )
-                } else {
-                    self.callout_button(id, label.into(), None, None, theme)
-                };
+                });
                 let show = self.callout_button(
                     "show-unrecorded",
                     self.text(Key::FlyoutShowUnrecorded).into(),
                     None,
-                    Some(Box::new(ShowUnrecorded {
+                    Box::new(ShowUnrecorded {
                         date: workday.date,
                         intervals: intervals.clone(),
-                    })),
+                    }),
                     theme,
                 );
-                (false, vec![count, show])
+                (false, count.into_iter().chain([show]).collect())
             }
         };
         let (hue, icon_name) = if failure {
@@ -354,32 +355,22 @@ impl Flyout {
 
     /// An outlined button of a callout, filled as « Réessayer » of the update callout is, with
     /// the key caps of `keystroke` when it runs a command that has one. A click dispatches
-    /// `action`; without one, the button is disabled: it keeps the outline of the tint and only
-    /// dims its label.
+    /// `action`.
     pub(super) fn callout_button(
         &self,
         id: &'static str,
         label: SharedString,
         keystroke: Option<&str>,
-        action: Option<Box<dyn Action>>,
+        action: Box<dyn Action>,
         theme: &Theme,
     ) -> AnyElement {
         let name = match keystroke {
             Some(keystroke) => super::shortcut_name(&label, keystroke, self.language),
             None => label.clone(),
         };
-        let button = match action {
-            Some(action) => outlined_on_tint(id, label.clone(), size::BUTTON_MEDIUM, theme)
-                .aria_label(name)
-                .on_click(move |_, window, cx| window.dispatch_action(action.boxed_clone(), cx)),
-            None => disabled_control(id, name, theme)
-                .border_color(theme.border_on_tint)
-                .h(size::BUTTON_MEDIUM)
-                .flex()
-                .items_center()
-                .whitespace_nowrap()
-                .child(label),
-        };
+        let button = outlined_on_tint(id, label, size::BUTTON_MEDIUM, theme)
+            .aria_label(name)
+            .on_click(move |_, window, cx| window.dispatch_action(action.boxed_clone(), cx));
         // Narrower than `outlined`, so that two buttons share a row of the callout in French.
         let button = button
             .px(BASE_08)
@@ -394,7 +385,7 @@ impl Flyout {
             id,
             self.text(Key::SourceOpenSettings).into(),
             None,
-            Some(Box::new(OpenGeneralSettings)),
+            Box::new(OpenGeneralSettings),
             theme,
         )
     }
@@ -405,7 +396,7 @@ impl Flyout {
             id,
             self.text(Key::ShellRefreshAutomationPropertiesName).into(),
             Some(keystroke::REFRESH),
-            Some(Box::new(Refresh)),
+            Box::new(Refresh),
             theme,
         )
     }
@@ -419,7 +410,9 @@ fn filled_button(
     theme: &Theme,
 ) -> gpui::Stateful<gpui::Div> {
     let label = label.into();
-    let focused = theme.border_focused;
+    // The focus colour is the accent's own in the dark theme: the text colour stands out of
+    // the fill in both.
+    let focused = theme.text;
     div()
         .id(id)
         .role(Role::Button)

@@ -688,7 +688,7 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryDayBadge" xml:space="preserve"><value>{0} to settle</value></data>
   <data name="HistoryDayTargetFormat" xml:space="preserve"><value>/ {0}</value></data>
   <data name="HistoryDayPauses" xml:space="preserve"><value>Breaks {0}</value></data>
-  <data name="HistoryDayNotCounted" xml:space="preserve"><value>Not counted {0}</value></data>
+  <data name="HistoryDayNotCounted" xml:space="preserve"><value>Gaps and sleep {0}</value></data>
   <data name="HistoryDayAhead" xml:space="preserve"><value>+{0} credit</value></data>
   <data name="HistoryDayBehind" xml:space="preserve"><value>−{0} against the target</value></data>
   <data name="HistoryPendingTitle" xml:space="preserve"><value>To settle ({0})</value></data>
@@ -725,6 +725,7 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryRangeReplacesOne" xml:space="preserve"><value>Replaces your correction from {0} to {1}.</value></data>
   <data name="HistoryRangeReplacesMany" xml:space="preserve"><value>Replaces {0} of your corrections.</value></data>
   <data name="HistoryRangeCorrectionNote" xml:space="preserve"><value>If you remove it, this time goes back to automatic detection.</value></data>
+  <data name="HistoryRangeUnrecordedFirstFormat" xml:space="preserve"><value>First of {0} unrecorded slots, {1} in all.</value></data>
   <data name="HistoryRangeOpenLockNote" xml:space="preserve"><value>The session is still locked. You can settle this range once it’s unlocked.</value></data>
   <data name="HistoryRangeCountNoChange" xml:space="preserve"><value>If you count it, the day total doesn’t change.</value></data>
   <data name="HistoryRangeExcludeNoChange" xml:space="preserve"><value>If you exclude it, the day total doesn’t change.</value></data>
@@ -740,7 +741,8 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryResultRemoved" xml:space="preserve"><value>Correction removed.</value></data>
   <data name="HistoryResultUndone" xml:space="preserve"><value>Undone.</value></data>
   <data name="HistoryResultUndo.Content" xml:space="preserve"><value>Undo</value></data>
-  <data name="HistoryResultNextFormat" xml:space="preserve"><value>Next · {0} left</value></data>
+  <data name="HistoryResultNextOneFormat" xml:space="preserve"><value>Next · {0} left</value></data>
+  <data name="HistoryResultNextSeveralFormat" xml:space="preserve"><value>Next · {0} left</value></data>
   <data name="HistoryDetailsTitle.Text" xml:space="preserve"><value>Activity and credit</value></data>
   <data name="UpdateAvailableDialog.Title" xml:space="preserve"><value>Update available</value></data>
   <data name="UpdateAvailableDialog.PrimaryButtonText" xml:space="preserve"><value>Update</value></data>
@@ -837,7 +839,7 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryDayTodayDeparture" xml:space="preserve"><value>Leave at {0}</value></data>
   <data name="HistoryDayDifference" xml:space="preserve"><value>Difference</value></data>
   <data name="HistoryDayPausesLabel" xml:space="preserve"><value>Breaks</value></data>
-  <data name="HistoryDayNotCountedLabel" xml:space="preserve"><value>Not counted</value></data>
+  <data name="HistoryDayNotCountedLabel" xml:space="preserve"><value>Gaps and sleep</value></data>
   <data name="AdjustTimeCloseButton" xml:space="preserve">
     <value>Close</value>
   </data>
@@ -1094,6 +1096,6 @@ Import the file you exported from Settings › Data on that PC.</value></data>
     <value>Show on the timeline</value>
   </data>
   <data name="FlyoutUnrecordedCountedFormat" xml:space="preserve">
-    <value>{0} counted as work.</value>
+    <value>Counted as work: {0}.</value>
   </data>
 </root>

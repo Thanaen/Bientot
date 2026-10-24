@@ -163,13 +163,72 @@ fn unrecorded_time_offers_to_count_it_or_see_it_in_the_week() {
     );
 }
 
-/// As `UpdateCommands` of the .NET app enables the action only when time can be added; the
+/// As `UpdateCommands` of the .NET app offers the action only when time can be added; the
 /// week still shows it.
 #[test]
 fn unrecorded_time_on_a_day_off_cannot_be_counted() {
     assert_eq!(
         tab_stops(DemoScenario::ProblemPeriods, running(false)),
         ["open week", "open settings", "show unrecorded"]
+    );
+}
+
+/// Where the hint's first button starts: the leftmost point where a press of the mouse focuses
+/// the third Tab stop, after « Ouvrir la semaine » and « Paramètres ».
+fn first_hint_button_left(tracking: Tracking) -> f32 {
+    let text_system = Arc::new(gpui_wgpu::CosmicTextSystem::new_without_system_fonts(
+        assets::FONT_FAMILY,
+    ));
+    let mut cx = HeadlessAppContext::with_asset_source(text_system, Arc::new(Assets));
+    cx.update(|cx| {
+        cx.set_global(ThemeMode::Light);
+        cx.set_global(Language::French);
+        assets::load_fonts(cx).unwrap();
+        flyout::bind_keys(cx);
+    });
+    let day = day(DemoScenario::ProblemPeriods);
+    let (width, height) = (FLYOUT_WIDTH, px(800.));
+    let window = cx
+        .open_window(size(width, height), |window, cx| {
+            cx.new(|cx| Flyout::new(day, tracking, None, window, cx))
+        })
+        .unwrap();
+    for _ in 0..3 {
+        press(&mut cx, window, "tab");
+    }
+    let button = focused(&mut cx, window).expect("Tab focuses the hint's first button");
+    cx.update_window(window.into(), |_, window, cx| {
+        (0..f32::from(height) as i32)
+            .step_by(2)
+            .flat_map(|y| (0..f32::from(width) as i32).map(move |x| (x, y)))
+            .filter_map(|(x, y)| {
+                let position = gpui::point(px(x as f32), px(y as f32));
+                window.blur(cx);
+                window.dispatch_event(
+                    PlatformInput::MouseDown(gpui::MouseDownEvent {
+                        button: gpui::MouseButton::Left,
+                        position,
+                        modifiers: gpui::Modifiers::default(),
+                        click_count: 1,
+                        first_mouse: false,
+                    }),
+                    cx,
+                );
+                (window.focused(cx).as_ref() == Some(&button)).then_some(x as f32)
+            })
+            .reduce(f32::min)
+            .expect("a press focuses the hint's first button")
+    })
+    .unwrap()
+}
+
+/// On a day off, « Oui, compter » is left out rather than dimmed: « Voir sur la frise » takes
+/// its place at the start of the row.
+#[test]
+fn a_day_off_leaves_out_the_count_button() {
+    assert_eq!(
+        first_hint_button_left(running(false)),
+        first_hint_button_left(running(true))
     );
 }
 

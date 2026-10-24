@@ -408,7 +408,7 @@ pub struct DayFocus {
     /// « À régler (2) », over `pending`; the section is hidden while `pending` is empty.
     pub pending_title: String,
     pub pending: Vec<PendingItem>,
-    /// « Écart » when the day has a summary, then « Pauses » and « Non compté ».
+    /// « Écart » when the day has a summary, then « Pauses » and « Trous et veille ».
     pub summary: Vec<SummaryLine>,
 }
 
@@ -870,6 +870,9 @@ pub struct WeekState {
     /// The command sent to the host, with what its result will say.
     awaited: Option<Awaited>,
     details_open: bool,
+    /// « Premier des 2 créneaux non renseignés… », while « Voir sur la frise » of the flyout
+    /// selects only the first of its gaps: the note of that selection.
+    unrecorded_note: Option<(Selection, String)>,
 }
 
 /// Why the week shown may miss what the ledger holds.
@@ -904,6 +907,7 @@ impl WeekState {
             stale: None,
             awaited: None,
             details_open: false,
+            unrecorded_note: None,
         }
     }
 
@@ -920,6 +924,11 @@ impl WeekState {
         let selection = self.selection?;
         let day = self.timeline.day(selection.date)?;
         let mut bubble = Bubble::project(day, selection, day.is_today, self.language)?;
+        if let Some((noted, note)) = &self.unrecorded_note
+            && *noted == selection
+        {
+            bubble.notes.insert(0, note.clone());
+        }
         if self.stale == Some(Stale::RefreshPending) {
             for action in &mut bubble.actions {
                 action.enabled = false;
@@ -1089,8 +1098,12 @@ impl WeekState {
             severity: Severity::Success,
             can_undo: self.timeline.shows_removable(&outcome.undo),
             next: (pending > 0).then(|| {
-                self.language
-                    .format(Key::HistoryResultNextFormat, &[&pending])
+                let key = if pending == 1 {
+                    Key::HistoryResultNextOneFormat
+                } else {
+                    Key::HistoryResultNextSeveralFormat
+                };
+                self.language.format(key, &[&pending])
             }),
             dismissible: true,
             offer: outcome

@@ -8,6 +8,8 @@ use jiff::{SignedDuration, Timestamp};
 use worktime_domain::intervals::UtcInterval;
 
 use super::{Availability, DayTimeline, Segment, SegmentId, WeekState, WeekTimeline};
+use crate::strings::Key;
+use crate::time_text::minutes_text;
 
 /// What a range snaps to, and the shortest one.
 pub const RANGE_STEP: SignedDuration = SignedDuration::from_mins(5);
@@ -338,8 +340,8 @@ impl WeekState {
 
     /// « Voir sur la frise » of the flyout: selects the unrecorded `intervals` of `date` and opens
     /// the bubble. From the first to the last when only work lies between them, so that counting
-    /// the range counts them alone; else the first. A day the week does not show, or one without
-    /// a summary, selects nothing.
+    /// the range counts them alone; else the first, with a note that links it to the flyout's
+    /// total. A day the week does not show, or one without a summary, selects nothing.
     pub fn show_unrecorded(&mut self, date: Date, intervals: &[UtcInterval]) {
         let Some(day) = self.timeline.day(date).filter(|day| day.selectable()) else {
             return;
@@ -362,12 +364,22 @@ impl WeekState {
         let Some(range) = day.normalized(range.start(), range.end(), Edge::End) else {
             return;
         };
-        self.focused = date;
-        self.selection = Some(Selection {
+        let selection = Selection {
             date,
             range,
             anchor: None,
+        };
+        // The flyout's total covers every gap: the bubble of the first one says so.
+        self.unrecorded_note = (!only_work_between && intervals.len() > 1).then(|| {
+            let total = intervals.iter().map(|interval| interval.duration()).sum();
+            let note = self.language.format(
+                Key::HistoryRangeUnrecordedFirstFormat,
+                &[&intervals.len(), &minutes_text(total, self.language)],
+            );
+            (selection, note)
         });
+        self.focused = date;
+        self.selection = Some(selection);
     }
 
     /// After a reload: the range covers again each lock to review it now touches, or closes
