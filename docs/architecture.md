@@ -75,7 +75,7 @@ the Rust app reads its data with no conversion.
 | --- | --- |
 | `settings.json` | Schedule, notifications, recurring appointments, idle threshold, language, update check state, usage signal choice. Written through a temporary file and a rename. An invalid file is renamed to `settings.json.invalid-<guid>.json` and defaults are restored. |
 | `worktime.db` | SQLite ledger: activity source selections, active and idle spans, session and power events, manual corrections, long-lock resolutions, daily summary revisions, credit ledger, notification receipts. |
-| `app-state.json` | The date of the last usage signal the service recorded. |
+| `app-state.json` | The date of the last usage signal the service recorded, and the flyout callouts closed today. |
 | `secrets\*.secret` | Secrets encrypted with DPAPI for the current Windows user. |
 | `logs\worktime-*.jsonl` | Structured diagnostic events, 5 files of 1 MiB at most by default, deleted after 14 days. |
 
