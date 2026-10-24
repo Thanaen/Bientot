@@ -192,6 +192,7 @@ fn unrecorded_time_asks_whether_it_was_work() {
         workday,
         intervals,
         duration,
+        ..
     }) = &day(DemoScenario::ProblemPeriods, Language::English).source_hint
     else {
         panic!("the problem periods leave time unrecorded");
@@ -204,6 +205,21 @@ fn unrecorded_time_asks_whether_it_was_work() {
     assert_eq!(workday.date, jiff::civil::date(2026, 8, 31));
     assert_eq!(intervals, &[morning, afternoon]);
     assert_eq!(*duration, SignedDuration::new(25 * 60 + 30, 0));
+}
+
+/// On a day off, where the flyout leaves « Oui, compter » out, the hint no longer asks the
+/// question it answers.
+#[test]
+fn the_hint_asks_whether_you_were_working_only_where_it_can_count() {
+    let hint = day(DemoScenario::ProblemPeriods, Language::French)
+        .source_hint
+        .expect("the problem periods leave time unrecorded");
+    let fact = "Temps non renseigné · 26\u{a0}min en 2\u{a0}créneaux, entre 09:40 et 14:20.";
+    assert_eq!(hint.text(false), fact);
+    assert_eq!(
+        hint.text(true),
+        &format!("{fact} Travailliez-vous\u{202f}?")
+    );
 }
 
 /// Monday's hour of credit lowers Tuesday's target to 6 hours and leaves none to carry over;

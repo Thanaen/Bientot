@@ -797,8 +797,8 @@ fn project_focus(day: &DayTimeline, language: Language) -> DayFocus {
                     &[SegmentKind::Pause],
                 ),
                 total(
-                    Key::HistoryDayNotCountedLabel,
-                    Key::HistoryDayNotCounted,
+                    Key::HistoryDayGapsAndSleepLabel,
+                    Key::HistoryDayGapsAndSleep,
                     &[SegmentKind::Gap, SegmentKind::Sleep],
                 ),
             ])

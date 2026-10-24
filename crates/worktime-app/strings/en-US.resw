@@ -257,8 +257,9 @@
   <data name="SourceBuiltInInterrupted" xml:space="preserve"><value>Activity recording has stopped. It resumes on its own. If this message stays, restart WorkTime.</value></data>
   <data name="SourceNotSelected" xml:space="preserve"><value>No activity source is selected for this period. That time stays unrecorded.</value></data>
   <data name="WorkdayEstimatedProjectionQualifier" xml:space="preserve"><value>Based on recorded work</value></data>
-  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Unrecorded time · {1}, from {2} to {3}. Were you working?</value></data>
-  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Unrecorded time · {1} in {0} slots, between {2} and {3}. Were you working?</value></data>
+  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Unrecorded time · {1}, from {2} to {3}.</value></data>
+  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Unrecorded time · {1} in {0} slots, between {2} and {3}.</value></data>
+  <data name="SourceMissingQuestion" xml:space="preserve"><value>Were you working?</value></data>
   <data name="SettingsWholeNumberRequired" xml:space="preserve"><value>Enter a whole number of minutes.</value></data>
   <data name="SettingsWholeSecondsRequired" xml:space="preserve"><value>Enter a whole number of seconds.</value></data>
   <data name="SettingsNumberOutOfRange" xml:space="preserve"><value>Enter a whole number within the displayed range.</value></data>
@@ -688,7 +689,7 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryDayBadge" xml:space="preserve"><value>{0} to settle</value></data>
   <data name="HistoryDayTargetFormat" xml:space="preserve"><value>/ {0}</value></data>
   <data name="HistoryDayPauses" xml:space="preserve"><value>Breaks {0}</value></data>
-  <data name="HistoryDayNotCounted" xml:space="preserve"><value>Gaps and sleep {0}</value></data>
+  <data name="HistoryDayGapsAndSleep" xml:space="preserve"><value>Gaps and sleep {0}</value></data>
   <data name="HistoryDayAhead" xml:space="preserve"><value>+{0} credit</value></data>
   <data name="HistoryDayBehind" xml:space="preserve"><value>−{0} against the target</value></data>
   <data name="HistoryPendingTitle" xml:space="preserve"><value>To settle ({0})</value></data>
@@ -725,7 +726,7 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryRangeReplacesOne" xml:space="preserve"><value>Replaces your correction from {0} to {1}.</value></data>
   <data name="HistoryRangeReplacesMany" xml:space="preserve"><value>Replaces {0} of your corrections.</value></data>
   <data name="HistoryRangeCorrectionNote" xml:space="preserve"><value>If you remove it, this time goes back to automatic detection.</value></data>
-  <data name="HistoryRangeUnrecordedFirstFormat" xml:space="preserve"><value>First of {0} unrecorded slots, {1} in all.</value></data>
+  <data name="HistoryRangeUnrecordedFirstFormat" xml:space="preserve"><value>First of {0} unrecorded slots, {1} in total; the next at {2}.</value></data>
   <data name="HistoryRangeOpenLockNote" xml:space="preserve"><value>The session is still locked. You can settle this range once it’s unlocked.</value></data>
   <data name="HistoryRangeCountNoChange" xml:space="preserve"><value>If you count it, the day total doesn’t change.</value></data>
   <data name="HistoryRangeExcludeNoChange" xml:space="preserve"><value>If you exclude it, the day total doesn’t change.</value></data>
@@ -839,12 +840,12 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryDayTodayDeparture" xml:space="preserve"><value>Leave at {0}</value></data>
   <data name="HistoryDayDifference" xml:space="preserve"><value>Difference</value></data>
   <data name="HistoryDayPausesLabel" xml:space="preserve"><value>Breaks</value></data>
-  <data name="HistoryDayNotCountedLabel" xml:space="preserve"><value>Gaps and sleep</value></data>
+  <data name="HistoryDayGapsAndSleepLabel" xml:space="preserve"><value>Gaps and sleep</value></data>
   <data name="AdjustTimeCloseButton" xml:space="preserve">
     <value>Close</value>
   </data>
   <data name="AdjustTimeResultDuration" xml:space="preserve">
-    <value>{0} counted as work.</value>
+    <value>Counted as work: {0}.</value>
   </data>
   <data name="TimeFieldHours.AutomationProperties.Name" xml:space="preserve">
     <value>Hours</value>

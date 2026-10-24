@@ -158,7 +158,10 @@ pub enum SourceHint {
     /// with « Oui, compter N min » to count it as work and « Voir sur la frise » to settle it
     /// in the week.
     Unrecorded {
+        /// What is unknown, then « Travailliez-vous ? », which « Oui, compter » answers.
         message: SharedString,
+        /// What is unknown alone, where « Oui, compter » is not offered.
+        fact: SharedString,
         /// The day the time is unknown in.
         workday: LocalWorkday,
         /// The unknown time, merged.
@@ -178,8 +181,11 @@ pub enum FailureRemedy {
 }
 
 impl SourceHint {
-    pub fn message(&self) -> &SharedString {
+    /// What the hint says where time can be counted, or not: unrecorded time asks
+    /// « Travailliez-vous ? » only where « Oui, compter » answers it.
+    pub fn text(&self, can_count: bool) -> &SharedString {
         match self {
+            Self::Unrecorded { fact, .. } if !can_count => fact,
             Self::Failure { message, .. } | Self::Unrecorded { message, .. } => message,
         }
     }
@@ -619,18 +625,18 @@ fn missing_work(summary: &DailySummary, zone: &TimeZone, language: Language) -> 
     } else {
         Key::SourceMissingSeveralFormat
     };
+    let fact = language.format(
+        key,
+        &[
+            &intervals.len(),
+            &duration,
+            &clock(first.start()),
+            &clock(last.end()),
+        ],
+    );
     Some(SourceHint::Unrecorded {
-        message: language
-            .format(
-                key,
-                &[
-                    &intervals.len(),
-                    &duration,
-                    &clock(first.start()),
-                    &clock(last.end()),
-                ],
-            )
-            .into(),
+        message: format!("{fact} {}", language.text(Key::SourceMissingQuestion)).into(),
+        fact: fact.into(),
         workday: summary.workday().clone(),
         intervals,
         duration: total,

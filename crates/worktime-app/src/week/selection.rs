@@ -341,7 +341,8 @@ impl WeekState {
     /// « Voir sur la frise » of the flyout: selects the unrecorded `intervals` of `date` and opens
     /// the bubble. From the first to the last when only work lies between them, so that counting
     /// the range counts them alone; else the first, with a note that links it to the flyout's
-    /// total. A day the week does not show, or one without a summary, selects nothing.
+    /// total and says where the next one starts. A day the week does not show, or one without a
+    /// summary, selects nothing.
     pub fn show_unrecorded(&mut self, date: Date, intervals: &[UtcInterval]) {
         let Some(day) = self.timeline.day(date).filter(|day| day.selectable()) else {
             return;
@@ -369,15 +370,24 @@ impl WeekState {
             range,
             anchor: None,
         };
-        // The flyout's total covers every gap: the bubble of the first one says so.
-        self.unrecorded_note = (!only_work_between && intervals.len() > 1).then(|| {
-            let total = intervals.iter().map(|interval| interval.duration()).sum();
-            let note = self.language.format(
-                Key::HistoryRangeUnrecordedFirstFormat,
-                &[&intervals.len(), &minutes_text(total, self.language)],
-            );
-            (selection, note)
-        });
+        // The flyout's total covers every gap: the bubble of the first one says so, and where
+        // the next one starts.
+        self.unrecorded_note = intervals
+            .get(1)
+            .filter(|_| !only_work_between)
+            .and_then(|next| day.local(next.start()))
+            .map(|next| {
+                let total = intervals.iter().map(|interval| interval.duration()).sum();
+                let note = self.language.format(
+                    Key::HistoryRangeUnrecordedFirstFormat,
+                    &[
+                        &intervals.len(),
+                        &minutes_text(total, self.language),
+                        &self.language.short_time(next.time()),
+                    ],
+                );
+                (selection, note)
+            });
         self.focused = date;
         self.selection = Some(selection);
     }

@@ -41,8 +41,8 @@ impl Flyout {
                 duration,
                 ..
             } => {
-                // Left out on a day off rather than dimmed, as the day's commands are; « Voir
-                // sur la frise » still settles the time in the week.
+                // Left out on a day off rather than dimmed, as the day's commands are, with the
+                // question it answers; « Voir sur la frise » still settles the time in the week.
                 let count = self.tracking.can_correct_time().then(|| {
                     let id = "count-unrecorded";
                     let label = self.language.format(
@@ -87,7 +87,10 @@ impl Flyout {
                         .flex()
                         .flex_col()
                         .gap(BASE_02)
-                        .child(readable("source-body", hint.message().clone()))
+                        .child(readable(
+                            "source-body",
+                            hint.text(self.tracking.can_correct_time()).clone(),
+                        ))
                         .child(
                             div()
                                 .pt(BASE_06)

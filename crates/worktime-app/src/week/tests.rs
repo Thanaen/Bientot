@@ -781,9 +781,9 @@ fn interval(start: &str, end: &str) -> UtcInterval {
 /// first of the problem periods' two gaps, as a break and a sleep lie between them; from the
 /// first gap on when only work follows it.
 /// The flyout counted « 26 min en 2 créneaux »; « Voir sur la frise » selects only the first:
-/// its bubble says so, until the range moves.
+/// its bubble says so, and where the second starts, until the range moves.
 #[test]
-fn the_first_of_several_unrecorded_gaps_says_it_is_one_of_the_flyout_s_total() {
+fn the_first_of_several_unrecorded_gaps_says_where_the_next_one_starts() {
     let (_demo, mut state) = Demo::open(DemoScenario::ProblemPeriods);
     let gaps = [
         interval("2026-08-31T09:40:12Z", "2026-08-31T09:45:42Z"),
@@ -793,7 +793,7 @@ fn the_first_of_several_unrecorded_gaps_says_it_is_one_of_the_flyout_s_total() {
     assert_eq!(
         state.bubble().unwrap().notes,
         [nb(
-            "Premier des 2 créneaux non renseignés, 26~min au total."
+            "Premier des 2 créneaux non renseignés, 26~min au total\u{202f}; le suivant à~14:00."
         )]
     );
 
