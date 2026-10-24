@@ -170,6 +170,9 @@ pub enum Seed {
     /// detected, on the unrecorded time shown in its day, if any: every interval the hint
     /// reports, or the slot of the week to count in part.
     DeclareWork(Option<Unrecorded>),
+    /// « Déclarer du temps travaillé » of a day with nothing unrecorded, whose time ends at this
+    /// instant: on the hour after it, within the day and up to now.
+    DeclareAfter(Timestamp),
     /// « Modifier… » of the week and « Modifier le dernier ajustement… » of the tray, as
     /// `AdjustmentDialogRequest.Edit` of the .NET app: the fields of a correction, saved as its
     /// replacement.
@@ -411,6 +414,14 @@ impl AdjustForm {
                     chosen.map_or(blank, |interval| minute_fields(interval, &target.zone)),
                 )
             }
+            Seed::DeclareAfter(end) => (
+                Opening::Declaration {
+                    chosen: None,
+                    unrecorded: None,
+                },
+                hour_after(end, &target, now)
+                    .map_or(blank, |interval| minute_fields(interval, &target.zone)),
+            ),
             Seed::Edit(Editable(adjustment)) => {
                 let selection =
                     prefill(adjustment.kind()).expect("an editable correction has its choices");
@@ -813,6 +824,21 @@ fn within_day(interval: UtcInterval, target: &Target, now: Timestamp) -> Option<
             .min(horizon),
     )
     .ok()
+}
+
+/// The hour after `end` within the target day, moved back to end at the minute of `now` when
+/// that hour has not passed yet. `None` when the day has not begun.
+fn hour_after(end: Timestamp, target: &Target, now: Timestamp) -> Option<UtcInterval> {
+    let date = target.workday.date;
+    let day = UtcInterval::new(
+        midnight(date, &target.zone)?,
+        midnight(date.tomorrow().ok()?, &target.zone)?,
+    )
+    .ok()?;
+    let day = within_day(day, target, now)?;
+    let hour = SignedDuration::from_hours(1);
+    let last = (end + hour).clamp(day.start(), day.end());
+    UtcInterval::new((last - hour).max(day.start()), last).ok()
 }
 
 /// The first instant of `date` in `zone`.

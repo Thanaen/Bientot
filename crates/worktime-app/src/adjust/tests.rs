@@ -606,6 +606,58 @@ fn a_declaration_of_work_without_one_interval_opens_on_nine_to_ten() {
     );
 }
 
+/// A day with nothing unrecorded opens on the hour after its time: as it is on a past day, up
+/// to midnight late in the evening, and ending at the minute of now on a day still going on,
+/// rather than 09:00 to 10:00 which the day already covers.
+#[test]
+fn a_declaration_after_the_day_opens_on_the_hour_after_it_up_to_now() {
+    let fields = |end: &str, now: &str| {
+        let form = seeded_at(
+            date(2026, 10, 7),
+            TimeZone::UTC,
+            Seed::DeclareAfter(utc(end)),
+            now,
+            Language::French,
+        );
+        (form.start.text(), form.end.text())
+    };
+    let yesterday = "2026-10-08T15:00:00Z";
+    assert_eq!(
+        fields("2026-10-07T17:30:00Z", yesterday),
+        ("17:30".into(), "18:30".into())
+    );
+    assert_eq!(
+        fields("2026-10-07T23:30:00Z", yesterday),
+        ("23:00".into(), "00:00".into())
+    );
+    assert_eq!(
+        fields("2026-10-07T16:42:00Z", "2026-10-07T17:05:30Z"),
+        ("16:05".into(), "17:05".into())
+    );
+    assert_eq!(
+        fields("2026-10-07T00:20:00Z", "2026-10-07T00:40:00Z"),
+        ("00:00".into(), "00:40".into())
+    );
+    assert_eq!(
+        fields("2026-10-07T08:00:00Z", "2026-10-06T22:00:00Z"),
+        ("09:00".into(), "10:00".into()),
+        "a day not begun yet"
+    );
+    let form = seeded(
+        date(2026, 10, 7),
+        TimeZone::UTC,
+        Seed::DeclareAfter(utc("2026-10-07T17:30:00Z")),
+        Language::French,
+    );
+    assert_eq!(form.page().title, "Déclarer du temps travaillé");
+    assert_eq!(
+        form.page()
+            .declaration
+            .map(|declaration| declaration.context),
+        Some(None)
+    );
+}
+
 /// A hint of yesterday's unrecorded time, followed after midnight, has nothing left on today:
 /// the declaration opens on no interval rather than on the whole day.
 #[test]
