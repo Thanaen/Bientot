@@ -358,6 +358,7 @@ impl Flyout {
         while self.body_parts.len() < parts.len() {
             self.body_parts.push(cx.focus_handle());
         }
+        self.refocus_after_closing(parts.len(), window, cx);
         if std::mem::take(&mut self.reveal_focus)
             && let Some(focused) = self
                 .body_parts
@@ -383,6 +384,32 @@ impl Flyout {
                     .into_any_element()
             })
             .collect()
+    }
+
+    /// After a callout closed with the focus in it, the next part takes the focus: its first
+    /// control, or the first after it. The tab order is the one of the frame drawn without the
+    /// callout, so the focus moves on the next frame. A callout the day still shows once it came
+    /// back keeps the focus where it is.
+    fn refocus_after_closing(&mut self, parts: usize, window: &mut Window, cx: &mut Context<Self>) {
+        self.shown_parts = parts;
+        let Some(closing) = self.closing.take_if(|closing| closing.answered) else {
+            return;
+        };
+        if parts >= closing.parts {
+            return;
+        }
+        let part = self.body_parts[closing.part.min(parts.saturating_sub(1))].clone();
+        let flyout = cx.entity().downgrade();
+        window.on_next_frame(move |window, cx| {
+            window.focus(&part, cx);
+            window.focus_next(cx);
+            flyout
+                .update(cx, |flyout, cx| {
+                    flyout.reveal_focus = true;
+                    cx.notify();
+                })
+                .ok();
+        });
     }
 
     /// Where the control of the body that holds the focus was last laid out, unscrolled.
