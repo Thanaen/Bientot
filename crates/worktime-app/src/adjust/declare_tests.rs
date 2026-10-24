@@ -362,3 +362,59 @@ fn an_interval_typed_to_midnight_is_reported_to_24_00() {
         assert_eq!(form.finished(Ok(true)).unwrap().message, nb(message));
     }
 }
+
+fn monday() -> Date {
+    date(2026, 8, 31)
+}
+
+/// Monday's time, which ends at 17:30 with nothing unrecorded, followed by a declaration of
+/// `end`'s interval from 17:30, saved to the second.
+fn monday_declared_until(end: &str) -> (Demo, WeekState) {
+    let (mut demo, mut state) = Demo::open();
+    let slot = interval("2026-08-31T17:30:00Z", end);
+    let mut form = demo.seeded(monday(), on_slot(slot), "evening");
+    assert_eq!(declared_interval(&form), slot);
+    assert!(demo.save(&mut form).unwrap().is_some());
+    state.reload(demo.host.week().unwrap(), true);
+    state.select(monday());
+    (demo, state)
+}
+
+/// A day ending on a correction less than an hour before now opens from its end up to now,
+/// rather than an hour back over the correction, and saves as it opens.
+#[test]
+fn a_declaration_after_a_late_correction_saves_as_it_opens() {
+    let (mut demo, state) = monday_declared_until("2026-08-31T17:42:00Z");
+    let (_, seed) = state.declare_work().unwrap();
+    assert_eq!(seed, Seed::DeclareAfter(utc("2026-08-31T17:42:00Z")));
+    let mut form = AdjustForm::new(
+        Target {
+            workday: LocalWorkday::new(monday(), "UTC"),
+            zone: TimeZone::UTC,
+        },
+        seed,
+        id("after"),
+        utc("2026-08-31T18:05:30Z"),
+        Language::French,
+    );
+    assert_eq!(
+        (form.start.text(), form.end.text()),
+        ("17:42".into(), "18:05".into())
+    );
+    assert!(demo.save(&mut form).unwrap().is_some());
+}
+
+/// A day ending on a correction with seconds opens on the next minute, which Début shows
+/// exactly: on the minute before, the declaration would overlap the correction and be refused.
+#[test]
+fn a_declaration_after_a_correction_with_seconds_saves_as_it_opens() {
+    let (mut demo, state) = monday_declared_until("2026-08-31T17:30:43Z");
+    let (_, seed) = state.declare_work().unwrap();
+    assert_eq!(seed, Seed::DeclareAfter(utc("2026-08-31T17:30:43Z")));
+    let mut form = demo.seeded(monday(), seed, "after");
+    assert_eq!(
+        declared_interval(&form),
+        interval("2026-08-31T17:31:00Z", "2026-08-31T18:31:00Z")
+    );
+    assert!(demo.save(&mut form).unwrap().is_some());
+}

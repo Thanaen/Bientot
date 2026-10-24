@@ -170,6 +170,9 @@ pub enum Seed {
     /// detected, on the unrecorded time shown in its day, if any: every interval the hint
     /// reports, or the slot of the week to count in part.
     DeclareWork(Option<Unrecorded>),
+    /// « Déclarer du temps travaillé » of a day with nothing unrecorded, whose time ends at this
+    /// instant: on the hour after it from its next whole minute, within the day and up to now.
+    DeclareAfter(Timestamp),
     /// « Modifier… » of the week and « Modifier le dernier ajustement… » of the tray, as
     /// `AdjustmentDialogRequest.Edit` of the .NET app: the fields of a correction, saved as its
     /// replacement.
@@ -411,6 +414,14 @@ impl AdjustForm {
                     chosen.map_or(blank, |interval| minute_fields(interval, &target.zone)),
                 )
             }
+            Seed::DeclareAfter(end) => (
+                Opening::Declaration {
+                    chosen: None,
+                    unrecorded: None,
+                },
+                hour_after(end, &target, now)
+                    .map_or(blank, |interval| minute_fields(interval, &target.zone)),
+            ),
             Seed::Edit(Editable(adjustment)) => {
                 let selection =
                     prefill(adjustment.kind()).expect("an editable correction has its choices");
@@ -811,6 +822,32 @@ fn within_day(interval: UtcInterval, target: &Target, now: Timestamp) -> Option<
             .end()
             .min(midnight(date.tomorrow().ok()?, &target.zone)?)
             .min(horizon),
+    )
+    .ok()
+}
+
+/// The hour from the first whole minute at or after `end`, so that Début on its minute never
+/// overlaps what ends there, cut at the end of the target day and at the minute of `now`.
+/// `None` when nothing of it is left.
+fn hour_after(end: Timestamp, target: &Target, now: Timestamp) -> Option<UtcInterval> {
+    let date = target.workday.date;
+    let day = UtcInterval::new(
+        midnight(date, &target.zone)?,
+        midnight(date.tomorrow().ok()?, &target.zone)?,
+    )
+    .ok()?;
+    let day = within_day(day, target, now)?;
+    let start = end
+        .round(
+            TimestampRound::new()
+                .smallest(Unit::Minute)
+                .mode(RoundMode::Ceil),
+        )
+        .ok()?
+        .max(day.start());
+    UtcInterval::new(
+        start,
+        (start + SignedDuration::from_hours(1)).min(day.end()),
     )
     .ok()
 }

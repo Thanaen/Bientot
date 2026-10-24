@@ -9,29 +9,30 @@ use crate::strings::Key;
 
 impl WeekState {
     /// « Déclarer du temps travaillé… » of the open day, as `HistoryWorkspace.DeclareWorkAsync`:
-    /// on its gaps still to settle, in the day, when it has some.
+    /// on its gaps still to settle, in the day, when it has some; else on the hour after its
+    /// last segment.
     pub fn declare_work(&self) -> Option<(LocalWorkday, Seed)> {
         let workday = self.adjust_target()?;
-        let unrecorded = self
-            .timeline
-            .days
-            .iter()
-            .find(|day| {
-                day.figures
-                    .as_ref()
-                    .is_some_and(|figures| figures.workday == workday)
-            })
-            .and_then(|day| {
-                let gaps = day.segments.iter().filter(|segment| {
-                    segment.needs_action
-                        && matches!(segment.kind, SegmentKind::Gap | SegmentKind::Sleep)
-                });
-                Unrecorded::new(
-                    gaps.map(|segment| segment.interval).collect(),
-                    stretches(day),
-                )
-            });
-        Some((workday, Seed::DeclareWork(unrecorded)))
+        let Some(day) = self.timeline.days.iter().find(|day| {
+            day.figures
+                .as_ref()
+                .is_some_and(|figures| figures.workday == workday)
+        }) else {
+            return Some((workday, Seed::DeclareWork(None)));
+        };
+        let gaps = day.segments.iter().filter(|segment| {
+            segment.needs_action && matches!(segment.kind, SegmentKind::Gap | SegmentKind::Sleep)
+        });
+        let seed = match Unrecorded::new(
+            gaps.map(|segment| segment.interval).collect(),
+            stretches(day),
+        ) {
+            Some(unrecorded) => Seed::DeclareWork(Some(unrecorded)),
+            None => day.segments.last().map_or(Seed::DeclareWork(None), |last| {
+                Seed::DeclareAfter(last.interval.end())
+            }),
+        };
+        Some((workday, seed))
     }
 
     /// The correction « Modifier… » named could not be opened: `message` says why.

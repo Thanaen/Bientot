@@ -6,10 +6,13 @@
 //! - `week-history-week-correction-bubble.png`, the bubble of the history week's meeting;
 //! - `week-history-week-gap-bubble.png`, the bubble of Wednesday's gap in the history week;
 //! - `adjust-declare-work-week.png`, « Déclarer du temps travaillé… » of that gap's day;
+//! - `adjust-declare-work-after.png`, the same of Monday, which has no gap: on the hour after
+//!   its work, and `-refresh-pending` once saved without the totals refreshed;
 //! - `week-history-week-<bound|locked>-bubble.png`, the bubble of its long lock once answered;
-//! - `week-range-<work|extended|lock|gaps>.png`, ranges selected on the timeline: Wednesday's
-//!   work at 12:00, then stretched over the gap after it while its handle is dragged, then
-//!   back to the lock before it, and Monday's gaps in the problem periods;
+//! - `week-range-<work|extended|lock|short|gaps>.png`, ranges selected on the timeline:
+//!   Wednesday's work at 12:00, then stretched over the gap after it while its handle is
+//!   dragged, then back to the lock before it; Monday's first gap in the problem periods, six
+//!   minutes long, then its gaps up to 13:00;
 //! - `week-range-unrecorded.png`, the unrecorded time of the problem periods as « Voir sur la
 //!   frise » of the flyout selects its first gap, with the note that links it to the flyout's
 //!   total;
@@ -409,6 +412,7 @@ fn capture_ranges(
     open_segment(cx, window, "a gap to settle", |segment| {
         segment.kind == SegmentKind::Gap && segment.needs_action
     })?;
+    capture(cx, window.into(), &output.join("week-range-short.png"))?;
     change(cx, window, &|view| {
         if let Some(state) = view.state_mut() {
             for _ in 0..4 {
@@ -465,7 +469,7 @@ fn capture_answered_locks(
 }
 
 /// Wednesday's gap in the history week and its bubble, then « Déclarer du temps travaillé… »
-/// of its day.
+/// of its day and of Monday, which has no gap.
 fn capture_declarations(
     cx: &mut HeadlessAppContext,
     window: WindowHandle<WeekView>,
@@ -482,12 +486,33 @@ fn capture_declarations(
     let seeds = cx.update(|cx| {
         window.update(cx, |view, _, _| {
             let state = view.state_mut()?;
-            Some([("adjust-declare-work-week", state.declare_work()?)])
+            let gap = state.declare_work()?;
+            // Monday has no gap: the declaration opens after its work.
+            state.select(jiff::civil::date(2026, 8, 31));
+            Some([
+                ("adjust-declare-work-week", gap),
+                ("adjust-declare-work-after", state.declare_work()?),
+            ])
         })
     })?;
     for (name, (workday, seed)) in seeds.context("the gap's day takes a declaration")? {
-        let window = open_adjust(cx, adjust_form(workday, seed, now, language), Opener::Week)?;
+        let form = adjust_form(workday, seed, now, language);
+        let window = open_adjust(cx, form.clone(), Opener::Week)?;
         capture(cx, window.into(), &output.join(format!("{name}.png")))?;
+        if name == "adjust-declare-work-after" {
+            // Saved, the totals not refreshed: the tallest state of a declaration on no slot.
+            let mut pending = form;
+            pending
+                .submit()
+                .context("the hour after Monday's work is declared as it opens")?;
+            pending.finished(Ok(false));
+            let window = open_adjust(cx, pending, Opener::Week)?;
+            capture(
+                cx,
+                window.into(),
+                &output.join(format!("{name}-refresh-pending.png")),
+            )?;
+        }
     }
     Ok(())
 }

@@ -1376,17 +1376,17 @@ fn the_legend_explains_the_bracket_only_in_a_week_that_draws_one() {
     );
 }
 
-/// « Déclarer du temps travaillé… » opens a blank declaration on a day without gaps to
-/// settle, and nothing on a day off.
+/// « Déclarer du temps travaillé… » opens after the time of a day without gaps to settle, and
+/// nothing on a day off.
 #[test]
-fn declaring_work_opens_blank_on_a_day_without_gaps_and_nothing_on_a_day_off() {
+fn declaring_work_opens_after_a_day_without_gaps_and_nothing_on_a_day_off() {
     let (_demo, mut state) = Demo::open(DemoScenario::HistoryWeek);
     state.select(date(8, 31));
     assert_eq!(
         state.declare_work(),
         Some((
             LocalWorkday::new(date(8, 31), "UTC"),
-            Seed::DeclareWork(None)
+            Seed::DeclareAfter("2026-08-31T17:30:00Z".parse().unwrap())
         ))
     );
 

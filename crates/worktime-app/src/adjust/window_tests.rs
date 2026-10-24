@@ -157,7 +157,7 @@ fn a_declaration_opens_a_shorter_window_than_a_correction() {
     let declaration = thursday(Seed::DeclareWork(None), "first", "2026-10-08T15:00:00Z");
     assert_eq!(
         [&blank, &edit, &declaration].map(AdjustForm::window_height),
-        [680., 680., 560.]
+        [680., 680., 500.]
     );
     let correction = thursday(Seed::Blank, "second", "2026-10-08T15:02:00Z");
     assert_eq!(
