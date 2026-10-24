@@ -807,7 +807,9 @@ pub(crate) fn filled(
     height: Pixels,
     theme: &Theme,
 ) -> gpui::Stateful<gpui::Div> {
-    let focused = theme.border_focused;
+    // The focus colour is the accent's own in the dark theme: the text colour stands out of
+    // the fill in both, on hover as on focus.
+    let ring = theme.text;
     div()
         .id(id)
         .role(Role::Button)
@@ -826,8 +828,8 @@ pub(crate) fn filled(
         .whitespace_nowrap()
         .tab_index(0)
         .cursor_pointer()
-        .hover(move |style| style.border_color(focused))
-        .focus_visible(move |style| style.border_color(focused))
+        .hover(move |style| style.border_color(ring))
+        .focus_visible(move |style| style.border_color(ring))
         .child(label)
 }
 

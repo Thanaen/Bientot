@@ -408,7 +408,7 @@ pub struct DayFocus {
     /// « À régler (2) », over `pending`; the section is hidden while `pending` is empty.
     pub pending_title: String,
     pub pending: Vec<PendingItem>,
-    /// « Écart » when the day has a summary, then « Pauses » and « Non compté ».
+    /// « Écart » when the day has a summary, then « Pauses » and « Trous et veille ».
     pub summary: Vec<SummaryLine>,
 }
 
@@ -797,8 +797,8 @@ fn project_focus(day: &DayTimeline, language: Language) -> DayFocus {
                     &[SegmentKind::Pause],
                 ),
                 total(
-                    Key::HistoryDayNotCountedLabel,
-                    Key::HistoryDayNotCounted,
+                    Key::HistoryDayGapsAndSleepLabel,
+                    Key::HistoryDayGapsAndSleep,
                     &[SegmentKind::Gap, SegmentKind::Sleep],
                 ),
             ])
@@ -870,6 +870,18 @@ pub struct WeekState {
     /// The command sent to the host, with what its result will say.
     awaited: Option<Awaited>,
     details_open: bool,
+    /// « Premier des 2 créneaux non renseignés… », while « Voir sur la frise » of the flyout
+    /// selects only the first of its gaps: the note of that selection.
+    unrecorded_note: Option<UnrecordedNote>,
+}
+
+/// The note of the first unrecorded gap selected, with every gap it counts: it holds while
+/// they all stay unrecorded.
+#[derive(Clone, Debug, PartialEq)]
+struct UnrecordedNote {
+    selection: Selection,
+    gaps: Vec<UtcInterval>,
+    text: String,
 }
 
 /// Why the week shown may miss what the ledger holds.
@@ -904,6 +916,7 @@ impl WeekState {
             stale: None,
             awaited: None,
             details_open: false,
+            unrecorded_note: None,
         }
     }
 
@@ -920,6 +933,11 @@ impl WeekState {
         let selection = self.selection?;
         let day = self.timeline.day(selection.date)?;
         let mut bubble = Bubble::project(day, selection, day.is_today, self.language)?;
+        if let Some(note) = &self.unrecorded_note
+            && note.selection == selection
+        {
+            bubble.notes.insert(0, note.text.clone());
+        }
         if self.stale == Some(Stale::RefreshPending) {
             for action in &mut bubble.actions {
                 action.enabled = false;
@@ -939,6 +957,7 @@ impl WeekState {
             self.stale = None;
         }
         self.renormalize_selection();
+        self.revalidate_unrecorded_note();
         if self.bubble().is_none() {
             self.selection = None;
         }
@@ -1089,8 +1108,12 @@ impl WeekState {
             severity: Severity::Success,
             can_undo: self.timeline.shows_removable(&outcome.undo),
             next: (pending > 0).then(|| {
-                self.language
-                    .format(Key::HistoryResultNextFormat, &[&pending])
+                let key = if pending == 1 {
+                    Key::HistoryResultNextOneFormat
+                } else {
+                    Key::HistoryResultNextSeveralFormat
+                };
+                self.language.format(key, &[&pending])
             }),
             dismissible: true,
             offer: outcome

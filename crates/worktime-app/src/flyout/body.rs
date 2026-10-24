@@ -16,7 +16,10 @@ use crate::strings::Key;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, motion, radius, size, tabular_figures, text};
 use crate::updates::{UpdateCallout, Updates};
-use crate::widgets::{Hue, Notice, NoticeKind, callout_box, icon, notice_box, small};
+use crate::widgets::{
+    Hue, Notice, NoticeKind, beside_button_inset, callout_box, icon, notice_box,
+    notice_box_beside_button, small,
+};
 use crate::workday::Worked;
 
 /// Where a notice that arrives in the open flyout stands at `time`, a share of its entrance: it
@@ -71,36 +74,62 @@ impl Flyout {
         time: f32,
         theme: &Theme,
     ) -> AnyElement {
-        let action = match notice.kind {
-            NoticeKind::RefreshPending => Some(self.refresh_button("notice-refresh", theme)),
-            NoticeKind::SettingsRecovered => {
-                Some(self.open_settings_button("notice-open-settings", theme))
+        // « Annuler » is short: it shares the message's row, on its right; the longer buttons
+        // go under it.
+        let (action, beside) = match notice.kind {
+            NoticeKind::RefreshPending => {
+                (Some(self.refresh_button("notice-refresh", theme)), false)
             }
+            NoticeKind::SettingsRecovered => (
+                Some(self.open_settings_button("notice-open-settings", theme)),
+                false,
+            ),
             NoticeKind::Success
             | NoticeKind::Warning
             | NoticeKind::SourceSwitchFailed
-            | NoticeKind::Error => notice.undo.clone().map(|undo| {
-                self.callout_button(
-                    "notice-undo",
-                    self.text(Key::HistoryResultUndoContent).into(),
-                    None,
-                    Some(Box::new(UndoNotice(undo))),
-                    theme,
-                )
-            }),
+            | NoticeKind::Error => (
+                notice.undo.clone().map(|undo| {
+                    self.callout_button(
+                        "notice-undo",
+                        self.text(Key::HistoryResultUndoContent).into(),
+                        None,
+                        Box::new(UndoNotice(undo)),
+                        theme,
+                    )
+                }),
+                true,
+            ),
         };
-        notice_box(id, notice, theme)
-            .map(|notice| notice_pose(time).apply(notice))
-            .child(
+        let message = div().flex_1().min_w_0().child(notice.message.clone());
+        let (frame, body) = match action {
+            // The message's first line centred on the button, the icon with it; the message
+            // takes the row up to the button, so the counted notice keeps to one line in French.
+            Some(action) if beside => (
+                notice_box_beside_button(id, notice, theme),
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .flex()
+                    .items_start()
+                    .gap(BASE_04)
+                    .child(message.pt(beside_button_inset()))
+                    .child(div().flex_none().child(action)),
+            ),
+            action => (
+                notice_box(id, notice, theme),
                 div()
                     .flex_1()
                     .min_w_0()
                     .flex()
                     .flex_col()
                     .gap(BASE_02)
-                    .child(notice.message.clone())
+                    .child(message)
                     .children(action.map(|action| div().pt(BASE_06).flex().child(action))),
-            )
+            ),
+        };
+        frame
+            .map(|notice| notice_pose(time).apply(notice))
+            .child(body)
             .into_any_element()
     }
 

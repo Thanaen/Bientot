@@ -365,6 +365,6 @@ fn an_edited_duration_counts_only_the_replacement() {
     assert_eq!(form.duration, "0:30");
     form.duration = "0:45".into();
     let closed = demo.save(&mut form).unwrap().unwrap();
-    assert_eq!(closed.message, nb("45~min compté comme travail."));
+    assert_eq!(closed.message, nb("Compté comme travail~:~45~min."));
     assert_eq!(credited(&demo) - before, SignedDuration::from_mins(15));
 }

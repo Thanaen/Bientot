@@ -7,7 +7,12 @@ use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp};
 use worktime_domain::intervals::UtcInterval;
 
-use super::{Availability, DayTimeline, Segment, SegmentId, WeekState, WeekTimeline};
+use super::{
+    Availability, DayTimeline, Segment, SegmentId, SegmentKind, UnrecordedNote, WeekState,
+    WeekTimeline,
+};
+use crate::strings::Key;
+use crate::time_text::minutes_text;
 
 /// What a range snaps to, and the shortest one.
 pub const RANGE_STEP: SignedDuration = SignedDuration::from_mins(5);
@@ -338,8 +343,9 @@ impl WeekState {
 
     /// « Voir sur la frise » of the flyout: selects the unrecorded `intervals` of `date` and opens
     /// the bubble. From the first to the last when only work lies between them, so that counting
-    /// the range counts them alone; else the first. A day the week does not show, or one without
-    /// a summary, selects nothing.
+    /// the range counts them alone; else the first, with a note that links it to the flyout's
+    /// total and says where the next one starts. A day the week does not show, or one without a
+    /// summary, selects nothing.
     pub fn show_unrecorded(&mut self, date: Date, intervals: &[UtcInterval]) {
         let Some(day) = self.timeline.day(date).filter(|day| day.selectable()) else {
             return;
@@ -362,12 +368,58 @@ impl WeekState {
         let Some(range) = day.normalized(range.start(), range.end(), Edge::End) else {
             return;
         };
-        self.focused = date;
-        self.selection = Some(Selection {
+        let selection = Selection {
             date,
             range,
             anchor: None,
+        };
+        // The flyout's total covers every gap: the bubble of the first one says so, and where
+        // the next one starts.
+        self.unrecorded_note = intervals
+            .get(1)
+            .filter(|_| !only_work_between)
+            .and_then(|next| day.local(next.start()))
+            .map(|next| {
+                let total = intervals.iter().map(|interval| interval.duration()).sum();
+                let note = self.language.format(
+                    Key::HistoryRangeUnrecordedFirstFormat,
+                    &[
+                        &intervals.len(),
+                        &minutes_text(total, self.language),
+                        &self.language.short_time(next.time()),
+                    ],
+                );
+                UnrecordedNote {
+                    selection,
+                    gaps: intervals.to_vec(),
+                    text: note,
+                }
+            });
+        self.focused = date;
+        self.selection = Some(selection);
+    }
+
+    /// After a reload: the note of the first gap goes once one of its gaps is no longer wholly
+    /// unrecorded, as its count, total and next start would describe time since counted.
+    pub(super) fn revalidate_unrecorded_note(&mut self) {
+        let Some(note) = &self.unrecorded_note else {
+            return;
+        };
+        let still_unrecorded = self.timeline.day(note.selection.date).is_some_and(|day| {
+            note.gaps.iter().all(|gap| {
+                let unrecorded: SignedDuration = day
+                    .segments
+                    .iter()
+                    .filter(|segment| segment.kind == SegmentKind::Gap)
+                    .filter_map(|segment| segment.interval.intersect(*gap))
+                    .map(UtcInterval::duration)
+                    .sum();
+                unrecorded == gap.duration()
+            })
         });
+        if !still_unrecorded {
+            self.unrecorded_note = None;
+        }
     }
 
     /// After a reload: the range covers again each lock to review it now touches, or closes

@@ -223,10 +223,22 @@ pub(crate) fn callout_box(hue: Hue, theme: &Theme) -> Div {
 
 /// A [`callout_box`] that shows `icon_name` instead of its hue's icon.
 pub(crate) fn callout_box_with_icon(hue: Hue, icon_name: &str, theme: &Theme) -> Div {
+    lowered_callout_box(hue, icon_name, px(0.), theme)
+}
+
+/// A [`callout_box_with_icon`] whose first line is `lowered` below the top of what the caller
+/// adds, the icon with it.
+fn lowered_callout_box(hue: Hue, icon_name: &str, lowered: Pixels, theme: &Theme) -> Div {
     let foreground = hue.colors(theme).foreground;
     callout_frame(hue, theme)
         .items_start()
-        .child(icon(icon_name, foreground).mt(BASE_02))
+        .child(icon(icon_name, foreground).mt(BASE_02 + lowered))
+}
+
+/// How far a line of [`text::LABEL_MD`] is lowered to centre on a [`token::BUTTON_MEDIUM`]
+/// button beside it.
+pub(crate) fn beside_button_inset() -> Pixels {
+    (token::BUTTON_MEDIUM - text::LABEL_MD.line_height) / 2.
 }
 
 /// The design system's inline Callout, for one line and its action: the icon of `hue`
@@ -261,6 +273,25 @@ pub(crate) fn notice_box(
     notice: &Notice,
     theme: &Theme,
 ) -> Stateful<Div> {
+    lowered_notice_box(id, notice, px(0.), theme)
+}
+
+/// A [`notice_box`] whose message shares its first line with a [`token::BUTTON_MEDIUM`]
+/// button: the icon is lowered by [`beside_button_inset`], as the caller lowers the message.
+pub(crate) fn notice_box_beside_button(
+    id: impl Into<ElementId>,
+    notice: &Notice,
+    theme: &Theme,
+) -> Stateful<Div> {
+    lowered_notice_box(id, notice, beside_button_inset(), theme)
+}
+
+fn lowered_notice_box(
+    id: impl Into<ElementId>,
+    notice: &Notice,
+    lowered: Pixels,
+    theme: &Theme,
+) -> Stateful<Div> {
     let (hue, role) = match notice.kind {
         NoticeKind::Success => (Hue::Success, Role::Status),
         NoticeKind::RefreshPending | NoticeKind::Warning | NoticeKind::SettingsRecovered => {
@@ -268,7 +299,7 @@ pub(crate) fn notice_box(
         }
         NoticeKind::SourceSwitchFailed | NoticeKind::Error => (Hue::Error, Role::Alert),
     };
-    callout_box(hue, theme)
+    lowered_callout_box(hue, hue.icon(), lowered, theme)
         .id(id)
         .role(role)
         .aria_label(SharedString::from(notice.message.clone()))

@@ -55,7 +55,7 @@ fn shown(
     (
         notice,
         day.worked.unwrap().worked.to_string(),
-        day.source_hint.map(|hint| hint.message().to_string()),
+        day.source_hint.map(|hint| hint.text(true).to_string()),
     )
 }
 
@@ -103,7 +103,7 @@ fn counting_the_unrecorded_time_from_the_keyboard_then_undoing_it() {
         shown(&mut cx, window),
         (
             Some((
-                nb("26~min comptées comme travail."),
+                nb("Compté comme travail~:~26~min."),
                 NoticeKind::Success,
                 true
             )),

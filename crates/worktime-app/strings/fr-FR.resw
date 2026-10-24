@@ -257,8 +257,9 @@
   <data name="SourceBuiltInInterrupted" xml:space="preserve"><value>L’enregistrement de l’activité s’est interrompu. Il reprend de lui-même. Si ce message reste affiché, redémarrez WorkTime.</value></data>
   <data name="SourceNotSelected" xml:space="preserve"><value>Aucune source d’activité n’est choisie pour cette période. Ce temps reste non renseigné.</value></data>
   <data name="WorkdayEstimatedProjectionQualifier" xml:space="preserve"><value>Selon le travail enregistré</value></data>
-  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Temps non renseigné · {1}, de {2} à {3}. Travailliez-vous ?</value></data>
-  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Temps non renseigné · {1} en {0} créneaux, entre {2} et {3}. Travailliez-vous ?</value></data>
+  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Temps non renseigné · {1}, de {2} à {3}.</value></data>
+  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Temps non renseigné · {1} en {0} créneaux, entre {2} et {3}.</value></data>
+  <data name="SourceMissingQuestion" xml:space="preserve"><value>Travailliez-vous ?</value></data>
   <data name="SettingsWholeNumberRequired" xml:space="preserve"><value>Saisissez un nombre entier de minutes.</value></data>
   <data name="SettingsWholeSecondsRequired" xml:space="preserve"><value>Saisissez un nombre entier de secondes.</value></data>
   <data name="SettingsNumberOutOfRange" xml:space="preserve"><value>Saisissez un nombre entier compris dans la plage affichée.</value></data>
@@ -669,7 +670,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="HistoryDayBadge" xml:space="preserve"><value>{0} à régler</value></data>
   <data name="HistoryDayTargetFormat" xml:space="preserve"><value>/ {0}</value></data>
   <data name="HistoryDayPauses" xml:space="preserve"><value>Pauses {0}</value></data>
-  <data name="HistoryDayNotCounted" xml:space="preserve"><value>Non compté {0}</value></data>
+  <data name="HistoryDayGapsAndSleep" xml:space="preserve"><value>Trous et veille {0}</value></data>
   <data name="HistoryDayAhead" xml:space="preserve"><value>+{0} de crédit</value></data>
   <data name="HistoryDayBehind" xml:space="preserve"><value>−{0} sur l’objectif</value></data>
   <data name="HistoryPendingTitle" xml:space="preserve"><value>À régler ({0})</value></data>
@@ -706,6 +707,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="HistoryRangeReplacesOne" xml:space="preserve"><value>Remplace votre correction de {0} à {1}.</value></data>
   <data name="HistoryRangeReplacesMany" xml:space="preserve"><value>Remplace {0} de vos corrections.</value></data>
   <data name="HistoryRangeCorrectionNote" xml:space="preserve"><value>Si vous la retirez, ce temps revient à la détection automatique.</value></data>
+  <data name="HistoryRangeUnrecordedFirstFormat" xml:space="preserve"><value>Premier des {0} créneaux non renseignés, {1} au total ; le suivant à {2}.</value></data>
   <data name="HistoryRangeOpenLockNote" xml:space="preserve"><value>La session est encore verrouillée. Vous pourrez régler cette plage après le déverrouillage.</value></data>
   <data name="HistoryRangeCountNoChange" xml:space="preserve"><value>Si vous comptez, le total du jour ne change pas.</value></data>
   <data name="HistoryRangeExcludeNoChange" xml:space="preserve"><value>Si vous excluez, le total du jour ne change pas.</value></data>
@@ -721,7 +723,8 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="HistoryResultRemoved" xml:space="preserve"><value>Correction retirée.</value></data>
   <data name="HistoryResultUndone" xml:space="preserve"><value>Action annulée.</value></data>
   <data name="HistoryResultUndo.Content" xml:space="preserve"><value>Annuler</value></data>
-  <data name="HistoryResultNextFormat" xml:space="preserve"><value>Suivant · {0} restant(s)</value></data>
+  <data name="HistoryResultNextOneFormat" xml:space="preserve"><value>Suivant · {0} restant</value></data>
+  <data name="HistoryResultNextSeveralFormat" xml:space="preserve"><value>Suivant · {0} restants</value></data>
   <data name="HistoryDetailsTitle.Text" xml:space="preserve"><value>Activité et crédit</value></data>
   <data name="UpdateAvailableDialog.Title" xml:space="preserve"><value>Mise à jour disponible</value></data>
   <data name="UpdateAvailableDialog.PrimaryButtonText" xml:space="preserve"><value>Mettre à jour</value></data>
@@ -818,12 +821,12 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="HistoryDayTodayDeparture" xml:space="preserve"><value>Départ prévu {0}</value></data>
   <data name="HistoryDayDifference" xml:space="preserve"><value>Écart</value></data>
   <data name="HistoryDayPausesLabel" xml:space="preserve"><value>Pauses</value></data>
-  <data name="HistoryDayNotCountedLabel" xml:space="preserve"><value>Non compté</value></data>
+  <data name="HistoryDayGapsAndSleepLabel" xml:space="preserve"><value>Trous et veille</value></data>
   <data name="AdjustTimeCloseButton" xml:space="preserve">
     <value>Fermer</value>
   </data>
   <data name="AdjustTimeResultDuration" xml:space="preserve">
-    <value>{0} compté comme travail.</value>
+    <value>Compté comme travail : {0}.</value>
   </data>
   <data name="TimeFieldHours.AutomationProperties.Name" xml:space="preserve">
     <value>Heures</value>
@@ -1075,6 +1078,6 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
     <value>Voir sur la frise</value>
   </data>
   <data name="FlyoutUnrecordedCountedFormat" xml:space="preserve">
-    <value>{0} comptées comme travail.</value>
+    <value>Compté comme travail : {0}.</value>
   </data>
 </root>

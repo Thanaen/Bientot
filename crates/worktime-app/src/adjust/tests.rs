@@ -272,7 +272,7 @@ fn saving_locks_the_form_and_a_full_success_closes_with_the_result() {
         (
             Intent::AddDuration,
             ManualClassification::Credited,
-            "1~h~30~min compté comme travail.",
+            "Compté comme travail~:~1~h~30~min.",
         ),
         (
             Intent::Exclude,
@@ -318,7 +318,7 @@ fn saving_locks_the_form_and_a_full_success_closes_with_the_result() {
             .finished(Ok(true))
             .unwrap()
             .message,
-        nb("1h~30m counted as work.")
+        nb("Counted as work: 1h~30m.")
     );
 }
 

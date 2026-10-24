@@ -297,14 +297,15 @@ fn the_page_writes_the_week_and_the_open_day() {
         })
         .collect();
     let (gap, gap_name) = (nb("+2~h~00~min"), nb("+2~h~00~min de crédit"));
-    let (zero, pauses, not_counted) = (nb("0~min"), nb("Pauses 0~min"), nb("Non compté 0~min"));
+    let (zero, pauses, not_counted) =
+        (nb("0~min"), nb("Pauses 0~min"), nb("Trous et veille 0~min"));
     assert_eq!(
         summary,
         [
             ("Écart", gap.as_str(), DayTone::Reached, gap_name.as_str()),
             ("Pauses", zero.as_str(), DayTone::Neutral, pauses.as_str()),
             (
-                "Non compté",
+                "Trous et veille",
                 zero.as_str(),
                 DayTone::Neutral,
                 not_counted.as_str()
@@ -724,7 +725,7 @@ fn confirming_a_long_lock_records_it_and_leaves_three_slots() {
             message: "10:00–12:00 confirmé comme travail.".to_owned(),
             severity: Severity::Success,
             can_undo: false,
-            next: Some("Suivant · 3 restant(s)".to_owned()),
+            next: Some("Suivant · 3 restants".to_owned()),
             dismissible: true,
             offer: None,
         })
@@ -779,6 +780,54 @@ fn interval(start: &str, end: &str) -> UtcInterval {
 /// « Voir sur la frise » of the flyout selects the unrecorded time and opens its bubble: the
 /// first of the problem periods' two gaps, as a break and a sleep lie between them; from the
 /// first gap on when only work follows it.
+/// The flyout counted « 26 min en 2 créneaux »; « Voir sur la frise » selects only the first:
+/// its bubble says so, and where the second starts, until the range moves.
+#[test]
+fn the_first_of_several_unrecorded_gaps_says_where_the_next_one_starts() {
+    let (_demo, mut state) = Demo::open(DemoScenario::ProblemPeriods);
+    let gaps = [
+        interval("2026-08-31T09:40:12Z", "2026-08-31T09:45:42Z"),
+        interval("2026-08-31T14:00:00Z", "2026-08-31T14:20:00Z"),
+    ];
+    state.show_unrecorded(date(8, 31), &gaps);
+    assert_eq!(
+        state.bubble().unwrap().notes,
+        [nb(
+            "Premier des 2 créneaux non renseignés, 26~min au total\u{202f}; le suivant à~14:00."
+        )]
+    );
+
+    state.nudge(Edge::End, 1);
+    assert_ne!(state.selection().unwrap().range, gaps[0]);
+    assert_eq!(state.bubble().unwrap().notes, Vec::<String>::new());
+}
+
+/// The note holds across a reload while its gaps stay unrecorded, and goes once one of them is
+/// counted, as the flyout's « Oui, compter » does while the range stays selected.
+#[test]
+fn the_first_gap_note_goes_once_its_gaps_are_counted() {
+    let (mut demo, mut state) = Demo::open(DemoScenario::ProblemPeriods);
+    let gaps = [
+        interval("2026-08-31T09:40:12Z", "2026-08-31T09:45:42Z"),
+        interval("2026-08-31T14:00:00Z", "2026-08-31T14:20:00Z"),
+    ];
+    state.show_unrecorded(date(8, 31), &gaps);
+    state.reload(demo.read(), true);
+    assert_eq!(state.bubble().unwrap().notes.len(), 1);
+
+    let counted = worktime_domain::adjustments::ManualAdjustment::interval_work(
+        AdjustmentId::new("counted").unwrap(),
+        LocalWorkday::new(date(8, 31), "UTC"),
+        gaps[1],
+        demo.host.correction_time(),
+    )
+    .unwrap();
+    demo.host.save_adjustment(&counted).unwrap();
+    state.reload(demo.read(), true);
+    assert_eq!(state.selection().unwrap().range, gaps[0]);
+    assert_eq!(state.bubble().unwrap().notes, Vec::<String>::new());
+}
+
 #[test]
 fn unrecorded_time_shown_from_the_flyout_opens_its_bubble() {
     let (_demo, mut state) = Demo::open(DemoScenario::ProblemPeriods);
@@ -800,6 +849,7 @@ fn unrecorded_time_shown_from_the_flyout_opens_its_bubble() {
         interval("2026-08-31T09:40:12Z", "2026-08-31T09:55:00Z")
     );
     assert_eq!(state.selection().unwrap().anchor, None);
+    assert_eq!(state.bubble().unwrap().notes, Vec::<String>::new());
 
     // A day the week does not show selects nothing.
     state.close_bubble();
@@ -839,7 +889,7 @@ fn a_settled_gap_offers_undo_and_cannot_be_settled_twice() {
     let bar = state.info_bar().unwrap();
     assert_eq!(bar.message, nb("09:40–09:46 compté comme travail (6~min)."));
     assert!(bar.can_undo);
-    assert_eq!(bar.next.as_deref(), Some("Suivant · 2 restant(s)"));
+    assert_eq!(bar.next.as_deref(), Some("Suivant · 2 restants"));
     assert_eq!(
         state
             .clone()
@@ -850,6 +900,28 @@ fn a_settled_gap_offers_undo_and_cannot_be_settled_twice() {
 
     // The slot was settled since it was read: the same answer records nothing more.
     assert_eq!(demo.host.run_week_command(&command), Ok(Vec::new()));
+}
+
+/// « Suivant » counts what is left with a plural only for more than one slot, and leaves when
+/// none is left.
+#[test]
+fn the_result_bar_counts_the_slots_left_in_the_singular_and_the_plural() {
+    let (mut demo, mut state) = Demo::open(DemoScenario::ProblemPeriods);
+    let mut left = Vec::new();
+    while state.timeline.pending_count() > 0 {
+        state.settle_next();
+        let command = state.choose(Answer::Count).unwrap();
+        demo.run(&mut state, command).unwrap();
+        left.push(state.info_bar().unwrap().next);
+    }
+    assert_eq!(
+        left,
+        [
+            Some("Suivant · 2 restants".to_owned()),
+            Some("Suivant · 1 restant".to_owned()),
+            None,
+        ]
+    );
 }
 
 #[test]

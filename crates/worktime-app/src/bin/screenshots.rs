@@ -87,6 +87,7 @@ fn main() -> anyhow::Result<()> {
     flyout::capture_scenarios(&mut cx, language, &output)?;
     saturday::capture_day_off(&mut cx, language, &output)?;
     flyout::capture_record_work_unavailable(&mut cx, language, &output)?;
+    flyout::capture_unrecorded_focused(&mut cx, language, &output)?;
     flyout::capture_unrecorded_counted(&mut cx, language, &output)?;
     flyout::capture_notices(&mut cx, language, &output)?;
     flyout::capture_appointment_review(&mut cx, language, &output)?;

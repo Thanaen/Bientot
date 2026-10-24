@@ -3,8 +3,10 @@
 //! - `flyout-<scenario>.png`;
 //! - `flyout-tracking-<paused|finished|paused-unavailable|finished-unavailable>.png`;
 //! - `flyout-record-work-unavailable.png`, the hint of unrecorded time on a day that cannot be
-//!   corrected;
+//!   corrected, without « Oui, compter N min »;
+//! - `flyout-problem-periods-focused.png`, its hint with « Oui, compter N min » focused;
 //! - `flyout-unrecorded-counted.png`, once « Oui, compter N min » counted it;
+//! - `flyout-unrecorded-counted-long.png`, the same notice telling of 1 h 26 min, on two lines;
 //! - `flyout-appointment-review.png`, an absence in a recurring appointment to answer;
 //! - `flyout-appointment-counted.png`, one counted automatically;
 //! - `flyout-appointment-trust.png`, the offer to count one automatically;
@@ -19,6 +21,7 @@
 
 use anyhow::Context as _;
 use gpui::{AppContext as _, HeadlessAppContext, px, size};
+use jiff::SignedDuration;
 use worktime_app::automatic::{self, CountedAbsence, TrustOffer};
 use worktime_app::demo::{self, DemoHost};
 use worktime_app::diagnostics::Outcome;
@@ -29,6 +32,7 @@ use worktime_app::shell;
 use worktime_app::strings::{Key, Language};
 use worktime_app::theme::motion;
 use worktime_app::theme::size::FLYOUT_WIDTH;
+use worktime_app::time_text::minutes_text;
 use worktime_app::tray_model::ClosedReview;
 use worktime_app::updates::{DemoOffer, InstallFailure, Offer, Updates};
 use worktime_app::widgets::Notice;
@@ -111,6 +115,38 @@ pub fn capture_record_work_unavailable(
     Ok(())
 }
 
+/// The hint of unrecorded time with « Oui, compter N min » focused by Tab, after « Ouvrir la
+/// semaine » and « Paramètres »: its focus ring on the filled button.
+pub fn capture_unrecorded_focused(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    let directory = demo::throwaway_directory();
+    let day = DemoHost::open(DemoScenario::ProblemPeriods, &directory)?.refresh(language);
+    std::fs::remove_dir_all(&directory).ok();
+    let window = open_flyout(cx, day?, working(TrackingState::Running), None)?;
+    for _ in 0..3 {
+        let keystroke = gpui::Keystroke::parse("tab")?;
+        cx.update_window(window.into(), |_, window, cx| {
+            window.dispatch_event(
+                gpui::PlatformInput::KeyDown(gpui::KeyDownEvent {
+                    keystroke,
+                    is_held: false,
+                    prefer_character_input: false,
+                }),
+                cx,
+            );
+        })?;
+        cx.run_until_parked();
+    }
+    capture(
+        cx,
+        window.into(),
+        &output.join("flyout-problem-periods-focused.png"),
+    )
+}
+
 pub fn capture_unrecorded_counted(
     cx: &mut HeadlessAppContext,
     language: Language,
@@ -131,11 +167,25 @@ pub fn capture_unrecorded_counted(
     });
     std::fs::remove_dir_all(&directory).ok();
     let (day, notice) = counted?;
+    // Past an hour, the notice wraps under its text, « Annuler » beside its first line.
+    let long = Notice {
+        message: language.format(
+            Key::FlyoutUnrecordedCountedFormat,
+            &[&minutes_text(SignedDuration::from_mins(86), language)],
+        ),
+        ..notice.clone()
+    };
+    capture_flyout(
+        cx,
+        day.clone(),
+        Some(notice),
+        &output.join("flyout-unrecorded-counted.png"),
+    )?;
     capture_flyout(
         cx,
         day,
-        Some(notice),
-        &output.join("flyout-unrecorded-counted.png"),
+        Some(long),
+        &output.join("flyout-unrecorded-counted-long.png"),
     )
 }
 
