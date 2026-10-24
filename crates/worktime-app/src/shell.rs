@@ -6,8 +6,8 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use gpui::{
-    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, Size, Window,
-    WindowBounds, WindowHandle, WindowKind, WindowOptions, point, px, size,
+    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, Size, WeakEntity,
+    Window, WindowBounds, WindowHandle, WindowKind, WindowOptions, point, px, size,
 };
 
 use crate::flyout::Flyout;
@@ -32,6 +32,9 @@ static LAST_PANEL: Mutex<Option<Size<Pixels>>> = Mutex::new(None);
 #[derive(Default)]
 struct FlyoutState {
     window: Option<WindowHandle<Flyout>>,
+    /// The flyout the window shows, which an action pressed in it updates while the window is
+    /// being updated: no other update of the window can enter then.
+    view: Option<WeakEntity<Flyout>>,
     closed_at: Option<Instant>,
 }
 
@@ -69,17 +72,12 @@ pub fn open_flyout(cx: &mut App) {
 /// Opens the flyout, or brings it to the front, with `notice` above the day. A flyout it opens
 /// shows `notice` from its first frame, at rest; in an open one `notice` comes in.
 pub fn open_flyout_with(notice: Notice, cx: &mut App) {
-    match cx.default_global::<FlyoutState>().window {
-        Some(window) => {
-            window
-                .update(cx, |flyout, window, cx| {
-                    window.activate_window();
-                    flyout.set_notice(notice, cx);
-                })
-                .ok();
-        }
-        None => open_new_flyout(Some(notice), cx),
+    if cx.default_global::<FlyoutState>().window.is_none() {
+        open_new_flyout(Some(notice), cx);
+        return;
     }
+    open_flyout(cx);
+    update_flyout(cx, |flyout, cx| flyout.set_notice(notice, cx));
 }
 
 /// `App::open_window` draws the first frame before it returns, so what shows at opening is
@@ -120,7 +118,10 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
                 .update(cx, |_, window, _| window.activate_window())
                 .ok();
             cx.global_mut::<Today>().announced();
-            cx.default_global::<FlyoutState>().window = Some(window);
+            let view = window.entity(cx).ok().map(|view| view.downgrade());
+            let state = cx.default_global::<FlyoutState>();
+            state.window = Some(window);
+            state.view = view;
         }
         Err(error) => log::error!("cannot open the flyout: {error:#}"),
     }
@@ -176,11 +177,7 @@ pub fn logical_bounds(physical: Bounds<i32>, scale: f32) -> Bounds<Pixels> {
 
 /// Shows what « Utiliser la détection intégrée » answered in the open flyout, if any.
 pub fn show_switch(failure: Option<Notice>, cx: &mut App) {
-    if let Some(window) = cx.default_global::<FlyoutState>().window {
-        window
-            .update(cx, |flyout, _, cx| flyout.switched(failure, cx))
-            .ok();
-    }
+    update_flyout(cx, |flyout, cx| flyout.switched(failure, cx));
 }
 
 /// Shows a new state of the day in the open flyout, if any.
@@ -191,12 +188,17 @@ pub fn show_day(
     refresh_failure: Option<Notice>,
     cx: &mut App,
 ) {
-    if let Some(window) = cx.default_global::<FlyoutState>().window {
-        window
-            .update(cx, |flyout, _, cx| {
-                flyout.show(day, tracking, recalculated, refresh_failure, cx)
-            })
-            .ok();
+    update_flyout(cx, |flyout, cx| {
+        flyout.show(day, tracking, recalculated, refresh_failure, cx)
+    });
+}
+
+/// Runs `update` on the open flyout, if any. Through its view rather than its window: an action
+/// pressed in the flyout reaches the day while its window is being updated.
+fn update_flyout(cx: &mut App, update: impl FnOnce(&mut Flyout, &mut gpui::Context<Flyout>)) {
+    let state = cx.default_global::<FlyoutState>();
+    if let (Some(_), Some(view)) = (state.window, state.view.clone()) {
+        view.update(cx, update).ok();
     }
 }
 
@@ -204,6 +206,7 @@ pub fn show_day(
 pub fn flyout_closed(cx: &mut App) {
     let state = cx.default_global::<FlyoutState>();
     state.window = None;
+    state.view = None;
     state.closed_at = Some(Instant::now());
 }
 

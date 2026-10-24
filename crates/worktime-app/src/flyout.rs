@@ -353,6 +353,12 @@ impl Flyout {
             .map(|control| control + scrolled)
     }
 
+    /// The tracking state the flyout shows, for the tests.
+    #[cfg(feature = "screenshots")]
+    pub fn shown_tracking(&self) -> TrackingState {
+        self.tracking.state()
+    }
+
     /// The part of the body that holds the focus, for the tests.
     #[cfg(feature = "screenshots")]
     pub fn focused_part(&self, window: &Window, cx: &App) -> Option<usize> {
