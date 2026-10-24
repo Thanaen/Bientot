@@ -42,11 +42,6 @@ impl Unrecorded {
         &self.slots
     }
 
-    #[cfg(test)]
-    pub(crate) fn day(&self) -> &[Stretch] {
-        &self.day
-    }
-
     /// Whether the user picks the slot among several.
     pub fn offers_choice(&self) -> bool {
         self.slots.len() > 1

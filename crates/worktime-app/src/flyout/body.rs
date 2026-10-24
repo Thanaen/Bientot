@@ -10,7 +10,7 @@ use gpui::{
     Role, ScrollHandle, SharedString, Transformation, Window, div, percentage, prelude::*, px,
 };
 
-use super::{BODY_PADDING, Flyout, InstallUpdate, readable};
+use super::{BODY_PADDING, Flyout, InstallUpdate, UndoNotice, readable};
 use crate::settings_view;
 use crate::strings::Key;
 use crate::theme::spacing::*;
@@ -79,7 +79,15 @@ impl Flyout {
             NoticeKind::Success
             | NoticeKind::Warning
             | NoticeKind::SourceSwitchFailed
-            | NoticeKind::Error => None,
+            | NoticeKind::Error => notice.undo.clone().map(|undo| {
+                self.callout_button(
+                    "notice-undo",
+                    self.text(Key::HistoryResultUndoContent).into(),
+                    None,
+                    Some(Box::new(UndoNotice(undo))),
+                    theme,
+                )
+            }),
         };
         notice_box(id, notice, theme)
             .map(|notice| notice_pose(time).apply(notice))

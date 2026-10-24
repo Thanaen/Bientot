@@ -12,6 +12,7 @@ use gpui::{
     transparent_black,
 };
 use worktime_domain::accounting::TrackingState;
+use worktime_domain::intervals::UtcInterval;
 
 use crate::adjust::Closed;
 use crate::flyout::{self, AdjustTime, OpenCommands, Refresh};
@@ -148,6 +149,24 @@ pub fn open(cx: &mut App) {
         Ok(window) => cx.default_global::<WeekWindow>().0 = Some(window),
         Err(error) => log::error!("cannot open the week: {error:#}"),
     }
+}
+
+/// « Voir sur la frise » of the flyout: the week, open or brought to the front, with the
+/// unrecorded `intervals` of `date` selected and the bubble open.
+pub fn open_on(date: jiff::civil::Date, intervals: &[UtcInterval], cx: &mut App) {
+    open(cx);
+    let Some(window) = cx.try_global::<WeekWindow>().and_then(|week| week.0) else {
+        return;
+    };
+    window
+        .update(cx, |view, window, cx| {
+            // Closed first, so that the new range takes the focus as a click on it would.
+            view.change(window, cx, |state| {
+                state.close_bubble();
+            });
+            view.change(window, cx, |state| state.show_unrecorded(date, intervals));
+        })
+        .ok();
 }
 
 fn read(cx: &App) -> Option<WeekTimeline> {

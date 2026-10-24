@@ -5,9 +5,7 @@
 
 use jiff::civil::{Date, DateTime, Time, Weekday};
 use jiff::{SignedDuration, Timestamp};
-use worktime_domain::accounting::{
-    AccountedSegment, AccountingLabel, AccountingResult, AdjustmentId, LongLockReviewId,
-};
+use worktime_domain::accounting::{AccountingLabel, AdjustmentId, LongLockReviewId};
 use worktime_domain::history::{DailySummaryBreakdownEntry, DailySummaryDisposition};
 use worktime_domain::intervals::UtcInterval;
 use worktime_domain::time::LocalWorkday;
@@ -48,30 +46,6 @@ impl SegmentKind {
     /// Filled segments are labelled with their start time, the others with their kind.
     fn is_filled(self) -> bool {
         matches!(self, Self::Work | Self::Manual)
-    }
-
-    /// The kind of `segment` of the day `accounting` accounts, as its stored summary will
-    /// record it: the same kinds the week draws for that day once it reads it.
-    pub(crate) fn of_accounted(segment: &AccountedSegment, accounting: &AccountingResult) -> Self {
-        use worktime_domain::accounting::SegmentKind as Accounted;
-        let (disposition, reviewed) = match segment.kind() {
-            Accounted::Credited => (DailySummaryDisposition::ConfirmedCredit, false),
-            Accounted::ProvisionalCredit { review_id } => (
-                DailySummaryDisposition::ProvisionalCredit,
-                accounting
-                    .pending_reviews()
-                    .iter()
-                    .any(|review| review.id == *review_id),
-            ),
-            Accounted::Excluded => (DailySummaryDisposition::Excluded, false),
-            Accounted::Unknown => (DailySummaryDisposition::Unknown, false),
-        };
-        Self::classify(
-            disposition,
-            segment.label(),
-            segment.origin().manual_adjustment_id().is_some(),
-            reviewed,
-        )
     }
 
     fn of(entry: &DailySummaryBreakdownEntry, has_pending_review: bool) -> Self {

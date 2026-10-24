@@ -2,7 +2,9 @@
 //! correction, a source switch or an export ended, the Store update and the command palette:
 //! - `flyout-<scenario>.png`;
 //! - `flyout-tracking-<paused|finished|paused-unavailable|finished-unavailable>.png`;
-//! - `flyout-record-work-unavailable.png`;
+//! - `flyout-record-work-unavailable.png`, the hint of unrecorded time on a day that cannot be
+//!   corrected;
+//! - `flyout-unrecorded-counted.png`, once « Oui, compter N min » counted it;
 //! - `flyout-appointment-review.png`, an absence in a recurring appointment to answer;
 //! - `flyout-appointment-counted.png`, one counted automatically;
 //! - `flyout-appointment-trust.png`, the offer to count one automatically;
@@ -20,7 +22,8 @@ use gpui::{AppContext as _, HeadlessAppContext, px, size};
 use worktime_app::automatic::{self, CountedAbsence, TrustOffer};
 use worktime_app::demo::{self, DemoHost};
 use worktime_app::diagnostics::Outcome;
-use worktime_app::flyout::{Alerts, Flyout};
+use worktime_app::flyout::{Alerts, CountUnrecorded, Flyout};
+use worktime_app::host::{Source, Today};
 use worktime_app::live::{Announcement, Tracking};
 use worktime_app::shell;
 use worktime_app::strings::{Key, Language};
@@ -29,6 +32,7 @@ use worktime_app::theme::size::FLYOUT_WIDTH;
 use worktime_app::tray_model::ClosedReview;
 use worktime_app::updates::{DemoOffer, InstallFailure, Offer, Updates};
 use worktime_app::widgets::Notice;
+use worktime_app::workday::SourceHint;
 use worktime_core::demo::DemoScenario;
 use worktime_domain::accounting::{AdjustmentId, LongLockReviewId, TrackingState};
 use worktime_domain::adjustments::ManualAdjustment;
@@ -105,6 +109,34 @@ pub fn capture_record_work_unavailable(
     let path = output.join("flyout-record-work-unavailable.png");
     capture(cx, window.into(), &path)?;
     Ok(())
+}
+
+pub fn capture_unrecorded_counted(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    // « Oui, compter 26 min » of the problem periods' hint, as the day records it.
+    let directory = demo::throwaway_directory();
+    let counted = DemoHost::open(DemoScenario::ProblemPeriods, &directory).and_then(|host| {
+        let mut today = Today::open(Source::Demo(Box::new(host)), language)?;
+        let Some(SourceHint::Unrecorded {
+            workday, intervals, ..
+        }) = today.view().source_hint.clone()
+        else {
+            anyhow::bail!("the problem periods leave time unrecorded");
+        };
+        let notice = today.count_unrecorded(&CountUnrecorded { workday, intervals });
+        Ok((today.view().clone(), notice))
+    });
+    std::fs::remove_dir_all(&directory).ok();
+    let (day, notice) = counted?;
+    capture_flyout(
+        cx,
+        day,
+        Some(notice),
+        &output.join("flyout-unrecorded-counted.png"),
+    )
 }
 
 pub fn capture_appointment_review(

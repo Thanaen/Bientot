@@ -257,8 +257,8 @@
   <data name="SourceBuiltInInterrupted" xml:space="preserve"><value>L’enregistrement de l’activité s’est interrompu. Il reprend de lui-même. Si ce message reste affiché, redémarrez WorkTime.</value></data>
   <data name="SourceNotSelected" xml:space="preserve"><value>Aucune source d’activité n’est choisie pour cette période. Ce temps reste non renseigné.</value></data>
   <data name="WorkdayEstimatedProjectionQualifier" xml:space="preserve"><value>Selon le travail enregistré</value></data>
-  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Temps non renseigné · {1}, de {2} à {3}. Travailliez-vous ? Indiquez les horaires.</value></data>
-  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Temps non renseigné · {1} en {0} créneaux, entre {2} et {3}. Travailliez-vous ? Indiquez les horaires.</value></data>
+  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Temps non renseigné · {1}, de {2} à {3}. Travailliez-vous ?</value></data>
+  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Temps non renseigné · {1} en {0} créneaux, entre {2} et {3}. Travailliez-vous ?</value></data>
   <data name="SettingsWholeNumberRequired" xml:space="preserve"><value>Saisissez un nombre entier de minutes.</value></data>
   <data name="SettingsWholeSecondsRequired" xml:space="preserve"><value>Saisissez un nombre entier de secondes.</value></data>
   <data name="SettingsNumberOutOfRange" xml:space="preserve"><value>Saisissez un nombre entier compris dans la plage affichée.</value></data>
@@ -785,7 +785,6 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="FlyoutDegradedHint" xml:space="preserve"><value>Recalculée dès que le suivi reprend</value></data>
   <data name="FlyoutWeek" xml:space="preserve"><value>Ouvrir la semaine</value></data>
   <data name="FlyoutAdjustTime" xml:space="preserve"><value>Corriger le temps…</value></data>
-  <data name="FlyoutDeclareWork" xml:space="preserve"><value>Renseigner un créneau travaillé…</value></data>
   <data name="FlyoutPaused" xml:space="preserve"><value>En pause</value></data>
   <data name="FlyoutFinished" xml:space="preserve"><value>Journée terminée</value></data>
   <data name="FlyoutShortcutNameFormat" xml:space="preserve"><value>{0}, {1}</value></data>
@@ -1068,5 +1067,14 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   </data>
   <data name="FlyoutAppointmentTrustAction" xml:space="preserve">
     <value>Compter automatiquement à l’avenir</value>
+  </data>
+  <data name="FlyoutCountUnrecordedFormat" xml:space="preserve">
+    <value>Oui, compter {0}</value>
+  </data>
+  <data name="FlyoutShowUnrecorded" xml:space="preserve">
+    <value>Voir sur la frise</value>
+  </data>
+  <data name="FlyoutUnrecordedCountedFormat" xml:space="preserve">
+    <value>{0} comptées comme travail.</value>
   </data>
 </root>

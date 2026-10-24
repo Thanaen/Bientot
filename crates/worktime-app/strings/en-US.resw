@@ -257,8 +257,8 @@
   <data name="SourceBuiltInInterrupted" xml:space="preserve"><value>Activity recording has stopped. It resumes on its own. If this message stays, restart WorkTime.</value></data>
   <data name="SourceNotSelected" xml:space="preserve"><value>No activity source is selected for this period. That time stays unrecorded.</value></data>
   <data name="WorkdayEstimatedProjectionQualifier" xml:space="preserve"><value>Based on recorded work</value></data>
-  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Unrecorded time · {1}, from {2} to {3}. Were you working? Enter the times.</value></data>
-  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Unrecorded time · {1} in {0} slots, between {2} and {3}. Were you working? Enter the times.</value></data>
+  <data name="SourceMissingOneFormat" xml:space="preserve"><value>Unrecorded time · {1}, from {2} to {3}. Were you working?</value></data>
+  <data name="SourceMissingSeveralFormat" xml:space="preserve"><value>Unrecorded time · {1} in {0} slots, between {2} and {3}. Were you working?</value></data>
   <data name="SettingsWholeNumberRequired" xml:space="preserve"><value>Enter a whole number of minutes.</value></data>
   <data name="SettingsWholeSecondsRequired" xml:space="preserve"><value>Enter a whole number of seconds.</value></data>
   <data name="SettingsNumberOutOfRange" xml:space="preserve"><value>Enter a whole number within the displayed range.</value></data>
@@ -804,7 +804,6 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="FlyoutDegradedHint" xml:space="preserve"><value>Recalculated once tracking resumes</value></data>
   <data name="FlyoutWeek" xml:space="preserve"><value>Open week</value></data>
   <data name="FlyoutAdjustTime" xml:space="preserve"><value>Adjust time…</value></data>
-  <data name="FlyoutDeclareWork" xml:space="preserve"><value>Record time worked…</value></data>
   <data name="FlyoutPaused" xml:space="preserve"><value>Paused</value></data>
   <data name="FlyoutFinished" xml:space="preserve"><value>Day finished</value></data>
   <data name="FlyoutShortcutNameFormat" xml:space="preserve"><value>{0}, {1}</value></data>
@@ -1087,5 +1086,14 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   </data>
   <data name="FlyoutAppointmentTrustAction" xml:space="preserve">
     <value>Count automatically from now on</value>
+  </data>
+  <data name="FlyoutCountUnrecordedFormat" xml:space="preserve">
+    <value>Yes, count {0}</value>
+  </data>
+  <data name="FlyoutShowUnrecorded" xml:space="preserve">
+    <value>Show on the timeline</value>
+  </data>
+  <data name="FlyoutUnrecordedCountedFormat" xml:space="preserve">
+    <value>{0} counted as work.</value>
   </data>
 </root>

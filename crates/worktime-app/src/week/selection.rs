@@ -336,6 +336,40 @@ impl WeekState {
         });
     }
 
+    /// « Voir sur la frise » of the flyout: selects the unrecorded `intervals` of `date` and opens
+    /// the bubble. From the first to the last when only work lies between them, so that counting
+    /// the range counts them alone; else the first. A day the week does not show, or one without
+    /// a summary, selects nothing.
+    pub fn show_unrecorded(&mut self, date: Date, intervals: &[UtcInterval]) {
+        let Some(day) = self.timeline.day(date).filter(|day| day.selectable()) else {
+            return;
+        };
+        let (Some(first), Some(last)) = (intervals.first(), intervals.last()) else {
+            return;
+        };
+        let whole = UtcInterval::new(first.start(), last.end()).unwrap_or(*first);
+        let only_work_between = day
+            .segments
+            .iter()
+            .filter(|segment| segment.interval.overlaps(whole))
+            .all(|segment| {
+                segment.kind.is_filled()
+                    || intervals
+                        .iter()
+                        .any(|interval| interval.overlaps(segment.interval))
+            });
+        let range = if only_work_between { whole } else { *first };
+        let Some(range) = day.normalized(range.start(), range.end(), Edge::End) else {
+            return;
+        };
+        self.focused = date;
+        self.selection = Some(Selection {
+            date,
+            range,
+            anchor: None,
+        });
+    }
+
     /// After a reload: the range covers again each lock to review it now touches, or closes
     /// with its day. The segment clicked may now be another one starting at the same time: the
     /// range stays, as no longer the segment clicked, unless that segment still selects it.

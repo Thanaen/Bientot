@@ -10,6 +10,8 @@
 //! - `week-range-<work|extended|lock|gaps>.png`, ranges selected on the timeline: Wednesday's
 //!   work at 12:00, then stretched over the gap after it while its handle is dragged, then
 //!   back to the lock before it, and Monday's gaps in the problem periods;
+//! - `week-range-unrecorded.png`, the unrecorded time of the problem periods as « Voir sur la
+//!   frise » of the flyout selects it;
 //! - `week-range-work-motion-<0|8|17|50|100>.png`, the entrance of the popover a click opens;
 //! - `week-proposal.png`, the result bar of a correction made the third Wednesday in a row,
 //!   which offers to make it an appointment;
@@ -32,6 +34,7 @@ use worktime_app::strings::Language;
 use worktime_app::theme::{motion, size as token};
 use worktime_app::week::{Answer, Edge, Recorded, SegmentKind, WeekTimeline};
 use worktime_app::week_view::WeekView;
+use worktime_app::workday::SourceHint;
 use worktime_core::demo::DemoScenario;
 use worktime_domain::accounting::AdjustmentId;
 use worktime_domain::configuration::{
@@ -412,7 +415,26 @@ fn capture_ranges(
             }
         }
     })?;
-    capture(cx, window.into(), &output.join("week-range-gaps.png"))
+    capture(cx, window.into(), &output.join("week-range-gaps.png"))?;
+
+    let directory = demo::throwaway_directory();
+    let hint = DemoHost::open(DemoScenario::ProblemPeriods, &directory)
+        .and_then(|mut host| host.refresh(language))
+        .map(|day| day.source_hint);
+    std::fs::remove_dir_all(&directory).ok();
+    let Some(SourceHint::Unrecorded {
+        workday, intervals, ..
+    }) = hint?
+    else {
+        anyhow::bail!("the problem periods leave time unrecorded");
+    };
+    let window = open(cx, DemoScenario::ProblemPeriods)?;
+    change(cx, window, &|view| {
+        if let Some(state) = view.state_mut() {
+            state.show_unrecorded(workday.date, &intervals);
+        }
+    })?;
+    capture(cx, window.into(), &output.join("week-range-unrecorded.png"))
 }
 
 /// The bubble of Wednesday's long lock once answered: excluded, its correction stays bound to

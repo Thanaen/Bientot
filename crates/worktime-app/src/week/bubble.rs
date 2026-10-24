@@ -499,10 +499,11 @@ fn breakdown(pieces: &[(&Segment, UtcInterval)], language: Language) -> Vec<Held
 /// A correction of the week the host records on the ledger.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WeekCommand {
-    /// Counts `range` as work or excludes it, see [`worktime_core::ranges`].
+    /// Counts each of `ranges` as work or excludes it, all at once, see
+    /// [`worktime_core::ranges`].
     Range {
         workday: LocalWorkday,
-        range: UtcInterval,
+        ranges: Vec<UtcInterval>,
         classification: ManualClassification,
     },
     FinishAtLockStart {
@@ -553,7 +554,7 @@ impl WeekState {
                 (
                     WeekCommand::Range {
                         workday,
-                        range: selection.range,
+                        ranges: vec![selection.range],
                         classification: answer.classification()?,
                     },
                     if !counted && gained < SignedDuration::ZERO {

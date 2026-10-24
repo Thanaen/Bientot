@@ -214,6 +214,7 @@ fn a_running_export_disables_its_button_then_tells_its_outcome() {
         Some(Notice {
             message: "The diagnostic ZIP was saved.".to_owned(),
             kind: NoticeKind::Success,
+            undo: None,
         })
     );
 
@@ -231,6 +232,7 @@ fn a_running_export_disables_its_button_then_tells_its_outcome() {
                       try again."
                 .to_owned(),
             kind: NoticeKind::Error,
+            undo: None,
         })
     );
 

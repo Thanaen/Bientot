@@ -827,8 +827,7 @@ fn a_declaration_of_work_over_detected_work_is_saved() {
     );
 }
 
-/// The declaration the flyout's hint opens, saved as it opens, records the whole unrecorded
-/// interval as work: the hint then reports only the other one.
+/// A declaration on an unrecorded interval, saved as it opens, records the whole of it as work: the hint then reports only the other one.
 #[test]
 fn a_declaration_of_work_saved_as_it_opens_records_its_interval() {
     let directory = demo::throwaway_directory();
@@ -846,11 +845,11 @@ fn a_declaration_of_work_saved_as_it_opens_records_its_interval() {
         nb("09:40:12–09:45:42 compté comme travail (5~min~30~s).")
     );
     let day = demo.host.refresh(Language::French).unwrap();
-    assert_eq!(
-        day.source_hint
-            .as_ref()
-            .and_then(crate::workday::SourceHint::declaration)
-            .map(|declaration| declaration.slots().to_vec()),
-        Some(vec![intervals[1]])
+    assert!(
+        matches!(
+            day.source_hint,
+            Some(crate::workday::SourceHint::Unrecorded { intervals: left, .. }) if left == [intervals[1]]
+        ),
+        "the hint reports only the other interval"
     );
 }

@@ -15,6 +15,7 @@ use crate::theme::spacing::*;
 use crate::theme::{
     FontFamily, Theme, TypeStyle, TypeStyled as _, radius, size as token, tabular_figures, text,
 };
+use crate::week::WeekCommand;
 
 /// What « Corriger le temps… », « Utiliser la détection intégrée » or « Exporter le diagnostic… »
 /// left to show above the day, or what WorkTime tells unasked.
@@ -22,6 +23,8 @@ use crate::theme::{
 pub struct Notice {
     pub message: String,
     pub kind: NoticeKind,
+    /// What « Annuler » runs, when the notice tells of what it can undo.
+    pub undo: Option<WeekCommand>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -45,6 +48,7 @@ impl Notice {
         Self {
             message: message.into(),
             kind: NoticeKind::Success,
+            undo: None,
         }
     }
 
@@ -52,6 +56,7 @@ impl Notice {
         Self {
             message: message.into(),
             kind: NoticeKind::RefreshPending,
+            undo: None,
         }
     }
 
@@ -59,6 +64,7 @@ impl Notice {
         Self {
             message: message.into(),
             kind: NoticeKind::Warning,
+            undo: None,
         }
     }
 
@@ -66,6 +72,7 @@ impl Notice {
         Self {
             message: message.into(),
             kind: NoticeKind::SettingsRecovered,
+            undo: None,
         }
     }
 
@@ -73,6 +80,7 @@ impl Notice {
         Self {
             message: message.into(),
             kind: NoticeKind::Error,
+            undo: None,
         }
     }
 
@@ -80,7 +88,13 @@ impl Notice {
         Self {
             message: message.into(),
             kind: NoticeKind::SourceSwitchFailed,
+            undo: None,
         }
+    }
+
+    /// The notice with « Annuler », which runs `undo`.
+    pub fn with_undo(self, undo: Option<WeekCommand>) -> Self {
+        Self { undo, ..self }
     }
 
     /// Whether the notice still holds once the day is shown again. The warning asks for a

@@ -1,7 +1,7 @@
 //! « Corriger le temps… » in each state, declaring work and editing a correction:
 //! - `adjust-<intent>-<state>.png`, each state;
 //! - `adjust-add-interval-long-reason.png`, an added interval with a long reason;
-//! - `adjust-declare-work.png`, declaring the unrecorded time of the flyout's hint, in its day;
+//! - `adjust-declare-work.png`, declaring the unrecorded time of the week's day, in its day;
 //! - `adjust-declare-work-other-slot.png`, the same on its other slot;
 //! - `adjust-declare-work-interval.png` and `adjust-declare-work-blank.png`, declaring work on
 //!   an interval with no day around it, and on none;
@@ -16,6 +16,7 @@ use worktime_app::adjust::{AdjustForm, Editable, Intent, Seed, TimeField};
 use worktime_app::adjust_view::AdjustView;
 use worktime_app::demo::{self, DemoHost};
 use worktime_app::strings::{Key, Language};
+use worktime_app::week::WeekState;
 use worktime_app::widgets::Notice;
 use worktime_core::demo::DemoScenario;
 use worktime_domain::accounting::AdjustmentId;
@@ -71,20 +72,21 @@ pub fn capture_declare_work(
     language: Language,
     output: &std::path::Path,
 ) -> anyhow::Result<()> {
-    // « Renseigner un créneau travaillé » of the flyout's hint: on the problem periods, whose
-    // two unrecorded intervals leave the times to the user, on the longest, then on the other.
+    // « Renseigner un créneau » of the week: on the problem periods, whose two unrecorded
+    // intervals leave the times to the user, on the longest, then on the other.
     let directory = demo::throwaway_directory();
     let mut host = DemoHost::open(DemoScenario::ProblemPeriods, &directory)?;
-    let day = host.refresh(language);
+    host.refresh(language)?;
+    let week = host.week();
     let now = host.correction_time();
     drop(host);
     std::fs::remove_dir_all(&directory).ok();
-    let hint = day?
-        .source_hint
+    let declaration = WeekState::new(week?, language)
+        .declare_work()
         .context("the problem periods leave time unrecorded")?;
-    let unrecorded = hint
-        .declaration()
-        .context("the problem periods leave time unrecorded")?;
+    let (_, Seed::DeclareWork(Some(unrecorded))) = declaration else {
+        anyhow::bail!("the problem periods leave time unrecorded");
+    };
     for (slug, seed, chosen) in [
         (
             "adjust-declare-work",

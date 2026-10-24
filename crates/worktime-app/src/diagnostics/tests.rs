@@ -8,6 +8,7 @@ fn a_saved_zip_is_announced_as_a_success() {
         Some(Notice {
             message: "Le ZIP de diagnostic a été enregistré.".to_owned(),
             kind: NoticeKind::Success,
+            undo: None,
         })
     );
     assert_eq!(
@@ -15,6 +16,7 @@ fn a_saved_zip_is_announced_as_a_success() {
         Some(Notice {
             message: "The diagnostic ZIP was saved.".to_owned(),
             kind: NoticeKind::Success,
+            undo: None,
         })
     );
 }
@@ -28,6 +30,7 @@ fn a_failed_export_asks_for_another_location() {
                       emplacement et réessayez."
                 .to_owned(),
             kind: NoticeKind::Error,
+            undo: None,
         })
     );
     assert_eq!(
@@ -37,6 +40,7 @@ fn a_failed_export_asks_for_another_location() {
                       try again."
                 .to_owned(),
             kind: NoticeKind::Error,
+            undo: None,
         })
     );
 }

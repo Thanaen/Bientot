@@ -11,8 +11,9 @@ use worktime_core::diagnostics::{
     DiagnosticInitializationState, DiagnosticRuntimeSnapshot, DiagnosticSnapshot, create_snapshot,
 };
 use worktime_domain::accounting::{AdjustmentId, TrackingState};
-use worktime_domain::adjustments::ManualAdjustment;
+use worktime_domain::adjustments::{ManualAdjustment, ManualClassification};
 use worktime_domain::configuration::{AppointmentProposal, DismissedProposal, WorkTimeSettings};
+use worktime_domain::intervals::UtcInterval;
 use worktime_domain::sources::{ActivitySourceKind, IdleStateTracker};
 use worktime_domain::time::{LocalWorkday, TimeZoneProvider, WorkdayCalendar};
 use worktime_store::data_directory::DataDirectory;
@@ -23,17 +24,19 @@ use crate::adjust::{Editable, Seed, Target};
 use crate::adjust_view;
 use crate::demo::DemoHost;
 use crate::flyout::{
-    AdjustTime, Alerts, CountAutomatically, DeclareWork, ExportDiagnostics, FinishDay, HideCount,
-    HideTrustOffer, OpenGeneralSettings, OpenSettings, OpenSettingsJson, OpenWeek, Quit, Refresh,
-    ResolveReview, TogglePause, UndoCount, UseBuiltInDetection,
+    AdjustTime, Alerts, CountAutomatically, CountUnrecorded, ExportDiagnostics, FinishDay,
+    HideCount, HideTrustOffer, OpenGeneralSettings, OpenSettings, OpenSettingsJson, OpenWeek, Quit,
+    Refresh, ResolveReview, ShowUnrecorded, TogglePause, UndoCount, UndoNotice,
+    UseBuiltInDetection,
 };
 use crate::live::{Announcement, LiveHost, Tracking, TrackingCommand};
 use crate::settings::Page;
 use crate::strings::{Key, Language};
+use crate::time_text::minutes_text;
 use crate::tray_model::{self, MenuCommand, MenuEntry, MenuState, ReviewCommand};
 use crate::week::{Recorded, WeekCommand, WeekTimeline};
 use crate::widgets::Notice;
-use crate::workday::DayView;
+use crate::workday::{DayView, SourceHint};
 use crate::{settings_view, shell, week_view};
 
 /// The period of `PeriodicRefreshService` in `App.xaml.cs`.
@@ -338,6 +341,55 @@ impl Today {
         })
     }
 
+    /// « Oui, compter N min » of the flyout: counts as work what the day, refreshed, still leaves
+    /// unrecorded of the time `count` showed, all at once, as the week counts a range. The
+    /// notice says how much was counted, with « Annuler » while withdrawing undoes it.
+    pub fn count_unrecorded(&mut self, count: &CountUnrecorded) -> Notice {
+        self.refresh();
+        let still: Vec<UtcInterval> = match &self.view.source_hint {
+            Some(SourceHint::Unrecorded {
+                workday, intervals, ..
+            }) if *workday == count.workday => count
+                .intervals
+                .iter()
+                .flat_map(|shown| intervals.iter().filter_map(|now| shown.intersect(*now)))
+                .collect(),
+            _ => Vec::new(),
+        };
+        if still.is_empty() {
+            return Notice::warning(self.language.text(Key::HistoryPeriodResolved));
+        }
+        let counted = still.iter().map(|interval| interval.duration()).sum();
+        let command = WeekCommand::Range {
+            workday: count.workday.clone(),
+            ranges: still,
+            classification: ManualClassification::Credited,
+        };
+        match self.run_week(&command) {
+            Ok(recorded) if !recorded.recalculated => Notice::refresh_pending(
+                self.language
+                    .text(Key::AdjustmentSavedRefreshPendingMessage),
+            ),
+            Ok(recorded) => Notice::success(self.language.format(
+                Key::FlyoutUnrecordedCountedFormat,
+                &[&minutes_text(counted, self.language)],
+            ))
+            .with_undo((!recorded.saved.is_empty()).then(|| WeekCommand::Revoke {
+                workday: count.workday.clone(),
+                adjustments: recorded.saved,
+            })),
+            Err(key) => Notice::warning(self.language.text(key)),
+        }
+    }
+
+    /// « Annuler » of a notice: runs `command`, which withdraws what the notice told of.
+    pub fn undo(&mut self, command: &WeekCommand) -> Notice {
+        match self.run_week(command) {
+            Ok(_) => Notice::success(self.language.text(Key::HistoryResultUndone)),
+            Err(key) => Notice::warning(self.language.text(key)),
+        }
+    }
+
     /// « Compter chaque jeudi… » after a correction of `workday` counted time; never in a demo.
     fn proposal(&self, workday: &LocalWorkday) -> Option<AppointmentProposal> {
         match &self.source {
@@ -479,9 +531,18 @@ pub fn install(today: Today, cx: &mut App) {
     cx.on_action(|_: &AdjustTime, cx| {
         let _ = adjust_view::window::open(None, Seed::Blank, Opener::Flyout, cx);
     });
-    cx.on_action(|DeclareWork(unrecorded): &DeclareWork, cx| {
-        let seed = Seed::DeclareWork(unrecorded.clone());
-        let _ = adjust_view::window::open(None, seed, Opener::Flyout, cx);
+    cx.on_action(|count: &CountUnrecorded, cx| {
+        let mut notice = None;
+        change(cx, |today| notice = Some(today.count_unrecorded(count)));
+        shell::open_flyout_with(notice.expect("the count answers"), cx);
+    });
+    cx.on_action(|ShowUnrecorded { date, intervals }: &ShowUnrecorded, cx| {
+        week_view::open_on(*date, intervals, cx)
+    });
+    cx.on_action(|UndoNotice(command): &UndoNotice, cx| {
+        let mut notice = None;
+        change(cx, |today| notice = Some(today.undo(command)));
+        shell::open_flyout_with(notice.expect("the undo answers"), cx);
     });
     cx.on_action(|ResolveReview(command): &ResolveReview, cx| {
         change(cx, |today| today.resolve_review(command))

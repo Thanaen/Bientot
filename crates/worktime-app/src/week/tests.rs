@@ -740,13 +740,71 @@ fn confirming_a_long_lock_records_it_and_leaves_three_slots() {
             .unwrap()
             .workday
             .clone(),
-        range: lock,
+        ranges: vec![lock],
         classification: ManualClassification::Excluded,
     };
     assert_eq!(
         demo.host.run_week_command(&stale),
         Err(Key::HistoryRangeBound)
     );
+    // With a gap excluded first, in the same command: the gap stays to settle too.
+    let gap = state
+        .timeline
+        .day(date(9, 2))
+        .unwrap()
+        .segments
+        .iter()
+        .find(|segment| segment.kind == SegmentKind::Gap)
+        .unwrap()
+        .interval;
+    let WeekCommand::Range { workday, .. } = stale else {
+        unreachable!()
+    };
+    let both = WeekCommand::Range {
+        workday,
+        ranges: vec![gap, lock],
+        classification: ManualClassification::Excluded,
+    };
+    assert_eq!(demo.run(&mut state, both), Err(Key::HistoryRangeBound));
+    assert_eq!(
+        kinds(&state, date(9, 2))[3],
+        (SegmentKind::Gap, "14:00–14:15".to_owned(), true)
+    );
+}
+
+fn interval(start: &str, end: &str) -> UtcInterval {
+    UtcInterval::new(start.parse().unwrap(), end.parse().unwrap()).unwrap()
+}
+
+/// « Voir sur la frise » of the flyout selects the unrecorded time and opens its bubble: the
+/// first of the problem periods' two gaps, as a break and a sleep lie between them; from the
+/// first gap on when only work follows it.
+#[test]
+fn unrecorded_time_shown_from_the_flyout_opens_its_bubble() {
+    let (_demo, mut state) = Demo::open(DemoScenario::ProblemPeriods);
+    let monday = date(8, 31);
+    let gaps = [
+        interval("2026-08-31T09:40:12Z", "2026-08-31T09:45:42Z"),
+        interval("2026-08-31T14:00:00Z", "2026-08-31T14:20:00Z"),
+    ];
+    state.show_unrecorded(monday, &gaps);
+    assert_eq!(state.focused(), monday);
+    assert_eq!(state.selection().unwrap().range, gaps[0]);
+    assert!(state.bubble().is_some(), "the range's bubble opens");
+
+    state.close_bubble();
+    let work_after = interval("2026-08-31T09:50:00Z", "2026-08-31T09:55:00Z");
+    state.show_unrecorded(monday, &[gaps[0], work_after]);
+    assert_eq!(
+        state.selection().unwrap().range,
+        interval("2026-08-31T09:40:12Z", "2026-08-31T09:55:00Z")
+    );
+    assert_eq!(state.selection().unwrap().anchor, None);
+
+    // A day the week does not show selects nothing.
+    state.close_bubble();
+    state.show_unrecorded(date(8, 24), &gaps);
+    assert_eq!(state.selection(), None);
 }
 
 #[test]

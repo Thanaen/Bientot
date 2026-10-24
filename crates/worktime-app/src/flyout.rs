@@ -3,12 +3,14 @@
 
 use std::rc::Rc;
 
-use crate::adjust::Unrecorded;
 use gpui::{
     App, Context, Entity, FocusHandle, Focusable, FontWeight, Hsla, KeyBinding, Pixels, Role,
     ScrollHandle, SharedString, Subscription, Text, Window, actions, div, prelude::*, px,
 };
+use jiff::civil::Date;
 use worktime_domain::accounting::{AdjustmentId, TrackingState};
+use worktime_domain::intervals::UtcInterval;
+use worktime_domain::time::LocalWorkday;
 
 use crate::live::Tracking;
 use crate::palette::{Host, Situation};
@@ -19,6 +21,7 @@ use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, motion, radius, size, text};
 use crate::tray_model::ReviewCommand;
 use crate::updates::Updates;
+use crate::week::WeekCommand;
 use crate::widgets::disabled_control;
 use crate::widgets::{Notice, NoticeKind, icon, scroll_thumb};
 use crate::workday::{self, DayView, TrackingStatus};
@@ -50,11 +53,28 @@ actions!(
     ]
 );
 
-/// « Renseigner un créneau travaillé » of the source hint, on the time the hint reported, in its
-/// day.
-#[derive(Clone, Debug, Default, PartialEq, gpui::Action)]
+/// « Oui, compter N min » of the source hint: counts the unrecorded `intervals` of `workday` as
+/// work.
+#[derive(Clone, Debug, PartialEq, gpui::Action)]
 #[action(namespace = worktime, no_json)]
-pub struct DeclareWork(pub Option<Unrecorded>);
+pub struct CountUnrecorded {
+    pub workday: LocalWorkday,
+    pub intervals: Vec<UtcInterval>,
+}
+
+/// « Voir sur la frise » of the source hint: the week, with the unrecorded `intervals` of `date`
+/// selected.
+#[derive(Clone, Debug, PartialEq, gpui::Action)]
+#[action(namespace = worktime, no_json)]
+pub struct ShowUnrecorded {
+    pub date: Date,
+    pub intervals: Vec<UtcInterval>,
+}
+
+/// « Annuler » of a notice: the command that withdraws what the notice told of.
+#[derive(Clone, Debug, PartialEq, gpui::Action)]
+#[action(namespace = worktime, no_json)]
+pub struct UndoNotice(pub WeekCommand);
 
 /// « Oui, je travaillais » or « Ce n’était pas du travail » of the appointment the flyout asks
 /// about.
@@ -357,6 +377,12 @@ impl Flyout {
     #[cfg(feature = "screenshots")]
     pub fn shown_tracking(&self) -> TrackingState {
         self.tracking.state()
+    }
+
+    /// The answer to an action shown above the day, for the tests.
+    #[cfg(feature = "screenshots")]
+    pub fn shown_notice(&self) -> Option<&Notice> {
+        self.notice.as_ref()
     }
 
     /// The part of the body that holds the focus, for the tests.
@@ -744,6 +770,14 @@ impl Render for Flyout {
             .on_action(cx.listener(|flyout, _: &CountAutomatically, window, cx| {
                 flyout.closing_callout(window, cx)
             }))
+            .on_action(cx.listener(|flyout, _: &CountUnrecorded, window, cx| {
+                flyout.closing_callout(window, cx)
+            }))
+            .on_action(
+                cx.listener(|flyout, _: &UndoNotice, window, cx| {
+                    flyout.closing_callout(window, cx)
+                }),
+            )
             .w(size::FLYOUT_WIDTH)
             .flex()
             .flex_col()

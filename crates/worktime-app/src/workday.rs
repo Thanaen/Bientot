@@ -15,12 +15,11 @@ use worktime_domain::forecasting::{AssessmentReason, ForecastAvailability};
 use worktime_domain::intervals::{IntervalSet, UtcInterval};
 use worktime_domain::sources::{SourceFreshness, SourceHealth, SourceIntervalKind, SourceQuality};
 use worktime_domain::summaries::{DailySummary, IndicatorState};
+use worktime_domain::time::LocalWorkday;
 use worktime_windows::activity::BuiltInActivitySource;
 
-use crate::adjust::{Stretch, Unrecorded};
 use crate::strings::{Key, Language, keep_together};
 use crate::tray_model::ClosedReview;
-use crate::week;
 
 /// Missing time shorter than this is not reported: not in the flyout's source hint, as
 /// `SourceDiagnosticsPresenter.MinimumReportedMissingTime` of the .NET app, nor offered for
@@ -156,13 +155,16 @@ pub enum SourceHint {
         remedy: FailureRemedy,
     },
     /// `MissingCoverage`: time the source could not record is still unknown. Only information,
-    /// with a way to record the work done then.
+    /// with « Oui, compter N min » to count it as work and « Voir sur la frise » to settle it
+    /// in the week.
     Unrecorded {
         message: SharedString,
+        /// The day the time is unknown in.
+        workday: LocalWorkday,
         /// The unknown time, merged.
         intervals: Vec<UtcInterval>,
-        /// The day from arrival, which a declaration shows the unknown time in.
-        day: Vec<Stretch>,
+        /// How long it lasts, all intervals together.
+        duration: SignedDuration,
     },
 }
 
@@ -179,30 +181,6 @@ impl SourceHint {
     pub fn message(&self) -> &SharedString {
         match self {
             Self::Failure { message, .. } | Self::Unrecorded { message, .. } => message,
-        }
-    }
-
-    /// What a declaration of work opens on: every interval of the unrecorded time, in its day.
-    /// The .NET app opened on the time only when it was one interval, and on 09:00–10:00
-    /// otherwise.
-    pub fn declaration(&self) -> Option<Unrecorded> {
-        match self {
-            Self::Unrecorded { intervals, day, .. } => {
-                // A fragment under a minute would be a chip « 10:42–10:42 »; it is left to the
-                // strip, unless the time is all fragments.
-                let slots: Vec<UtcInterval> = intervals
-                    .iter()
-                    .copied()
-                    .filter(|slot| slot.duration() >= SignedDuration::from_mins(1))
-                    .collect();
-                let slots = if slots.is_empty() {
-                    intervals.clone()
-                } else {
-                    slots
-                };
-                Unrecorded::new(slots, day.clone())
-            }
-            Self::Failure { .. } => None,
         }
     }
 }
@@ -631,15 +609,6 @@ fn missing_work(summary: &DailySummary, zone: &TimeZone, language: Language) -> 
     if total < MINIMUM_REPORTED_MISSING_TIME {
         return None;
     }
-    let accounting = summary.accounting();
-    let day: Vec<Stretch> = segments
-        .iter()
-        .filter(|segment| arrival.is_none_or(|arrival| segment.interval().start() >= arrival))
-        .map(|segment| Stretch {
-            kind: week::SegmentKind::of_accounted(segment, accounting),
-            interval: segment.interval(),
-        })
-        .collect();
     // To the nearest minute, a total read at a glance: « 26 min », not « 25 min 30 s ».
     let duration = crate::time_text::minutes_text(total, language);
     let intervals: Vec<UtcInterval> = missing.iter().copied().collect();
@@ -662,8 +631,9 @@ fn missing_work(summary: &DailySummary, zone: &TimeZone, language: Language) -> 
                 ],
             )
             .into(),
+        workday: summary.workday().clone(),
         intervals,
-        day,
+        duration: total,
     })
 }
 

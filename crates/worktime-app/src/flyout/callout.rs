@@ -3,8 +3,8 @@
 use gpui::{Action, AnyElement, FontWeight, Role, SharedString, div, prelude::*};
 
 use super::{
-    CountAutomatically, DeclareWork, Flyout, HideCount, HideTrustOffer, OpenGeneralSettings,
-    Refresh, ResolveReview, UndoCount, UseBuiltInDetection, control, control_icon,
+    CountAutomatically, CountUnrecorded, Flyout, HideCount, HideTrustOffer, OpenGeneralSettings,
+    Refresh, ResolveReview, ShowUnrecorded, UndoCount, UseBuiltInDetection, control, control_icon,
     disabled_control, key_caps, keys, keystroke, readable,
 };
 use crate::settings_view::outlined_on_tint;
@@ -18,34 +18,59 @@ use crate::workday::{FailureRemedy, SourceHint};
 
 impl Flyout {
     /// What the source reported, and what to do about it: a failure is a warning, with a refresh
-    /// to try again; unrecorded time is only information, as in the .NET app.
+    /// to try again; unrecorded time is only information, with « Oui, compter N min » to count
+    /// it as work, filled as the usual answer, and « Voir sur la frise » to settle it in the week.
     pub(super) fn source_callout(&self, theme: &Theme) -> Option<AnyElement> {
         let hint = self.day.source_hint.as_ref()?;
-        let (failure, remedy) = match hint {
+        let (failure, remedies) = match hint {
             SourceHint::Failure {
                 remedy: FailureRemedy::UseBuiltIn,
                 ..
-            } => (true, self.use_built_in_button(theme)),
+            } => (true, vec![self.use_built_in_button(theme)]),
             SourceHint::Failure {
                 remedy: FailureRemedy::OpenSettings,
                 ..
             } => (
                 true,
-                self.open_settings_button("open-source-settings", theme),
+                vec![self.open_settings_button("open-source-settings", theme)],
             ),
-            // Not what « Corriger le temps… » opens: no key caps.
-            SourceHint::Unrecorded { .. } => (
-                false,
-                self.callout_button(
-                    "record-work",
-                    Key::FlyoutDeclareWork,
+            SourceHint::Unrecorded {
+                workday,
+                intervals,
+                duration,
+                ..
+            } => {
+                let id = "count-unrecorded";
+                let label = self.language.format(
+                    Key::FlyoutCountUnrecordedFormat,
+                    &[&minutes_text(*duration, self.language)],
+                );
+                let count = if self.tracking.can_correct_time() {
+                    let count = CountUnrecorded {
+                        workday: workday.clone(),
+                        intervals: intervals.clone(),
+                    };
+                    self.reveal_on_tab(
+                        id,
+                        filled_button(id, label, theme).on_click(move |_, window, cx| {
+                            window.dispatch_action(Box::new(count.clone()), cx)
+                        }),
+                    )
+                } else {
+                    self.callout_button(id, label.into(), None, None, theme)
+                };
+                let show = self.callout_button(
+                    "show-unrecorded",
+                    self.text(Key::FlyoutShowUnrecorded).into(),
                     None,
-                    self.tracking
-                        .can_correct_time()
-                        .then(|| Box::new(DeclareWork(hint.declaration())) as _),
+                    Some(Box::new(ShowUnrecorded {
+                        date: workday.date,
+                        intervals: intervals.clone(),
+                    })),
                     theme,
-                ),
-            ),
+                );
+                (false, vec![count, show])
+            }
         };
         let (hue, icon_name) = if failure {
             (Hue::Warning, "activity")
@@ -69,7 +94,7 @@ impl Flyout {
                                 .flex_wrap()
                                 .items_center()
                                 .gap(BASE_08)
-                                .child(remedy)
+                                .children(remedies)
                                 .when(failure, |row| {
                                     row.child(self.refresh_button("refresh", theme))
                                 }),
@@ -318,31 +343,12 @@ impl Flyout {
     /// « Utiliser la détection intégrée », the one filled button of the callout.
     fn use_built_in_button(&self, theme: &Theme) -> AnyElement {
         let id = "use-built-in";
-        let label = self.text(Key::SettingsActivityWatchCalloutAction);
-        let focused = theme.border_focused;
-        // Not built on `super::control`, whose hover fill would hide the accent.
-        let button = div()
-            .id(id)
-            .role(Role::Button)
-            .aria_label(SharedString::from(label))
-            .tab_index(0)
-            .rounded(radius::SM)
-            .border_1()
-            .border_color(theme.accent)
-            .bg(theme.accent)
-            .cursor_pointer()
-            .focus_visible(move |style| style.border_color(focused))
-            .text_color(theme.tl_on_fill)
-            .font_weight(FontWeight::MEDIUM)
-            .hover(|style| style.opacity(0.9))
-            .active(|style| style.opacity(0.8))
-            .h(size::BUTTON_MEDIUM)
-            .px(BASE_08)
-            .flex()
-            .items_center()
-            .whitespace_nowrap()
-            .child(label)
-            .on_click(|_, window, cx| window.dispatch_action(Box::new(UseBuiltInDetection), cx));
+        let button = filled_button(
+            id,
+            self.text(Key::SettingsActivityWatchCalloutAction),
+            theme,
+        )
+        .on_click(|_, window, cx| window.dispatch_action(Box::new(UseBuiltInDetection), cx));
         self.reveal_on_tab(id, button)
     }
 
@@ -350,21 +356,20 @@ impl Flyout {
     /// the key caps of `keystroke` when it runs a command that has one. A click dispatches
     /// `action`; without one, the button is disabled: it keeps the outline of the tint and only
     /// dims its label.
-    fn callout_button(
+    pub(super) fn callout_button(
         &self,
         id: &'static str,
-        label: Key,
+        label: SharedString,
         keystroke: Option<&str>,
         action: Option<Box<dyn Action>>,
         theme: &Theme,
     ) -> AnyElement {
-        let label = self.text(label);
         let name = match keystroke {
-            Some(keystroke) => super::shortcut_name(label, keystroke, self.language),
-            None => label.into(),
+            Some(keystroke) => super::shortcut_name(&label, keystroke, self.language),
+            None => label.clone(),
         };
         let button = match action {
-            Some(action) => outlined_on_tint(id, label, size::BUTTON_MEDIUM, theme)
+            Some(action) => outlined_on_tint(id, label.clone(), size::BUTTON_MEDIUM, theme)
                 .aria_label(name)
                 .on_click(move |_, window, cx| window.dispatch_action(action.boxed_clone(), cx)),
             None => disabled_control(id, name, theme)
@@ -387,7 +392,7 @@ impl Flyout {
     pub(super) fn open_settings_button(&self, id: &'static str, theme: &Theme) -> AnyElement {
         self.callout_button(
             id,
-            Key::SourceOpenSettings,
+            self.text(Key::SourceOpenSettings).into(),
             None,
             Some(Box::new(OpenGeneralSettings)),
             theme,
@@ -398,10 +403,42 @@ impl Flyout {
     pub(super) fn refresh_button(&self, id: &'static str, theme: &Theme) -> AnyElement {
         self.callout_button(
             id,
-            Key::ShellRefreshAutomationPropertiesName,
+            self.text(Key::ShellRefreshAutomationPropertiesName).into(),
             Some(keystroke::REFRESH),
             Some(Box::new(Refresh)),
             theme,
         )
     }
+}
+
+/// The filled button of a callout, the answer it expects. Not built on `super::control`, whose
+/// hover fill would hide the accent.
+fn filled_button(
+    id: &'static str,
+    label: impl Into<SharedString>,
+    theme: &Theme,
+) -> gpui::Stateful<gpui::Div> {
+    let label = label.into();
+    let focused = theme.border_focused;
+    div()
+        .id(id)
+        .role(Role::Button)
+        .aria_label(label.clone())
+        .tab_index(0)
+        .rounded(radius::SM)
+        .border_1()
+        .border_color(theme.accent)
+        .bg(theme.accent)
+        .cursor_pointer()
+        .focus_visible(move |style| style.border_color(focused))
+        .text_color(theme.tl_on_fill)
+        .font_weight(FontWeight::MEDIUM)
+        .hover(|style| style.opacity(0.9))
+        .active(|style| style.opacity(0.8))
+        .h(size::BUTTON_MEDIUM)
+        .px(BASE_08)
+        .flex()
+        .items_center()
+        .whitespace_nowrap()
+        .child(label)
 }
