@@ -16,6 +16,7 @@ use worktime_app::flyout::{self, Flyout, HideCount, HideTrustOffer};
 use worktime_app::live::Tracking;
 use worktime_app::strings::Language;
 use worktime_app::theme::size::FLYOUT_WIDTH;
+use worktime_app::widgets::Notice;
 use worktime_app::workday::DayView;
 use worktime_core::demo::DemoScenario;
 use worktime_domain::accounting::{LongLockReviewId, TrackingState};
@@ -55,6 +56,10 @@ fn day_with_callouts() -> DayView {
         streak: automatic::TRUST_STREAK,
     });
     day
+}
+
+fn failure() -> Notice {
+    Notice::refresh_pending("Impossible d’actualiser la journée.")
 }
 
 /// The flyout of `day`, and the count of crosses pressed on its callouts.
@@ -116,9 +121,14 @@ fn close_with_the_keyboard(
     panic!("Tab does not reach the cross of a callout");
 }
 
-/// The day shown again, as the host shows it once the callout is closed, then two frames: the
-/// one without the callout, and the next, where the focus moves.
-fn show(cx: &mut HeadlessAppContext, window: WindowHandle<Flyout>, day: DayView) {
+/// The day shown again with `refresh_failure`, as the host shows it once the callout is closed,
+/// then two frames: the one without the callout, and the next, where the focus moves.
+fn show(
+    cx: &mut HeadlessAppContext,
+    window: WindowHandle<Flyout>,
+    day: DayView,
+    refresh_failure: Option<Notice>,
+) {
     cx.update(|cx| {
         window
             .update(cx, |flyout, _, cx| {
@@ -126,7 +136,7 @@ fn show(cx: &mut HeadlessAppContext, window: WindowHandle<Flyout>, day: DayView)
                     day,
                     Tracking::new(TrackingState::Running, true),
                     false,
-                    None,
+                    refresh_failure,
                     cx,
                 )
             })
@@ -149,10 +159,52 @@ fn closing_the_counted_absence_hands_the_focus_to_the_offer_after_it() {
             counted_absence: None,
             ..day
         },
+        None,
     );
 
     assert!(!flyout_has_focus(&mut cx, window));
     assert_eq!(focused_part(&mut cx, window), Some(part));
+}
+
+#[test]
+fn the_offer_takes_the_focus_when_a_refresh_failure_before_it_goes_with_the_absence() {
+    let day = day_with_callouts();
+    let (mut cx, window, closed) = open(day.clone());
+    show(&mut cx, window, day.clone(), Some(failure()));
+
+    let part = close_with_the_keyboard(&mut cx, window, &closed);
+    show(
+        &mut cx,
+        window,
+        DayView {
+            counted_absence: None,
+            ..day
+        },
+        None,
+    );
+
+    assert!(!flyout_has_focus(&mut cx, window));
+    assert_eq!(focused_part(&mut cx, window), Some(part - 1));
+}
+
+#[test]
+fn the_offer_takes_the_focus_when_a_refresh_failure_comes_with_the_day_without_the_absence() {
+    let day = day_with_callouts();
+    let (mut cx, window, closed) = open(day.clone());
+
+    let part = close_with_the_keyboard(&mut cx, window, &closed);
+    show(
+        &mut cx,
+        window,
+        DayView {
+            counted_absence: None,
+            ..day
+        },
+        Some(failure()),
+    );
+
+    assert!(!flyout_has_focus(&mut cx, window));
+    assert_eq!(focused_part(&mut cx, window), Some(part + 1));
 }
 
 #[test]
@@ -161,7 +213,7 @@ fn a_callout_still_shown_keeps_the_focus_on_its_cross() {
     let (mut cx, window, closed) = open(day.clone());
 
     let part = close_with_the_keyboard(&mut cx, window, &closed);
-    show(&mut cx, window, day);
+    show(&mut cx, window, day, None);
 
     assert_eq!(focused_part(&mut cx, window), Some(part));
 }

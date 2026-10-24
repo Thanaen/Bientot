@@ -159,11 +159,11 @@ pub(crate) fn shortcut_name(label: &str, keystroke: &str, language: Language) ->
         .into()
 }
 
-/// The part of the body, out of `parts`, whose callout the user closed; `answered` once the day
-/// came back after it.
+/// The part of the body, out of the `parts` shown, whose callout the user closed; `answered`
+/// once the day came back after it.
 struct Closing {
     part: usize,
-    parts: usize,
+    parts: Vec<body::Part>,
     answered: bool,
 }
 
@@ -199,8 +199,8 @@ pub struct Flyout {
     /// themselves as the body is prepainted, and the next render of the body reads them to
     /// reveal the focus Tab moved, then empties the list for that frame's controls.
     body_controls: body::LaidOutControls,
-    /// How many parts the body showed last.
-    shown_parts: usize,
+    /// The parts the body showed last.
+    shown_parts: Vec<body::Part>,
     reveal_focus: bool,
     /// The part of the body whose callout the user closed with the focus in it, see
     /// [`Self::closing_callout`]; forgotten once Tab moves the focus.
@@ -249,7 +249,7 @@ impl Flyout {
             body_scroll: ScrollHandle::new(),
             body_parts: Vec::new(),
             body_controls: Rc::default(),
-            shown_parts: 0,
+            shown_parts: Vec::new(),
             reveal_focus: false,
             closing: None,
             _close_on_deactivate: close_on_deactivate,
@@ -378,7 +378,7 @@ impl Flyout {
             .position(|part| part.contains_focused(window, cx))
             .map(|part| Closing {
                 part,
-                parts: self.shown_parts,
+                parts: self.shown_parts.clone(),
                 answered: false,
             });
         cx.propagate();

@@ -44,6 +44,22 @@ fn shown_refresh_failure<'a>(
     failure.filter(|_| answer.is_none_or(|answer| answer.kind != NoticeKind::RefreshPending))
 }
 
+/// What a part of the body shows, so that the focus finds the part after a callout that closed
+/// whatever came or went around it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Part {
+    Notice,
+    RefreshFailure,
+    SourceCallout,
+    AppointmentCallout,
+    CountedCallout,
+    TrustCallout,
+    Headline,
+    Worked,
+    Announcement(usize),
+    UpdateCallout,
+}
+
 impl Flyout {
     /// `notice` at `time` of its entrance. Only one notice shown asks for a refresh, see
     /// [`shown_refresh_failure`], and only one tells of restored settings, so their buttons keep
@@ -87,7 +103,7 @@ impl Flyout {
         window: &mut Window,
         cx: &mut Context<Self>,
         theme: &Theme,
-    ) -> Vec<AnyElement> {
+    ) -> Vec<(Part, AnyElement)> {
         let answer_time = match self.notice {
             Some(_) => self.notice_entrance.time(motion::MENU, window, cx),
             None => 1.,
@@ -101,23 +117,32 @@ impl Flyout {
         };
         let mut notices = Vec::new();
         if let Some(answer) = &self.notice {
-            notices.push(self.notice("notice", answer, answer_time, theme));
+            notices.push((
+                Part::Notice,
+                self.notice("notice", answer, answer_time, theme),
+            ));
         }
         if let Some(failure) = &failure {
-            notices.push(self.notice("refresh-failure", failure, failure_time, theme));
+            notices.push((
+                Part::RefreshFailure,
+                self.notice("refresh-failure", failure, failure_time, theme),
+            ));
         }
         notices
     }
 
     /// What went wrong while WorkTime started, below the day so that the planned departure stays
     /// on top.
-    fn announcements(&self, theme: &Theme) -> Vec<AnyElement> {
+    fn announcements(&self, theme: &Theme) -> Vec<(Part, AnyElement)> {
         self.alerts
             .announcements
             .iter()
             .enumerate()
             .map(|(index, announcement)| {
-                self.notice(("announcement", index), announcement, 1., theme)
+                (
+                    Part::Announcement(index),
+                    self.notice(("announcement", index), announcement, 1., theme),
+                )
             })
             .collect()
     }
@@ -342,23 +367,39 @@ impl Flyout {
         theme: &Theme,
     ) -> Vec<AnyElement> {
         let mut parts = self.notices(window, cx, theme);
-        parts.extend(self.source_callout(theme));
-        parts.extend(self.appointment_callout(theme));
-        parts.extend(self.counted_callout(theme));
-        parts.extend(self.trust_callout(theme));
-        parts.push(self.headline(theme).into_any_element());
+        parts.extend(
+            self.source_callout(theme)
+                .map(|callout| (Part::SourceCallout, callout)),
+        );
+        parts.extend(
+            self.appointment_callout(theme)
+                .map(|callout| (Part::AppointmentCallout, callout)),
+        );
+        parts.extend(
+            self.counted_callout(theme)
+                .map(|callout| (Part::CountedCallout, callout)),
+        );
+        parts.extend(
+            self.trust_callout(theme)
+                .map(|callout| (Part::TrustCallout, callout)),
+        );
+        parts.push((Part::Headline, self.headline(theme).into_any_element()));
         parts.extend(
             self.day
                 .worked
                 .as_ref()
-                .map(|worked| self.worked(worked, theme).into_any_element()),
+                .map(|worked| (Part::Worked, self.worked(worked, theme).into_any_element())),
         );
         parts.extend(self.announcements(theme));
-        parts.extend(self.update_callout(theme, cx));
+        parts.extend(
+            self.update_callout(theme, cx)
+                .map(|callout| (Part::UpdateCallout, callout)),
+        );
+        let (shown, parts): (Vec<Part>, Vec<AnyElement>) = parts.into_iter().unzip();
         while self.body_parts.len() < parts.len() {
             self.body_parts.push(cx.focus_handle());
         }
-        self.refocus_after_closing(parts.len(), window, cx);
+        self.refocus_after_closing(shown, window, cx);
         if std::mem::take(&mut self.reveal_focus)
             && let Some(focused) = self
                 .body_parts
@@ -387,18 +428,35 @@ impl Flyout {
     }
 
     /// After a callout closed with the focus in it, the next part takes the focus: its first
-    /// control, or the first after it. The tab order is the one of the frame drawn without the
+    /// control, or the first after it. The next part is the first still shown of those that
+    /// followed the callout, whatever notice came or went with the day. The tab order is the one of the frame drawn without the
     /// callout, so the focus moves on the next frame. A callout the day still shows once it came
     /// back keeps the focus where it is.
-    fn refocus_after_closing(&mut self, parts: usize, window: &mut Window, cx: &mut Context<Self>) {
-        self.shown_parts = parts;
+    fn refocus_after_closing(
+        &mut self,
+        shown: Vec<Part>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.shown_parts = shown;
         let Some(closing) = self.closing.take_if(|closing| closing.answered) else {
             return;
         };
-        if parts >= closing.parts {
+        let Some((closed, after)) = closing
+            .parts
+            .get(closing.part..)
+            .and_then(<[Part]>::split_first)
+        else {
+            return;
+        };
+        if self.shown_parts.contains(closed) {
             return;
         }
-        let part = self.body_parts[closing.part.min(parts.saturating_sub(1))].clone();
+        let next = after
+            .iter()
+            .find_map(|part| self.shown_parts.iter().position(|shown| shown == part))
+            .unwrap_or(self.shown_parts.len().saturating_sub(1));
+        let part = self.body_parts[next].clone();
         let flyout = cx.entity().downgrade();
         window.on_next_frame(move |window, cx| {
             window.focus(&part, cx);
