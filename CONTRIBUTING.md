@@ -9,7 +9,7 @@ spec conventions. The code layout is in [docs/architecture.md](docs/architecture
   few days.
 - For anything bigger than a small fix, open an issue first and agree on the
   approach there, so your work is not wasted.
-- Bugs and ideas go through the [issue forms](https://github.com/Thanaen/WorkTime/issues/new/choose).
+- Bugs and ideas go through the [issue forms](https://github.com/Thanaen/Bientot/issues/new/choose).
   Security problems go through [SECURITY.md](SECURITY.md), never a public issue.
 - Issues and pull requests can be written in English or in French. Code,
   comments and commit messages are in English.

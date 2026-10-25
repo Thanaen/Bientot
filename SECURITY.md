@@ -9,7 +9,7 @@ ZIP has to be replaced by hand.
 ## Report a vulnerability
 
 Do not open a public issue. Report it privately through GitHub:
-[open a security advisory](https://github.com/Thanaen/WorkTime/security/advisories/new)
+[open a security advisory](https://github.com/Thanaen/Bientot/security/advisories/new)
 (the **Report a vulnerability** button under the **Security** tab).
 
 Include what an attacker can do, the steps to reproduce it, and the Bientôt

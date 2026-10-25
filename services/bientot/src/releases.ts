@@ -3,7 +3,7 @@
 // crates/bientot-app/src/updates/direct.rs), and /download serves the installer: both stay at
 // this address and redirect to the release files, wherever those live.
 
-const RELEASES = "https://github.com/Thanaen/WorkTime/releases";
+const RELEASES = "https://github.com/Thanaen/Bientot/releases";
 
 // vpk names the files after the packId, Thanaen.WorkTime, which installed copies update by. The
 // Release workflow also publishes the downloads under the app's name, but GitHub answers 404 for

@@ -55,7 +55,7 @@ Bientôt makes two kinds of request.
      `https://worktime.thanaen.dev/updates/releases.win.json`, with no query
      string, no cookie and no identifier, and downloads a newer package from
      the same address. Both answer with a redirect to the same file in
-     the GitHub Releases of `Thanaen/WorkTime`, which GitHub serves from
+     the GitHub Releases of `Thanaen/Bientot`, which GitHub serves from
      `github.com` and a `*.githubusercontent.com` address. Those receive the
      same request.
    - The Microsoft Store build asks the Store through the Windows

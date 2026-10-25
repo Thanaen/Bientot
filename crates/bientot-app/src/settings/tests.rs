@@ -502,7 +502,7 @@ fn the_zip_build_greys_the_updates_and_links_to_github() {
             tone: RowTone::Unavailable,
             link: Some(Link {
                 label: "GitHub",
-                url: "https://github.com/Thanaen/WorkTime/releases",
+                url: "https://github.com/Thanaen/Bientot/releases",
             }),
             status: None,
             error: None,
