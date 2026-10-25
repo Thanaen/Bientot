@@ -104,7 +104,7 @@ fn each_refusal_says_why_on_the_import_row() {
     for (refusal, error) in [
         (
             Refusal::NotATransfer,
-            "Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .worktime.",
+            "Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .bientot ou .worktime.",
         ),
         (
             Refusal::NewerVersion,

@@ -138,7 +138,7 @@ fn an_import_replaces_the_ledger_and_the_settings_after_saving_them() {
         backup,
         new_pc
             .backups_directory()
-            .join("before-import-2026-10-22-09-30-00.worktime")
+            .join("before-import-2026-10-22-09-30-00.bientot")
     );
     assert_eq!(latest_backup(&new_pc), Some(backup.clone()));
     assert_eq!(
@@ -222,7 +222,7 @@ fn an_import_a_crash_interrupted_is_finished_by_the_next_start() {
         backup,
         new_pc
             .backups_directory()
-            .join("before-import-2026-10-23-09-35-00.worktime")
+            .join("before-import-2026-10-23-09-35-00.bientot")
     );
     assert_eq!(
         inspect(&backup).unwrap().days,
@@ -494,9 +494,32 @@ fn backups_are_named_on_the_local_clock_and_the_newest_is_found() {
         Some(
             new_pc
                 .backups_directory()
-                .join("before-import-2026-10-22-12-00-00.worktime")
+                .join("before-import-2026-10-22-12-00-00.bientot")
         )
     );
+}
+
+#[test]
+fn a_backup_saved_before_the_rename_is_still_found_until_a_newer_one() {
+    let (_old, old_pc) = folder(&["2026-03-02"], 450);
+    let file = old_pc.path().join("WorkTime-2026-10-20.worktime");
+    export(&old_pc, &file, now()).unwrap();
+    let (_new, new_pc) = folder(&["2026-10-22"], 480);
+    let older = new_pc
+        .backups_directory()
+        .join("before-import-2026-10-20-08-00-00.worktime");
+    fs::create_dir_all(new_pc.backups_directory()).unwrap();
+    fs::copy(&file, &older).unwrap();
+    assert_eq!(latest_backup(&new_pc), Some(older.clone()));
+    assert!(inspect(&older).is_ok());
+
+    stage(&file, &new_pc).unwrap();
+    let applied = apply_staged(&new_pc, now(), &TimeZone::UTC)
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(latest_backup(&new_pc), applied.backup);
+    assert!(older.exists());
 }
 
 #[test]

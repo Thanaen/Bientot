@@ -12,11 +12,11 @@ fn the_folders_sit_where_the_dotnet_app_puts_them() {
     assert_eq!(DataDirectory::named(&explicit).unwrap().path(), explicit);
     assert_eq!(
         DataDirectory::throwaway(Path::new("/tmp"), THROWAWAY_ID).path(),
-        Path::new("/tmp/WorkTimeDemo/0f8fad5bd9cb469fa16570867728950e")
+        Path::new("/tmp/BientotDemo/0f8fad5bd9cb469fa16570867728950e")
     );
     assert_eq!(
         DataDirectory::user(Path::new("/home/ana/.local/share")).path(),
-        Path::new("/home/ana/.local/share/WorkTime")
+        Path::new("/home/ana/.local/share/Bientot")
     );
 }
 
@@ -45,13 +45,13 @@ fn the_folders_sit_where_the_dotnet_app_puts_them_on_windows() {
         DataDirectory::throwaway(Path::new(r"C:\Users\Ana\AppData\Local\Temp"), THROWAWAY_ID)
             .path()
             .as_os_str(),
-        r"C:\Users\Ana\AppData\Local\Temp\WorkTimeDemo\0f8fad5bd9cb469fa16570867728950e"
+        r"C:\Users\Ana\AppData\Local\Temp\BientotDemo\0f8fad5bd9cb469fa16570867728950e"
     );
     assert_eq!(
         DataDirectory::user(Path::new(r"C:\Users\Ana\AppData\Local"))
             .path()
             .as_os_str(),
-        r"C:\Users\Ana\AppData\Local\WorkTime"
+        r"C:\Users\Ana\AppData\Local\Bientot"
     );
 }
 

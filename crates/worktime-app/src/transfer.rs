@@ -10,7 +10,7 @@ use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use worktime_store::data_directory::DataDirectory;
 use worktime_store::settings::SettingsStore;
-use worktime_store::transfer::{self, EXTENSION, TransferError};
+use worktime_store::transfer::{self, EXTENSION, EXTENSIONS, TransferError};
 
 use crate::file_dialogs;
 use crate::host::Today;
@@ -72,7 +72,7 @@ pub fn choose_import(
 ) {
     let file_type = file_type(cx);
     cx.spawn(async move |cx| {
-        let read = match file_dialogs::pick_open(file_type, EXTENSION, cx).await {
+        let read = match file_dialogs::pick_open(file_type, &EXTENSIONS, cx).await {
             Ok(None) => None,
             Ok(Some(file)) => Some(inspect(directory, file, cx).await),
             Err(error) => {

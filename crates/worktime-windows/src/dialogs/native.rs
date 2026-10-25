@@ -32,18 +32,26 @@ pub fn pick_save_file(
             dialog.SetDefaultExtension(&HSTRING::from(extension))?;
             dialog.SetFileName(&HSTRING::from(suggested_name))?;
         }
-        show(&dialog.cast()?, file_type, extension, FOS_OVERWRITEPROMPT)
+        show(
+            &dialog.cast()?,
+            file_type,
+            &[extension],
+            FOS_OVERWRITEPROMPT,
+        )
     })
 }
 
-/// Shows the open dialog, offering only existing files of type `file_type`, named
-/// `*.extension`. `None` when the user cancels.
-pub fn pick_open_file(file_type: &str, extension: &str) -> windows::core::Result<Option<PathBuf>> {
+/// Shows the open dialog, offering only existing files of type `file_type`, named with one of
+/// `extensions`. `None` when the user cancels.
+pub fn pick_open_file(
+    file_type: &str,
+    extensions: &[&str],
+) -> windows::core::Result<Option<PathBuf>> {
     in_apartment(|| {
         // SAFETY: the apartment is initialized; the dialog is released before it is left.
         let dialog: IFileOpenDialog =
             unsafe { CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER)? };
-        show(&dialog.cast()?, file_type, extension, FOS_FILEMUSTEXIST)
+        show(&dialog.cast()?, file_type, extensions, FOS_FILEMUSTEXIST)
     })
 }
 
@@ -62,13 +70,14 @@ fn in_apartment(
 fn show(
     dialog: &IFileDialog,
     file_type: &str,
-    extension: &str,
+    extensions: &[&str],
     options: windows::Win32::UI::Shell::FILEOPENDIALOGOPTIONS,
 ) -> windows::core::Result<Option<PathBuf>> {
-    let (file_type, pattern) = (
-        HSTRING::from(file_type),
-        HSTRING::from(format!("*.{extension}")),
-    );
+    let patterns: Vec<_> = extensions
+        .iter()
+        .map(|extension| format!("*.{extension}"))
+        .collect();
+    let (file_type, pattern) = (HSTRING::from(file_type), HSTRING::from(patterns.join(";")));
     // SAFETY: every string outlives the calls that read it; the dialog copies them.
     unsafe {
         dialog.SetFileTypes(&[COMDLG_FILTERSPEC {

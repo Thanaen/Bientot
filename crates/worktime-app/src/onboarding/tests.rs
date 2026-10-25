@@ -673,7 +673,9 @@ fn the_import_tells_what_runs_and_why_a_file_was_refused() {
     assert_eq!((offer.status, offer.confirmation), (None, None));
     assert_eq!(
         offer.error,
-        Some("Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .worktime.")
+        Some(
+            "Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .bientot ou .worktime."
+        )
     );
     assert!(!onboarding.view().importing);
 }
@@ -763,7 +765,7 @@ fn the_languages_wait_for_the_import_and_its_texts_follow_the_one_chosen_after()
     assert_eq!(onboarding.language(), Language::English);
     assert_eq!(
         import(&onboarding).error,
-        Some("This file is not a Bientôt export. Choose a .worktime file.")
+        Some("This file is not a Bientôt export. Choose a .bientot or .worktime file.")
     );
 }
 

@@ -35,7 +35,7 @@ enum OnboardingShot {
     LanguageImportReading,
     /// The file exported on the previous PC, read and waiting for « Importer et redémarrer ».
     LanguageImportConfirm,
-    /// A file that is no WorkTime export.
+    /// A file that is no Bientôt export.
     LanguageImportRefused,
     Schedule,
     /// The daily target typed as « 7h », then « Suivant ».
@@ -104,7 +104,7 @@ impl OnboardingShot {
         }
         match self {
             Self::LanguageImportConfirm => view.read_import(Some(Ok(Chosen {
-                file: PathBuf::from(r"D:\WorkTime-2026-10-21.worktime"),
+                file: PathBuf::from(r"D:\Bientot-2026-10-21.bientot"),
                 contents: Contents {
                     exported_at: "2026-10-21T16:04:00Z".parse().unwrap(),
                     days: Some((date(2025, 9, 1), date(2026, 10, 21))),
@@ -146,7 +146,7 @@ fn capture_onboarding(
                 usage_ping.build = SettingsState::Zip.usage_ping().build;
             }
             let directory =
-                DataDirectory::from(PathBuf::from(r"C:\Users\Camille\AppData\Local\WorkTime"));
+                DataDirectory::from(PathBuf::from(r"C:\Users\Camille\AppData\Local\Bientot"));
             let onboarding = Onboarding::new(
                 SettingsState::Saved.settings(),
                 usage_ping,

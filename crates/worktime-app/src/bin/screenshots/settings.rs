@@ -145,7 +145,7 @@ impl DataState {
 
     fn page(self, language: Language) -> DataPage {
         let backup_file = PathBuf::from(
-            r"C:\Users\Camille\AppData\Local\WorkTime\backups\before-import-2026-10-22-11-30-00.worktime",
+            r"C:\Users\Camille\AppData\Local\Bientot\backups\before-import-2026-10-22-11-30-00.bientot",
         );
         let backup = matches!(
             self,
@@ -155,14 +155,13 @@ impl DataState {
             file: backup_file.clone(),
             saved_on: date(2026, 10, 22),
         });
-        let directory = (!matches!(self, Self::Demo)).then(|| {
-            DataDirectory::from(PathBuf::from(r"C:\Users\Camille\AppData\Local\WorkTime"))
-        });
+        let directory = (!matches!(self, Self::Demo))
+            .then(|| DataDirectory::from(PathBuf::from(r"C:\Users\Camille\AppData\Local\Bientot")));
         let mut page = DataPage::new(language, directory, backup);
         let confirm = |page: &mut DataPage, days, this_pc| {
             page.start(Action::Import);
             page.read(Some(Ok(Chosen {
-                file: PathBuf::from(r"D:\WorkTime-2026-10-21.worktime"),
+                file: PathBuf::from(r"D:\Bientot-2026-10-21.bientot"),
                 contents: Contents {
                     exported_at: "2026-10-21T16:04:00Z".parse().unwrap(),
                     days,
@@ -180,7 +179,7 @@ impl DataState {
             Self::Exported => {
                 page.start(Action::Export);
                 page.exported(Some(Exported::Saved(PathBuf::from(
-                    "D:/WorkTime-2026-10-22.worktime",
+                    "D:/Bientot-2026-10-22.bientot",
                 ))));
             }
             Self::NotATransfer | Self::NewerVersion => {
@@ -263,7 +262,7 @@ fn capture_data(
 fn settings_file(settings: &WorkTimeSettings) -> anyhow::Result<PathBuf> {
     let path = screenshot_root()
         .join("Users/Camille/AppData/Local/Packages")
-        .join("Thanaen.WorkTime_8wekyb3d8bbwe/LocalCache/Local/WorkTime/settings.json");
+        .join("Thanaen.WorkTime_8wekyb3d8bbwe/LocalCache/Local/Bientot/settings.json");
     SettingsStore::new(&path)?.save(settings)?;
     Ok(path)
 }
@@ -317,7 +316,7 @@ fn capture_settings(
             form.go_to(page);
             cx.new(|cx| {
                 let mut view = SettingsView::new(form, Some(file), window, cx);
-                view.show_folder_as(r"C:\Users\Camille\AppData\Local\WorkTime");
+                view.show_folder_as(r"C:\Users\Camille\AppData\Local\Bientot");
                 view
             })
         },

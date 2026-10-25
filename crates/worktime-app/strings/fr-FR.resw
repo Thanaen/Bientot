@@ -380,7 +380,7 @@
   <data name="SettingsExportedFormat" xml:space="preserve"><value>Données exportées · {0}. Importez-le sur votre nouveau PC.</value></data>
   <data name="SettingsExportFailed" xml:space="preserve"><value>Bientôt n’a pas pu enregistrer le fichier. Choisissez un autre emplacement et réessayez.</value></data>
   <data name="SettingsImportReading" xml:space="preserve"><value>Lecture du fichier…</value></data>
-  <data name="SettingsImportNotATransfer" xml:space="preserve"><value>Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .worktime.</value></data>
+  <data name="SettingsImportNotATransfer" xml:space="preserve"><value>Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .bientot ou .worktime.</value></data>
   <data name="SettingsImportNewer" xml:space="preserve"><value>Ce fichier vient d’une version plus récente de Bientôt. Installez la dernière version de Bientôt sur ce PC, puis réessayez.</value></data>
   <data name="SettingsImportReadFailed" xml:space="preserve"><value>Bientôt n’a pas pu lire ce fichier. Copiez-le sur ce PC, puis réessayez.</value></data>
   <data name="SettingsImportFailed" xml:space="preserve"><value>Bientôt n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.</value></data>

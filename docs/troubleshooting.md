@@ -82,7 +82,7 @@ mechanisms.
 
 | Message | Meaning |
 | --- | --- |
-| Invalid settings were backed up and the defaults restored. Review your settings. | `settings.json` could not be read. The old file is kept as `settings.json.invalid-<guid>.json` in `%LOCALAPPDATA%\WorkTime`. |
+| Invalid settings were backed up and the defaults restored. Review your settings. | `settings.json` could not be read. The old file is kept as `settings.json.invalid-<guid>.json` in `%LOCALAPPDATA%\Bientot`. |
 | Settings could not be saved. Check disk access and try again. | Writing `settings.json` failed. |
 | Windows notifications are unavailable. Workday tracking continues. | Notification registration failed at startup. |
 | WorkTime could not show a notification. Workday tracking continues. | Windows refused one notification. |
@@ -117,6 +117,6 @@ The ZIP contains numeric settings, today's totals and source health, and
 filtered log events. It does not contain paths, error messages, application names or window titles. See
 [Privacy](privacy.md#diagnostic-export).
 
-The raw logs are in `%LOCALAPPDATA%\WorkTime\logs`. They are redacted when
+The raw logs are in `%LOCALAPPDATA%\Bientot\logs`. They are redacted when
 written but hold more detail than the export, such as exception types and
 redacted error text. Read them before sharing them.

@@ -26,7 +26,7 @@ and your projected departure time. From there and from the main window you can:
 - get a notification shortly before you reach your target or your latest
   departure time;
 - set recurring appointments, such as a weekly meeting away from your desk;
-- export your data to a `.worktime` file and import it on another PC.
+- export your data to a `.bientot` file and import it on another PC.
 
 WorkTime detects activity on its own. It checks when your keyboard or mouse
 was last used, and after 3 minutes without input (adjustable from 30 seconds
@@ -49,7 +49,7 @@ WorkTime is still in alpha: expect rough edges, and please
 ## Privacy
 
 Your working time never leaves your computer. WorkTime stores its data in
-`%LOCALAPPDATA%\WorkTime` and has no account and no cloud sync. It makes two
+`%LOCALAPPDATA%\Bientot` and has no account and no cloud sync. It makes two
 kinds of network request:
 
 - a daily update check, for the installer and Store builds;
