@@ -1,5 +1,7 @@
 # Feature Specification: Core Workday Indicator
 
+> Written when the app was called WorkTime; it is now Bientôt.
+
 **Feature Branch**: `001-core-workday-indicator`  
 **Created**: 2026-07-27  
 **Status**: Ready

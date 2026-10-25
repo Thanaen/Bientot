@@ -1,7 +1,9 @@
 # Product Decisions
 
 This file records ratified choices and the remaining clarification queue for the
-first complete WorkTime specification.
+first complete WorkTime specification. The app was called WorkTime until
+2026-10-25 and is now Bientôt (D-023); the dated entries keep the name they
+were written with.
 
 ## Ratified on 2026-07-27
 
@@ -409,6 +411,35 @@ Windows App SDK build, and moving the .NET build to .NET 11.
   memory and screen-reader targets before the other screens are built.
 
 The phases and their order are tracked in GitHub issue #145.
+
+## Ratified on 2026-10-25
+
+### D-023 — The app is named Bientôt
+
+Decided on 2026-10-25 by the owner. WorkTime is a registered US trademark
+(WORKTIME, no. 3416872), held by a publisher of employee-monitoring
+software, and the name is already taken on the Microsoft Store. The app is
+now « Bientôt », written `bientot` where only ASCII fits (folders, file
+extensions, domains).
+
+- Everything the user sees says Bientôt: windows, tray menu, notifications,
+  the installer title and the version resource of the executable. In French,
+  where « Bientôt » could read as the adverb (“soon”), the text is rephrased.
+- The first start of a renamed build moves `%LOCALAPPDATA%\WorkTime` to
+  `%LOCALAPPDATA%\Bientot`. Exports are written as `.bientot`, and `.worktime`
+  files stay importable.
+- The identifiers that installed copies depend on keep the old name: the
+  Velopack package id `Thanaen.WorkTime`, `worktime.exe`, the Run value
+  `WorkTime` and its `--worktime-windows-startup` marker, the portable
+  AppUserModelID `Thanaen.WorkTime.Portable` and the toast activator CLSIDs,
+  the update feed and usage-signal addresses on `worktime.thanaen.dev`, the
+  `WorkTimeTransfer` table inside export files, the `worktime-` log prefix,
+  the DPAPI entropy `WorkTime:<id>` and the name of the first schema
+  migration. Changing them would break updates, start with Windows,
+  notification settings, old exports or stored secrets.
+- The crates, the web service and the repository are renamed in later steps.
+
+The rename is tracked in GitHub issue #56.
 
 ## Later decisions
 

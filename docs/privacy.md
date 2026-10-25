@@ -1,13 +1,13 @@
 # Privacy
 
-WorkTime is local-first. It has no account and no cloud sync. Its only
+Bientôt is local-first. It has no account and no cloud sync. Its only
 telemetry is one anonymous usage signal a day. It is on by default, shown
-during setup, and you can turn it off. This page lists what WorkTime stores,
+during setup, and you can turn it off. This page lists what Bientôt stores,
 what it sends, and how to remove it.
 
 ## What stays on the machine
 
-Spec SC-005: no activity or accounting data leaves the machine. WorkTime never
+Spec SC-005: no activity or accounting data leaves the machine. Bientôt never
 uploads its accounting records. Its only remote requests are the daily update
 check and the anonymous daily usage signal described below.
 
@@ -16,7 +16,7 @@ last keyboard or mouse input (`GetLastInputInfo`). It never reads what you
 type, which keys you press, application names or window titles. It stores only
 the start and settled end of each active or idle period.
 
-WorkTime stores everything in `%LOCALAPPDATA%\Bientot`. Builds released
+Bientôt stores everything in `%LOCALAPPDATA%\Bientot`. Builds released
 before the rename to Bientôt used `%LOCALAPPDATA%\WorkTime`, and the first
 start of a newer build renames that folder to `Bientot`. A run started with
 `--data-dir <folder>` uses that folder instead, and a `--demo` run uses a
@@ -24,11 +24,11 @@ temporary `BientotDemo` folder.
 
 | File | Content |
 | --- | --- |
-| `settings.json` | Schedule, recurring appointments, notification rules, language, the built-in idle threshold, the time of the last update check, whether the anonymous usage signal is on. It also keeps the ActivityWatch address and timings of the first WorkTime version, which the current version no longer uses. |
-| `settings.json.invalid-<id>.json` | A copy of a settings file WorkTime could not read. It is kept so nothing is lost when defaults are restored. |
+| `settings.json` | Schedule, recurring appointments, notification rules, language, the built-in idle threshold, the time of the last update check, whether the anonymous usage signal is on. It also keeps the ActivityWatch address and timings of the first version of the app, which the current version no longer uses. |
+| `settings.json.invalid-<id>.json` | A copy of a settings file Bientôt could not read. It is kept so nothing is lost when defaults are restored. |
 | `app-state.json` | The date of the last usage signal the server recorded, and which appointment notices you closed in the flyout today (internal ids of the correction and the appointment, with the date). Nothing else. |
 | `worktime.db` | SQLite database: which activity source was selected from which time, the active and idle periods, session, lock and power events with their times, pause and finish commands, manual corrections with their optional reason, long-lock decisions, daily summaries, weekly credit, and which notifications were already shown. |
-| `secrets\*.secret` | Secrets encrypted with DPAPI for your Windows account. Only the ActivityWatch API key of the first WorkTime version was ever stored there; the current version writes none. |
+| `secrets\*.secret` | Secrets encrypted with DPAPI for your Windows account. Only the ActivityWatch API key of the first version of the app was ever stored there; the current version writes none. |
 | `import.worktime` | An import chosen in **Settings › Data** or on the first step of the onboarding, waiting for the next start to apply it. |
 | `backups\` | The data an import replaced (**Settings › Data**), saved as a `.bientot` file (`.worktime` before the rename) so that its **Restore…** button can undo the import. |
 | `logs\worktime-*.jsonl` | Diagnostic events, at most 5 files of 1 MiB, each deleted after 14 days. |
@@ -42,12 +42,12 @@ Accounting history does not expire automatically.
 
 A `.bientot` file exported from **Settings › Data**, or a `.worktime` file
 exported before the rename, holds a copy of the database and of
-`settings.json`. It stays where you save it; WorkTime never sends it
+`settings.json`. It stays where you save it; Bientôt never sends it
 anywhere.
 
 ## Network requests
 
-WorkTime makes two kinds of request.
+Bientôt makes two kinds of request.
 
 1. **Update check.** At most once a day, and only while **Check for updates**
    is on in the General settings.
@@ -72,8 +72,8 @@ WorkTime makes two kinds of request.
    {"version":"1.0.0","channel":"store","first_this_month":true}
    ```
 
-   `version` is the WorkTime version. `channel` is `store`, `direct` or `zip`,
-   depending on where you installed WorkTime. `first_this_month` is `true` for
+   `version` is the Bientôt version. `channel` is `store`, `direct` or `zip`,
+   depending on where you installed Bientôt. `first_this_month` is `true` for
    the first signal of a calendar month. The request carries no identifier, no
    cookie, no date and no time-tracking data. The server stores nothing and logs
    nothing (`services/worktime`). It passes the three fields on to
@@ -81,9 +81,9 @@ WorkTime makes two kinds of request.
    (Frankfurt), as one event dated at midnight UTC of the day, with a random id
    used only once, no IP address and no person profile. PostHog keeps each
    signal as an anonymous event, and never sees the address of your PC: the
-   request to PostHog comes from the server. WorkTime keeps only
+   request to PostHog comes from the server. Bientôt keeps only
    the date of the last signal the server recorded, in `app-state.json`. After
-   a failure, WorkTime tries again at most once an hour. Debug builds, demo
+   a failure, Bientôt tries again at most once an hour. Debug builds, demo
    launches and launches with `--data-dir` never send it. Turn off **Send an
    anonymous usage signal** in the General settings to stop it at once,
    without a restart. The toggle saves `"usagePing": false` in
@@ -113,13 +113,13 @@ blocker that stops `e.worktime.thanaen.dev` stops it.
 ## Diagnostic export
 
 **Export diagnostics…** in the tray menu saves a ZIP where you choose.
-WorkTime never sends it anywhere. The ZIP holds three files:
+Bientôt never sends it anywhere. The ZIP holds three files:
 
 - `manifest.json`: the export limits, what was available, and counts of the
   log lines that were left out and why.
 - `snapshot.json`: numeric settings (targets, lunch window, departure time,
   margins, notification rules, log limits, start with Windows, update check),
-  the version numbers of WorkTime and Windows, the processor architecture, and
+  the version numbers of Bientôt and Windows, the processor architecture, and
   today's totals, indicator colour and source health.
 - `logs.jsonl`: up to 10,000 log records from the newest 5 log files of the
   last 14 days. Each record keeps only its time (rounded to the minute), its
@@ -137,12 +137,12 @@ after the new archive is complete.
 
 ## Delete your data
 
-1. If **Start with Windows** is on, turn it off in the WorkTime
-   settings. Otherwise WorkTime starts again at the next sign-in.
-2. Quit WorkTime from the tray menu.
+1. If **Start with Windows** is on, turn it off in the Bientôt
+   settings. Otherwise Bientôt starts again at the next sign-in.
+2. Quit Bientôt from the tray menu.
 3. Delete the `%LOCALAPPDATA%\Bientot` folder, and `%LOCALAPPDATA%\WorkTime`
    if it is still there, or the folder you passed with `--data-dir` if you
-   start WorkTime that way.
+   start Bientôt that way.
 4. Delete any `.bientot` or `.worktime` file you exported.
 
 The next start from the same data folder shows onboarding again and creates a

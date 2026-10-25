@@ -1,5 +1,7 @@
 # Daily workflow improvements
 
+> Written when the app was called WorkTime; it is now Bientôt.
+
 **Feature branch**: `codex/daily-workflow-ux`
 **Created**: 2026-09-15
 **Status**: Approved for autonomous implementation

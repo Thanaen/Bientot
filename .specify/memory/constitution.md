@@ -1,5 +1,7 @@
 # WorkTime Constitution
 
+> Written when the app was called WorkTime; it is now Bientôt.
+
 ## Core Principles
 
 ### I. Local-first privacy

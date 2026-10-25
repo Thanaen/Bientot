@@ -5,7 +5,7 @@ spec conventions. The code layout is in [docs/architecture.md](docs/architecture
 
 ## Before you start
 
-- WorkTime is maintained by one person in their free time. Reviews can take a
+- Bientôt is maintained by one person in their free time. Reviews can take a
   few days.
 - For anything bigger than a small fix, open an issue first and agree on the
   approach there, so your work is not wasted.
@@ -55,8 +55,9 @@ CC_x86_64_pc_windows_msvc=/tmp/fake-cl.sh AR_x86_64_pc_windows_msvc=llvm-lib \
 
 Its Windows tests run only on Windows.
 
-The first version of WorkTime was a .NET app, removed in October 2026. The Rust app reads
-the same data files, so several tests replay what the .NET code computed or wrote:
+The first version of the app, then called WorkTime, was a .NET app, removed in October
+2026. The Rust app reads the same data files, so several tests replay what the .NET code
+computed or wrote:
 `crates/worktime-domain/tests/dotnet_fixtures.rs` (the domain), the `worktime-store` tests
 (settings files, stored dates and instants, the migration SQL, SQLite databases, a
 repository scenario) and the `worktime-core` diagnostics tests. Their fixtures are frozen:
@@ -126,7 +127,7 @@ conditional on the files they check.
 
 ## Localization
 
-WorkTime ships in French and English. Every user-visible string lives in both
+Bientôt ships in French and English. Every user-visible string lives in both
 `crates/worktime-app/strings/fr-FR.resw` and
 `crates/worktime-app/strings/en-US.resw` (see [Run the tests](#run-the-tests)
 for the table they generate). The tests in
