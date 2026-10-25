@@ -1,7 +1,8 @@
 //! A range of a day counted as work or excluded from it at once, as the week's timeline selects
-//! it. The range takes the user's corrections out of the long locks it touches and settles each
-//! lock whole, then replaces what the user corrected in the rest by hand and corrects what the
-//! day still counts the other way, all in one transaction: a refused range records nothing.
+//! it. The range takes the user's corrections out of the long locks it touches, but the credits
+//! a count keeps, and settles each lock whole, then replaces what the user corrected in the rest
+//! by hand and corrects what the day still counts the other way, all in one transaction: a
+//! refused range records nothing.
 
 use jiff::Timestamp;
 use worktime_domain::accounting::{
@@ -155,7 +156,7 @@ impl<'a> RangeCorrections<'a> {
         let history = self.adjustments.read_for_workday(workday)?;
         // Refused on the day as it stands, before any lock is settled.
         plan(current, &history, command)?;
-        // A lock is settled over the whole of it, so no correction of the user's may stay there.
+        // A lock is settled over the whole of it, so only a credit of the user's may stay there.
         let cleared = clear(&history, &resolved, command)?;
         if !cleared.replacements.is_empty() {
             self.append_cut(workday, &context, current, &cleared)?;
@@ -294,7 +295,7 @@ fn plan_from(
             continue;
         }
         let (Some(interval), Some(classification)) =
-            (adjustment.interval(), classification_of(adjustment.kind()))
+            (adjustment.interval(), adjustment.kind().classification())
         else {
             continue;
         };
@@ -332,7 +333,7 @@ fn plan_from(
     let covered: Vec<UtcInterval> = history
         .iter()
         .filter(|adjustment| !superseded.contains(&adjustment.id()))
-        .filter(|adjustment| classification_of(adjustment.kind()) == Some(target))
+        .filter(|adjustment| adjustment.kind().classification() == Some(target))
         .filter_map(ManualAdjustment::interval)
         .collect();
     let stretches = stretches(timeline.segments(), range, target)
@@ -356,9 +357,9 @@ fn plan_from(
     })
 }
 
-/// What takes the user's corrections out of `locks`, whichever way they count: each one that
-/// meets a lock is replaced by what lies outside them, and outside the range when it counts
-/// the other way, or withdrawn.
+/// What takes the user's corrections out of `locks`, but a credit when the locks are counted:
+/// each one that meets a lock is replaced by what lies outside them, and outside the range when
+/// it counts the other way, or withdrawn.
 fn clear(
     history: &[ManualAdjustment],
     locks: &[UtcInterval],
@@ -377,7 +378,7 @@ fn clear(
     let mut rests = Vec::new();
     for adjustment in history {
         let (Some(interval), Some(classification)) =
-            (adjustment.interval(), classification_of(adjustment.kind()))
+            (adjustment.interval(), adjustment.kind().classification())
         else {
             continue;
         };
@@ -388,6 +389,13 @@ fn clear(
         }
         if binding(adjustment, &by_id) != Binding::Free {
             return Err(RangeError::Bound(adjustment.id().clone()));
+        }
+        // A credit stays over the lock's confirmation, which it wins over: counting never
+        // lowers the day.
+        if classification == ManualClassification::Credited
+            && command.classification == ManualClassification::Credited
+        {
+            continue;
         }
         let reason = adjustment.reason().unwrap_or_default();
         // One counting the other way loses the range too, now: its successor here is the last
@@ -491,16 +499,6 @@ fn outside(interval: UtcInterval, cuts: &[UtcInterval]) -> Vec<UtcInterval> {
             .collect();
     }
     pieces
-}
-
-/// How an interval correction counts its time; `None` for one without an interval.
-fn classification_of(kind: &AdjustmentKind) -> Option<ManualClassification> {
-    match kind {
-        AdjustmentKind::IntervalWork { .. } => Some(ManualClassification::Credited),
-        AdjustmentKind::Exclusion { .. } => Some(ManualClassification::Excluded),
-        AdjustmentKind::Reclassification { classification, .. } => Some(*classification),
-        AdjustmentKind::DurationWork { .. } | AdjustmentKind::Revocation => None,
-    }
 }
 
 /// `adjustment` over `interval` instead, under `id`.

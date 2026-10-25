@@ -15,6 +15,7 @@ use worktime_store::reviews::LongLockResolutionRepository;
 use worktime_store::sessions::SessionEventRepository;
 
 use super::*;
+use crate::corrections::{CorrectionError, ManualAdjustmentCommands};
 use crate::sources::{ActivityReadResult, ActivitySource};
 use crate::test_support::{Database, count, utc_accounting, utc_zones};
 
@@ -677,4 +678,132 @@ fn a_range_past_a_lock_takes_a_correction_reaching_out_of_it_in_one_go() {
             .collect();
         assert_eq!(replaced, [kept], "{from:?}–{to:?}");
     }
+}
+
+impl Day {
+    /// « J'ai travaillé » over `from`–`to`, as the day's corrections record it.
+    fn credit(&self, from: (i8, i8), to: (i8, i8)) -> Result<(), CorrectionError> {
+        self.with(|accounting, _| {
+            ManualAdjustmentCommands::new(
+                accounting,
+                ManualAdjustmentRepository::new(self.connection()),
+            )
+            .save(
+                &ManualAdjustment::interval_work(
+                    id(&format!("credit-{}-{}", from.0, from.1)),
+                    workday(),
+                    interval(from, to),
+                    at(17, 0),
+                )
+                .unwrap(),
+            )
+            .map(|_| ())
+        })
+    }
+
+    /// « Oui, je travaillais » on the day's one lock to review.
+    fn confirm_from_review(&self) -> Result<(), ReviewError> {
+        self.with(|accounting, _| {
+            let calculation = accounting
+                .calculate(MONDAY, &accounting.capture_context())
+                .unwrap();
+            let [review] = calculation.summary_input.accounting().pending_reviews() else {
+                panic!("the day has one lock to review");
+            };
+            LongLockReviews::new(
+                ManualAdjustmentRepository::new(self.connection()),
+                SessionEventRepository::new(self.connection(), &self.clock),
+                LongLockResolutionRepository::new(self.connection()),
+            )
+            .resolve(
+                accounting,
+                &workday(),
+                &review.id,
+                ManualResolution::ConfirmWork,
+            )
+            .map(|_| ())
+        })
+    }
+}
+
+/// Lock 09:00–11:00 with sleep 09:30–10:00 inside it, on a day of 475 min of activity.
+fn day_with_sleep_in_a_lock() -> Day {
+    let day = Day::new();
+    day.lock((9, 0), (11, 0));
+    day.sleep((9, 30), (10, 0));
+    assert_eq!(day.credited(), SignedDuration::from_mins(445));
+    day
+}
+
+#[test]
+fn counting_a_lock_keeps_the_sleep_the_user_credited_inside_it() {
+    for (from, to) in [((9, 0), (11, 0)), ((9, 30), (10, 0)), ((10, 15), (10, 45))] {
+        let day = day_with_sleep_in_a_lock();
+        day.credit((9, 30), (10, 0)).unwrap();
+        assert_eq!(day.credited(), SignedDuration::from_mins(475));
+
+        day.record(from, to, CREDITED).unwrap();
+
+        assert_eq!(
+            day.credited(),
+            SignedDuration::from_mins(475),
+            "{from:?}–{to:?}"
+        );
+        assert_eq!(count(day.connection(), "LongLockResolution"), 1);
+    }
+}
+
+#[test]
+fn confirming_a_lock_from_its_review_keeps_the_sleep_the_user_credited_inside_it() {
+    let day = day_with_sleep_in_a_lock();
+    day.credit((9, 30), (10, 0)).unwrap();
+
+    day.confirm_from_review().unwrap();
+
+    assert_eq!(day.credited(), SignedDuration::from_mins(475));
+    assert_eq!(count(day.connection(), "LongLockResolution"), 1);
+}
+
+#[test]
+fn the_sleep_inside_a_confirmed_lock_can_still_be_credited() {
+    let day = day_with_sleep_in_a_lock();
+    day.confirm_from_review().unwrap();
+    assert_eq!(day.credited(), SignedDuration::from_mins(445));
+
+    day.credit((9, 30), (10, 0)).unwrap();
+
+    assert_eq!(day.credited(), SignedDuration::from_mins(475));
+}
+
+#[test]
+fn a_confirmed_lock_still_refuses_an_exclusion_inside_it() {
+    let day = day_with_sleep_in_a_lock();
+    day.confirm_from_review().unwrap();
+
+    let refused = day.with(|accounting, _| {
+        ManualAdjustmentCommands::new(
+            accounting,
+            ManualAdjustmentRepository::new(day.connection()),
+        )
+        .save(
+            &ManualAdjustment::exclusion(
+                id("coffee"),
+                workday(),
+                interval((10, 15), (10, 45)),
+                day.clock.now(),
+            )
+            .unwrap(),
+        )
+    });
+
+    assert!(
+        matches!(
+            refused,
+            Err(CorrectionError::Adjustments(ManualAdjustmentError::Validation(
+                worktime_domain::adjustments::AdjustmentValidationError::OverlappingActiveAdjustments
+            )))
+        ),
+        "{refused:?}"
+    );
+    assert_eq!(day.credited(), SignedDuration::from_mins(445));
 }

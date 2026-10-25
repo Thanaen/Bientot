@@ -370,14 +370,16 @@ impl Bubble {
                 .iter()
                 .map(|(segment, _)| *segment)
                 .filter(|segment| {
-                    // A lock is settled whole, so a correction within it goes either way.
+                    // A lock is settled whole, so a correction within it goes, but a credit
+                    // when the lock is counted.
                     let in_lock = pieces.iter().any(|(other, _)| {
                         other.review.as_ref().is_some_and(|lock| {
                             lock.resolved.overlaps(segment.interval) && segment.review.is_none()
                         })
                     });
                     segment.adjustment_id.is_some()
-                        && (in_lock || !likely.keeps(Counted::of(segment.kind)))
+                        && (!likely.keeps(Counted::of(segment.kind))
+                            || (in_lock && likely == Answer::Exclude))
                         && !(likely == Answer::Count && asleep_in_confirmed(segment))
                 })
                 .collect();

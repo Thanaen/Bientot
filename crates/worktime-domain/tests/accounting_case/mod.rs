@@ -185,8 +185,26 @@ pub fn tracking(recorded: Recorded<&str>) -> Recorded<TrackingState> {
     Recorded::new(recorded.id, recorded.occurred_at, state, recorded.origin)
 }
 
+/// A case whose .NET expectation a later product decision changed: on line `line` of its
+/// fixture, the expectation ends in `net`, and the Rust domain gives `now` there instead.
+pub struct Revision {
+    pub line: usize,
+    pub net: &'static str,
+    pub now: &'static str,
+}
+
 /// Checks every case of one fixture file and reports the differing lines together.
 pub fn replay(name: &str, text: &str, check: impl Fn(&str) -> Result<String, String>) {
+    replay_revised(name, text, &[], check);
+}
+
+/// [`replay`], expecting each of `revisions` instead of what .NET computed on its line.
+pub fn replay_revised(
+    name: &str,
+    text: &str,
+    revisions: &[Revision],
+    check: impl Fn(&str) -> Result<String, String>,
+) {
     let mut cases = 0;
     let mut differences = Vec::new();
     for (index, line) in text.lines().enumerate() {
@@ -196,6 +214,15 @@ pub fn replay(name: &str, text: &str, check: impl Fn(&str) -> Result<String, Str
         let (input, expected) = line
             .split_once(" => ")
             .unwrap_or_else(|| panic!("{name}.txt:{} has no expectation", index + 1));
+        let expected = match revisions.iter().find(|revision| revision.line == index + 1) {
+            None => expected.to_owned(),
+            Some(revision) => {
+                let kept = expected.strip_suffix(revision.net).unwrap_or_else(|| {
+                    panic!("{name}.txt:{} does not end in {}", index + 1, revision.net)
+                });
+                format!("{kept}{}", revision.now)
+            }
+        };
         cases += 1;
         let actual = check(input).unwrap_or_else(|rejection| rejection);
         if actual != expected {

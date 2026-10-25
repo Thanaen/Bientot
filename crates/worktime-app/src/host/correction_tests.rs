@@ -334,9 +334,8 @@ fn sleep_in_a_confirmed_lock_takes_no_answer_from_the_ledger() {
     assert!(bubble.actions.iter().all(|action| !action.enabled));
 }
 
-/// A lock with its sleep declared as work: counting the lock takes the declaration out and
-/// leaves the sleep uncounted, and the bubble says so before the answer, as the ledger found
-/// on trial.
+/// A lock with its sleep declared as work: counting the lock keeps the declaration (#11), and
+/// the bubble says so before the answer, as the ledger found on trial.
 #[test]
 fn counting_a_lock_previews_what_the_ledger_records() {
     let folder = tempfile::tempdir().unwrap();
@@ -379,18 +378,19 @@ fn counting_a_lock_previews_what_the_ledger_records() {
         .id(state.timeline.today);
     state.open(lock);
     let preview = state.bubble().unwrap().preview.unwrap();
+    let credited = |today: &Today| {
+        let week = today.week().unwrap();
+        week.day(week.today)
+            .unwrap()
+            .figures
+            .as_ref()
+            .unwrap()
+            .credited
+    };
+    let before = credited(&today);
     let command = state.choose(Answer::Count).unwrap();
     today.run_week(&command).unwrap();
-    let week = today.week().unwrap();
-    let after = week
-        .day(week.today)
-        .unwrap()
-        .figures
-        .as_ref()
-        .unwrap()
-        .credited;
 
-    let after =
-        crate::time_text::minutes_text(after.round(jiff::Unit::Minute).unwrap(), Language::English);
-    assert!(preview.contains(&after), "{preview} / {after}");
+    assert_eq!(preview, "If you count it, the day total doesn’t change.");
+    assert_eq!(credited(&today), before);
 }
