@@ -5,13 +5,23 @@
 
 const RELEASES = "https://github.com/Thanaen/WorkTime/releases";
 
+// vpk names the files after the packId, Thanaen.WorkTime, which installed copies update by. The
+// Release workflow also publishes the downloads under the app's name, but GitHub answers 404 for
+// a file the latest release lacks, so /download serves the vpk name, which every release has,
+// until a published release carries the new one.
 export const SETUP = "Thanaen.WorkTime-win-Setup.exe";
 
 // The packages vpk names after their version, which names their release: v<version>.
 const PACKAGE = /^Thanaen\.WorkTime-(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)-(?:full|delta)\.nupkg$/;
 
 // The files of which only the latest release's copy matters: its feed lists every package.
-const LATEST = new Set(["releases.win.json", SETUP, "Thanaen.WorkTime-win-Portable.zip"]);
+const LATEST = new Set([
+  "releases.win.json",
+  SETUP,
+  "Thanaen.WorkTime-win-Portable.zip",
+  "Bientot-Setup.exe",
+  "Bientot-Portable.zip",
+]);
 
 // Where `file` is published, or null for a name the Release workflow never publishes.
 export function releaseUrl(file: string): string | null {

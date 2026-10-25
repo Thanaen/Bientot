@@ -150,6 +150,9 @@ its no-break space, or when a text uses a straight apostrophe.
   notices.
 - The release notes are the ones GitHub generates, without the pull requests
   scoped `site` or `repo` (`scripts/release-notes.sh`).
+- To tell users something in the next release only, such as a moved folder,
+  add a Markdown file to `scripts/release-announcements/`. The notes of the
+  first release whose range holds the commit that adds it start with it.
 - Write the subject in the imperative, lower case after the colon, without a
   final period.
 - Explain the why in the body. Name the task ID when the commit completes one

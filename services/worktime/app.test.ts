@@ -61,7 +61,15 @@ describe("GET /updates/:file", () => {
     },
   );
 
-  test("/download points at the latest installer", () => {
+  test.each(["Thanaen.WorkTime-win-Portable.zip", "Bientot-Setup.exe", "Bientot-Portable.zip"])(
+    "points at the latest release's %s",
+    (file) => {
+      expect(get(file).headers.get("location")).toBe(`${releases}/latest/download/${file}`);
+    },
+  );
+
+  // The latest release may predate the Bientot-* copies; every release has vpk's name.
+  test("/download points at the latest installer under the name every release has", () => {
     expect(app["/download"].GET().headers.get("location")).toBe(
       `${releases}/latest/download/Thanaen.WorkTime-win-Setup.exe`,
     );

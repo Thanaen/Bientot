@@ -22,7 +22,7 @@ statistics show no older version.
 | `GET /robots.txt`, `/sitemap.xml` | Generated from the pages listed in `src/site.ts` |
 | `POST /v1/ping` | `204`; `400` for any other shape, `413` above 256 bytes |
 | `GET /updates/<file>` | `302` to that file in the GitHub Releases (see Updates); `404` for a name the Release workflow never publishes |
-| `GET /download` | `302` to the latest `Setup.exe` |
+| `GET /download` | `302` to the latest installer, `Thanaen.WorkTime-win-Setup.exe` (see Updates) |
 
 ## Pages
 
@@ -115,13 +115,19 @@ with no script.
 ## Updates
 
 The Release workflow (`.github/workflows/release.yml`) publishes each release as a GitHub Release
-named `v<version>`: `Setup.exe`, the packages and the `releases.win.json` feed, which lists every
-package. The app reads `https://worktime.thanaen.dev/updates/releases.win.json` with no query
-string and no identifier. The service redirects, without caching:
+named `v<version>`: the installer, the portable ZIP, the packages and the `releases.win.json`
+feed, which lists every package. vpk names the files after the packId, `Thanaen.WorkTime`, which
+installed copies update by: `Thanaen.WorkTime-win-Setup.exe`, `Thanaen.WorkTime-win-Portable.zip`
+and `Thanaen.WorkTime-<version>-full.nupkg` or `-delta.nupkg`. The workflow also publishes the
+installer and the ZIP as `Bientot-Setup.exe` and `Bientot-Portable.zip`. The app reads
+`https://worktime.thanaen.dev/updates/releases.win.json` with no query string and no identifier.
+The service redirects, without caching:
 
-- the feed, `Setup.exe` (also at `/download`) and the portable ZIP to the latest release's copy;
-- a package, `Thanaen.WorkTime-<version>-full.nupkg` or `-delta.nupkg`, to the release of its
-  version.
+- the feed, the installer and the portable ZIP, under either name, to the latest release's copy;
+- a package to the release of its version;
+- `/download` to `Thanaen.WorkTime-win-Setup.exe`, the name every release has. GitHub answers
+  `404` for a file the latest release lacks, so `/download` moves to `Bientot-Setup.exe` only
+  once a published release carries it.
 
 These addresses stay the same wherever the files live.
 
