@@ -148,9 +148,9 @@ fn an_unavailable_demo_source_reads_as_the_built_in_one() {
     assert_eq!(
         lines[4..],
         [
-            "OpenSettings: WorkTime ne parvient pas à lire votre dernière utilisation du clavier ou \
+            "OpenSettings: Bientôt ne parvient pas à lire votre dernière utilisation du clavier ou \
              de la souris. Ce temps reste non renseigné. La lecture reprend d’elle-même.",
-            "tray: Lecture des saisies impossible · Ouvrez WorkTime",
+            "tray: Lecture des saisies impossible · Ouvrez l’application",
         ]
     );
 }
@@ -309,9 +309,9 @@ fn a_failed_built_in_source_names_its_cause_in_the_tray() {
             "SourceProblem Suivi à vérifier",
             "Départ prévu Prévision indisponible (message)",
             "Recalculée dès que le suivi reprend",
-            "OpenSettings: WorkTime ne parvient pas à lire votre dernière utilisation du clavier ou \
+            "OpenSettings: Bientôt ne parvient pas à lire votre dernière utilisation du clavier ou \
              de la souris. Ce temps reste non renseigné. La lecture reprend d’elle-même.",
-            "tray: Lecture des saisies impossible · Ouvrez WorkTime",
+            "tray: Lecture des saisies impossible · Ouvrez l’application",
         ]
     );
     assert_eq!(view.tray_icon.file_stem(), "indicator-green-degraded");
@@ -325,7 +325,7 @@ fn an_activitywatch_source_in_trouble_offers_the_built_in_detection() {
         view.source_hint,
         Some(SourceHint::Failure {
             message:
-                "ActivityWatch ne répond pas, et WorkTime ne le prend plus en charge. Passez à la \
+                "ActivityWatch ne répond pas, et Bientôt ne le prend plus en charge. Passez à la \
                       détection intégrée pour que votre temps continue d’être compté."
                     .into(),
             remedy: FailureRemedy::UseBuiltIn,
@@ -340,7 +340,7 @@ fn activitywatch_without_usable_tracking_points_to_the_built_in_detection() {
     assert_eq!(
         view.source_hint,
         Some(SourceHint::Failure {
-            message: "Aucun suivi d’activité utilisable n’a été trouvé. WorkTime ne prend plus en \
+            message: "Aucun suivi d’activité utilisable n’a été trouvé. Bientôt ne prend plus en \
                       charge ActivityWatch\u{a0}: passez à la détection intégrée."
                 .into(),
             remedy: FailureRemedy::UseBuiltIn,

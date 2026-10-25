@@ -82,14 +82,14 @@ fn a_running_day_offers_the_pause() {
     assert_eq!(
         shown(&state(TrackingState::Running), Language::French),
         [
-            "Ouvrir WorkTime",
+            "Ouvrir Bientôt",
             "---",
             "Mettre le suivi en pause",
             "Terminer la journée",
             "Corriger le temps…",
             "Exporter le diagnostic…",
             "---",
-            "Quitter WorkTime",
+            "Quitter Bientôt",
         ]
     );
 }
@@ -133,7 +133,7 @@ fn each_closed_lock_gets_a_submenu_named_by_its_time_range_in_chronological_orde
     assert_eq!(
         shown(&two_locks(), Language::French),
         [
-            "Ouvrir WorkTime",
+            "Ouvrir Bientôt",
             "---",
             "Mettre le suivi en pause",
             "Terminer la journée",
@@ -151,7 +151,7 @@ fn each_closed_lock_gets_a_submenu_named_by_its_time_range_in_chronological_orde
             "---",
             "Exporter le diagnostic…",
             "---",
-            "Quitter WorkTime",
+            "Quitter Bientôt",
         ]
     );
 }

@@ -343,7 +343,7 @@ fn a_failure_shows_in_the_callout_and_only_a_conflict_or_an_ended_week_keeps_sav
         page.callout,
         Some(Callout {
             tone: CalloutTone::Error,
-            message: "WorkTime n’a pas pu enregistrer cette correction. Vérifiez les valeurs puis réessayez.",
+            message: "Bientôt n’a pas pu enregistrer cette correction. Vérifiez les valeurs puis réessayez.",
         })
     );
     assert!(!page.locked && page.primary_enabled && !page.busy);

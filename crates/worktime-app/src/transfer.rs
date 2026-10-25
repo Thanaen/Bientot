@@ -36,7 +36,7 @@ pub fn export(
     cx: &mut App,
 ) {
     let file_type = file_type(cx);
-    let suggested = format!("WorkTime-{}.{EXTENSION}", jiff::Zoned::now().date());
+    let suggested = format!("Bientot-{}.{EXTENSION}", jiff::Zoned::now().date());
     cx.spawn(async move |cx| {
         let saved = match file_dialogs::pick_save(suggested, file_type, EXTENSION, cx).await {
             Ok(None) => None,

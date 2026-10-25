@@ -45,9 +45,9 @@ fn the_flyout_lists_its_commands_under_one_heading() {
             "Semaine\u{a0}: ouvrir",
             "Paramètres\u{a0}: ouvrir",
             "Paramètres\u{a0}: ouvrir settings.json",
-            "WorkTime\u{a0}: actualiser",
-            "WorkTime\u{a0}: exporter le diagnostic…",
-            "WorkTime\u{a0}: quitter",
+            "Bientôt\u{a0}: actualiser",
+            "Bientôt\u{a0}: exporter le diagnostic…",
+            "Bientôt\u{a0}: quitter",
         ]
     );
 }
@@ -71,9 +71,9 @@ fn the_week_adds_its_own_commands_after_the_correction_and_drops_its_opening() {
             "Day: finish",
             "Settings: open",
             "Settings: open settings.json",
-            "WorkTime: refresh",
-            "WorkTime: export diagnostics…",
-            "WorkTime: quit",
+            "Bientôt: refresh",
+            "Bientôt: export diagnostics…",
+            "Bientôt: quit",
         ]
     );
 }
@@ -112,9 +112,9 @@ fn a_day_off_hides_the_tracking_commands() {
                 "Week: open",
                 "Settings: open",
                 "Settings: open settings.json",
-                "WorkTime: refresh",
-                "WorkTime: export diagnostics…",
-                "WorkTime: quit",
+                "Bientôt: refresh",
+                "Bientôt: export diagnostics…",
+                "Bientôt: quit",
             ],
             "{tracking:?}"
         );
@@ -138,7 +138,7 @@ fn rows_read_with_their_shortcut_when_they_have_one() {
     let english = names(Host::Flyout, Language::English);
     assert_eq!(english[2], "Day: finish, Ctrl+Shift+F");
     assert_eq!(english[4], "Settings: open, Ctrl+Comma");
-    assert_eq!(english[7], "WorkTime: export diagnostics…");
+    assert_eq!(english[7], "Bientôt: export diagnostics…");
 }
 
 #[test]

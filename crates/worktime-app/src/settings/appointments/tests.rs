@@ -490,7 +490,7 @@ fn counting_automatically_is_chosen_in_the_editor_and_reads_so_in_the_row() {
     assert!(
         editor
             .mode_note
-            .starts_with("WorkTime compte l’absence provisoirement")
+            .starts_with("Bientôt compte l’absence provisoirement")
     );
 
     form.choose_appointment_mode(true);

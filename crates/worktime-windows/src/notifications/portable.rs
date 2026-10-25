@@ -75,7 +75,7 @@ impl RegistrationPlan {
             RegistryValue {
                 key: aumid_key.clone(),
                 name: "DisplayName",
-                data: "WorkTime".into(),
+                data: "Bientôt".into(),
             },
             RegistryValue {
                 key: aumid_key.clone(),
@@ -157,7 +157,7 @@ mod tests {
         assert_eq!(
             plan.values(),
             [
-                value(aumid, "DisplayName", "WorkTime"),
+                value(aumid, "DisplayName", "Bientôt"),
                 value(
                     aumid,
                     "IconUri",

@@ -198,10 +198,10 @@
     <value>Ce jour fait partie d’une semaine terminée et ne peut plus être corrigé.</value>
   </data>
   <data name="AdjustTimeErrorSubmissionFailed" xml:space="preserve">
-    <value>WorkTime n’a pas pu enregistrer cette correction. Vérifiez les valeurs puis réessayez.</value>
+    <value>Bientôt n’a pas pu enregistrer cette correction. Vérifiez les valeurs puis réessayez.</value>
   </data>
   <data name="CommandErrorDialogTitle" xml:space="preserve">
-    <value>WorkTime n’a pas pu terminer l’action</value>
+    <value>Bientôt n’a pas pu terminer l’action</value>
   </data>
   <data name="CommandErrorDialogCloseButton" xml:space="preserve">
     <value>Fermer</value>
@@ -210,10 +210,10 @@
     <value>La commande a échoué. Réessayez. L’état actuel du suivi n’a pas été modifié.</value>
   </data>
   <data name="PeriodicRefreshErrorMessage" xml:space="preserve">
-    <value>WorkTime n’a pas pu actualiser les données. Une nouvelle tentative aura lieu automatiquement.</value>
+    <value>Bientôt n’a pas pu actualiser les données. Une nouvelle tentative aura lieu automatiquement.</value>
   </data>
-  <data name="ShellTitle.Text" xml:space="preserve"><value>WorkTime</value></data>
-  <data name="ShellWindowTitle" xml:space="preserve"><value>WorkTime</value></data>
+  <data name="ShellTitle.Text" xml:space="preserve"><value>Bientôt</value></data>
+  <data name="ShellWindowTitle" xml:space="preserve"><value>Bientôt</value></data>
   <data name="ShellSettings.AutomationProperties.Name" xml:space="preserve"><value>Réglages de la journée</value></data>
   <data name="ShellSettings.ToolTipService.ToolTip" xml:space="preserve"><value>Réglages de la journée</value></data>
   <data name="ShellDemo.Title" xml:space="preserve"><value>Démonstration</value></data>
@@ -246,15 +246,15 @@
   <data name="DemoCredit" xml:space="preserve"><value>Crédit appliqué · mardi 16:00</value></data>
   <data name="DemoHistoryWeek" xml:space="preserve"><value>Semaine actuelle enregistrée · vendredi 18:00</value></data>
   <data name="SourceTitle" xml:space="preserve"><value>Activité</value></data>
-  <data name="SourceUnavailable" xml:space="preserve"><value>ActivityWatch ne répond pas, et WorkTime ne le prend plus en charge. Passez à la détection intégrée pour que votre temps continue d’être compté.</value></data>
-  <data name="SourceUnauthorized" xml:space="preserve"><value>ActivityWatch a refusé la connexion. WorkTime ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
-  <data name="SourceAmbiguous" xml:space="preserve"><value>ActivityWatch contient plusieurs historiques d’activité. WorkTime ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
-  <data name="SourceMalformed" xml:space="preserve"><value>WorkTime ne peut pas lire les données ActivityWatch. WorkTime ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
-  <data name="SourceStale" xml:space="preserve"><value>L’activité n’est plus mise à jour. WorkTime ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
+  <data name="SourceUnavailable" xml:space="preserve"><value>ActivityWatch ne répond pas, et Bientôt ne le prend plus en charge. Passez à la détection intégrée pour que votre temps continue d’être compté.</value></data>
+  <data name="SourceUnauthorized" xml:space="preserve"><value>ActivityWatch a refusé la connexion. Bientôt ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
+  <data name="SourceAmbiguous" xml:space="preserve"><value>ActivityWatch contient plusieurs historiques d’activité. Bientôt ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
+  <data name="SourceMalformed" xml:space="preserve"><value>Bientôt ne peut pas lire les données ActivityWatch. Bientôt ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
+  <data name="SourceStale" xml:space="preserve"><value>L’activité n’est plus mise à jour. Bientôt ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
   <data name="SourceIncomplete" xml:space="preserve"><value>Aucun suivi d’activité utilisable n’a été trouvé. Activez la détection d’inactivité dans ActivityWatch, puis cliquez sur Actualiser.</value></data>
-  <data name="SourceActivityWatchIncomplete" xml:space="preserve"><value>Aucun suivi d’activité utilisable n’a été trouvé. WorkTime ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
-  <data name="SourceBuiltInInputFailed" xml:space="preserve"><value>WorkTime ne parvient pas à lire votre dernière utilisation du clavier ou de la souris. Ce temps reste non renseigné. La lecture reprend d’elle-même.</value></data>
-  <data name="SourceBuiltInInterrupted" xml:space="preserve"><value>L’enregistrement de l’activité s’est interrompu. Il reprend de lui-même. Si ce message reste affiché, redémarrez WorkTime.</value></data>
+  <data name="SourceActivityWatchIncomplete" xml:space="preserve"><value>Aucun suivi d’activité utilisable n’a été trouvé. Bientôt ne prend plus en charge ActivityWatch : passez à la détection intégrée.</value></data>
+  <data name="SourceBuiltInInputFailed" xml:space="preserve"><value>Bientôt ne parvient pas à lire votre dernière utilisation du clavier ou de la souris. Ce temps reste non renseigné. La lecture reprend d’elle-même.</value></data>
+  <data name="SourceBuiltInInterrupted" xml:space="preserve"><value>L’enregistrement de l’activité s’est interrompu. Il reprend de lui-même. Si ce message reste affiché, redémarrez l’application.</value></data>
   <data name="SourceNotSelected" xml:space="preserve"><value>Aucune source d’activité n’est choisie pour cette période. Ce temps reste non renseigné.</value></data>
   <data name="WorkdayEstimatedProjectionQualifier" xml:space="preserve"><value>Selon le travail enregistré</value></data>
   <data name="SourceMissingOneFormat" xml:space="preserve"><value>Temps non renseigné · {1}, de {2} à {3}.</value></data>
@@ -283,40 +283,40 @@
   <data name="ActivitySourceSwitchFailed" xml:space="preserve"><value>Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.</value></data>
   <data name="SettingsSavedPending" xml:space="preserve"><value>Réglages enregistrés. Actualisez pour mettre à jour votre journée.</value></data>
   <data name="SettingsRecovered" xml:space="preserve"><value>Les réglages invalides ont été sauvegardés à part et les valeurs par défaut rétablies. Vérifiez vos réglages.</value></data>
-  <data name="InitializationFailed" xml:space="preserve"><value>WorkTime n’a pas pu démarrer. Vérifiez les paramètres et la base locale, puis relancez l’application.</value></data>
-  <data name="ImportWaitsForNextStart" xml:space="preserve"><value>WorkTime n’a pas pu redémarrer. Vos données seront importées au prochain démarrage. Si l’icône WorkTime est encore dans la zone de notification, choisissez « Quitter WorkTime » dans son menu. Relancez ensuite WorkTime.</value></data>
-  <data name="StartupFailureTitle" xml:space="preserve"><value>WorkTime n’a pas pu démarrer</value></data>
-  <data name="StartupFailureMessage" xml:space="preserve"><value>Vérifiez les paramètres et la base de données locale, puis relancez WorkTime. Si le problème persiste, exportez le diagnostic.</value></data>
+  <data name="InitializationFailed" xml:space="preserve"><value>Bientôt n’a pas pu démarrer. Vérifiez les paramètres et la base locale, puis relancez l’application.</value></data>
+  <data name="ImportWaitsForNextStart" xml:space="preserve"><value>Bientôt n’a pas pu redémarrer. Vos données seront importées au prochain démarrage. Si l’icône de Bientôt est encore dans la zone de notification, choisissez « Quitter Bientôt » dans son menu. Relancez ensuite l’application.</value></data>
+  <data name="StartupFailureTitle" xml:space="preserve"><value>Bientôt n’a pas pu démarrer</value></data>
+  <data name="StartupFailureMessage" xml:space="preserve"><value>Vérifiez les paramètres et la base de données locale, puis relancez l’application. Si le problème persiste, exportez le diagnostic.</value></data>
   <data name="StartupFailureDetailsHeader" xml:space="preserve"><value>Détails</value></data>
   <data name="StartupFailureCloseButton" xml:space="preserve"><value>Fermer</value></data>
   <data name="StartupFailureExportingButton" xml:space="preserve"><value>Exportation…</value></data>
-  <data name="StartupFailureDemoDataMessage" xml:space="preserve"><value>Ce dossier contient des données WorkTime que la démo n’a pas créées, et la démo n’y touche pas. Lancez la démo avec un autre dossier, ou sans --data-dir.</value></data>
+  <data name="StartupFailureDemoDataMessage" xml:space="preserve"><value>Ce dossier contient des données de Bientôt que la démo n’a pas créées, et la démo n’y touche pas. Lancez la démo avec un autre dossier, ou sans --data-dir.</value></data>
   <data name="StartupFailureDemoScenarioMessage" xml:space="preserve"><value>Ce dossier conserve la démo d’un autre scénario. Relancez ce scénario, ou lancez celui-ci avec un autre dossier.</value></data>
-  <data name="TrayOpenCommand" xml:space="preserve"><value>Ouvrir WorkTime</value></data>
-  <data name="TrayQuitCommand" xml:space="preserve"><value>Quitter WorkTime</value></data>
+  <data name="TrayOpenCommand" xml:space="preserve"><value>Ouvrir Bientôt</value></data>
+  <data name="TrayQuitCommand" xml:space="preserve"><value>Quitter Bientôt</value></data>
   <data name="WorkdayKnownWorkedLabel" xml:space="preserve"><value>Temps connu</value></data>
-  <data name="StartupEnabled" xml:space="preserve"><value>WorkTime démarrera à la prochaine ouverture de session.</value></data>
-  <data name="StartupDisabled" xml:space="preserve"><value>WorkTime ne démarrera pas à l’ouverture de session.</value></data>
-  <data name="StartupDisabledByUser" xml:space="preserve"><value>Les applications de démarrage Windows ont désactivé WorkTime. Réactivez-le dans Paramètres &gt; Applications &gt; Démarrage.</value></data>
-  <data name="StartupDisabledByPolicy" xml:space="preserve"><value>Votre organisation empêche WorkTime de démarrer à l’ouverture de session.</value></data>
-  <data name="StartupEnabledByPolicy" xml:space="preserve"><value>Votre organisation démarre WorkTime à l’ouverture de session.</value></data>
-  <data name="StartupRegistrationMismatch" xml:space="preserve"><value>Une autre copie utilise l’entrée de démarrage WorkTime. Activez ce réglage pour utiliser cette copie.</value></data>
-  <data name="StartupUnavailable" xml:space="preserve"><value>Le démarrage automatique n’est pas disponible pour cette copie de WorkTime.</value></data>
+  <data name="StartupEnabled" xml:space="preserve"><value>Bientôt démarrera à la prochaine ouverture de session.</value></data>
+  <data name="StartupDisabled" xml:space="preserve"><value>Bientôt ne démarrera pas à l’ouverture de session.</value></data>
+  <data name="StartupDisabledByUser" xml:space="preserve"><value>Les applications de démarrage Windows ont désactivé Bientôt. Réactivez-le dans Paramètres &gt; Applications &gt; Démarrage.</value></data>
+  <data name="StartupDisabledByPolicy" xml:space="preserve"><value>Votre organisation empêche Bientôt de démarrer à l’ouverture de session.</value></data>
+  <data name="StartupEnabledByPolicy" xml:space="preserve"><value>Votre organisation impose le démarrage de Bientôt à l’ouverture de session.</value></data>
+  <data name="StartupRegistrationMismatch" xml:space="preserve"><value>Une autre copie utilise l’entrée de démarrage de Bientôt. Activez ce réglage pour utiliser cette copie.</value></data>
+  <data name="StartupUnavailable" xml:space="preserve"><value>Le démarrage automatique n’est pas disponible pour cette copie de Bientôt.</value></data>
   <data name="SettingsStartupChangeFailed" xml:space="preserve"><value>Windows n’a pas modifié le démarrage. Vérifiez l’état ci-dessus et réessayez.</value></data>
-  <data name="NotificationTitle" xml:space="preserve"><value>WorkTime</value></data>
+  <data name="NotificationTitle" xml:space="preserve"><value>Bientôt</value></data>
   <data name="NotificationCompletionBody" xml:space="preserve"><value>Il reste {0} minutes avant votre objectif. Départ prévu : {1}.</value></data>
   <data name="NotificationDepartureBody" xml:space="preserve"><value>Votre heure limite de départ approche. Il reste {0} minutes. Départ prévu : {1}.</value></data>
   <data name="NotificationCombinedBody" xml:space="preserve"><value>Il reste {0} minutes et votre heure limite de départ approche. Départ prévu : {1}.</value></data>
   <data name="NotificationCompleteBody" xml:space="preserve"><value>Votre objectif quotidien est atteint.</value></data>
   <data name="NotificationEstimateQualifier" xml:space="preserve"><value>Selon le travail enregistré.</value></data>
-  <data name="NotificationFailed" xml:space="preserve"><value>WorkTime n’a pas pu afficher une notification. Le suivi continue.</value></data>
+  <data name="NotificationFailed" xml:space="preserve"><value>Bientôt n’a pas pu afficher une notification. Le suivi continue.</value></data>
   <data name="NotificationRegistrationFailed" xml:space="preserve"><value>Les notifications Windows sont indisponibles. Le suivi continue.</value></data>
   <data name="NotificationSmokeBody" xml:space="preserve"><value>Test de notification. Aucune donnée de journée n’a été utilisée.</value></data>
   <data name="TrayStatusOrange" xml:space="preserve"><value>Départ proche de la limite</value></data>
   <data name="TrayStatusRed" xml:space="preserve"><value>Départ après la limite</value></data>
   <data name="TrayProjectionFormat" xml:space="preserve"><value>Départ {0}</value></data>
   <data name="TrayOvertimeFormat" xml:space="preserve"><value>Heures sup. {0}</value></data>
-  <data name="TraySourceFailureFormat" xml:space="preserve"><value>{0} · Ouvrez WorkTime</value></data>
+  <data name="TraySourceFailureFormat" xml:space="preserve"><value>{0} · Ouvrez l’application</value></data>
   <data name="TraySourceUnavailable" xml:space="preserve"><value>Données d’activité indisponibles</value></data>
   <data name="TraySourceUnauthorized" xml:space="preserve"><value>Accès aux activités refusé</value></data>
   <data name="TraySourceAmbiguous" xml:space="preserve"><value>Historique d’activité à sélectionner</value></data>
@@ -336,7 +336,7 @@
   <data name="TrayExportDiagnosticsCommand" xml:space="preserve"><value>Exporter le diagnostic…</value></data>
   <data name="DiagnosticZipFileType" xml:space="preserve"><value>Archive ZIP</value></data>
   <data name="DiagnosticExportSucceeded" xml:space="preserve"><value>Le ZIP de diagnostic a été enregistré.</value></data>
-  <data name="DiagnosticExportFailed" xml:space="preserve"><value>WorkTime n’a pas pu enregistrer le ZIP de diagnostic. Choisissez un autre emplacement et réessayez.</value></data>
+  <data name="DiagnosticExportFailed" xml:space="preserve"><value>Bientôt n’a pas pu enregistrer le ZIP de diagnostic. Choisissez un autre emplacement et réessayez.</value></data>
   <data name="SettingsWindowTitle" xml:space="preserve"><value>Paramètres</value></data>
   <data name="SettingsApplicationGroup" xml:space="preserve"><value>Application</value></data>
   <data name="SettingsTargetsGroup" xml:space="preserve"><value>Objectifs</value></data>
@@ -349,10 +349,10 @@
   <data name="SettingsVersionReleasedFormat" xml:space="preserve"><value>Publiée le {0:d MMMM yyyy}</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Envoyer un signal d’utilisation anonyme</value></data>
-  <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Une fois par jour, sans identifiant ni donnée sur votre temps de travail. Ce décompte aide le développeur à savoir combien de personnes utilisent WorkTime.</value></data>
+  <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Une fois par jour, sans identifiant ni donnée sur votre temps de travail. Ce décompte aide le développeur à savoir combien de personnes utilisent Bientôt.</value></data>
   <data name="SettingsUsagePingInput.AutomationProperties.Name" xml:space="preserve"><value>Signal d’utilisation anonyme</value></data>
   <data name="SettingsUsagePingDetails" xml:space="preserve"><value>Voir ce qui est envoyé</value></data>
-  <data name="SettingsUsagePingFieldsFormat" xml:space="preserve"><value>C’est tout ce qui est envoyé. « channel » indique où vous avez installé WorkTime (ici, {0}) et « first_this_month » vaut true pour le premier envoi du mois.</value></data>
+  <data name="SettingsUsagePingFieldsFormat" xml:space="preserve"><value>C’est tout ce qui est envoyé. « channel » indique où vous avez installé Bientôt (ici, {0}) et « first_this_month » vaut true pour le premier envoi du mois.</value></data>
   <data name="UsagePingChannelStore" xml:space="preserve"><value>le Microsoft Store</value></data>
   <data name="UsagePingChannelZip" xml:space="preserve"><value>l’archive ZIP</value></data>
   <data name="SettingsUsagePingServerText" xml:space="preserve"><value>Le serveur ne garde rien et transmet ce signal à PostHog, hébergé dans l’Union européenne, sans votre adresse IP ni rien qui permette de vous reconnaître.</value></data>
@@ -361,9 +361,9 @@
   <data name="SettingsUsagePingLastSentToday" xml:space="preserve"><value>aujourd’hui</value></data>
   <data name="SettingsUsagePingLastSentYesterday" xml:space="preserve"><value>hier</value></data>
   <data name="SettingsUsagePingLastSentDateFormat" xml:space="preserve"><value>{0:d MMMM}</value></data>
-  <data name="SettingsUsagePingOffText" xml:space="preserve"><value>Désactivé : WorkTime n’envoie aucun signal.</value></data>
+  <data name="SettingsUsagePingOffText" xml:space="preserve"><value>Désactivé : Bientôt n’envoie aucun signal.</value></data>
   <data name="SettingsActivityWatchCalloutTitle" xml:space="preserve"><value>ActivityWatch n’est plus pris en charge</value></data>
-  <data name="SettingsActivityWatchCalloutMessage" xml:space="preserve"><value>WorkTime détecte maintenant l’activité lui-même. Passez à la détection intégrée pour que votre temps continue d’être compté.</value></data>
+  <data name="SettingsActivityWatchCalloutMessage" xml:space="preserve"><value>Bientôt détecte désormais l’activité lui-même. Passez à la détection intégrée pour que votre temps continue d’être compté.</value></data>
   <data name="SettingsActivityWatchCalloutAction" xml:space="preserve"><value>Utiliser la détection intégrée</value></data>
   <data name="SettingsJsonNav.Content" xml:space="preserve"><value>settings.json</value></data>
   <data name="SettingsDataNav.Content" xml:space="preserve"><value>Données</value></data>
@@ -373,22 +373,22 @@
   <data name="SettingsExportDescription" xml:space="preserve"><value>Enregistre votre historique et vos paramètres dans un fichier à importer sur votre nouveau PC.</value></data>
   <data name="SettingsExportAction" xml:space="preserve"><value>Exporter…</value></data>
   <data name="SettingsImportTitle" xml:space="preserve"><value>Importer des données</value></data>
-  <data name="SettingsImportDescription" xml:space="preserve"><value>Remplace l’historique et les paramètres de ce PC par ceux d’un fichier exporté. WorkTime garde une copie des données actuelles.</value></data>
+  <data name="SettingsImportDescription" xml:space="preserve"><value>Remplace l’historique et les paramètres de ce PC par ceux d’un fichier exporté. Bientôt garde une copie des données actuelles.</value></data>
   <data name="SettingsImportAction" xml:space="preserve"><value>Importer…</value></data>
   <data name="SettingsTransferDemo" xml:space="preserve"><value>L’export et l’import sont désactivés dans la démo.</value></data>
   <data name="SettingsExporting" xml:space="preserve"><value>Exportation…</value></data>
   <data name="SettingsExportedFormat" xml:space="preserve"><value>Données exportées · {0}. Importez-le sur votre nouveau PC.</value></data>
-  <data name="SettingsExportFailed" xml:space="preserve"><value>WorkTime n’a pas pu enregistrer le fichier. Choisissez un autre emplacement et réessayez.</value></data>
+  <data name="SettingsExportFailed" xml:space="preserve"><value>Bientôt n’a pas pu enregistrer le fichier. Choisissez un autre emplacement et réessayez.</value></data>
   <data name="SettingsImportReading" xml:space="preserve"><value>Lecture du fichier…</value></data>
-  <data name="SettingsImportNotATransfer" xml:space="preserve"><value>Ce fichier n’est pas une exportation WorkTime. Choisissez un fichier .worktime.</value></data>
-  <data name="SettingsImportNewer" xml:space="preserve"><value>Ce fichier vient d’une version plus récente de WorkTime. Mettez WorkTime à jour sur ce PC, puis réessayez.</value></data>
-  <data name="SettingsImportReadFailed" xml:space="preserve"><value>WorkTime n’a pas pu lire ce fichier. Copiez-le sur ce PC, puis réessayez.</value></data>
-  <data name="SettingsImportFailed" xml:space="preserve"><value>WorkTime n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.</value></data>
-  <data name="SettingsImportRestarting" xml:space="preserve"><value>Redémarrage de WorkTime…</value></data>
+  <data name="SettingsImportNotATransfer" xml:space="preserve"><value>Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .worktime.</value></data>
+  <data name="SettingsImportNewer" xml:space="preserve"><value>Ce fichier vient d’une version plus récente de Bientôt. Installez la dernière version de Bientôt sur ce PC, puis réessayez.</value></data>
+  <data name="SettingsImportReadFailed" xml:space="preserve"><value>Bientôt n’a pas pu lire ce fichier. Copiez-le sur ce PC, puis réessayez.</value></data>
+  <data name="SettingsImportFailed" xml:space="preserve"><value>Bientôt n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.</value></data>
+  <data name="SettingsImportRestarting" xml:space="preserve"><value>Redémarrage de Bientôt…</value></data>
   <data name="SettingsImportDialogTitle" xml:space="preserve"><value>Remplacer les données de ce PC ?</value></data>
   <data name="SettingsImportDialogPeriodFormat" xml:space="preserve"><value>Ce fichier, exporté le {0:d MMMM yyyy}, contient votre historique du {1:d MMMM yyyy} au {2:d MMMM yyyy}.</value></data>
   <data name="SettingsImportDialogEmptyFormat" xml:space="preserve"><value>Ce fichier, exporté le {0:d MMMM yyyy}, ne contient aucun historique.</value></data>
-  <data name="SettingsImportDialogMessage" xml:space="preserve"><value>WorkTime enregistre d’abord une copie des données de ce PC, puis redémarre.</value></data>
+  <data name="SettingsImportDialogMessage" xml:space="preserve"><value>Bientôt enregistre d’abord une copie des données de ce PC, puis redémarre.</value></data>
   <data name="SettingsImportDialogThisPcFormat" xml:space="preserve"><value>Ce PC contient votre historique du {0:d MMMM yyyy} au {1:d MMMM yyyy}.</value></data>
   <data name="SettingsImportDialogLossFormat" xml:space="preserve"><value>Les jours enregistrés sur ce PC après le {0:d MMMM yyyy} ne seront plus dans l’historique.</value></data>
   <data name="SettingsImportDialogLossOutside" xml:space="preserve"><value>Les jours enregistrés sur ce PC en dehors de la période du fichier ne seront plus dans l’historique.</value></data>
@@ -397,27 +397,27 @@
   <data name="SettingsBackupDescriptionFormat" xml:space="preserve"><value>Enregistrée le {0:d MMMM yyyy}. Restaurez-la pour revenir aux données remplacées.</value></data>
   <data name="SettingsRestoreAction" xml:space="preserve"><value>Restaurer…</value></data>
   <data name="SettingsRestoreReading" xml:space="preserve"><value>Lecture de la copie…</value></data>
-  <data name="SettingsRestoreReadFailed" xml:space="preserve"><value>WorkTime n’a pas pu lire cette copie. Affichez-la dans l’Explorateur, puis importez-la depuis « Importer… ».</value></data>
-  <data name="SettingsRestoreFailed" xml:space="preserve"><value>WorkTime n’a pas pu restaurer cette copie. Vos données n’ont pas changé. Réessayez.</value></data>
+  <data name="SettingsRestoreReadFailed" xml:space="preserve"><value>Bientôt n’a pas pu lire cette copie. Affichez-la dans l’Explorateur, puis importez-la depuis « Importer… ».</value></data>
+  <data name="SettingsRestoreFailed" xml:space="preserve"><value>Bientôt n’a pas pu restaurer cette copie. Vos données n’ont pas changé. Réessayez.</value></data>
   <data name="SettingsRestoreDialogPeriodFormat" xml:space="preserve"><value>Cette copie, enregistrée le {0:d MMMM yyyy}, contient votre historique du {1:d MMMM yyyy} au {2:d MMMM yyyy}.</value></data>
   <data name="SettingsRestoreDialogEmptyFormat" xml:space="preserve"><value>Cette copie, enregistrée le {0:d MMMM yyyy}, ne contient aucun historique.</value></data>
   <data name="SettingsShowInExplorer" xml:space="preserve"><value>Afficher dans l’Explorateur</value></data>
   <data name="SettingsImportCancel" xml:space="preserve"><value>Annuler</value></data>
   <data name="SettingsImportConfirm" xml:space="preserve"><value>Remplacer et redémarrer</value></data>
-  <data name="TransferFileType" xml:space="preserve"><value>Données WorkTime</value></data>
+  <data name="TransferFileType" xml:space="preserve"><value>Données Bientôt</value></data>
   <data name="TransferImported" xml:space="preserve"><value>Données importées · Une copie de vos anciennes données reste dans Paramètres › Données.</value></data>
-  <data name="TransferImportFailed" xml:space="preserve"><value>WorkTime n’a pas pu importer le fichier. Vos données n’ont pas changé. Réessayez depuis les paramètres.</value></data>
+  <data name="TransferImportFailed" xml:space="preserve"><value>Bientôt n’a pas pu importer le fichier. Vos données n’ont pas changé. Réessayez depuis les paramètres.</value></data>
   <data name="SettingsJsonReadOnly" xml:space="preserve"><value>Lecture seule</value></data>
   <data name="SettingsJsonOpenFile" xml:space="preserve"><value>Ouvrir le fichier</value></data>
-  <data name="SettingsJsonRestartNote" xml:space="preserve"><value>Les modifications faites dans un éditeur s’appliquent au prochain démarrage de WorkTime.</value></data>
+  <data name="SettingsJsonRestartNote" xml:space="preserve"><value>Les modifications faites dans un éditeur s’appliquent au prochain démarrage de Bientôt.</value></data>
   <data name="SettingsGeneralNav.Content" xml:space="preserve"><value>Général</value></data>
   <data name="SettingsScheduleNav.Content" xml:space="preserve"><value>Horaires</value></data>
   <data name="SettingsAccountingNav.Content" xml:space="preserve"><value>Comptabilisation</value></data>
   <data name="SettingsNotificationsNav.Content" xml:space="preserve"><value>Notifications</value></data>
   <data name="SettingsRetry.Content" xml:space="preserve"><value>Réessayer</value></data>
   <data name="SettingsGeneralTitle" xml:space="preserve"><value>Général</value></data>
-  <data name="SettingsGeneralDescriptionRealText" xml:space="preserve"><value>La langue change après le redémarrage de WorkTime.</value></data>
-  <data name="SettingsGeneralDescriptionDemoText" xml:space="preserve"><value>La langue change après le redémarrage de WorkTime. Le démarrage Windows est indisponible en mode démo.</value></data>
+  <data name="SettingsGeneralDescriptionRealText" xml:space="preserve"><value>La langue change après le redémarrage de Bientôt.</value></data>
+  <data name="SettingsGeneralDescriptionDemoText" xml:space="preserve"><value>La langue change après le redémarrage de Bientôt. Le démarrage Windows est indisponible en mode démo.</value></data>
   <data name="SettingsLunchStartLabel.Text" xml:space="preserve"><value>Début</value></data>
   <data name="SettingsLunchEndLabel.Text" xml:space="preserve"><value>Fin</value></data>
   <data name="SettingsLunchStartInput.AutomationProperties.Name" xml:space="preserve"><value>Heure de début du déjeuner</value></data>
@@ -437,7 +437,7 @@
   <data name="SettingsDayCompleteInput.OnContent" xml:space="preserve"><value>Activé</value></data>
   <data name="SettingsDayCompleteInput.OffContent" xml:space="preserve"><value>Désactivé</value></data>
   <data name="SettingsLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Langue de l’application</value></data>
-  <data name="SettingsStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Démarrer WorkTime avec Windows</value></data>
+  <data name="SettingsStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Démarrer Bientôt avec Windows</value></data>
   <data name="SettingsStartupInput.OnContent" xml:space="preserve"><value>Activé</value></data>
   <data name="SettingsStartupInput.OffContent" xml:space="preserve"><value>Désactivé</value></data>
   <data name="SettingsUpdatesInput.AutomationProperties.Name" xml:space="preserve"><value>Rechercher les mises à jour</value></data>
@@ -455,15 +455,15 @@
   <data name="SettingsAfkInput.AutomationProperties.Name" xml:space="preserve"><value>Délai AFK ActivityWatch en secondes</value></data>
   <data name="SettingsPollInput.AutomationProperties.Name" xml:space="preserve"><value>Intervalle d’interrogation ActivityWatch en secondes</value></data>
   <data name="SettingsLanguageCard.Header" xml:space="preserve"><value>Langue</value></data>
-  <data name="SettingsLanguageCard.Description" xml:space="preserve"><value>Langue de WorkTime, appliquée au prochain démarrage.</value></data>
+  <data name="SettingsLanguageCard.Description" xml:space="preserve"><value>Langue de Bientôt, appliquée au prochain démarrage.</value></data>
   <data name="SettingsLanguageSystem.Content" xml:space="preserve"><value>Système</value></data>
   <data name="SettingsLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
   <data name="SettingsLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
   <data name="SettingsStartupCard.Header" xml:space="preserve"><value>Démarrage Windows</value></data>
-  <data name="SettingsStartupCard.Description" xml:space="preserve"><value>Démarrer WorkTime à l’ouverture de session.</value></data>
+  <data name="SettingsStartupCard.Description" xml:space="preserve"><value>Démarrer Bientôt à l’ouverture de session.</value></data>
   <data name="SettingsUpdatesCard.Header" xml:space="preserve"><value>Rechercher les mises à jour</value></data>
   <data name="SettingsUpdatesCard.Description" xml:space="preserve"><value>Vérifie une fois par jour si une nouvelle version est disponible.</value></data>
-  <data name="SettingsUpdatesCard.DirectDescription" xml:space="preserve"><value>Télécharge chaque jour la nouvelle version, s’il y en a une. Elle s’installe au prochain démarrage de WorkTime.</value></data>
+  <data name="SettingsUpdatesCard.DirectDescription" xml:space="preserve"><value>Télécharge chaque jour la nouvelle version, s’il y en a une. Elle s’installe au prochain démarrage de Bientôt.</value></data>
   <data name="SettingsUpdatesZipText" xml:space="preserve"><value>La version ZIP ne recherche pas les mises à jour. Téléchargez les nouvelles versions sur GitHub.</value></data>
   <data name="SettingsScheduleTitle" xml:space="preserve"><value>Horaires</value></data>
   <data name="SettingsTargetCard.Header" xml:space="preserve"><value>Objectif quotidien</value></data>
@@ -473,7 +473,7 @@
   <data name="SettingsLunchCard.Header" xml:space="preserve"><value>Pause déjeuner</value></data>
   <data name="SettingsLunchCard.Description" xml:space="preserve"><value>Heures de début et de fin.</value></data>
   <data name="SettingsDepartureCard.Header" xml:space="preserve"><value>Heure limite de départ souhaitée</value></data>
-  <data name="SettingsDepartureCard.Description" xml:space="preserve"><value>WorkTime vous prévient quand votre départ prévu approche de cette heure ou la dépasse.</value></data>
+  <data name="SettingsDepartureCard.Description" xml:space="preserve"><value>Bientôt vous prévient quand votre départ prévu approche de cette heure ou la dépasse.</value></data>
   <data name="SettingsMarginCard.Header" xml:space="preserve"><value>Marge d’alerte</value></data>
   <data name="SettingsMarginCard.Description" xml:space="preserve"><value>Minutes avant l’heure de départ souhaitée.</value></data>
   <data name="SettingsAccountingTitle" xml:space="preserve"><value>Comptabilisation</value></data>
@@ -555,14 +555,14 @@
   <data name="DemoFragmentedDay" xml:space="preserve"><value>Journée fragmentée · 16:00</value></data>
   <data name="HistoryNoManualAdjustments.Text" xml:space="preserve"><value>Aucune correction manuelle pour cette journée.</value></data>
   <data name="OnboardingActivityWatchTitle.Text" xml:space="preserve"><value>Connecter ActivityWatch</value></data>
-  <data name="OnboardingActivityWatchIntro.Text" xml:space="preserve"><value>WorkTime lit votre état d’absence (AFK) dans ActivityWatch sur cet ordinateur. Il n’installe, ne démarre, n’arrête et ne modifie jamais ActivityWatch.</value></data>
+  <data name="OnboardingActivityWatchIntro.Text" xml:space="preserve"><value>Bientôt lit votre état d’absence (AFK) dans ActivityWatch sur cet ordinateur. Il n’installe, ne démarre, n’arrête et ne modifie jamais ActivityWatch.</value></data>
   <data name="OnboardingActivityWatchEndpointInput.Header" xml:space="preserve"><value>Adresse du serveur</value></data>
   <data name="OnboardingActivityWatchEndpointInput.PlaceholderText" xml:space="preserve"><value>http://127.0.0.1:5600</value></data>
   <data name="OnboardingActivityWatchEndpointInput.AutomationProperties.Name" xml:space="preserve"><value>Adresse du serveur ActivityWatch</value></data>
   <data name="OnboardingActivityWatchEndpointInvalid" xml:space="preserve"><value>Saisissez une adresse http:// ou https:// sans chemin, par exemple http://127.0.0.1:5600.</value></data>
   <data name="OnboardingActivityWatchApiKeyInput.Header" xml:space="preserve"><value>Clé API (facultative)</value></data>
   <data name="OnboardingActivityWatchApiKeyInput.AutomationProperties.Name" xml:space="preserve"><value>Clé API ActivityWatch, facultative</value></data>
-  <data name="OnboardingActivityWatchApiKeyHelp.Text" xml:space="preserve"><value>Nécessaire uniquement si aw-server-rust exige une authentification. WorkTime enregistre la clé chiffrée pour votre compte Windows et ne l’affiche jamais.</value></data>
+  <data name="OnboardingActivityWatchApiKeyHelp.Text" xml:space="preserve"><value>Nécessaire uniquement si aw-server-rust exige une authentification. Bientôt enregistre la clé chiffrée pour votre compte Windows et ne l’affiche jamais.</value></data>
   <data name="OnboardingActivityWatchTestButton.Content" xml:space="preserve"><value>Tester la connexion</value></data>
   <data name="OnboardingActivityWatchProgress.AutomationProperties.Name" xml:space="preserve"><value>Test de la connexion en cours</value></data>
   <data name="OnboardingActivityWatchInstallLink.Content" xml:space="preserve"><value>Obtenir ActivityWatch</value></data>
@@ -571,9 +571,9 @@
   <data name="OnboardingActivityWatchBucketInput.AutomationProperties.Name" xml:space="preserve"><value>Historique d’activité ActivityWatch</value></data>
   <data name="OnboardingActivityWatchBucketLocalFormat" xml:space="preserve"><value>{0} (cet ordinateur)</value></data>
   <data name="OnboardingActivityWatchNotTestedTitle" xml:space="preserve"><value>Connexion non testée</value></data>
-  <data name="OnboardingActivityWatchNotTestedMessage" xml:space="preserve"><value>Testez la connexion pour vérifier que WorkTime peut lire votre activité.</value></data>
+  <data name="OnboardingActivityWatchNotTestedMessage" xml:space="preserve"><value>Testez la connexion pour vérifier que Bientôt peut lire votre activité.</value></data>
   <data name="OnboardingActivityWatchHealthyTitle" xml:space="preserve"><value>Connecté</value></data>
-  <data name="OnboardingActivityWatchHealthyMessage" xml:space="preserve"><value>WorkTime peut lire votre état d’absence (AFK) dans ActivityWatch.</value></data>
+  <data name="OnboardingActivityWatchHealthyMessage" xml:space="preserve"><value>Bientôt peut lire votre état d’absence (AFK) dans ActivityWatch.</value></data>
   <data name="OnboardingActivityWatchServerUnavailableTitle" xml:space="preserve"><value>ActivityWatch est injoignable</value></data>
   <data name="OnboardingActivityWatchServerUnavailableMessage" xml:space="preserve"><value>Aucun serveur ActivityWatch (aw-server-rust ou aw-server) ne répond à cette adresse. Installez-le ou démarrez-le, vérifiez l’adresse, puis testez à nouveau.</value></data>
   <data name="OnboardingActivityWatchAuthenticationRequiredTitle" xml:space="preserve"><value>Authentification requise</value></data>
@@ -584,7 +584,7 @@
   <data name="OnboardingActivityWatchBucketSelectionRequiredMessage" xml:space="preserve"><value>ActivityWatch contient plusieurs historiques AFK. Choisissez ci-dessous celui qui enregistre cet ordinateur.</value></data>
   <data name="OnboardingActivityWatchIncompatibleTitle" xml:space="preserve"><value>Serveur incompatible</value></data>
   <data name="OnboardingActivityWatchIncompatibleMessage" xml:space="preserve"><value>Le serveur à cette adresse ne répond pas comme ActivityWatch. Vérifiez l’adresse et utilisez aw-server-rust ou aw-server.</value></data>
-  <data name="OnboardingWindowTitle" xml:space="preserve"><value>Bienvenue dans WorkTime</value></data>
+  <data name="OnboardingWindowTitle" xml:space="preserve"><value>Bienvenue sur Bientôt</value></data>
   <data name="OnboardingProgress.AutomationProperties.Name" xml:space="preserve"><value>Progression de la configuration</value></data>
   <data name="OnboardingStepLanguage" xml:space="preserve"><value>Étape 1 sur 4 · Langue</value></data>
   <data name="OnboardingStepSchedule" xml:space="preserve"><value>Étape 2 sur 4 · Horaires</value></data>
@@ -593,18 +593,18 @@
   <data name="OnboardingBackButton.Content" xml:space="preserve"><value>Retour</value></data>
   <data name="OnboardingNextButton.Content" xml:space="preserve"><value>Suivant</value></data>
   <data name="OnboardingFinishButton.Content" xml:space="preserve"><value>Terminer</value></data>
-  <data name="OnboardingSaveFailed" xml:space="preserve"><value>WorkTime n’a pas pu enregistrer votre configuration. Réessayez.</value></data>
+  <data name="OnboardingSaveFailed" xml:space="preserve"><value>Bientôt n’a pas pu enregistrer votre configuration. Réessayez.</value></data>
   <data name="OnboardingLanguageTitle.Text" xml:space="preserve"><value>Choisissez votre langue</value></data>
-  <data name="OnboardingLanguageIntro.Text" xml:space="preserve"><value>WorkTime suit la langue de Windows. Vous pourrez la changer dans Paramètres.</value></data>
+  <data name="OnboardingLanguageIntro.Text" xml:space="preserve"><value>Bientôt suit la langue de Windows. Vous pourrez la changer dans Paramètres.</value></data>
   <data name="OnboardingLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Langue</value></data>
   <data name="OnboardingLanguageSystemFrench" xml:space="preserve"><value>Langue de Windows (français)</value></data>
   <data name="OnboardingLanguageSystemEnglish" xml:space="preserve"><value>Langue de Windows (anglais)</value></data>
   <data name="OnboardingLanguageSystem" xml:space="preserve"><value>Langue de Windows</value></data>
   <data name="OnboardingLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
   <data name="OnboardingLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
-  <data name="OnboardingLanguageRestartNotice.Text" xml:space="preserve"><value>WorkTime redémarrera dans la langue choisie à la fin de la configuration.</value></data>
+  <data name="OnboardingLanguageRestartNotice.Text" xml:space="preserve"><value>Bientôt redémarrera dans la langue choisie à la fin de la configuration.</value></data>
   <data name="OnboardingScheduleTitle.Text" xml:space="preserve"><value>Votre journée type</value></data>
-  <data name="OnboardingScheduleIntro.Text" xml:space="preserve"><value>WorkTime calcule votre heure de départ à partir de ces valeurs.</value></data>
+  <data name="OnboardingScheduleIntro.Text" xml:space="preserve"><value>Bientôt calcule votre heure de départ à partir de ces valeurs.</value></data>
   <data name="OnboardingTargetInput.Header" xml:space="preserve"><value>Objectif quotidien</value></data>
   <data name="OnboardingTargetInput.AutomationProperties.Name" xml:space="preserve"><value>Objectif quotidien en heures et minutes</value></data>
   <data name="OnboardingTargetHelp.Text" xml:space="preserve"><value>Heures et minutes, par exemple 7:24.</value></data>
@@ -615,15 +615,15 @@
   <data name="OnboardingDepartureInput.Header" xml:space="preserve"><value>Heure limite de départ souhaitée</value></data>
   <data name="OnboardingDepartureInput.AutomationProperties.Name" xml:space="preserve"><value>Heure limite de départ souhaitée</value></data>
   <data name="OnboardingStartupTitle.Text" xml:space="preserve"><value>Démarrer avec Windows</value></data>
-  <data name="OnboardingStartupIntro.Text" xml:space="preserve"><value>WorkTime compte votre temps seulement quand il tourne. Le lancer à l’ouverture de session évite d’oublier une matinée.</value></data>
+  <data name="OnboardingStartupIntro.Text" xml:space="preserve"><value>Bientôt compte votre temps seulement quand il tourne. Le lancer à l’ouverture de session évite d’oublier une matinée.</value></data>
   <data name="OnboardingStartupCard.Header" xml:space="preserve"><value>Démarrage Windows</value></data>
-  <data name="OnboardingStartupCard.Description" xml:space="preserve"><value>Démarrer WorkTime à l’ouverture de session.</value></data>
-  <data name="OnboardingStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Démarrer WorkTime avec Windows</value></data>
+  <data name="OnboardingStartupCard.Description" xml:space="preserve"><value>Démarrer Bientôt à l’ouverture de session.</value></data>
+  <data name="OnboardingStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Démarrer Bientôt avec Windows</value></data>
   <data name="OnboardingStartupInput.OnContent" xml:space="preserve"><value>Activé</value></data>
   <data name="OnboardingStartupInput.OffContent" xml:space="preserve"><value>Désactivé</value></data>
-  <data name="OnboardingStartupFootnote.Text" xml:space="preserve"><value>L’icône reste dans la zone de notification. Fermer la fenêtre n’arrête pas WorkTime.</value></data>
+  <data name="OnboardingStartupFootnote.Text" xml:space="preserve"><value>L’icône reste dans la zone de notification. Fermer la fenêtre n’arrête pas Bientôt.</value></data>
   <data name="OnboardingSourceTitle.Text" xml:space="preserve"><value>Détection de l’activité</value></data>
-  <data name="OnboardingSourceIntro.Text" xml:space="preserve"><value>WorkTime sait que vous utilisez l’ordinateur grâce à votre dernière action au clavier ou à la souris. Il n’enregistre jamais le nom des applications ni le titre des fenêtres, et ses relevés restent sur cet ordinateur.</value></data>
+  <data name="OnboardingSourceIntro.Text" xml:space="preserve"><value>Bientôt sait que vous utilisez l’ordinateur grâce à votre dernière action au clavier ou à la souris. Il n’enregistre jamais le nom des applications ni le titre des fenêtres, et ses relevés restent sur cet ordinateur.</value></data>
   <data name="OnboardingSourceInput.AutomationProperties.Name" xml:space="preserve"><value>Source d’activité</value></data>
   <data name="OnboardingSourceBuiltIn.Content" xml:space="preserve"><value>Intégrée (recommandée)</value></data>
   <data name="OnboardingSourceActivityWatch.Content" xml:space="preserve"><value>ActivityWatch, détecté sur cet ordinateur</value></data>
@@ -635,12 +635,12 @@
   <data name="OnboardingConnectionsIntro" xml:space="preserve"><value>Vous pourrez tout changer plus tard dans Paramètres › Général.</value></data>
   <data name="OnboardingConnectionsPrivacy" xml:space="preserve"><value>Vos heures et votre activité restent sur ce PC.</value></data>
   <data name="OnboardingUsagePingAllSent" xml:space="preserve"><value>C’est tout ce qui est envoyé.</value></data>
-  <data name="OnboardingImportLead" xml:space="preserve"><value>Vous utilisez déjà WorkTime sur un autre PC ?
+  <data name="OnboardingImportLead" xml:space="preserve"><value>Vous utilisez déjà Bientôt sur un autre PC ?
 Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</value></data>
   <data name="OnboardingImportAction" xml:space="preserve"><value>Importer des données…</value></data>
   <data name="OnboardingImportTitle" xml:space="preserve"><value>Importer ce fichier ?</value></data>
   <data name="OnboardingImportConfirm" xml:space="preserve"><value>Importer et redémarrer</value></data>
-  <data name="OnboardingImportMessage" xml:space="preserve"><value>WorkTime redémarre ensuite avec ces données, sans les étapes suivantes.</value></data>
+  <data name="OnboardingImportMessage" xml:space="preserve"><value>Bientôt redémarre ensuite avec ces données, sans les étapes suivantes.</value></data>
   <data name="TimelineKindWork" xml:space="preserve"><value>Travail</value></data>
   <data name="TimelineKindManual" xml:space="preserve"><value>Correction manuelle</value></data>
   <data name="TimelineKindPause" xml:space="preserve"><value>Pause</value></data>
@@ -729,30 +729,30 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="UpdateAvailableDialog.Title" xml:space="preserve"><value>Mise à jour disponible</value></data>
   <data name="UpdateAvailableDialog.PrimaryButtonText" xml:space="preserve"><value>Mettre à jour</value></data>
   <data name="UpdateAvailableDialog.CloseButtonText" xml:space="preserve"><value>Plus tard</value></data>
-  <data name="UpdateAvailableDialogMessage.Text" xml:space="preserve"><value>Une nouvelle version de WorkTime est disponible dans le Microsoft Store. Windows vous demande l’autorisation avant de la télécharger, et WorkTime peut se fermer pendant l’installation.</value></data>
-  <data name="UpdateNotice.Message" xml:space="preserve"><value>Une nouvelle version est disponible dans le Microsoft Store. WorkTime peut se fermer pendant l’installation.</value></data>
+  <data name="UpdateAvailableDialogMessage.Text" xml:space="preserve"><value>Une nouvelle version de Bientôt est disponible dans le Microsoft Store. Windows vous demande l’autorisation avant de la télécharger, et Bientôt peut se fermer pendant l’installation.</value></data>
+  <data name="UpdateNotice.Message" xml:space="preserve"><value>Une nouvelle version est disponible dans le Microsoft Store. Bientôt peut se fermer pendant l’installation.</value></data>
   <data name="UpdateNoticeAction.Content" xml:space="preserve"><value>Voir la mise à jour</value></data>
-  <data name="UpdateInstallFailed" xml:space="preserve"><value>La mise à jour n’a pas pu être installée. WorkTime la proposera de nouveau d’ici un jour.</value></data>
+  <data name="UpdateInstallFailed" xml:space="preserve"><value>La mise à jour n’a pas pu être installée. Bientôt la proposera de nouveau d’ici un jour.</value></data>
   <data name="UpdateInstalling" xml:space="preserve"><value>Installation…</value></data>
   <data name="UsagePingChannelDirect" xml:space="preserve"><value>le programme d’installation</value></data>
   <data name="UpdateReady.Message" xml:space="preserve"><value>Une nouvelle version est prête. Elle s’installera au prochain démarrage.</value></data>
-  <data name="UpdateRestartAction.Content" xml:space="preserve"><value>Redémarrer WorkTime</value></data>
+  <data name="UpdateRestartAction.Content" xml:space="preserve"><value>Redémarrer maintenant</value></data>
   <data name="UpdateRestarting" xml:space="preserve"><value>Redémarrage…</value></data>
-  <data name="UpdateRestarting.Message" xml:space="preserve"><value>Installation… WorkTime va se rouvrir.</value></data>
+  <data name="UpdateRestarting.Message" xml:space="preserve"><value>Installation… Bientôt va se rouvrir.</value></data>
   <data name="UpdateRestartFailed.Message" xml:space="preserve"><value>La mise à jour n’a pas pu être installée. Nouvel essai au prochain démarrage.</value></data>
   <data name="UpdateFailedMessage" xml:space="preserve"><value>La mise à jour n’a pas pu être installée. Réessayez maintenant ou plus tard.</value></data>
   <data name="UpdateRetry" xml:space="preserve"><value>Réessayer</value></data>
   <data name="SettingsSourceNav.Content" xml:space="preserve"><value>Source d’activité</value></data>
   <data name="SettingsSourceTitle" xml:space="preserve"><value>Source d’activité</value></data>
-  <data name="SettingsSourceDescription.Text" xml:space="preserve"><value>Choisissez comment WorkTime détecte que vous utilisez l’ordinateur. Un changement de source s’applique à partir de maintenant. Le temps déjà passé reste lu dans la source choisie à ce moment-là.</value></data>
+  <data name="SettingsSourceDescription.Text" xml:space="preserve"><value>Choisissez comment Bientôt détecte que vous utilisez l’ordinateur. Un changement de source s’applique à partir de maintenant. Le temps déjà passé reste lu dans la source choisie à ce moment-là.</value></data>
   <data name="SettingsSourceConnectionButton.Content" xml:space="preserve"><value>Paramètres de connexion</value></data>
   <data name="SettingsSourceAddressFormat" xml:space="preserve"><value>Adresse du serveur : {0}</value></data>
   <data name="SettingsSourceNotCheckedTitle" xml:space="preserve"><value>Connexion pas encore vérifiée</value></data>
-  <data name="SettingsSourceNotCheckedMessage" xml:space="preserve"><value>WorkTime vérifie la connexion à la prochaine actualisation.</value></data>
+  <data name="SettingsSourceNotCheckedMessage" xml:space="preserve"><value>Bientôt vérifie la connexion à la prochaine actualisation.</value></data>
   <data name="SettingsSourceConnectedTitle" xml:space="preserve"><value>Connecté</value></data>
-  <data name="SettingsSourceConnectedMessage" xml:space="preserve"><value>WorkTime lit votre activité dans ActivityWatch.</value></data>
+  <data name="SettingsSourceConnectedMessage" xml:space="preserve"><value>Bientôt lit votre activité dans ActivityWatch.</value></data>
   <data name="SettingsSourceUnavailableTitle" xml:space="preserve"><value>ActivityWatch est injoignable</value></data>
-  <data name="SettingsSourceUnavailableMessage" xml:space="preserve"><value>ActivityWatch ne répond pas, et WorkTime ne le prend plus en charge. Passez à la détection intégrée pour que votre temps continue d’être compté.</value></data>
+  <data name="SettingsSourceUnavailableMessage" xml:space="preserve"><value>ActivityWatch ne répond pas, et Bientôt ne le prend plus en charge. Passez à la détection intégrée pour que votre temps continue d’être compté.</value></data>
   <data name="SettingsSourceKeyRefusedTitle" xml:space="preserve"><value>Clé API refusée</value></data>
   <data name="SettingsSourceKeyRefusedMessage" xml:space="preserve"><value>ActivityWatch a refusé la connexion. Saisissez sa clé API dans Paramètres de connexion.</value></data>
   <data name="SettingsSourceHistoryToChooseTitle" xml:space="preserve"><value>Historique d’activité à choisir</value></data>
@@ -762,14 +762,14 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="SettingsSourceDialogName" xml:space="preserve"><value>Paramètres de connexion</value></data>
   <data name="SettingsSourceSave" xml:space="preserve"><value>Enregistrer</value></data>
   <data name="SettingsSourceCancel" xml:space="preserve"><value>Annuler</value></data>
-  <data name="SettingsSourceSaveFailed" xml:space="preserve"><value>WorkTime n’a pas pu enregistrer la connexion. Réessayez.</value></data>
+  <data name="SettingsSourceSaveFailed" xml:space="preserve"><value>Bientôt n’a pas pu enregistrer la connexion. Réessayez.</value></data>
   <data name="SettingsSourceChoiceCard.Header" xml:space="preserve"><value>Détection de l’activité</value></data>
   <data name="SettingsSourceChoiceCard.Description" xml:space="preserve"><value>Intégrée ne demande aucune installation. ActivityWatch lit l’activité enregistrée par votre serveur ActivityWatch, après un test de connexion réussi.</value></data>
   <data name="SettingsSourceChoiceInput.AutomationProperties.Name" xml:space="preserve"><value>Source d’activité</value></data>
   <data name="SettingsSourceBuiltIn.Content" xml:space="preserve"><value>Intégrée</value></data>
   <data name="SettingsSourceActivityWatch.Content" xml:space="preserve"><value>ActivityWatch</value></data>
   <data name="SettingsIdleThresholdCard.Header" xml:space="preserve"><value>Seuil d’inactivité</value></data>
-  <data name="SettingsIdleThresholdCard.Description" xml:space="preserve"><value>Sans clavier ni souris pendant ce délai, en secondes, WorkTime compte une absence depuis votre dernière saisie. De 30 secondes à 30 minutes.</value></data>
+  <data name="SettingsIdleThresholdCard.Description" xml:space="preserve"><value>Sans clavier ni souris pendant ce délai, en secondes, Bientôt compte une absence depuis votre dernière saisie. De 30 secondes à 30 minutes.</value></data>
   <data name="SettingsIdleThresholdInput.AutomationProperties.Name" xml:space="preserve"><value>Seuil d’inactivité en secondes</value></data>
   <data name="SettingsSourceSelectHint" xml:space="preserve"><value>Testez la connexion. Vous pourrez utiliser ActivityWatch dès que le test réussit. Le temps à partir de maintenant sera alors lu dans ActivityWatch.</value></data>
   <data name="SettingsSourceUseActivityWatch" xml:space="preserve"><value>Utiliser ActivityWatch</value></data>
@@ -853,7 +853,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
     <value>Paramètres</value>
   </data>
   <data name="PaletteDomainApp" xml:space="preserve">
-    <value>WorkTime</value>
+    <value>Bientôt</value>
   </data>
   <data name="PalettePause" xml:space="preserve">
     <value>mettre en pause</value>
@@ -937,7 +937,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
     <value>Rendez-vous réguliers</value>
   </data>
   <data name="SettingsAppointmentsDescription" xml:space="preserve">
-    <value>Réunions, formations, visites… Si vous êtes loin de votre PC pendant l’un de ces rendez-vous, WorkTime compte ce temps comme du travail et, selon le réglage du rendez-vous, vous demande à votre retour de le confirmer.</value>
+    <value>Réunions, formations, visites… Si vous êtes loin de votre PC pendant l’un de ces rendez-vous, Bientôt compte ce temps comme du travail et, selon le réglage du rendez-vous, vous demande à votre retour de le confirmer.</value>
   </data>
   <data name="SettingsAppointmentsEmpty" xml:space="preserve">
     <value>Aucun rendez-vous régulier pour l’instant.</value>
@@ -1021,7 +1021,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
     <value>Proposer des rendez-vous d’après vos corrections</value>
   </data>
   <data name="SettingsAppointmentProposalsCardDescription" xml:space="preserve">
-    <value>Quand vous corrigez la même absence plusieurs semaines de suite, WorkTime propose d’en faire un rendez-vous régulier.</value>
+    <value>Quand vous corrigez la même absence plusieurs semaines de suite, Bientôt propose d’en faire un rendez-vous régulier.</value>
   </data>
   <data name="CalendarDayNamesPlural" xml:space="preserve">
     <value>lundis;mardis;mercredis;jeudis;vendredis;samedis;dimanches</value>
@@ -1054,10 +1054,10 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
     <value>Compter automatiquement</value>
   </data>
   <data name="SettingsAppointmentModeAskNote" xml:space="preserve">
-    <value>WorkTime compte l’absence provisoirement comme du travail et vous demande s’il s’agissait bien de travail.</value>
+    <value>Bientôt compte l’absence provisoirement comme du travail et vous demande s’il s’agissait bien de travail.</value>
   </data>
   <data name="SettingsAppointmentModeAutomaticNote" xml:space="preserve">
-    <value>WorkTime compte l’absence comme du travail dès votre retour, sans rien demander. Vous pourrez encore l’annuler avec « Ce n’était pas du travail ».</value>
+    <value>Bientôt compte l’absence comme du travail dès votre retour, sans rien demander. Vous pourrez encore l’annuler avec « Ce n’était pas du travail ».</value>
   </data>
   <data name="SettingsAppointmentAutomaticRowFormat" xml:space="preserve">
     <value>{0} · Compté automatiquement</value>

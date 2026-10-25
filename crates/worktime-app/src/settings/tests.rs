@@ -131,7 +131,7 @@ fn the_schedule_shows_the_saved_settings_in_two_groups() {
     );
     assert_eq!(
         row(&view, Setting::Departure).description,
-        "WorkTime vous prévient quand votre départ prévu approche de cette heure ou la dépasse."
+        "Bientôt vous prévient quand votre départ prévu approche de cette heure ou la dépasse."
     );
     assert_eq!(
         row(&view, Setting::Margin).control,
@@ -172,7 +172,7 @@ fn the_pages_read_in_english() {
     );
     assert_eq!(
         row(&view, Setting::Departure).description,
-        "WorkTime warns you when your projected departure gets close to or passes this time."
+        "Bientôt warns you when your projected departure gets close to or passes this time."
     );
 
     let view = on_page(Page::Notifications, Language::English).view();
@@ -219,11 +219,11 @@ fn general_has_the_application_the_detection_and_the_internet_connections() {
     );
     assert_eq!(
         row(&view, Setting::Language).description,
-        "Langue de WorkTime, appliquée au prochain démarrage."
+        "Langue de Bientôt, appliquée au prochain démarrage."
     );
     assert_eq!(
         row(&view, Setting::IdleThreshold).description,
-        "Sans clavier ni souris pendant ce délai, en secondes, WorkTime compte une absence \
+        "Sans clavier ni souris pendant ce délai, en secondes, Bientôt compte une absence \
          depuis votre dernière saisie. De 30 secondes à 30 minutes."
     );
     assert_eq!(
@@ -264,7 +264,7 @@ fn general_has_the_application_the_detection_and_the_internet_connections() {
     );
     assert_eq!(
         row(&view, Setting::Language).description,
-        "WorkTime’s language, applied at next start."
+        "Bientôt’s language, applied at next start."
     );
 }
 
@@ -310,7 +310,7 @@ fn startup_switch(form: &SettingsForm) -> (Control, Option<&'static str>) {
 fn startup_control(on: bool, enabled: bool) -> Control {
     Control::Switch {
         switch: Switch::Startup,
-        name: "Démarrer WorkTime avec Windows",
+        name: "Démarrer Bientôt avec Windows",
         on,
         enabled,
     }
@@ -321,7 +321,7 @@ fn the_startup_switch_waits_for_the_registration() {
     let mut form = form(Language::French);
     assert_eq!(
         row(&form.view(), Setting::Startup).description,
-        "Démarrer WorkTime à l’ouverture de session."
+        "Démarrer Bientôt à l’ouverture de session."
     );
     assert_eq!(startup_switch(&form), (startup_control(false, false), None));
     assert_eq!(form.toggle(Switch::Startup), None);
@@ -332,7 +332,7 @@ fn the_startup_switch_waits_for_the_registration() {
         (
             startup_control(false, false),
             Some(
-                "Les applications de démarrage Windows ont désactivé WorkTime. Réactivez-le \
+                "Les applications de démarrage Windows ont désactivé Bientôt. Réactivez-le \
                  dans Paramètres > Applications > Démarrage."
             )
         )
@@ -349,7 +349,7 @@ fn turning_startup_off_saves_once_windows_settled_on_it() {
         startup_switch(&form),
         (
             startup_control(true, true),
-            Some("WorkTime démarrera à la prochaine ouverture de session.")
+            Some("Bientôt démarrera à la prochaine ouverture de session.")
         )
     );
 
@@ -364,7 +364,7 @@ fn turning_startup_off_saves_once_windows_settled_on_it() {
         startup_switch(&form),
         (
             startup_control(false, true),
-            Some("WorkTime ne démarrera pas à l’ouverture de session.")
+            Some("Bientôt ne démarrera pas à l’ouverture de session.")
         )
     );
     assert!(!port.saved[0].start_with_windows);
@@ -541,7 +541,7 @@ fn the_installed_build_checks_downloads_and_says_so() {
     assert_eq!(updates.tone, RowTone::Normal);
     assert_eq!(
         updates.description,
-        "Downloads any new version once a day. It installs the next time WorkTime starts."
+        "Downloads any new version once a day. It installs the next time Bientôt starts."
     );
     assert!(form.toggle(Switch::Updates).is_some());
 }
@@ -573,7 +573,7 @@ fn see_what_is_sent_shows_the_next_signal_and_the_last_send() {
                    \"first_this_month\": false\n}"
                 .to_owned(),
             fields: "C’est tout ce qui est envoyé. «\u{a0}channel\u{a0}» indique où vous avez \
-                     installé WorkTime (ici, le Microsoft\u{a0}Store) et «\u{a0}first_this_month\u{a0}» \
+                     installé Bientôt (ici, le Microsoft\u{a0}Store) et «\u{a0}first_this_month\u{a0}» \
                      vaut true pour le premier envoi du mois."
                 .to_owned(),
             server: "Le serveur ne garde rien et transmet ce signal à PostHog, hébergé dans \
@@ -588,7 +588,7 @@ fn see_what_is_sent_shows_the_next_signal_and_the_last_send() {
     assert_eq!(
         details(&form).shown,
         Some(PingDetails::Off(
-            "Désactivé\u{a0}: WorkTime n’envoie aucun signal."
+            "Désactivé\u{a0}: Bientôt n’envoie aucun signal."
         ))
     );
     form.toggle_details();
@@ -649,7 +649,7 @@ fn the_last_send_reads_never_yesterday_or_its_date() {
     assert!(body.contains("\"channel\": \"zip\""), "{body}");
     assert_eq!(
         fields,
-        "That’s everything that gets sent. “channel” says where you installed WorkTime (here, the ZIP \
+        "That’s everything that gets sent. “channel” says where you installed Bientôt (here, the ZIP \
          download) and “first_this_month” is true for the first signal of the month."
     );
 }
@@ -667,7 +667,7 @@ fn settings_naming_activitywatch_offer_the_built_in_detection_on_general() {
         form.view().source,
         Some(SourceCallout {
             title: "ActivityWatch n’est plus pris en charge",
-            message: "WorkTime détecte maintenant l’activité lui-même. Passez à la détection \
+            message: "Bientôt détecte désormais l’activité lui-même. Passez à la détection \
                       intégrée pour que votre temps continue d’être compté.",
             action: "Utiliser la détection intégrée",
             failure: None,

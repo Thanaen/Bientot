@@ -4,7 +4,7 @@ use super::*;
 
 fn here() -> Option<DataDirectory> {
     Some(DataDirectory::from(PathBuf::from(
-        "C:/Users/Camille/AppData/Local/WorkTime",
+        "C:/Users/Camille/AppData/Local/Bientôt",
     )))
 }
 
@@ -94,7 +94,7 @@ fn a_failed_export_asks_for_another_place_on_its_row() {
 
     assert_eq!(
         row(&page, Row::Export).error,
-        Some("WorkTime could not save the file. Choose another location and try again.")
+        Some("Bientôt could not save the file. Choose another location and try again.")
     );
     assert_eq!(row(&page, Row::Import).error, None);
 }
@@ -104,15 +104,15 @@ fn each_refusal_says_why_on_the_import_row() {
     for (refusal, error) in [
         (
             Refusal::NotATransfer,
-            "Ce fichier n’est pas une exportation WorkTime. Choisissez un fichier .worktime.",
+            "Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .worktime.",
         ),
         (
             Refusal::NewerVersion,
-            "Ce fichier vient d’une version plus récente de WorkTime. Mettez WorkTime à jour sur ce PC, puis réessayez.",
+            "Ce fichier vient d’une version plus récente de Bientôt. Installez la dernière version de Bientôt sur ce PC, puis réessayez.",
         ),
         (
             Refusal::Unreadable,
-            "WorkTime n’a pas pu lire ce fichier. Copiez-le sur ce PC, puis réessayez.",
+            "Bientôt n’a pas pu lire ce fichier. Copiez-le sur ce PC, puis réessayez.",
         ),
     ] {
         let mut page = DataPage::new(Language::French, here(), None);
@@ -236,11 +236,11 @@ fn confirming_hands_the_file_over_and_waits_for_the_restart() {
 
     assert_eq!(page.dialog(), None);
     assert!(!page.ready());
-    assert_eq!(page.view().status, Some("Redémarrage de WorkTime…"));
+    assert_eq!(page.view().status, Some("Redémarrage de Bientôt…"));
     page.import_failed();
     assert_eq!(
         row(&page, Row::Import).error,
-        Some("WorkTime n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.")
+        Some("Bientôt n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.")
     );
     assert!(page.ready());
 }
@@ -307,7 +307,7 @@ fn restoring_the_copy_asks_like_an_import_and_stages_the_copy() {
     page.import_failed();
     assert_eq!(
         row(&page, Row::Backup).error,
-        Some("WorkTime n’a pas pu restaurer cette copie. Vos données n’ont pas changé. Réessayez.")
+        Some("Bientôt n’a pas pu restaurer cette copie. Vos données n’ont pas changé. Réessayez.")
     );
     assert_eq!(row(&page, Row::Import).error, None);
 }
@@ -322,7 +322,7 @@ fn a_copy_that_no_longer_reads_says_so_on_its_row() {
     assert_eq!(
         row(&page, Row::Backup).error,
         Some(
-            "WorkTime n’a pas pu lire cette copie. Affichez-la dans l’Explorateur, puis importez-la \
+            "Bientôt n’a pas pu lire cette copie. Affichez-la dans l’Explorateur, puis importez-la \
              depuis «\u{a0}Importer…\u{a0}»."
         )
     );

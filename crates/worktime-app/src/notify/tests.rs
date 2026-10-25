@@ -41,7 +41,7 @@ fn an_approach_reminder_says_the_minutes_left_and_the_departure_in_the_workday_s
         request,
         NotificationRequest {
             delivery_id: "0123456789abcdef0123456789abcdef".to_owned(),
-            title: "WorkTime".to_owned(),
+            title: "Bientôt".to_owned(),
             body: "Il reste 15 minutes avant votre objectif. Départ prévu\u{a0}: 16:45.".to_owned(),
         }
     );

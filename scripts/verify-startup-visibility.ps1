@@ -86,8 +86,8 @@ public static class WorkTimeVisibilityProbe
                 if (owner != process.ProcessId) return true;
                 if (!IsWindowVisible(window)) return true;
                 result.VisibleWindows++;
-                // The startup failure window is the only one titled WorkTime: the flyout has no title.
-                if (Title(window) == "WorkTime") result.FailureWindows++;
+                // The startup failure window is the only one titled with the app's name: the flyout has no title.
+                if (Title(window) == "Bient\u00f4t") result.FailureWindows++;
                 return true;
             }, IntPtr.Zero);
             result.ShownTitles = titles.ToArray();

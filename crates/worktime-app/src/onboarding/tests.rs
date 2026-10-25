@@ -16,7 +16,7 @@ const TODAY: Date = jiff::civil::date(2026, 10, 13);
 
 /// The data folder of a PC where WorkTime never ran.
 fn here() -> DataDirectory {
-    DataDirectory::from(PathBuf::from("C:/Users/Camille/AppData/Local/WorkTime"))
+    DataDirectory::from(PathBuf::from("C:/Users/Camille/AppData/Local/Bientôt"))
 }
 
 fn onboarding(forced: Option<Language>) -> Onboarding {
@@ -128,7 +128,7 @@ fn the_language_step_offers_windows_french_and_english() {
     assert_eq!(page.heading, "Choisissez votre langue");
     assert_eq!(
         page.intro,
-        "WorkTime suit la langue de Windows. Vous pourrez la changer dans Paramètres."
+        "Bientôt suit la langue de Windows. Vous pourrez la changer dans Paramètres."
     );
     assert_eq!(
         page.body,
@@ -152,7 +152,7 @@ fn the_language_step_offers_windows_french_and_english() {
                 },
             ],
             import: Some(ImportOffer {
-                lead: "Vous utilisez déjà WorkTime sur un autre PC\u{202f}?\nImportez le fichier \
+                lead: "Vous utilisez déjà Bientôt sur un autre PC\u{202f}?\nImportez le fichier \
                        exporté depuis Paramètres\u{a0}›\u{a0}Données sur ce PC-là.",
                 action: "Importer des données…",
                 status: None,
@@ -204,7 +204,7 @@ fn the_schedule_step_shows_the_settings_cards() {
     assert_eq!(page.heading, "Your typical day");
     assert_eq!(
         page.intro,
-        "WorkTime works out when you can leave from these values."
+        "Bientôt works out when you can leave from these values."
     );
     assert_eq!((page.previous, page.next), (Some("Previous"), "Next"));
     assert_eq!(
@@ -220,7 +220,7 @@ fn the_schedule_step_shows_the_settings_cards() {
             ("Lunch window", "Start and end time."),
             (
                 "Preferred latest departure",
-                "WorkTime warns you when your projected departure gets close to or passes this \
+                "Bientôt warns you when your projected departure gets close to or passes this \
                  time."
             ),
         ]
@@ -369,7 +369,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                 RowView {
                     setting: Setting::Startup,
                     title: "Démarrage Windows",
-                    description: "WorkTime compte votre temps seulement quand il tourne. Le \
+                    description: "Bientôt compte votre temps seulement quand il tourne. Le \
                                   lancer à l’ouverture de session évite d’oublier une matinée.",
                     tone: RowTone::Normal,
                     link: None,
@@ -377,7 +377,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                     error: None,
                     control: Control::Switch {
                         switch: Switch::Startup,
-                        name: "Démarrer WorkTime avec Windows",
+                        name: "Démarrer Bientôt avec Windows",
                         on: true,
                         enabled: true,
                     },
@@ -404,7 +404,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                     title: "Envoyer un signal d’utilisation anonyme",
                     description: "Une fois par jour, sans identifiant ni donnée sur votre \
                                   temps de travail. Ce décompte aide le développeur à savoir \
-                                  combien de personnes utilisent WorkTime.",
+                                  combien de personnes utilisent Bientôt.",
                     tone: RowTone::Normal,
                     link: None,
                     status: None,
@@ -445,21 +445,21 @@ fn start_with_windows_shows_what_windows_decides() {
         shown(Some(StartupRegistrationState::DisabledByPolicy)),
         (
             (false, false),
-            Some("Votre organisation empêche WorkTime de démarrer à l’ouverture de session.")
+            Some("Votre organisation empêche Bientôt de démarrer à l’ouverture de session.")
         )
     );
     assert_eq!(
         shown(Some(StartupRegistrationState::EnabledByPolicy)),
         (
             (true, false),
-            Some("Votre organisation démarre WorkTime à l’ouverture de session.")
+            Some("Votre organisation impose le démarrage de Bientôt à l’ouverture de session.")
         )
     );
     assert_eq!(
         shown(Some(StartupRegistrationState::Unavailable)),
         (
             (false, false),
-            Some("Le démarrage automatique n’est pas disponible pour cette copie de WorkTime.")
+            Some("Le démarrage automatique n’est pas disponible pour cette copie de Bientôt.")
         )
     );
     assert_eq!(
@@ -467,7 +467,7 @@ fn start_with_windows_shows_what_windows_decides() {
         (
             (true, true),
             Some(
-                "Une autre copie utilise l’entrée de démarrage WorkTime. Activez ce réglage \
+                "Une autre copie utilise l’entrée de démarrage de Bientôt. Activez ce réglage \
                  pour utiliser cette copie."
             )
         )
@@ -550,7 +550,7 @@ fn see_what_is_sent_shows_the_body_and_what_the_server_keeps() {
     assert_eq!(
         row(&onboarding, Setting::UsagePing).details.unwrap().shown,
         Some(PingDetails::Off(
-            "Désactivé\u{a0}: WorkTime n’envoie aucun signal."
+            "Désactivé\u{a0}: Bientôt n’envoie aucun signal."
         ))
     );
 
@@ -589,7 +589,7 @@ fn saving_freezes_the_page_and_a_failure_lets_commencer_try_again() {
         (page.saving, page.failure),
         (
             false,
-            Some("WorkTime n’a pas pu enregistrer votre configuration. Réessayez.")
+            Some("Bientôt n’a pas pu enregistrer votre configuration. Réessayez.")
         )
     );
     assert!(onboarding.advance().is_some());
@@ -634,7 +634,7 @@ fn a_file_read_asks_to_import_it_and_the_steps_wait_for_the_answer() {
     assert_eq!(confirmation.loss, None);
     assert_eq!(
         confirmation.message,
-        "WorkTime redémarre ensuite avec ces données, sans les étapes suivantes."
+        "Bientôt redémarre ensuite avec ces données, sans les étapes suivantes."
     );
     assert_eq!(
         (confirmation.cancel, confirmation.confirm),
@@ -673,7 +673,7 @@ fn the_import_tells_what_runs_and_why_a_file_was_refused() {
     assert_eq!((offer.status, offer.confirmation), (None, None));
     assert_eq!(
         offer.error,
-        Some("Ce fichier n’est pas une exportation WorkTime. Choisissez un fichier .worktime.")
+        Some("Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .worktime.")
     );
     assert!(!onboarding.view().importing);
 }
@@ -704,14 +704,14 @@ fn confirming_restarts_on_the_file_and_a_failure_lets_the_steps_go_on() {
 
     let offer = import(&onboarding);
     assert_eq!(offer.confirmation, None);
-    assert_eq!(offer.status, Some("Redémarrage de WorkTime…"));
+    assert_eq!(offer.status, Some("Redémarrage de Bientôt…"));
     assert_eq!(onboarding.advance(), None);
 
     onboarding.import_mut().unwrap().import_failed();
 
     assert_eq!(
         import(&onboarding).error,
-        Some("WorkTime n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.")
+        Some("Bientôt n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.")
     );
     onboarding.advance();
     assert_eq!(onboarding.step(), Step::Schedule);
@@ -739,7 +739,7 @@ fn a_pc_that_holds_days_is_told_what_it_would_lose() {
     );
     assert_eq!(
         confirmation.message,
-        "WorkTime then restarts with this data and skips the remaining setup."
+        "Bientôt then restarts with this data and skips the remaining setup."
     );
 }
 
@@ -763,7 +763,7 @@ fn the_languages_wait_for_the_import_and_its_texts_follow_the_one_chosen_after()
     assert_eq!(onboarding.language(), Language::English);
     assert_eq!(
         import(&onboarding).error,
-        Some("This file is not a WorkTime export. Choose a .worktime file.")
+        Some("This file is not a Bientôt export. Choose a .worktime file.")
     );
 }
 

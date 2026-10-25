@@ -5,7 +5,8 @@
 
   The identity is the .NET package's, for the unsigned alpha. The Store build replaces Name,
   Publisher and PublisherDisplayName with the values Partner Center assigns, which are not known
-  yet (ROADMAP R8). Version follows the workspace version in Cargo.toml.
+  yet (ROADMAP R8). Version follows the workspace version in Cargo.toml. The display name spells
+  its o circumflex as a character reference so that Windows PowerShell, which reads this file as ANSI, keeps the accent.
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -22,7 +23,7 @@
     ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>WorkTime</DisplayName>
+    <DisplayName>Bient&#xF4;t</DisplayName>
     <PublisherDisplayName>Thanaen</PublisherDisplayName>
     <Logo>Images\StoreLogo.png</Logo>
   </Properties>
@@ -45,7 +46,7 @@
       Executable="worktime.exe"
       EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="WorkTime"
+        DisplayName="Bient&#xF4;t"
         Description="Local-first workday indicator"
         BackgroundColor="transparent"
         Square150x150Logo="Images\Square150x150Logo.png"
@@ -58,15 +59,15 @@
           <desktop:StartupTask
             TaskId="WorkTimeStartupTask"
             Enabled="false"
-            DisplayName="WorkTime" />
+            DisplayName="Bient&#xF4;t" />
         </desktop:Extension>
         <desktop:Extension Category="windows.toastNotificationActivation">
           <desktop:ToastNotificationActivation ToastActivatorCLSID="6CB667AA-56D8-4F29-B21C-7D6F329B4463" />
         </desktop:Extension>
         <com:Extension Category="windows.comServer">
           <com:ComServer>
-            <com:ExeServer Executable="worktime.exe" Arguments="--toast-activated" DisplayName="WorkTime">
-              <com:Class Id="6CB667AA-56D8-4F29-B21C-7D6F329B4463" DisplayName="WorkTime" />
+            <com:ExeServer Executable="worktime.exe" Arguments="--toast-activated" DisplayName="Bient&#xF4;t">
+              <com:Class Id="6CB667AA-56D8-4F29-B21C-7D6F329B4463" DisplayName="Bient&#xF4;t" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
