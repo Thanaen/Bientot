@@ -196,7 +196,7 @@ fn an_install_that_completes_or_that_the_user_declines_ends_the_offer() {
     let installed = ready(updates.install().unwrap());
     let quits = updates.installed(&installed);
 
-    assert!(!quits, "the Store installs while WorkTime runs");
+    assert!(!quits, "the Store installs while Bientôt runs");
     assert_eq!(updates.callout(), None);
     assert!(updates.install().is_none());
 }

@@ -26,7 +26,7 @@ fn a_failed_export_asks_for_another_location() {
     assert_eq!(
         Outcome::Failed.notice(Language::French),
         Some(Notice {
-            message: "WorkTime n’a pas pu enregistrer le ZIP de diagnostic. Choisissez un autre \
+            message: "Bientôt n’a pas pu enregistrer le ZIP de diagnostic. Choisissez un autre \
                       emplacement et réessayez."
                 .to_owned(),
             kind: NoticeKind::Error,
@@ -36,7 +36,7 @@ fn a_failed_export_asks_for_another_location() {
     assert_eq!(
         Outcome::Failed.notice(Language::English),
         Some(Notice {
-            message: "WorkTime could not save the diagnostic ZIP. Choose another location and \
+            message: "Bientôt could not save the diagnostic ZIP. Choose another location and \
                       try again."
                 .to_owned(),
             kind: NoticeKind::Error,
@@ -53,7 +53,7 @@ fn a_closed_dialog_shows_nothing() {
 
 #[test]
 fn the_dialog_offers_a_zip_archive() {
-    assert_eq!(SUGGESTED_FILE_NAME, "worktime-diagnostics.zip");
+    assert_eq!(SUGGESTED_FILE_NAME, "bientot-diagnostics.zip");
     assert_eq!(
         Language::French.text(Key::DiagnosticZipFileType),
         "Archive ZIP"

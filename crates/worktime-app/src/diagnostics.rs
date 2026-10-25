@@ -22,8 +22,8 @@ use crate::shell;
 use crate::strings::{Key, Language};
 use crate::widgets::Notice;
 
-/// The name the save dialog offers, as in the .NET app.
-const SUGGESTED_FILE_NAME: &str = "worktime-diagnostics.zip";
+/// The name the save dialog offers.
+const SUGGESTED_FILE_NAME: &str = "bientot-diagnostics.zip";
 
 /// How an export ended.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

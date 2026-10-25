@@ -246,7 +246,7 @@ fn a_failed_catch_up_is_told_once_until_one_succeeds() {
     clock.advance(SignedDuration::from_mins(1));
     assert!(today.catch_up());
     let failure =
-        Notice::refresh_pending("WorkTime could not refresh. It will try again automatically.");
+        Notice::refresh_pending("Bientôt could not refresh. It will try again automatically.");
     assert_eq!(today.refresh_failure(), Some(failure.clone()));
     clock.advance(SignedDuration::from_mins(1));
     assert!(!today.catch_up());
@@ -872,7 +872,7 @@ fn a_failed_refresh_is_told_until_one_succeeds() {
     clock.advance(SignedDuration::from_mins(1));
     today.refresh();
     let failure =
-        Notice::refresh_pending("WorkTime could not refresh. It will try again automatically.");
+        Notice::refresh_pending("Bientôt could not refresh. It will try again automatically.");
     assert_eq!(today.refresh_failure(), Some(failure.clone()));
     for _ in 0..2 {
         assert_eq!(

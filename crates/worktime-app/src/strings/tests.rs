@@ -1,5 +1,6 @@
 //! The generated table against the `.resw` files, and the catalogue's rules: the same keys
-//! and holes in both languages, no empty value, typographic apostrophes and French spacing.
+//! and holes in both languages, no empty value, no old app name, typographic apostrophes and
+//! French spacing.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -167,6 +168,25 @@ fn no_value_is_empty() {
         }
     }
     assert_eq!(empty, Vec::<String>::new());
+}
+
+/// The app is Bientôt: the old name may appear only as the `.worktime` extension of the files
+/// it still imports.
+#[test]
+fn no_value_names_the_app_worktime() {
+    let mut faults = Vec::new();
+    for entry in &table::ENTRIES {
+        for (tag, value) in [("fr-FR", entry.fr), ("en-US", entry.en)] {
+            if value
+                .to_lowercase()
+                .replace(".worktime", "")
+                .contains("worktime")
+            {
+                faults.push(format!("{tag}: {}", entry.name));
+            }
+        }
+    }
+    assert_eq!(faults, Vec::<String>::new());
 }
 
 /// The French spacing of `value` that breaks the catalogue's rule: a no-break space

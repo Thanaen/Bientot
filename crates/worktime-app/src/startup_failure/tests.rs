@@ -53,9 +53,9 @@ fn a_ledger_that_does_not_open_shows_the_error_and_offers_the_export() {
     assert_eq!(
         failure.page(),
         FailurePage {
-            title: "WorkTime",
-            heading: "WorkTime could not start",
-            message: "Check the settings and local database, then restart WorkTime. If it keeps \
+            title: "Bientôt",
+            heading: "Bientôt could not start",
+            message: "Check the settings and local database, then restart Bientôt. If it keeps \
                       happening, export diagnostics.",
             details_header: "Details",
             detail: &detail,
@@ -79,9 +79,9 @@ fn the_failure_reads_in_french() {
     assert_eq!(
         failure.page(),
         FailurePage {
-            title: "WorkTime",
-            heading: "WorkTime n’a pas pu démarrer",
-            message: "Vérifiez les paramètres et la base de données locale, puis relancez WorkTime. \
+            title: "Bientôt",
+            heading: "Bientôt n’a pas pu démarrer",
+            message: "Vérifiez les paramètres et la base de données locale, puis relancez l’application. \
                       Si le problème persiste, exportez le diagnostic.",
             details_header: "Détails",
             detail: &detail,
@@ -110,7 +110,7 @@ fn the_failure_speaks_the_language_the_settings_chose() {
         .unwrap();
     let failure = failed_start(folder.path(), None);
     assert_eq!(failure.language(), Language::English);
-    assert_eq!(failure.page().heading, "WorkTime could not start");
+    assert_eq!(failure.page().heading, "Bientôt could not start");
 }
 
 #[test]
@@ -228,7 +228,7 @@ fn a_running_export_disables_its_button_then_tells_its_outcome() {
     assert_eq!(
         failure.page().notice,
         Some(Notice {
-            message: "WorkTime could not save the diagnostic ZIP. Choose another location and \
+            message: "Bientôt could not save the diagnostic ZIP. Choose another location and \
                       try again."
                 .to_owned(),
             kind: NoticeKind::Error,
@@ -272,7 +272,7 @@ fn a_demo_refusing_its_folder_says_why() {
         .unwrap();
     assert_eq!(
         refused_demo(DemoScenario::Late, real_data.path()),
-        "This folder holds WorkTime data that the demo did not create, and the demo leaves it \
+        "This folder holds Bientôt data that the demo did not create, and the demo leaves it \
          untouched. Launch the demo with another folder, or without --data-dir."
     );
 

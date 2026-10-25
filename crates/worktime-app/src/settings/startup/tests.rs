@@ -66,52 +66,52 @@ fn each_state_shows_the_switch_and_the_dotnet_status() {
             (
                 true,
                 true,
-                "WorkTime démarrera à la prochaine ouverture de session."
+                "Bientôt démarrera à la prochaine ouverture de session."
             ),
             (
                 false,
                 true,
-                "WorkTime ne démarrera pas à l’ouverture de session."
+                "Bientôt ne démarrera pas à l’ouverture de session."
             ),
             (
                 false,
                 false,
-                "Les applications de démarrage Windows ont désactivé WorkTime. Réactivez-le dans \
+                "Les applications de démarrage Windows ont désactivé Bientôt. Réactivez-le dans \
                  Paramètres > Applications > Démarrage."
             ),
             (
                 false,
                 false,
-                "Votre organisation empêche WorkTime de démarrer à l’ouverture de session."
+                "Votre organisation empêche Bientôt de démarrer à l’ouverture de session."
             ),
             (
                 true,
                 false,
-                "Votre organisation démarre WorkTime à l’ouverture de session."
+                "Votre organisation impose le démarrage de Bientôt à l’ouverture de session."
             ),
             (
                 false,
                 true,
-                "Une autre copie utilise l’entrée de démarrage WorkTime. Activez ce réglage pour \
+                "Une autre copie utilise l’entrée de démarrage de Bientôt. Activez ce réglage pour \
                  utiliser cette copie."
             ),
             (
                 false,
                 false,
-                "Le démarrage automatique n’est pas disponible pour cette copie de WorkTime."
+                "Le démarrage automatique n’est pas disponible pour cette copie de Bientôt."
             ),
         ]
     );
     assert_eq!(
         shown(Language::English).map(|(_, _, text)| text),
         [
-            "WorkTime will start the next time you sign in.",
-            "WorkTime will not start when you sign in.",
-            "Windows Startup Apps has disabled WorkTime. Re-enable it in Settings > Apps > Startup.",
-            "Your organization prevents WorkTime from starting when you sign in.",
-            "Your organization starts WorkTime when you sign in.",
-            "Another copy uses the WorkTime startup entry. Turn this setting on to use this copy.",
-            "Startup registration is unavailable for this copy of WorkTime.",
+            "Bientôt will start the next time you sign in.",
+            "Bientôt will not start when you sign in.",
+            "Windows Startup Apps has disabled Bientôt. Re-enable it in Settings > Apps > Startup.",
+            "Your organization prevents Bientôt from starting when you sign in.",
+            "Your organization starts Bientôt when you sign in.",
+            "Another copy uses the Bientôt startup entry. Turn this setting on to use this copy.",
+            "Startup registration is unavailable for this copy of Bientôt.",
         ]
     );
 }
