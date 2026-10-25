@@ -1,6 +1,6 @@
-# WorkTime service
+# Bientôt service
 
-The one web service of WorkTime, at `https://worktime.thanaen.dev`. It shows the homepage,
+The one web service of Bientôt, at `https://worktime.thanaen.dev`. It shows the homepage,
 counts the active installations without identifying anyone, and points installed copies at
 their updates.
 
@@ -40,7 +40,7 @@ playwright screenshot --viewport-size=1200,630 "file://$PWD/site/og/home.html" s
 
 ## Usage signal
 
-Once a day, WorkTime sends:
+Once a day, Bientôt sends:
 
 ```json
 {"version":"1.0.0","channel":"store","first_this_month":false}

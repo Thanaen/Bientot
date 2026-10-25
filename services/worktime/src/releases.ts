@@ -1,4 +1,4 @@
-// The Velopack releases of WorkTime, published as GitHub Releases by the Release workflow
+// The Velopack releases of Bientôt, published as GitHub Releases by the Release workflow
 // (.github/workflows/release.yml). The installed app reads its feed at /updates/ (FEED_URL in
 // crates/worktime-app/src/updates/direct.rs), and /download serves the installer: both stay at
 // this address and redirect to the release files, wherever those live.

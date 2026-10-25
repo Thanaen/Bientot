@@ -16,12 +16,12 @@ export const PAGES: Page[] = [
   {
     path: "/",
     file: new URL("../site/index.html", import.meta.url),
-    title: "WorkTime · suivi du temps de travail pour Windows",
+    title: "Bientôt · suivi du temps de travail pour Windows",
     description:
-      "WorkTime compte votre temps de travail depuis la barre des tâches de Windows, sans rien saisir, et vous dit à quelle heure partir. Gratuit, licence MIT.",
+      "L’application Bientôt compte votre temps de travail depuis la barre des tâches de Windows, sans rien saisir, et vous dit à quelle heure partir. Gratuite, licence MIT.",
     image: {
       path: "/og/home.png",
-      alt: "WorkTime : « À quelle heure pourrez-vous partir aujourd’hui ? », à côté du panneau de la barre des tâches qui indique « Dans les temps », départ prévu à 16:54.",
+      alt: "L’application Bientôt : « À quelle heure pourrez-vous partir aujourd’hui ? », à côté du panneau de la barre des tâches qui indique « Dans les temps », départ prévu à 16:54.",
     },
   },
 ];
@@ -30,9 +30,9 @@ export const PAGES: Page[] = [
 export const STATISTICS: Page = {
   path: "/statistiques",
   file: new URL("../site/statistiques.html", import.meta.url),
-  title: "Statistiques · WorkTime",
+  title: "Statistiques · Bientôt",
   description:
-    "Combien d’installations de WorkTime sont actives chaque mois, par version et par mode d’installation : les chiffres du signal anonyme, publiés en données ouvertes.",
+    "Combien d’installations de Bientôt sont actives chaque mois, par version et par mode d’installation : les chiffres du signal anonyme, publiés en données ouvertes.",
   image: PAGES[0]!.image,
 };
 
@@ -66,7 +66,7 @@ export function head(page: Page): string {
     `<meta name="description" content="${escape(page.description)}">`,
     `<link rel="canonical" href="${url}">`,
     `<meta property="og:type" content="website">`,
-    `<meta property="og:site_name" content="WorkTime">`,
+    `<meta property="og:site_name" content="Bientôt">`,
     `<meta property="og:locale" content="fr_FR">`,
     `<meta property="og:url" content="${url}">`,
     `<meta property="og:title" content="${escape(page.title)}">`,
