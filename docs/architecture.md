@@ -21,8 +21,8 @@ it in this table.
 
 The web service behind `bientot.dev` and `worktime.thanaen.dev` (website, usage
 counter, update redirects, download link) is a separate Bun project in
-`services/worktime`; see its
-[README](../services/worktime/README.md).
+`services/bientot`; see its
+[README](../services/bientot/README.md).
 
 ## Launch
 

@@ -43,7 +43,7 @@ fi
 base=$(cargo metadata --no-deps --format-version 1 --manifest-path "$root/Cargo.toml" |
     jq -r '.packages[] | select(.name == "bientot-app") | .version' | tr -d '\r')
 version="$base-alpha.$(git -C "$root" rev-list --count HEAD)"
-# The version the usage ping accepts (services/worktime/src/ping.ts), which the app parses.
+# The version the usage ping accepts (services/bientot/src/ping.ts), which the app parses.
 [[ $version =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(-[0-9A-Za-z.]{1,20})?$ ]] || fail "unexpected version $version"
 echo "Bientôt $version"
 

@@ -22,7 +22,7 @@ spec conventions. The code layout is in [docs/architecture.md](docs/architecture
   first `cargo` command.
 - To run the app: Windows 11 x64. The code builds and its tests run on Linux
   and macOS too, except the Windows-only parts listed below.
-- To work on the web service in `services/worktime`: [Bun](https://bun.sh).
+- To work on the web service in `services/bientot`: [Bun](https://bun.sh).
 - PowerShell 7 (`pwsh`) runs the Windows scripts in `scripts/`.
 
 ## Run the tests
@@ -87,7 +87,7 @@ To try the app on Windows with scripted activity and temporary data, run
 For the web service:
 
 ```bash
-cd services/worktime
+cd services/bientot
 bun install --frozen-lockfile
 bun test
 ```
@@ -140,7 +140,7 @@ its no-break space, or when a text uses a straight apostrophe.
 - Use [Conventional Commits](https://www.conventionalcommits.org/) with a
   scope that names the part of the project the change is for:
   - `app`: the Windows app (`crates/`, `packaging/`, its dependencies);
-  - `site`: the website and the web service (`services/worktime/`);
+  - `site`: the website and the web service (`services/bientot/`);
   - `repo`: everything else, such as CI, the release workflow and the
     repository's documentation.
 

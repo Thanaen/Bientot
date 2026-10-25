@@ -1,5 +1,5 @@
 //! The anonymous daily usage signal: whether one is due today, and what it holds. Its contract
-//! with the service is `services/worktime/src/ping.ts`.
+//! with the service is `services/bientot/src/ping.ts`.
 
 use jiff::civil::Date;
 

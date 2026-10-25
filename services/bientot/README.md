@@ -141,7 +141,7 @@ bun run dev        # http://localhost:3000, signals kept in memory
 
 ## Deploy
 
-Vercel project `worktime`, root directory `services/worktime`, Bun runtime (`vercel.json`),
+Vercel project `worktime`, root directory `services/bientot`, Bun runtime (`vercel.json`),
 function region `dub1` (a project setting), domains `bientot.dev` (with `www.bientot.dev`
 redirecting to it) and `worktime.thanaen.dev`. Variable:
 `POSTHOG_PERSONAL_API_KEY` (above). The PostHog project token and id are in `server.ts`: the token only
