@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Each section starts with the text Bientôt shows. Messages come from
-`crates/worktime-app/strings/en-US.resw`; the French build shows the
+`crates/bientot-app/strings/en-US.resw`; the French build shows the
 same messages from `fr-FR`.
 
 ## Activity source problems

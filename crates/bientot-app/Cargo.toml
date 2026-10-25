@@ -1,0 +1,76 @@
+[package]
+name = "bientot-app"
+description = "WorkTime's GPUI shell: notification-area icon and windows."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "worktime"
+path = "src/main.rs"
+
+[[bin]]
+name = "bientot-screenshots"
+path = "src/bin/screenshots.rs"
+required-features = ["screenshots"]
+
+[features]
+# Renders the flyout off screen to PNG files (software Vulkan on Linux CI).
+screenshots = ["gpui/test-support", "gpui_platform/test-support", "dep:gpui_wgpu"]
+# Sends the anonymous daily usage signal over HTTPS from a release build. A debug build never
+# sends, even with this feature on, and CI only measures the release build with `--data-dir`.
+usage-ping = ["dep:ureq"]
+# Updates the build installed by Velopack's Setup.exe from its feed (`updates::direct`).
+updates = ["dep:ureq", "dep:velopack"]
+# The features of the Store package and the portable ZIP, whose updates do not go through
+# Velopack. The notices generator reads the same feature.
+release = ["usage-ping"]
+# The features of the Velopack Setup.exe (scripts/release-direct.sh).
+direct = ["release", "updates"]
+
+[dependencies]
+anyhow = "1"
+gpui = { version = "=0.3.9", package = "gpui-pre" }
+gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform" }
+image = { version = "0.25", default-features = false, features = ["ico", "png"] }
+jiff = "0.2.38"
+log = "0.4"
+rusqlite = "0.40.2"
+serde_json = "1.0.154"
+# The system TLS: SChannel on Windows. `native-tls` also brings the Mozilla roots
+# (webpki-root-certs), which `RootCerts::PlatformVerifier` never reads, but ureq 3.4.2 compiles its
+# native-tls connector only with this feature, not with `native-tls-no-default` alone.
+ureq = { version = "3.4.2", default-features = false, features = ["native-tls"], optional = true }
+bientot-core = { path = "../bientot-core" }
+bientot-domain = { path = "../bientot-domain" }
+bientot-store = { path = "../bientot-store" }
+bientot-windows = { path = "../bientot-windows" }
+
+# Shapes text in the screenshots: GPUI's headless Linux platform has no text system.
+[target.'cfg(target_os = "linux")'.dependencies]
+gpui_wgpu = { version = "=0.3.9", package = "gpui-pre-wgpu", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+futures = "0.3"
+raw-window-handle = "0.6"
+tray-icon = { version = "0.26", default-features = false }
+# `public-utils` names the manifest an update source receives.
+velopack = { version = "=1.2.161", features = ["public-utils"], optional = true }
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Time",
+    "Win32_UI_HiDpi",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[build-dependencies]
+# Already built for gpui's manifest; compiles the version resource with RC.EXE or llvm-rc.
+embed-resource = "3.0.12"
+
+[dev-dependencies]
+roxmltree = "0.21.1"
+tempfile = "3.27.0"

@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $executable = (Resolve-Path -LiteralPath $ExecutablePath).Path
 $processName = [IO.Path]::GetFileNameWithoutExtension($executable)
-# PORTABLE_AUMID and PORTABLE_ACTIVATOR in crates/worktime-windows/src/notifications/portable.rs.
+# PORTABLE_AUMID and PORTABLE_ACTIVATOR in crates/bientot-windows/src/notifications/portable.rs.
 $aumid = 'Thanaen.WorkTime.Portable'
 $activator = [guid]'8ddae643-7db0-465f-9139-725c4f57f1ed'
 $registryKeys = @(

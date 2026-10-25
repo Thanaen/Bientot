@@ -1,6 +1,6 @@
 // The Velopack releases of Bientôt, published as GitHub Releases by the Release workflow
 // (.github/workflows/release.yml). The installed app reads its feed at /updates/ (FEED_URL in
-// crates/worktime-app/src/updates/direct.rs), and /download serves the installer: both stay at
+// crates/bientot-app/src/updates/direct.rs), and /download serves the installer: both stay at
 // this address and redirect to the release files, wherever those live.
 
 const RELEASES = "https://github.com/Thanaen/WorkTime/releases";

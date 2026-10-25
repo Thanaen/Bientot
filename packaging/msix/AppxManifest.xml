@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The MSIX manifest of worktime.exe. It has no Windows App SDK runtime to depend on, and
-  crates/worktime-app/tests/msix_manifest.rs holds it to the Rust constants.
+  crates/bientot-app/tests/msix_manifest.rs holds it to the Rust constants.
 
   The identity is the .NET package's, for the unsigned alpha. The Store build replaces Name,
   Publisher and PublisherDisplayName with the values Partner Center assigns, which are not known

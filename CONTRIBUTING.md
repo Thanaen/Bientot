@@ -37,7 +37,7 @@ cargo test --workspace --all-features --locked
 
 Then check the Windows-only code from Linux: the DPAPI secret store, the Win32 calls of the
 Windows integration and the notification-area icon of the app. The bundled SQLite of
-`worktime-store`, which `worktime-windows` and `worktime-app` depend on, needs the MSVC C
+`bientot-store`, which `bientot-windows` and `bientot-app` depend on, needs the MSVC C
 compiler to build for Windows. Give the build a stand-in C compiler that writes empty
 objects, since linting links nothing:
 
@@ -58,9 +58,9 @@ Its Windows tests run only on Windows.
 The first version of the app, then called WorkTime, was a .NET app, removed in October
 2026. The Rust app reads the same data files, so several tests replay what the .NET code
 computed or wrote:
-`crates/worktime-domain/tests/dotnet_fixtures.rs` (the domain), the `worktime-store` tests
+`crates/bientot-domain/tests/dotnet_fixtures.rs` (the domain), the `bientot-store` tests
 (settings files, stored dates and instants, the migration SQL, SQLite databases, a
-repository scenario) and the `worktime-core` diagnostics tests. Their fixtures are frozen:
+repository scenario) and the `bientot-core` diagnostics tests. Their fixtures are frozen:
 if one of these tests fails, the Rust code changed behavior, so do not edit the fixture to
 make it pass. A product decision that changes such a case on purpose lists it as a
 `Revision` beside the domain test that replays it, under the decision's name.
@@ -69,19 +69,19 @@ To look at the flyout without Windows, render every demo scenario to PNG files i
 language and one theme (Linux, with a Vulkan driver such as Mesa's `mesa-vulkan-drivers`):
 
 ```bash
-cargo run --release --features screenshots --bin worktime-screenshots -p worktime-app -- shots/fr-dark --french --dark
+cargo run --release --features screenshots --bin bientot-screenshots -p bientot-app -- shots/fr-dark --french --dark
 ```
 
-The Rust app reads its texts from `crates/worktime-app/strings/fr-FR.resw` and
+The Rust app reads its texts from `crates/bientot-app/strings/fr-FR.resw` and
 `en-US.resw` through a generated table. After adding or changing a string in both files,
-regenerate it and commit `crates/worktime-app/src/strings/table.rs`:
+regenerate it and commit `crates/bientot-app/src/strings/table.rs`:
 
 ```bash
-WORKTIME_UPDATE_STRINGS=1 cargo test -p worktime-app strings
+BIENTOT_UPDATE_STRINGS=1 cargo test -p bientot-app strings
 ```
 
 To try the app on Windows with scripted activity and temporary data, run
-`cargo run -p worktime-app --bin worktime -- --demo`, with `--english`, `--light` or
+`cargo run -p bientot-app --bin worktime -- --demo`, with `--english`, `--light` or
 `--data-dir <folder>` as needed.
 
 For the web service:
@@ -96,7 +96,7 @@ bun test
 
 A green Linux run does not prove these:
 
-- the Windows tests of `worktime-store` and `worktime-windows` (DPAPI, the Run
+- the Windows tests of `bientot-store` and `bientot-windows` (DPAPI, the Run
   key, the last-input query, the single-instance event);
 - the release executable and its size, startup time and memory;
 - notifications, the tray icon and anything you see on screen.
@@ -113,12 +113,12 @@ A green Linux run does not prove these:
   renders the screenshots when the app crate changes. **Publish screenshots**
   pushes them to the `refs/ci-screenshots/<pull request>` ref (not a
   branch, so Vercel ignores it) and links them from the job summary.
-- **Rust on Windows** tests `worktime-store` and `worktime-windows`, builds the
+- **Rust on Windows** tests `bientot-store` and `bientot-windows`, builds the
   release executable and measures its size, startup time and memory. Then
   `scripts/measure-performance.ps1` runs it with the built-in activity source,
   warns above the spec budgets and fails only above 2 % CPU, 200 MiB or 6 s.
-  The job runs only when `crates/worktime-app/`, `crates/worktime-windows/`,
-  the Windows code of `worktime-store`, the Cargo manifests, the toolchain,
+  The job runs only when `crates/bientot-app/`, `crates/bientot-windows/`,
+  the Windows code of `bientot-store`, the Cargo manifests, the toolchain,
   `scripts/measure-performance.ps1` or `ci.yml` change, and after **Rust**
   passes.
 
@@ -128,10 +128,10 @@ conditional on the files they check.
 ## Localization
 
 Bientôt ships in French and English. Every user-visible string lives in both
-`crates/worktime-app/strings/fr-FR.resw` and
-`crates/worktime-app/strings/en-US.resw` (see [Run the tests](#run-the-tests)
+`crates/bientot-app/strings/fr-FR.resw` and
+`crates/bientot-app/strings/en-US.resw` (see [Run the tests](#run-the-tests)
 for the table they generate). The tests in
-`crates/worktime-app/src/strings/tests.rs` fail when a key is missing or empty
+`crates/bientot-app/src/strings/tests.rs` fail when a key is missing or empty
 in one language, when format placeholders differ, when French punctuation lacks
 its no-break space, or when a text uses a straight apostrophe.
 

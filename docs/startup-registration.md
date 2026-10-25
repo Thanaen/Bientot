@@ -61,13 +61,13 @@ its test executable as the real Bientôt startup entry.
 
 ## Verification
 
-The `worktime-windows` tests cover the registry states, path quoting,
-registration mismatches and Windows overrides; the `worktime-app` tests cover
+The `bientot-windows` tests cover the registry states, path quoting,
+registration mismatches and Windows overrides; the `bientot-app` tests cover
 the settings rows. The registry tests run only on Windows (`cargo test -p
-worktime-windows`).
+bientot-windows`).
 
 To observe window visibility without changing startup registration, build
-`worktime.exe` with `cargo build --release -p worktime-app --bin worktime` and run:
+`worktime.exe` with `cargo build --release -p bientot-app --bin worktime` and run:
 
 ```powershell
 .\scripts\verify-startup-visibility.ps1 `

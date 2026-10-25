@@ -50,7 +50,7 @@ jobs:
             --jq '.[] | .filename, (.previous_filename // empty)')
 
           gpui_screenshots=false
-          if grep -qE '^crates/worktime-app/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+          if grep -qE '^crates/bientot-app/|^\.github/workflows/ci\.yml$' <<< "$files"; then
             gpui_screenshots=true
           fi
 
@@ -62,7 +62,7 @@ jobs:
           fi
 
           rust_windows=false
-          if grep -qE '^crates/worktime-(app|windows|store)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+          if grep -qE '^crates/bientot-(app|windows|store)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
             rust_windows=true
           fi
 
@@ -156,10 +156,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers
-          cargo build --locked -p worktime-app --features screenshots --bin worktime-screenshots
+          cargo build --locked -p bientot-app --features screenshots --bin bientot-screenshots
           for variant in fr-dark fr-light en-dark en-light; do
             case "$variant" in fr-*) language=--french ;; *) language=--english ;; esac
-            target/debug/worktime-screenshots "artifacts/gpui-screenshots/${variant}" "$language" "--${variant#*-}"
+            target/debug/bientot-screenshots "artifacts/gpui-screenshots/${variant}" "$language" "--${variant#*-}"
           done
 
       - name: Upload GPUI screenshots
@@ -201,15 +201,15 @@ jobs:
 
       # The DPAPI secret store and the Windows path cases only compile and run here.
       - name: Test the store
-        run: cargo test --locked -p worktime-store
+        run: cargo test --locked -p bientot-store
 
       # The Win32 calls: the last-input query, the Run key, and the single-instance event.
       - name: Test the Windows integration
-        run: cargo test --locked -p worktime-windows
+        run: cargo test --locked -p bientot-windows
 
       # The executable as it ships, with the usage signal (spec signal-utilisation §4).
       - name: Build release executable
-        run: cargo build --release --locked -p worktime-app --bin worktime --features release
+        run: cargo build --release --locked -p bientot-app --bin worktime --features release
 
       # Task Manager and the Startup apps page name the app from the exe's version resource.
       - name: Check the version resource
@@ -238,7 +238,7 @@ jobs:
 
           $ready = Join-Path $env:RUNNER_TEMP 'worktime-ready'
           Remove-Item $ready -ErrorAction SilentlyContinue
-          $env:WORKTIME_READY_FILE = $ready
+          $env:BIENTOT_READY_FILE = $ready
           $clock = [Diagnostics.Stopwatch]::StartNew()
           $process = Start-Process $exe -ArgumentList '--open-flyout', '--data-dir', $data -PassThru
           while (-not (Test-Path $ready)) {
@@ -298,7 +298,7 @@ jobs:
 
       # scripts/release-direct.sh builds the Velopack Setup.exe with this feature, outside CI.
       - name: Check the Velopack build
-        run: cargo check --release --locked -p worktime-app --bin worktime --features direct
+        run: cargo check --release --locked -p bientot-app --bin worktime --features direct
 
       # Lets a person try the build, for example with Narrator, without building it, even one
       # over a gate.

@@ -42,7 +42,7 @@ jobs:
         id: version
         run: |
           set -euo pipefail
-          base=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "worktime-app") | .version')
+          base=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "bientot-app") | .version')
           echo "version=${base}-alpha.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -93,7 +93,7 @@ jobs:
       - name: Install Rust toolchain
         run: rustup toolchain install
 
-      # Its version must be the velopack crate's (crates/worktime-app/Cargo.toml): its Update.exe
+      # Its version must be the velopack crate's (crates/bientot-app/Cargo.toml): its Update.exe
       # installs the updates.
       - name: Install vpk
         shell: bash
