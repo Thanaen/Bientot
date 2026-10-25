@@ -12,12 +12,12 @@ it in this table.
 
 | Crate | Builds on | Role |
 | --- | --- | --- |
-| `worktime-domain` | any OS | The accounting rules, as pure functions over a clock and a time zone: intervals, workday accounting, manual adjustments, weekly credit, forecasts and indicator state, daily summaries, reminders, settings validation, the usage-signal rules. |
-| `worktime-store` | any OS (DPAPI on Windows) | Persistence in the data directory: `settings.json`, the SQLite ledger and its migrations, `app-state.json`, the DPAPI secrets, and the `.bientot` transfer file. |
-| `worktime-core` | any OS | The app services: the activity source router, the accounting of one day, the weekly recalculation, tracking commands, corrections, long-lock reviews, reminders, the settings form logic, the demo scenarios, diagnostics, the usage signal sender. |
-| `worktime-windows` | Windows for its Win32 calls | The built-in activity source (last-input time), session lock and power events, power history from the System event log, start with Windows, toast notifications, the single-instance claim, file dialogs, Microsoft Store updates. |
-| `worktime-app` | Windows to run; tests on any OS | The `worktime.exe` binary: the notification-area icon (`tray-icon`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `worktime-screenshots` tool. |
-| `worktime-notices` | any OS | Writes `THIRD-PARTY-NOTICES.txt` for the release executable and fails on a license outside the allowed list. |
+| `bientot-domain` | any OS | The accounting rules, as pure functions over a clock and a time zone: intervals, workday accounting, manual adjustments, weekly credit, forecasts and indicator state, daily summaries, reminders, settings validation, the usage-signal rules. |
+| `bientot-store` | any OS (DPAPI on Windows) | Persistence in the data directory: `settings.json`, the SQLite ledger and its migrations, `app-state.json`, the DPAPI secrets, and the `.bientot` transfer file. |
+| `bientot-core` | any OS | The app services: the activity source router, the accounting of one day, the weekly recalculation, tracking commands, corrections, long-lock reviews, reminders, the settings form logic, the demo scenarios, diagnostics, the usage signal sender. |
+| `bientot-windows` | Windows for its Win32 calls | The built-in activity source (last-input time), session lock and power events, power history from the System event log, start with Windows, toast notifications, the single-instance claim, file dialogs, Microsoft Store updates. |
+| `bientot-app` | Windows to run; tests on any OS | The `worktime.exe` binary: the notification-area icon (`tray-icon`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `bientot-screenshots` tool. |
+| `bientot-notices` | any OS | Writes `THIRD-PARTY-NOTICES.txt` for the release executable and fails on a license outside the allowed list. |
 
 The web service behind `bientot.dev` and `worktime.thanaen.dev` (website, usage
 counter, update redirects, download link) is a separate Bun project in
@@ -26,9 +26,9 @@ counter, update redirects, download link) is a separate Bun project in
 
 ## Launch
 
-`crates/worktime-app/src/main.rs` parses the command line (`launch.rs`),
+`crates/bientot-app/src/main.rs` parses the command line (`launch.rs`),
 resolves the data directory, then claims the single instance for that
-directory (`worktime_windows::single_instance`). If another copy of Bientôt
+directory (`bientot_windows::single_instance`). If another copy of Bientôt
 already holds it, the launch hands its activation over, logs `instance.redirected` and
 exits before it opens the settings, the ledger or the log. A `--data-dir` or a
 `--demo` launch uses another folder, so it runs on its own.
@@ -46,23 +46,23 @@ window that says why and offers the diagnostic export
 ## Data flow
 
 1. **Activity.** While the built-in source is selected, `host.rs` samples the
-   last keyboard or mouse input every 5 seconds. `worktime_windows::activity`
+   last keyboard or mouse input every 5 seconds. `bientot_windows::activity`
    turns the samples into active and idle spans with the configured idle
    threshold (180 s by default) and stores the settled ones. Time before
    Bientôt starts and the pending tail after the last input stay unknown. See
    the [built-in source contract](../specs/001-core-workday-indicator/contracts/built-in-activity-source.md).
-2. **Routing.** `worktime_core::routing` sends each part of a read to the
+2. **Routing.** `bientot_core::routing` sends each part of a read to the
    source selected at that instant. ActivityWatch, an optional source of the
    first .NET app, is no longer read: the days it covered keep their stored
    summaries.
 3. **Accounting.** Every 30 seconds, and on F5 or a tracking action,
-   `worktime_core::accounting` computes the day from the spans, the session
+   `bientot_core::accounting` computes the day from the spans, the session
    and power events, the manual adjustments and the recurring appointments.
-   `worktime_core::weekly` then recalculates the current week, stores the
+   `bientot_core::weekly` then recalculates the current week, stores the
    daily summaries and the weekly credit, and closes earlier weeks.
 4. **Display.** The tray icon, its tooltip, the flyout and the week read the
    published state (`workday.rs`, `tray_model.rs`, `week.rs`).
-   `worktime_core::notifications` decides which reminders are due, and the
+   `bientot_core::notifications` decides which reminders are due, and the
    notification receipts in the ledger make each one show once.
 
 ## Where state lives
@@ -103,14 +103,14 @@ folder and a demo folder never move.
 - The Microsoft Store build asks the Store, at most once a day.
 - The portable ZIP never checks; its settings link to the GitHub releases page.
 - « Rechercher les mises à jour » in Settings turns the checks off.
-- Only the `Setup.exe` build carries Velopack: it is built with worktime-app's
+- Only the `Setup.exe` build carries Velopack: it is built with bientot-app's
   `direct` feature, the Store package and the ZIP with its `release` feature.
 
 ## Testability
 
 The rules never reference GPUI or Win32 types, so the domain, the store, the
-services and the view models are tested on Linux. `worktime-app` draws every
-demo scenario off screen with `worktime-screenshots`, which CI uses to publish
+services and the view models are tested on Linux. `bientot-app` draws every
+demo scenario off screen with `bientot-screenshots`, which CI uses to publish
 screenshots of each pull request. See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Related documents

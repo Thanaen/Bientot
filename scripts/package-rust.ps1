@@ -12,7 +12,7 @@ param(
 )
 
 # Packages a release build of worktime.exe. The channel only picks the download: the exe already
-# carries its own, fixed by WORKTIME_CHANNEL when it was compiled. The identity overrides, for the
+# carries its own, fixed by BIENTOT_CHANNEL when it was compiled. The identity overrides, for the
 # Partner Center values, apply to the MSIX only.
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
@@ -57,11 +57,11 @@ function Copy-LicenseNotices([string] $Layout) {
     Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE') -Destination (Join-Path $Layout 'LICENSE.txt')
     # The exe embeds the Lucide icons (ISC) and the IBM Plex fonts (SIL OFL), whose licenses ask
     # for their notice in every copy.
-    Copy-Item -LiteralPath (Join-Path $repositoryRoot 'crates/worktime-app/assets/icons/LICENSE') `
+    Copy-Item -LiteralPath (Join-Path $repositoryRoot 'crates/bientot-app/assets/icons/LICENSE') `
         -Destination (Join-Path $Layout 'LICENSE-icons.txt')
-    Copy-Item -LiteralPath (Join-Path $repositoryRoot 'crates/worktime-app/assets/fonts/OFL.txt') `
+    Copy-Item -LiteralPath (Join-Path $repositoryRoot 'crates/bientot-app/assets/fonts/OFL.txt') `
         -Destination (Join-Path $Layout 'LICENSE-fonts.txt')
-    # The crates compiled into the Store and ZIP exe (worktime-app's `release` feature) and their
+    # The crates compiled into the Store and ZIP exe (bientot-app's `release` feature) and their
     # licenses.
     # The generator fails on a license it does not allow, which stops the packaging. rustup picks
     # the toolchain from the current directory, so the run starts at the root to get
@@ -69,7 +69,7 @@ function Copy-LicenseNotices([string] $Layout) {
     Push-Location $repositoryRoot
     try {
         Invoke-Native 'cargo' @('run', '--locked', '--quiet', '--manifest-path', (Join-Path $repositoryRoot 'Cargo.toml'),
-            '--package', 'worktime-notices', '--', (Join-Path $Layout 'THIRD-PARTY-NOTICES.txt'))
+            '--package', 'bientot-notices', '--', (Join-Path $Layout 'THIRD-PARTY-NOTICES.txt'))
     }
     finally {
         Pop-Location
@@ -125,7 +125,7 @@ function New-PortableZip([string] $Staging, [string] $Destination) {
     $layout = Join-Path $Staging 'portable'
     New-Item -ItemType Directory -Path $layout | Out-Null
     Copy-Item -LiteralPath $executable -Destination (Join-Path $layout $exeName)
-    # PORTABLE_ICON in crates/worktime-windows/src/notifications/native.rs: the toasts' icon.
+    # PORTABLE_ICON in crates/bientot-windows/src/notifications/native.rs: the toasts' icon.
     Copy-Item -LiteralPath (Join-Path $packagingDirectory 'worktime.png') -Destination $layout
     Copy-LicenseNotices $layout
     Compress-Archive -Path (Join-Path $layout '*') -DestinationPath $Destination -CompressionLevel Optimal -Force

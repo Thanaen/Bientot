@@ -90,7 +90,7 @@ cargo test --workspace --all-features --locked
 On Windows, run the app with scripted activity and temporary data:
 
 ```powershell
-cargo run -p worktime-app --bin worktime -- --demo --french --dark
+cargo run -p bientot-app --bin worktime -- --demo --french --dark
 ```
 
 `--english` and `--light` switch the language and theme. The small web
@@ -111,9 +111,9 @@ taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 Bientôt is released under the [MIT license](LICENSE). The app embeds the
 [Lucide](https://lucide.dev) icons (ISC,
-[notice](crates/worktime-app/assets/icons/LICENSE)) and the IBM Plex fonts
-(SIL Open Font License, [notice](crates/worktime-app/assets/fonts/OFL.txt)).
+[notice](crates/bientot-app/assets/icons/LICENSE)) and the IBM Plex fonts
+(SIL Open Font License, [notice](crates/bientot-app/assets/fonts/OFL.txt)).
 The downloads also ship `THIRD-PARTY-NOTICES.txt`, which lists the Rust crates
 compiled into `worktime.exe` with their licenses. `scripts/package-rust.ps1`
-writes it with `cargo run --locked -p worktime-notices -- <file>`, which fails
+writes it with `cargo run --locked -p bientot-notices -- <file>`, which fails
 on a license outside the allowed list.

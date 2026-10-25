@@ -433,6 +433,91 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
+name = "bientot-app"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "bientot-core",
+ "bientot-domain",
+ "bientot-store",
+ "bientot-windows",
+ "embed-resource",
+ "futures",
+ "gpui-pre",
+ "gpui-pre-platform",
+ "gpui-pre-wgpu",
+ "image",
+ "jiff",
+ "log",
+ "raw-window-handle",
+ "roxmltree 0.21.1",
+ "rusqlite",
+ "serde_json",
+ "tempfile",
+ "tray-icon",
+ "ureq",
+ "velopack",
+ "windows 0.62.2",
+]
+
+[[package]]
+name = "bientot-core"
+version = "0.2.0"
+dependencies = [
+ "bientot-domain",
+ "bientot-store",
+ "flate2",
+ "jiff",
+ "rusqlite",
+ "sha2 0.10.9",
+ "tempfile",
+]
+
+[[package]]
+name = "bientot-domain"
+version = "0.2.0"
+dependencies = [
+ "jiff",
+ "proptest",
+]
+
+[[package]]
+name = "bientot-notices"
+version = "0.2.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "bientot-store"
+version = "0.2.0"
+dependencies = [
+ "bientot-domain",
+ "jiff",
+ "proptest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "bientot-windows"
+version = "0.2.0"
+dependencies = [
+ "bientot-domain",
+ "bientot-store",
+ "jiff",
+ "rusqlite",
+ "tempfile",
+ "windows 0.62.2",
+ "windows-core 0.62.2",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6512,91 +6597,6 @@ name = "wit-bindgen"
 version = "0.57.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
-
-[[package]]
-name = "worktime-app"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "embed-resource",
- "futures",
- "gpui-pre",
- "gpui-pre-platform",
- "gpui-pre-wgpu",
- "image",
- "jiff",
- "log",
- "raw-window-handle",
- "roxmltree 0.21.1",
- "rusqlite",
- "serde_json",
- "tempfile",
- "tray-icon",
- "ureq",
- "velopack",
- "windows 0.62.2",
- "worktime-core",
- "worktime-domain",
- "worktime-store",
- "worktime-windows",
-]
-
-[[package]]
-name = "worktime-core"
-version = "0.2.0"
-dependencies = [
- "flate2",
- "jiff",
- "rusqlite",
- "sha2 0.10.9",
- "tempfile",
- "worktime-domain",
- "worktime-store",
-]
-
-[[package]]
-name = "worktime-domain"
-version = "0.2.0"
-dependencies = [
- "jiff",
- "proptest",
-]
-
-[[package]]
-name = "worktime-notices"
-version = "0.2.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
-name = "worktime-store"
-version = "0.2.0"
-dependencies = [
- "jiff",
- "proptest",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "windows-sys 0.61.2",
- "worktime-domain",
-]
-
-[[package]]
-name = "worktime-windows"
-version = "0.2.0"
-dependencies = [
- "jiff",
- "rusqlite",
- "tempfile",
- "windows 0.62.2",
- "windows-core 0.62.2",
- "windows-sys 0.61.2",
- "worktime-domain",
- "worktime-store",
-]
 
 [[package]]
 name = "writeable"

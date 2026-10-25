@@ -6,7 +6,7 @@ their updates.
 
 The service also answers at `https://worktime.thanaen.dev`, the site's first address. Installed
 copies read their update feed and send their usage signal there (`FEED_URL` in
-`crates/worktime-app/src/updates/direct.rs`, `ENDPOINT` in `crates/worktime-core/src/usage_ping.rs`),
+`crates/bientot-app/src/updates/direct.rs`, `ENDPOINT` in `crates/bientot-core/src/usage_ping.rs`),
 and the usage signal follows no redirect. On that host, every route answers exactly as on
 `bientot.dev`, except the two HTML pages, `/` and `/statistiques`, which answer `301` to the same
 address on `bientot.dev` (`moved` in `src/site.ts`, decided by the `Host` header). The app's two

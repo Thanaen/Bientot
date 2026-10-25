@@ -129,7 +129,7 @@ Bientôt never sends it anywhere. The ZIP holds three files:
 
 The export leaves out file paths, host names, error messages, application
 names, window titles and any log event outside the fixed list. The tests in
-`crates/worktime-core/tests/diagnostics_export.rs` plant such values in the
+`crates/bientot-core/tests/diagnostics_export.rs` plant such values in the
 logs and settings and check that none of them reaches the archive.
 
 Cancelling the save dialog writes nothing. An existing file is replaced only
