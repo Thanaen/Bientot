@@ -121,7 +121,7 @@ mod tests {
     fn windows_reads_the_toast_back_unchanged() {
         let request = NotificationRequest {
             delivery_id: "a=b;c%d".to_owned(),
-            title: "WorkTime".to_owned(),
+            title: "Bientôt".to_owned(),
             body: r#"<b> & "quoted" 'text'"#.to_owned(),
         };
 
@@ -132,7 +132,7 @@ mod tests {
         let toast = document.DocumentElement().unwrap();
 
         assert_eq!(texts.Length().unwrap(), 2);
-        assert_eq!(texts.Item(0).unwrap().InnerText().unwrap(), "WorkTime");
+        assert_eq!(texts.Item(0).unwrap().InnerText().unwrap(), "Bientôt");
         assert_eq!(
             texts.Item(1).unwrap().InnerText().unwrap(),
             r#"<b> & "quoted" 'text'"#

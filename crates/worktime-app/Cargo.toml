@@ -67,6 +67,10 @@ windows = { version = "0.62", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 
+[build-dependencies]
+# Already built for gpui's manifest; compiles the version resource with RC.EXE or llvm-rc.
+embed-resource = "3.0.12"
+
 [dev-dependencies]
 roxmltree = "0.21.1"
 tempfile = "3.27.0"
