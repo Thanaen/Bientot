@@ -76,7 +76,7 @@ Bientôt makes two kinds of request.
    depending on where you installed Bientôt. `first_this_month` is `true` for
    the first signal of a calendar month. The request carries no identifier, no
    cookie, no date and no time-tracking data. The server stores nothing and logs
-   nothing (`services/worktime`). It passes the three fields on to
+   nothing (`services/bientot`). It passes the three fields on to
    [PostHog](https://posthog.com/privacy), hosted in the European Union
    (Frankfurt), as one event dated at midnight UTC of the day, with a random id
    used only once, no IP address and no person profile. PostHog keeps each

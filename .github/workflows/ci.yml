@@ -378,7 +378,7 @@ jobs:
           fi
 
       # The screenshots go to a ref outside refs/heads: a branch push makes Vercel try a
-      # preview of a commit without services/worktime, which fails and sends an email.
+      # preview of a commit without services/bientot, which fails and sends an email.
       - name: Push screenshot ref
         working-directory: screenshots
         env:

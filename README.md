@@ -94,7 +94,7 @@ cargo run -p bientot-app --bin worktime -- --demo --french --dark
 ```
 
 `--english` and `--light` switch the language and theme. The small web
-service behind `bientot.dev` lives in `services/worktime` (Bun).
+service behind `bientot.dev` lives in `services/bientot` (Bun).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full checks, localization, and
 how to propose a change, and [docs/architecture.md](docs/architecture.md) for

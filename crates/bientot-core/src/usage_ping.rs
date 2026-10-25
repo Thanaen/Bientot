@@ -1,4 +1,4 @@
-//! Sends the anonymous daily usage signal (issue #158). The service is `services/worktime`; the
+//! Sends the anonymous daily usage signal (issue #158). The service is `services/bientot`; the
 //! rule for when a signal is due is `bientot_domain::usage_ping`.
 //!
 //! The caller runs [`UsagePingSender::send_if_due`] on a background thread at startup, when the
