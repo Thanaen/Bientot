@@ -3,9 +3,9 @@
   The MSIX manifest of worktime.exe. It has no Windows App SDK runtime to depend on, and
   crates/bientot-app/tests/msix_manifest.rs holds it to the Rust constants.
 
-  The identity is the .NET package's, for the unsigned alpha. The Store build replaces Name,
-  Publisher and PublisherDisplayName with the values Partner Center assigns, which are not known
-  yet (ROADMAP R8). Version follows the workspace version in Cargo.toml. The display name spells
+  The identity is the one Partner Center assigned to the reserved Store name Bientot (Store ID
+  9N4FL1HRF4KL, package family Thanaen.Bientt_j4qejy376e90w). Version follows the workspace
+  version in Cargo.toml. The display name spells
   its o circumflex as a character reference so that Windows PowerShell, which reads this file as ANSI, keeps the accent.
 -->
 <Package
@@ -17,8 +17,8 @@
   IgnorableNamespaces="uap desktop com rescap">
 
   <Identity
-    Name="Thanaen.WorkTime"
-    Publisher="CN=Thanaen"
+    Name="Thanaen.Bientt"
+    Publisher="CN=3BB427EF-EC1A-406C-8D5D-D9761E46D4FC"
     Version="0.2.0.0"
     ProcessorArchitecture="x64" />
 
