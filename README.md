@@ -1,12 +1,15 @@
-# WorkTime
+# Bientôt
 
-WorkTime is a small Windows app that lives in the notification area and
+Bientôt is a small Windows app that lives in the notification area and
 answers one question:
 
 > Am I still on track to finish today's work before the time I want to leave?
 
 It is free, open source (MIT), local-first, and maintained by one person in
 their free time. The app is available in French and in English.
+
+Bientôt was called WorkTime until October 2026. Copies installed under the
+old name update in place and keep their data.
 
 ## What it does
 
@@ -28,14 +31,14 @@ and your projected departure time. From there and from the main window you can:
 - set recurring appointments, such as a weekly meeting away from your desk;
 - export your data to a `.bientot` file and import it on another PC.
 
-WorkTime detects activity on its own. It checks when your keyboard or mouse
+Bientôt detects activity on its own. It checks when your keyboard or mouse
 was last used, and after 3 minutes without input (adjustable from 30 seconds
 to 30 minutes) it counts the time as idle. It never reads what you type,
 application names or window titles.
 
 ## Download
 
-WorkTime runs on Windows 11 x64.
+Bientôt runs on Windows 11 x64.
 
 - **Installer**: download `Setup.exe` from
   [worktime.thanaen.dev/download](https://worktime.thanaen.dev/download). The
@@ -43,12 +46,12 @@ WorkTime runs on Windows 11 x64.
   SmartScreen may ask you to confirm with **More info › Run anyway**.
 - **Microsoft Store**: planned for version 1.0.
 
-WorkTime is still in alpha: expect rough edges, and please
+Bientôt is still in alpha: expect rough edges, and please
 [report what goes wrong](https://github.com/Thanaen/WorkTime/issues/new/choose).
 
 ## Privacy
 
-Your working time never leaves your computer. WorkTime stores its data in
+Your working time never leaves your computer. Bientôt stores its data in
 `%LOCALAPPDATA%\Bientot` and has no account and no cloud sync. It makes two
 kinds of network request:
 
@@ -106,7 +109,7 @@ taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-WorkTime is released under the [MIT license](LICENSE). The app embeds the
+Bientôt is released under the [MIT license](LICENSE). The app embeds the
 [Lucide](https://lucide.dev) icons (ISC,
 [notice](crates/worktime-app/assets/icons/LICENSE)) and the IBM Plex fonts
 (SIL Open Font License, [notice](crates/worktime-app/assets/fonts/OFL.txt)).

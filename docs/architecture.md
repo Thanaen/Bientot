@@ -1,6 +1,6 @@
 # Architecture
 
-WorkTime is one Rust process with a [GPUI](https://www.gpui.rs/) interface.
+Bientôt is one Rust process with a [GPUI](https://www.gpui.rs/) interface.
 The rules live in crates that build and test on any OS; only the Win32 calls
 and the windows on screen need Windows. This page describes the code as of
 October 2026.
@@ -27,13 +27,13 @@ download link) is a separate Bun project in `services/worktime`; see its
 
 `crates/worktime-app/src/main.rs` parses the command line (`launch.rs`),
 resolves the data directory, then claims the single instance for that
-directory (`worktime_windows::single_instance`). If another WorkTime already
-holds it, the launch hands its activation over, logs `instance.redirected` and
+directory (`worktime_windows::single_instance`). If another copy of Bientôt
+already holds it, the launch hands its activation over, logs `instance.redirected` and
 exits before it opens the settings, the ledger or the log. A `--data-dir` or a
 `--demo` launch uses another folder, so it runs on its own.
 
 On a first run, the onboarding window opens before anything else. Its first
-step can import a `.bientot` or `.worktime` file instead (`transfer.rs`): WorkTime then
+step can import a `.bientot` or `.worktime` file instead (`transfer.rs`): Bientôt then
 restarts, applies it before it loads the settings, and skips the onboarding,
 since the file brings its settings. Otherwise
 the app loads the settings and opens the day (`live.rs`): the diagnostic log,
@@ -48,7 +48,7 @@ window that says why and offers the diagnostic export
    last keyboard or mouse input every 5 seconds. `worktime_windows::activity`
    turns the samples into active and idle spans with the configured idle
    threshold (180 s by default) and stores the settled ones. Time before
-   WorkTime starts and the pending tail after the last input stay unknown. See
+   Bientôt starts and the pending tail after the last input stay unknown. See
    the [built-in source contract](../specs/001-core-workday-indicator/contracts/built-in-activity-source.md).
 2. **Routing.** `worktime_core::routing` sends each part of a read to the
    source selected at that instant. ActivityWatch, an optional source of the
@@ -98,7 +98,7 @@ folder and a demo folder never move.
 - The build installed by `Setup.exe` (Velopack) checks
   `https://worktime.thanaen.dev/updates/` at most once a day, downloads an
   update in the background, and installs it at the next start or with
-  « Redémarrer WorkTime ».
+  « Redémarrer maintenant ».
 - The Microsoft Store build asks the Store, at most once a day.
 - The portable ZIP never checks; its settings link to the GitHub releases page.
 - « Rechercher les mises à jour » in Settings turns the checks off.

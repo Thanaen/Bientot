@@ -1,6 +1,6 @@
 # Windows power history recovery
 
-WorkTime reads the Windows System event log before it calculates the first
+Bientôt reads the Windows System event log before it calculates the first
 summary after startup. The read is local and read only. It uses event XML from
 the official Windows Event Log API and never depends on localized message text.
 
