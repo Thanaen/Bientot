@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/Thanaen/WorkTime/security/advisories/new
     about: Report it privately, not in a public issue.
   - name: Download WorkTime
-    url: https://worktime.thanaen.dev/download
+    url: https://bientot.dev/download
     about: The latest Windows installer.

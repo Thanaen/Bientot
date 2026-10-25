@@ -1,13 +1,22 @@
 # Bientôt service
 
-The one web service of Bientôt, at `https://worktime.thanaen.dev`. It shows the homepage,
+The one web service of Bientôt, at `https://bientot.dev`. It shows the homepage,
 counts the active installations without identifying anyone, and points installed copies at
 their updates.
 
+The service also answers at `https://worktime.thanaen.dev`, the site's first address. Installed
+copies read their update feed and send their usage signal there (`FEED_URL` in
+`crates/worktime-app/src/updates/direct.rs`, `ENDPOINT` in `crates/worktime-core/src/usage_ping.rs`),
+and the usage signal follows no redirect. On that host, every route answers exactly as on
+`bientot.dev`, except the two HTML pages, `/` and `/statistiques`, which answer `301` to the same
+address on `bientot.dev` (`moved` in `src/site.ts`, decided by the `Host` header). The app's two
+addresses move to `bientot.dev` in a later release; the old host must keep serving until the
+statistics show no older version.
+
 | Route | Answer |
 | --- | --- |
-| `GET /` | The homepage, `site/index.html` |
-| `GET /statistiques` | The public statistics page, built from `site/statistiques.html` |
+| `GET /` | The homepage, `site/index.html`; `301` to `bientot.dev` on the old host |
+| `GET /statistiques` | The public statistics page, built from `site/statistiques.html`; `301` to `bientot.dev` on the old host |
 | `GET /statistiques/<name>.<csv\|json>` | The open data files: `mensuel`, `quotidien`, `details` |
 | `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png`, `/analytics.js` | The files listed in `src/site.ts`; `404` for any other path |
 | `GET /robots.txt`, `/sitemap.xml` | Generated from the pages listed in `src/site.ts` |
@@ -26,8 +35,12 @@ surveys, no feature flags). `e.worktime.thanaen.dev` is PostHog's managed revers
 WorkTime project (a CNAME on Cloudflare, DNS only), so ad blockers that block PostHog's own
 domains still let the page load.
 
+The library and the events go to `e.worktime.thanaen.dev` from pages served on `bientot.dev`:
+the page sends no Content-Security-Policy, and PostHog answers any origin with CORS headers. A
+proxy at `e.bientot.dev` needs a new managed proxy in PostHog and its CNAME.
+
 `src/site.ts` lists the pages and the files they use. Each page has `<!-- head -->` in its
-`<head>`; the service fills it with the title, description, canonical URL, link-preview tags
+`<head>`; the service fills it with the title, description, canonical URL on `bientot.dev`, link-preview tags
 (Open Graph, `summary_large_image`), icons, theme colours and the two analytics scripts, and adds the page to
 `/sitemap.xml`. A new page or file must be listed there.
 
@@ -123,7 +136,8 @@ bun run dev        # http://localhost:3000, signals kept in memory
 ## Deploy
 
 Vercel project `worktime`, root directory `services/worktime`, Bun runtime (`vercel.json`),
-function region `dub1` (a project setting), domain `worktime.thanaen.dev`. Variable:
+function region `dub1` (a project setting), domains `bientot.dev` (with `www.bientot.dev`
+redirecting to it) and `worktime.thanaen.dev`. Variable:
 `POSTHOG_PERSONAL_API_KEY` (above). The PostHog project token and id are in `server.ts`: the token only
 lets one send events. Outside Vercel, the signals stay in memory.
 

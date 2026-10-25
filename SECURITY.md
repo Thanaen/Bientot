@@ -24,7 +24,8 @@ credits you unless you ask otherwise.
 In scope:
 
 - the Windows app (`worktime.exe`) and its installer and update process;
-- the web service at `https://worktime.thanaen.dev` (`services/worktime`):
-  update redirects, downloads and the anonymous usage signal.
+- the web service at `https://bientot.dev`, also reached at
+  `https://worktime.thanaen.dev` (`services/worktime`): update redirects,
+  downloads and the anonymous usage signal.
 
 What Bientôt stores and sends is listed in [docs/privacy.md](docs/privacy.md).

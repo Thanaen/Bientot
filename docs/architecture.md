@@ -19,8 +19,9 @@ it in this table.
 | `worktime-app` | Windows to run; tests on any OS | The `worktime.exe` binary: the notification-area icon (`tray-icon`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `worktime-screenshots` tool. |
 | `worktime-notices` | any OS | Writes `THIRD-PARTY-NOTICES.txt` for the release executable and fails on a license outside the allowed list. |
 
-The web service behind `worktime.thanaen.dev` (usage counter, update redirects,
-download link) is a separate Bun project in `services/worktime`; see its
+The web service behind `bientot.dev` and `worktime.thanaen.dev` (website, usage
+counter, update redirects, download link) is a separate Bun project in
+`services/worktime`; see its
 [README](../services/worktime/README.md).
 
 ## Launch

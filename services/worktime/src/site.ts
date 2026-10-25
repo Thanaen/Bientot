@@ -1,6 +1,18 @@
 // The public pages and the files they use, served from site/. Each file is named with a literal URL
 // so that Vercel's file tracing ships it with the function.
-export const ORIGIN = "https://worktime.thanaen.dev";
+export const ORIGIN = "https://bientot.dev";
+
+// The site's first address. Installed copies still read their feed and send their signal there,
+// and those routes answer on it as they always did; only the pages move to ORIGIN for good.
+export const OLD_HOST = "worktime.thanaen.dev";
+
+// A page asked for on OLD_HOST: a 301 to the same address on ORIGIN, or null to serve it here.
+// Vercel's CDN keys its cache by host, so a page cached for one host never answers the other.
+export function moved(request: Request): Response | null {
+  if (request.headers.get("host") !== OLD_HOST) return null;
+  const { pathname, search } = new URL(request.url);
+  return new Response(null, { status: 301, headers: { location: ORIGIN + pathname + search } });
+}
 
 export interface Page {
   path: string;
@@ -38,7 +50,8 @@ export const STATISTICS: Page = {
 
 const DAY = 86400;
 
-// PostHog's managed proxy for the WorkTime project (README.md, "Pages").
+// PostHog's managed proxy for the WorkTime project (README.md, "Pages"), on the old domain. It
+// answers the pages of ORIGIN too: PostHog sends CORS headers for any origin.
 export const ANALYTICS = "https://e.worktime.thanaen.dev";
 
 const FILES: Record<string, { url: URL; type: string; maxAge: number }> = {
@@ -111,11 +124,13 @@ export function sitemap(): string {
 }
 
 // One GET route per page and per file.
-export function siteRoutes(): Record<string, { GET(): Response | Promise<Response> }> {
-  const routes: Record<string, { GET(): Response | Promise<Response> }> = {};
+export function siteRoutes(): Record<string, { GET(request: Request): Response | Promise<Response> }> {
+  const routes: Record<string, { GET(request: Request): Response | Promise<Response> }> = {};
   for (const page of PAGES) {
     routes[page.path] = {
-      async GET() {
+      async GET(request) {
+        const redirect = moved(request);
+        if (redirect) return redirect;
         return new Response(await render(page), {
           headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" },
         });

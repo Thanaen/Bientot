@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createApp } from "./src/app";
 import { MemoryStore } from "./src/store";
 
@@ -88,8 +88,8 @@ describe("the site", () => {
 
   test("the page describes itself for search engines and link previews", async () => {
     const page = await html();
-    expect(page).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/">');
-    expect(page).toContain('<meta property="og:image" content="https://worktime.thanaen.dev/og/home.png">');
+    expect(page).toContain('<link rel="canonical" href="https://bientot.dev/">');
+    expect(page).toContain('<meta property="og:image" content="https://bientot.dev/og/home.png">');
     expect(page).toContain('<meta name="twitter:card" content="summary_large_image">');
     expect(page).toContain(`<script defer crossorigin="anonymous" src="https://e.worktime.thanaen.dev/static/array.js"></script>`);
     expect(page).toContain(`<script defer src="/analytics.js"></script>`);
@@ -114,7 +114,7 @@ describe("the site", () => {
 
   test("every local file the page links to is served", async () => {
     const paths = new Set(
-      [...(await html()).matchAll(/(?:href|src|content)="(?:https:\/\/worktime\.thanaen\.dev)?(\/[\w./-]+\.\w+)"/g)].map(
+      [...(await html()).matchAll(/(?:href|src|content)="(?:https:\/\/bientot\.dev)?(\/[\w./-]+\.\w+)"/g)].map(
         (match) => match[1] ?? "",
       ),
     );
@@ -135,8 +135,8 @@ describe("the site", () => {
   });
 
   test("robots.txt points at the sitemap, which lists the page", async () => {
-    expect(await (await get("/robots.txt"))!.text()).toContain("Sitemap: https://worktime.thanaen.dev/sitemap.xml");
-    expect(await (await get("/sitemap.xml"))!.text()).toContain("<loc>https://worktime.thanaen.dev/</loc>");
+    expect(await (await get("/robots.txt"))!.text()).toContain("Sitemap: https://bientot.dev/sitemap.xml");
+    expect(await (await get("/sitemap.xml"))!.text()).toContain("<loc>https://bientot.dev/</loc>");
   });
 
   test.each(["/fonts/OFL.txt", "/og/home.html", "/fonts/IBMPlexSans-Regular.ttf"])("serves no file at %p", async (path) => {
@@ -251,16 +251,90 @@ describe("the statistics", () => {
   });
 
   test("the homepage links to the page, and the sitemap lists it", async () => {
-    const routes: Record<string, { GET(): Response | Promise<Response> }> = app as never;
-    expect(await (await routes["/"]!.GET()).text()).toContain('href="/statistiques"');
-    expect(await (await routes["/sitemap.xml"]!.GET()).text()).toContain("<loc>https://worktime.thanaen.dev/statistiques</loc>");
+    const routes: Record<string, { GET(request: Request): Response | Promise<Response> }> = app as never;
+    const get = (path: string) => routes[path]!.GET(new Request(`http://local${path}`));
+    expect(await (await get("/")).text()).toContain('href="/statistiques"');
+    expect(await (await get("/sitemap.xml")).text()).toContain("<loc>https://bientot.dev/statistiques</loc>");
   });
 
   test("the page carries the site's head", async () => {
     const html = await (await page()).text();
     expect(html).toContain("<title>Statistiques · Bientôt</title>");
-    expect(html).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/statistiques">');
+    expect(html).toContain('<link rel="canonical" href="https://bientot.dev/statistiques">');
     expect(html).toContain(`<script defer src="/analytics.js"></script>`);
     expect(html).not.toContain("<!-- head -->");
+  });
+});
+
+// Through Bun.serve, with the Host header Vercel passes for each of the project's domains.
+describe("the two domains", () => {
+  let server: ReturnType<typeof Bun.serve>;
+  beforeEach(() => {
+    server = Bun.serve({ port: 0, routes: app, fetch: () => new Response(null, { status: 404 }) });
+  });
+  afterEach(() => server.stop(true));
+  const call = (host: string, path: string, init: RequestInit = {}) =>
+    fetch(new URL(path, server.url), { ...init, redirect: "manual", headers: { host } });
+  const signal = JSON.stringify({ version: "0.2.0-alpha.37", channel: "direct", first_this_month: true });
+
+  // What installed copies, old builds included, and other sites call. The usage signal follows no
+  // redirect, so all of these answer on the old domain exactly as on the new one.
+  test.each([
+    ["POST", "/v1/ping"],
+    ["GET", "/updates/releases.win.json"],
+    ["GET", "/updates/Thanaen.WorkTime-0.2.0-alpha.37-full.nupkg"],
+    ["GET", "/updates/Thanaen.WorkTime-win-Portable.zip"],
+    ["GET", "/updates/RELEASES"],
+    ["GET", "/download"],
+    ["GET", "/statistiques/mensuel.csv"],
+    ["GET", "/robots.txt"],
+    ["GET", "/sitemap.xml"],
+    ["GET", "/og/home.png"],
+    ["GET", "/fonts/IBMPlexSans-Regular.woff2"],
+    ["GET", "/analytics.js"],
+    ["GET", "/favicon.ico"],
+  ])("%s %s answers on worktime.thanaen.dev as on bientot.dev", async (method, path) => {
+    const init = method === "POST" ? { method, body: signal } : { method };
+    const before = await call("worktime.thanaen.dev", path, init);
+    const after = await call("bientot.dev", path, init);
+    expect(before.status).not.toBe(301);
+    expect(before.status).toBe(after.status);
+    expect(before.headers.get("location")).toBe(after.headers.get("location"));
+    expect(Buffer.from(await before.arrayBuffer()).equals(Buffer.from(await after.arrayBuffer()))).toBe(true);
+  });
+
+  test("the old domain records the signal without a redirect", async () => {
+    const response = await call("worktime.thanaen.dev", "/v1/ping", { method: "POST", body: signal });
+    expect(response.status).toBe(204);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  test("the old domain still points the feed and the installer at the GitHub releases", async () => {
+    const releases = "https://github.com/Thanaen/WorkTime/releases/latest/download";
+    const feed = await call("worktime.thanaen.dev", "/updates/releases.win.json");
+    expect(feed.status).toBe(302);
+    expect(feed.headers.get("location")).toBe(`${releases}/releases.win.json`);
+    const setup = await call("worktime.thanaen.dev", "/download");
+    expect(setup.status).toBe(302);
+    expect(setup.headers.get("location")).toBe(`${releases}/Thanaen.WorkTime-win-Setup.exe`);
+  });
+
+  test.each([
+    ["/", "https://bientot.dev/"],
+    ["/statistiques", "https://bientot.dev/statistiques"],
+    ["/?utm_source=x", "https://bientot.dev/?utm_source=x"],
+  ])("the old domain moves the page %p to bientot.dev", async (path, location) => {
+    const response = await call("worktime.thanaen.dev", path);
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe(location);
+  });
+
+  test.each([
+    ["/", "https://bientot.dev/"],
+    ["/statistiques", "https://bientot.dev/statistiques"],
+  ])("bientot.dev serves the page %p", async (path, canonical) => {
+    const response = await call("bientot.dev", path);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain(`<link rel="canonical" href="${canonical}">`);
   });
 });
