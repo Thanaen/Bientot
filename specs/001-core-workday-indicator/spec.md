@@ -420,6 +420,8 @@ Windows.
   when the day contains work. It stays excluded. The same time between two
   pieces of the day, after the last work of the current day, or on a day
   without work MUST still be offered for settling.
+  Revised on 2026-10-25 (#11, D-010): a manual credit inside a long lock MUST
+  survive the lock's confirmation, and MAY be recorded after it.
 - **FR-030**: When source history is incomplete, WorkTime MUST credit only known
   intervals, label unknown gaps, and surface their effect on confidence.
 - **FR-031**: First-run onboarding MUST offer start-at-Windows-sign-in selected

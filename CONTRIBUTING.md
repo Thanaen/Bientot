@@ -61,7 +61,8 @@ the same data files, so several tests replay what the .NET code computed or wrot
 (settings files, stored dates and instants, the migration SQL, SQLite databases, a
 repository scenario) and the `worktime-core` diagnostics tests. Their fixtures are frozen:
 if one of these tests fails, the Rust code changed behavior, so do not edit the fixture to
-make it pass.
+make it pass. A product decision that changes such a case on purpose lists it as a
+`Revision` beside the domain test that replays it, under the decision's name.
 
 To look at the flyout without Windows, render every demo scenario to PNG files in one
 language and one theme (Linux, with a Vulkan driver such as Mesa's `mesa-vulkan-drivers`):

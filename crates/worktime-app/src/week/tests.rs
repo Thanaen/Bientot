@@ -520,6 +520,46 @@ fn a_range_covers_the_whole_lock_it_touches() {
     );
 }
 
+/// Counting a lock keeps a credit of the user's inside it, which the bubble does not say it
+/// replaces.
+#[test]
+fn counting_a_lock_keeps_the_credit_inside_it() {
+    let (mut demo, mut state) = Demo::open(DemoScenario::HistoryWeek);
+    let credit = worktime_domain::adjustments::ManualAdjustment::reclassification(
+        AdjustmentId::new("credit").unwrap(),
+        LocalWorkday::new(date(9, 2), "UTC"),
+        interval("2026-09-02T10:30:00Z", "2026-09-02T11:00:00Z"),
+        ManualClassification::Credited,
+        demo.host.correction_time(),
+    )
+    .unwrap();
+    demo.host.save_adjustment(&credit).unwrap();
+    state.reload(demo.read(), true);
+    let lock = state
+        .timeline
+        .day(date(9, 2))
+        .unwrap()
+        .segments
+        .iter()
+        .find(|segment| segment.kind == SegmentKind::Review)
+        .unwrap()
+        .id(date(9, 2));
+
+    state.open(lock);
+
+    let bubble = state.bubble().unwrap();
+    assert!(
+        bubble
+            .actions
+            .iter()
+            .any(|action| action.answer == Answer::Count && action.accent)
+    );
+    assert_eq!(
+        bubble.notes,
+        [Language::French.text(Key::HistoryRangeLockNote)]
+    );
+}
+
 /// A drag snaps onto a segment's edge within its tolerance, else onto five minutes; De and À
 /// move an edge to the time typed; Alt and the arrows move one by five minutes.
 #[test]

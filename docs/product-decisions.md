@@ -159,6 +159,11 @@ two pieces of the day, after the last work of the current day, or on a day
 without work, is still offered for settling. Work done away from a sleeping
 computer before arrival can still be declared with a manual work interval.
 
+Revised on 2026-10-25 (#11): a manual credit of suspended time inside a long
+lock survives the lock's confirmation, whether the lock is confirmed from its
+review or settled by a range counted as work, and can be added after it, so
+counting never lowers the day.
+
 ### D-011 — Incomplete source history and autostart
 
 When WorkTime starts after work began:

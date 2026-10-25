@@ -35,11 +35,37 @@ mod accounting_case;
 
 use accounting_case::*;
 
+/// Since #11 (D-010), a credit of the user's may lie over a long-lock confirmation, which .NET
+/// refused: the confirmation is valid, or refused for what else is wrong with it.
+const CREDIT_OVER_CONFIRMATION: [Revision; 4] = [
+    Revision {
+        line: 101,
+        net: "|!Adjustment:OverlappingActiveAdjustments",
+        now: "|ok",
+    },
+    Revision {
+        line: 673,
+        net: "|!Adjustment:OverlappingActiveAdjustments",
+        now: "|ok",
+    },
+    Revision {
+        line: 678,
+        net: "|!Adjustment:OverlappingActiveAdjustments",
+        now: "|!Adjustment:UnknownLongLockReview",
+    },
+    Revision {
+        line: 743,
+        net: "|!Adjustment:OverlappingActiveAdjustments",
+        now: "|ok",
+    },
+];
+
 #[test]
 fn accounting_matches_dotnet() {
-    replay(
+    replay_revised(
         "accounting",
         include_str!("fixtures/accounting.txt"),
+        &CREDIT_OVER_CONFIRMATION,
         |input| {
             let columns: Vec<_> = input.split('|').collect();
             let case = AccountingCase::parse(&columns[..12]);

@@ -50,6 +50,28 @@ impl AdjustmentKind {
             _ => None,
         }
     }
+
+    /// How the adjustment counts its interval; `None` for one without an interval.
+    pub fn classification(&self) -> Option<ManualClassification> {
+        match self {
+            Self::IntervalWork { .. } => Some(ManualClassification::Credited),
+            Self::Exclusion { .. } => Some(ManualClassification::Excluded),
+            Self::Reclassification { classification, .. } => Some(*classification),
+            Self::DurationWork { .. } | Self::Revocation => None,
+        }
+    }
+
+    /// Whether the two may overlap: a credit of the user's over a long-lock confirmation, which
+    /// it wins over, as counting never lowers the day. Two confirmations, or a confirmation and
+    /// an exclusion, may not.
+    fn layers_with(&self, other: &Self) -> bool {
+        let credits = |kind: &Self| {
+            kind.confirmed_review().is_none()
+                && kind.classification() == Some(ManualClassification::Credited)
+        };
+        (self.confirmed_review().is_some() && credits(other))
+            || (other.confirmed_review().is_some() && credits(self))
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -609,7 +631,12 @@ fn validate_structure(
                 id: adjustment.id.clone(),
             });
         }
-        if index > 0 && intervals[index - 1].1.overlaps(interval) {
+        let overlapping = intervals[..index]
+            .iter()
+            .any(|(earlier, earlier_interval)| {
+                earlier_interval.overlaps(interval) && !earlier.kind.layers_with(&adjustment.kind)
+            });
+        if overlapping {
             return Err(AdjustmentValidationError::OverlappingActiveAdjustments);
         }
     }
@@ -692,9 +719,11 @@ fn apply_intervals(
         for pair in points.windows(2) {
             let interval =
                 UtcInterval::new(pair[0], pair[1]).expect("cut points are strictly sorted");
+            // A credit over a long-lock confirmation wins over it.
             let adjustment = adjustments
                 .iter()
-                .find(|(_, adjusted)| adjusted.contains(interval.start()));
+                .filter(|(_, adjusted)| adjusted.contains(interval.start()))
+                .min_by_key(|(adjustment, _)| adjustment.kind.confirmed_review().is_some());
             let next = match adjustment {
                 None => automatic.with_interval(interval),
                 Some((adjustment, _)) => apply_adjustment(automatic, interval, adjustment),
@@ -725,20 +754,14 @@ fn apply_adjustment(
         adjustment_id: adjustment.id.clone(),
         replaces: Box::new(automatic.origin().clone()),
     };
-    let credited = match &adjustment.kind {
-        AdjustmentKind::IntervalWork { .. } => true,
-        AdjustmentKind::Exclusion { .. } => false,
-        AdjustmentKind::Reclassification { classification, .. } => {
-            *classification == ManualClassification::Credited
+    match adjustment.kind.classification() {
+        Some(ManualClassification::Credited) => {
+            AccountedSegment::credited(interval, AccountingLabel::Manual, origin)
         }
-        AdjustmentKind::DurationWork { .. } | AdjustmentKind::Revocation => {
-            unreachable!("only interval adjustments reach the timeline")
+        Some(ManualClassification::Excluded) => {
+            AccountedSegment::excluded(interval, AccountingLabel::Manual, origin)
         }
-    };
-    if credited {
-        AccountedSegment::credited(interval, AccountingLabel::Manual, origin)
-    } else {
-        AccountedSegment::excluded(interval, AccountingLabel::Manual, origin)
+        None => unreachable!("only interval adjustments reach the timeline"),
     }
 }
 
