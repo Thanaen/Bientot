@@ -112,7 +112,9 @@ jobs:
           RELEASE_NO_FETCH: "1"
         run: scripts/release-direct.sh "$(cygpath -u "$RUNNER_TEMP")/release"
 
-      # The previous full package, downloaded for the delta, belongs to its own release.
+      # The previous full package, downloaded for the delta, belongs to its own release. vpk names
+      # the files after the packId, which stays Thanaen.WorkTime so that installed copies keep
+      # updating; the downloads also go out under the app's name.
       - name: Keep this release's files
         shell: bash
         env:
@@ -128,6 +130,8 @@ jobs:
             esac
             cp "$file" "$dist/"
           done
+          cp Thanaen.WorkTime-win-Setup.exe "$dist/Bientot-Setup.exe"
+          cp Thanaen.WorkTime-win-Portable.zip "$dist/Bientot-Portable.zip"
           ls -l "$dist"
 
       - name: Upload the release
@@ -175,7 +179,7 @@ jobs:
           set -euo pipefail
           tag="v${VERSION}"
           # GitHub's notes since the latest published release, without the pull requests that leave
-          # the app as it is (scripts/release-notes.sh).
+          # the app as it is, after the announcements added since (scripts/release-notes.sh).
           previous=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
           gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$tag" -f target_commitish="$SHA" \
             ${previous:+-f previous_tag_name="$previous"} --jq .body |

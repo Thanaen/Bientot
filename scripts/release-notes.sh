@@ -2,6 +2,8 @@
 # Keeps, from the release notes GitHub generates (stdin), the pull requests that change the app:
 # those scoped `app`, and those with no scope that change what the app is built from. The pull
 # requests scoped `site` or `repo` are left out; every other line is kept as GitHub wrote it.
+# The announcements added to scripts/release-announcements/ since the previous release come first:
+# each goes out once, with the first release after the commit that added it.
 #
 #   gh api repos/<owner>/<repo>/releases/generate-notes … --jq .body |
 #       scripts/release-notes.sh <previous-tag or empty> <commit>
@@ -47,6 +49,13 @@ done
 if ((kept == 0)) && [[ -n ${changes:-} ]]; then
     lines=("${lines[@]:0:changes}" "No change to the app." "${lines[@]:changes}")
 fi
+
+# The announcements by file name; one that a later commit removed is left out.
+while IFS= read -r path; do
+    git cat-file -e "$target:$path" 2>/dev/null || continue
+    git show "$target:$path"
+    echo
+done < <(git log --diff-filter=A --name-only --format= "$range" -- :/scripts/release-announcements | sort -u)
 
 # A section whose lines all went, such as "New Contributors", goes too.
 skip=0
