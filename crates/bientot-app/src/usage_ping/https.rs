@@ -50,8 +50,8 @@ fn http_request(request: &PingRequest) -> Result<Request<&str>, ureq::http::Erro
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Read as _, Write as _};
-    use std::net::TcpListener;
+    use std::io::{self, Read as _, Write as _};
+    use std::net::{Shutdown, TcpListener};
     use std::thread;
     use std::time::Duration;
 
@@ -111,10 +111,16 @@ mod tests {
         );
         let server = thread::spawn(move || {
             let (mut socket, _) = listener.accept().unwrap();
-            // Replying before the ClientHello arrives would close the socket under the client's
-            // write, which fails with a broken pipe instead of in the handshake.
-            let _ = socket.read(&mut [0; 1024]);
+            // Closing while the ClientHello is unread resets the connection, and the client then
+            // fails on a broken pipe or a reset instead of in the handshake: the reply waits for
+            // the hello, and the socket is drained until the client hangs up.
+            socket
+                .set_read_timeout(Some(Duration::from_secs(10)))
+                .unwrap();
+            let _ = socket.read(&mut [0; 1]);
             socket.write_all(b"HTTP/1.1 204 No Content\r\n\r\n").ok();
+            socket.shutdown(Shutdown::Write).ok();
+            io::copy(&mut socket, &mut io::sink()).ok();
         });
         let request = PingRequest {
             url: Box::leak(url.into_boxed_str()),
