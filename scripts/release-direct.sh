@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the Velopack release of WorkTime: `Setup.exe`, the full and delta packages and the
+# Builds the Velopack release of Bientôt: `Setup.exe`, the full and delta packages and the
 # `releases.win.json` feed that installed copies read (crates/worktime-app/src/updates/direct.rs).
 # The Release workflow (.github/workflows/release.yml) runs it on Windows and publishes the output
 # folder as a GitHub Release; it also cross-builds from Linux.
@@ -45,7 +45,7 @@ base=$(cargo metadata --no-deps --format-version 1 --manifest-path "$root/Cargo.
 version="$base-alpha.$(git -C "$root" rev-list --count HEAD)"
 # The version the usage ping accepts (services/worktime/src/ping.ts), which the app parses.
 [[ $version =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(-[0-9A-Za-z.]{1,20})?$ ]] || fail "unexpected version $version"
-echo "WorkTime $version"
+echo "Bientôt $version"
 
 export XWIN_ACCEPT_LICENSE=1 CARGO_TARGET_DIR=$target_dir
 # No VCRUNTIME140.dll to install next to the exe.
@@ -97,8 +97,11 @@ else
     "$vpk" download http --channel win --url "$feed" --outputDir "$output" ||
         fail "no previous release at $feed (FIRST_RELEASE=1 for the first one)"
 fi
+# The title names the Start menu shortcut and the Apps entry: an update renames both when it
+# changes (Velopack's shortcuts.rs and registry.rs). The id and the exe stay: a new id installs a
+# second copy, and a new exe name leaves the Run value on a missing file.
 "$vpk" "[win]" pack --runtime win-x64 \
-    --packId Thanaen.WorkTime --packVersion "$version" --packTitle WorkTime --packAuthors Thanaen \
+    --packId Thanaen.WorkTime --packVersion "$version" --packTitle "Bientôt" --packAuthors Thanaen \
     --packDir "$pack" --mainExe worktime.exe --icon "$staging/worktime.ico" \
     --shortcuts StartMenuRoot --outputDir "$output"
 ls -l "$output"

@@ -56,10 +56,10 @@ jobs:
           draft=$(gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null || echo missing)
           if [ "$draft" = false ]; then
             echo "released=true" >> "$GITHUB_OUTPUT"
-            echo "WorkTime ${VERSION} is already released: nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+            echo "Bientôt ${VERSION} is already released: nothing to publish." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "released=false" >> "$GITHUB_OUTPUT"
-            echo "Publishing WorkTime ${VERSION}." >> "$GITHUB_STEP_SUMMARY"
+            echo "Publishing Bientôt ${VERSION}." >> "$GITHUB_STEP_SUMMARY"
           fi
 
   build:
@@ -185,7 +185,7 @@ jobs:
             gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes
           fi
           gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --target "$SHA" \
-            --title "WorkTime ${VERSION}" --notes-file "$RUNNER_TEMP/notes.md"
+            --title "Bientôt ${VERSION}" --notes-file "$RUNNER_TEMP/notes.md"
           gh release upload "$tag" --repo "$GITHUB_REPOSITORY" dist/*
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest
-          echo "Published [WorkTime ${VERSION}](https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag})." >> "$GITHUB_STEP_SUMMARY"
+          echo "Published [Bientôt ${VERSION}](https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag})." >> "$GITHUB_STEP_SUMMARY"

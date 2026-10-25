@@ -211,6 +211,17 @@ jobs:
       - name: Build release executable
         run: cargo build --release --locked -p worktime-app --bin worktime --features release
 
+      # Task Manager and the Startup apps page name the app from the exe's version resource.
+      - name: Check the version resource
+        shell: pwsh
+        run: |
+          $info = (Get-Item target/release/worktime.exe).VersionInfo
+          $name = "Bient$([char]0xF4)t"
+          if ($info.FileDescription -ne $name -or $info.ProductName -ne $name) {
+            throw "The exe is named '$($info.FileDescription)' / '$($info.ProductName)', not $name."
+          }
+          Write-Host "worktime.exe: $($info.FileDescription) $($info.ProductVersion), $($info.LegalCopyright)"
+
       # The gates are 20 MB, 1 s and 60 MB (issue #147). Only the size fails the job: a hosted
       # runner has no GPU and noisy neighbours, so its time and memory are indications.
       - name: Measure the gates
