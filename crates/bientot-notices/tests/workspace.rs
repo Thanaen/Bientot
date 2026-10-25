@@ -36,6 +36,7 @@ fn writes_the_notices_of_the_release_exe() {
     let notices = notices(None);
     let listed = |name| lists(&notices, name);
 
+    assert!(notices.starts_with("THIRD-PARTY NOTICES FOR BIENTÔT\n"));
     assert!(listed("gpui-pre"));
     assert!(listed("rusqlite"));
     assert!(listed("libsqlite3-sys"));
