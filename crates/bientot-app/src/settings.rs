@@ -759,7 +759,7 @@ pub struct Link {
 /// Where the ZIP build sends for new versions (D-016).
 pub const RELEASES_LINK: Link = Link {
     label: "GitHub",
-    url: "https://github.com/Thanaen/WorkTime/releases",
+    url: "https://github.com/Thanaen/Bientot/releases",
 };
 
 #[derive(Clone, Debug, PartialEq)]

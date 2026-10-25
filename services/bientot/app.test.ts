@@ -40,7 +40,7 @@ describe("POST /v1/ping", () => {
 describe("GET /updates/:file", () => {
   const get = (file: string) =>
     app["/updates/:file"].GET(Object.assign(new Request(`http://local/updates/${file}`), { params: { file } }));
-  const releases = "https://github.com/Thanaen/WorkTime/releases";
+  const releases = "https://github.com/Thanaen/Bientot/releases";
 
   test("points at the latest release's feed, uncached", () => {
     const response = get("releases.win.json");
@@ -115,7 +115,7 @@ describe("the site", () => {
       .replace(/https:\/\/[^"\s]+/g, "")
       .replace("L’application s’appelait WorkTime jusqu’en octobre 2026.", "")
       .replace('"alternateName":"WorkTime"', "")
-      .replace("Thanaen/WorkTime</a>", "")
+      .replace("Thanaen/Bientot</a>", "")
       .replace("Thème WorkTime One", "");
     expect(rest).not.toContain("WorkTime");
   });
@@ -318,7 +318,7 @@ describe("the two domains", () => {
   });
 
   test("the old domain still points the feed and the installer at the GitHub releases", async () => {
-    const releases = "https://github.com/Thanaen/WorkTime/releases/latest/download";
+    const releases = "https://github.com/Thanaen/Bientot/releases/latest/download";
     const feed = await call("worktime.thanaen.dev", "/updates/releases.win.json");
     expect(feed.status).toBe(302);
     expect(feed.headers.get("location")).toBe(`${releases}/releases.win.json`);

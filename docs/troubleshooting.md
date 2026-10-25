@@ -112,7 +112,7 @@ mechanisms.
    save the diagnostic ZIP. Choose another location and try again.", pick a
    folder you can write to.
 4. Attach the ZIP to a
-   [new issue](https://github.com/Thanaen/WorkTime/issues/new/choose).
+   [new issue](https://github.com/Thanaen/Bientot/issues/new/choose).
 
 The ZIP contains numeric settings, today's totals and source health, and
 filtered log events. It does not contain paths, error messages, application names or window titles. See

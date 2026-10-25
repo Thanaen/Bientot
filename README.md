@@ -47,7 +47,7 @@ Bientôt runs on Windows 11 x64.
 - **Microsoft Store**: planned for version 1.0.
 
 Bientôt is still in alpha: expect rough edges, and please
-[report what goes wrong](https://github.com/Thanaen/WorkTime/issues/new/choose).
+[report what goes wrong](https://github.com/Thanaen/Bientot/issues/new/choose).
 
 ## Privacy
 

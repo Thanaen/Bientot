@@ -20,4 +20,4 @@ screenshots in French and English, light and dark when the colors change. -->
 
 - [ ] New or changed text exists in French and in English.
 - [ ] Docs, specs or `docs/privacy.md` are updated when a user-visible rule, a stored file or a network request changes.
-- [ ] I agree to license my contribution under the [MIT license](https://github.com/Thanaen/WorkTime/blob/main/LICENSE).
+- [ ] I agree to license my contribution under the [MIT license](https://github.com/Thanaen/Bientot/blob/main/LICENSE).
