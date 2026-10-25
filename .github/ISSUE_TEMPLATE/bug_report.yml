@@ -31,7 +31,7 @@ body:
     attributes:
       label: How you installed WorkTime
       options:
-        - Installer (Setup.exe from worktime.thanaen.dev)
+        - Installer (Setup.exe from bientot.dev)
         - Microsoft Store
         - Portable ZIP
         - Built from source

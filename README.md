@@ -41,7 +41,7 @@ application names or window titles.
 Bientôt runs on Windows 11 x64.
 
 - **Installer**: download `Setup.exe` from
-  [worktime.thanaen.dev/download](https://worktime.thanaen.dev/download). The
+  [bientot.dev/download](https://bientot.dev/download). The
   app then updates itself. The installer is not signed yet, so Windows
   SmartScreen may ask you to confirm with **More info › Run anyway**.
 - **Microsoft Store**: planned for version 1.0.
@@ -94,7 +94,7 @@ cargo run -p worktime-app --bin worktime -- --demo --french --dark
 ```
 
 `--english` and `--light` switch the language and theme. The small web
-service behind `worktime.thanaen.dev` lives in `services/worktime` (Bun).
+service behind `bientot.dev` lives in `services/worktime` (Bun).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full checks, localization, and
 how to propose a change, and [docs/architecture.md](docs/architecture.md) for

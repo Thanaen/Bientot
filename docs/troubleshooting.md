@@ -98,7 +98,7 @@ mechanisms.
   Microsoft Store. Bientôt may close while it installs." Select **Update** to
   hand the update to the Store.
 - The portable ZIP never checks. Download a newer version from
-  [worktime.thanaen.dev/download](https://worktime.thanaen.dev/download) or
+  [bientot.dev/download](https://bientot.dev/download) or
   the GitHub releases page.
 - No offer appears: Bientôt already checked today, the check failed, or
   **Check for updates** is off in the General settings. Failed checks are

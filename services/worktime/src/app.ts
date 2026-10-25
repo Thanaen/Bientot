@@ -1,6 +1,6 @@
 import { MAX_BODY_BYTES, parsePing, utcDay } from "./ping";
 import { SETUP, redirect, releaseUrl } from "./releases";
-import { siteRoutes } from "./site";
+import { moved, siteRoutes } from "./site";
 import { DATASETS, type Dataset, type PublicStats, firstDay, lastFinishedDay, publish, toCsv } from "./stats";
 import { renderPage } from "./stats-page";
 import type { UsageStore } from "./store";
@@ -54,8 +54,8 @@ export function createApp({ store, now = () => new Date() }: AppOptions) {
       },
     },
     "/statistiques": {
-      GET(request: Request): Promise<Response> {
-        return statsResponse(request, "page", "text/html; charset=utf-8", renderPage);
+      GET(request: Request): Response | Promise<Response> {
+        return moved(request) ?? statsResponse(request, "page", "text/html; charset=utf-8", renderPage);
       },
     },
     "/statistiques/:file": {
