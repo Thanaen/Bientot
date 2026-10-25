@@ -24,6 +24,9 @@ use worktime_core::diagnostics::DiagnosticLogLevel;
 use worktime_domain::configuration::WorkTimeSettings;
 use worktime_domain::time::SystemClock;
 use worktime_store::data_directory::DataDirectory;
+#[cfg(windows)]
+use worktime_store::data_migration::Location;
+use worktime_store::data_migration::Migration;
 use worktime_store::settings::{LoadedSettings, SettingsSource, SettingsStore};
 #[cfg(windows)]
 use worktime_windows::single_instance::{Instance, PrimaryInstance};
@@ -126,8 +129,8 @@ fn run(
     launch: Launch,
     #[cfg(all(windows, feature = "updates"))] may_install: bool,
 ) -> Result<(), StartFailure> {
-    let directory = launch
-        .data_directory(local_app_data)
+    let location = launch
+        .location(local_app_data)
         .map_err(|error| StartFailure {
             error,
             directory: None,
@@ -139,7 +142,11 @@ fn run(
     // A restart for an import waits for the WorkTime it replaces to give up the folder.
     transfer::wait_for_restart(launch.restarted_from);
     #[cfg(windows)]
-    let instance = match worktime_windows::single_instance::claim(&directory) {
+    let (directory, migration, claimed) = settle(location);
+    #[cfg(not(windows))]
+    let (directory, migration) = location.settle(|from, to| std::fs::rename(from, to));
+    #[cfg(windows)]
+    let instance = match claimed {
         Ok(Instance::Primary(instance)) => instance,
         Ok(Instance::Secondary) => {
             if let Some(language) =
@@ -169,7 +176,7 @@ fn run(
         None => transfer::apply_staged(&directory),
     };
     let theme = launch.theme;
-    let boot = match run_on(launch, &directory, imported) {
+    let boot = match run_on(launch, &directory, imported, migration) {
         Ok(boot) => boot,
         Err(error) => {
             return Err(StartFailure {
@@ -193,6 +200,30 @@ fn run(
     Ok(())
 }
 
+/// The folder this launch runs on, how the move of the user's folder went, and the claim on the
+/// folder. Before the move this launch claims the old folder: a WorkTime still running on it
+/// keeps it and shows itself, and this launch moves nothing.
+#[cfg(windows)]
+fn settle(location: Location) -> (DataDirectory, Option<Migration>, std::io::Result<Instance>) {
+    use worktime_windows::single_instance::claim;
+    let Some(old) = location.moving_from() else {
+        let (directory, migration) = location.settle(|from, to| std::fs::rename(from, to));
+        let claimed = claim(&directory);
+        return (directory, migration, claimed);
+    };
+    let held = match claim(&old) {
+        Ok(Instance::Primary(held)) => held,
+        other => return (old, None, other),
+    };
+    let (directory, migration) = location.settle(|from, to| std::fs::rename(from, to));
+    let claimed = if directory == old {
+        Ok(Instance::Primary(held))
+    } else {
+        claim(&directory)
+    };
+    (directory, migration, claimed)
+}
+
 /// Readies WorkTime's start on `directory`. What it hands back starts it once the app runs, on
 /// that same folder: the onboarding on a first run, else the day. A start that fails after the
 /// onboarding offers to export the folder when it is `exportable`. The first flyout tells how
@@ -201,6 +232,7 @@ fn run_on(
     launch: Launch,
     directory: &DataDirectory,
     imported: Option<Announcement>,
+    mut migration: Option<Migration>,
 ) -> anyhow::Result<impl FnOnce(DataDirectory, bool, &mut gpui::App) + 'static> {
     // Before any window, the onboarding's included, as `Toasts::register` requires. A demo shows
     // no toasts, as in .NET.
@@ -237,7 +269,14 @@ fn run_on(
         (None, loaded, notifications)
     } else {
         (
-            Some(start(directory, &launch, loaded, notifications, imported)?),
+            Some(start(
+                directory,
+                &launch,
+                loaded,
+                notifications,
+                imported,
+                migration.take(),
+            )?),
             None,
             None,
         )
@@ -278,7 +317,15 @@ fn run_on(
                     settings,
                     source: SettingsSource::File,
                 };
-                match start(&directory, &launch, Some(loaded), notifications, imported) {
+                let started = start(
+                    &directory,
+                    &launch,
+                    Some(loaded),
+                    notifications,
+                    imported,
+                    migration,
+                );
+                match started {
                     // As .NET starts on `AppLaunchIntent.Manual` after the onboarding.
                     Ok(started) => show(started, true, may_send, update_source, cx),
                     Err(error) => {
@@ -307,7 +354,7 @@ struct Started {
 /// Opens the day on `loaded`, the settings read or just saved by the onboarding. A demo opens
 /// its own settings, replaced by the onboarding's when given. A live day shows its reminders
 /// through `notifications`, registered before any window opened, and its first flyout tells
-/// `imported`.
+/// `imported`. Its log tells how the move of the user's folder went.
 fn start(
     directory: &DataDirectory,
     launch: &Launch,
@@ -318,6 +365,7 @@ fn start(
     )]
     notifications: Option<native::Notifications>,
     imported: Option<Announcement>,
+    migration: Option<Migration>,
 ) -> anyhow::Result<Started> {
     #[cfg(windows)]
     let (mut lifecycle, mut toast_clicks) = (None, None);
@@ -351,6 +399,20 @@ fn start(
             let mut host = LiveHost::start(directory, loaded, ledger, &CLOCK, &ZONES, &INPUT)?;
             if let Some(imported) = imported {
                 host.announce(imported);
+            }
+            match migration {
+                None => {}
+                Some(Migration::Moved) => {
+                    host.log(DiagnosticLogLevel::Information, "data_migration.moved", &[]);
+                }
+                Some(Migration::BothPresent) => {
+                    host.log(
+                        DiagnosticLogLevel::Warning,
+                        "data_migration.both_present",
+                        &[],
+                    );
+                }
+                Some(Migration::Failed(error)) => host.log_failure("data_migration.failed", &error),
             }
             #[cfg(windows)]
             {
@@ -404,7 +466,7 @@ fn show(
     }
 }
 
-/// `%LOCALAPPDATA%`, where the .NET app keeps `WorkTime`; the XDG data folder elsewhere.
+/// `%LOCALAPPDATA%`, which holds the user's folder; the XDG data folder elsewhere.
 fn local_app_data() -> anyhow::Result<PathBuf> {
     let variable = |name| std::env::var_os(name).map(PathBuf::from);
     if cfg!(windows) {

@@ -12,6 +12,7 @@ pub mod app_state;
 pub mod codec;
 pub mod credit;
 pub mod data_directory;
+pub mod data_migration;
 pub mod database;
 mod file;
 pub mod history;

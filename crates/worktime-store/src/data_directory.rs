@@ -24,20 +24,21 @@ impl DataDirectory {
         std::path::absolute(path).map(Self)
     }
 
-    /// `<temporary_directory>/WorkTimeDemo/<throwaway_id as 32 hex digits>`, the folder of a demo
+    /// `<temporary_directory>/BientotDemo/<throwaway_id as 32 hex digits>`, the folder of a demo
     /// launch without `--data-dir`. The .NET app passes the user's temporary folder and a new
     /// random GUID.
     pub fn throwaway(temporary_directory: &Path, throwaway_id: u128) -> Self {
         Self(
             temporary_directory
-                .join("WorkTimeDemo")
+                .join("BientotDemo")
                 .join(format!("{throwaway_id:032x}")),
         )
     }
 
-    /// `<local_app_data>/WorkTime`, the user's folder: the .NET app passes `%LOCALAPPDATA%`.
+    /// `<local_app_data>/Bientot`, the user's folder under `%LOCALAPPDATA%`. It was `WorkTime`
+    /// before the rename, which [`Location`](crate::data_migration::Location) moves.
     pub fn user(local_app_data: &Path) -> Self {
-        Self(local_app_data.join("WorkTime"))
+        Self(local_app_data.join("Bientot"))
     }
 
     pub fn path(&self) -> &Path {

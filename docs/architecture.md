@@ -13,7 +13,7 @@ it in this table.
 | Crate | Builds on | Role |
 | --- | --- | --- |
 | `worktime-domain` | any OS | The accounting rules, as pure functions over a clock and a time zone: intervals, workday accounting, manual adjustments, weekly credit, forecasts and indicator state, daily summaries, reminders, settings validation, the usage-signal rules. |
-| `worktime-store` | any OS (DPAPI on Windows) | Persistence in the data directory: `settings.json`, the SQLite ledger and its migrations, `app-state.json`, the DPAPI secrets, and the `.worktime` transfer file. |
+| `worktime-store` | any OS (DPAPI on Windows) | Persistence in the data directory: `settings.json`, the SQLite ledger and its migrations, `app-state.json`, the DPAPI secrets, and the `.bientot` transfer file. |
 | `worktime-core` | any OS | The app services: the activity source router, the accounting of one day, the weekly recalculation, tracking commands, corrections, long-lock reviews, reminders, the settings form logic, the demo scenarios, diagnostics, the usage signal sender. |
 | `worktime-windows` | Windows for its Win32 calls | The built-in activity source (last-input time), session lock and power events, power history from the System event log, start with Windows, toast notifications, the single-instance claim, file dialogs, Microsoft Store updates. |
 | `worktime-app` | Windows to run; tests on any OS | The `worktime.exe` binary: the notification-area icon (`tray-icon`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `worktime-screenshots` tool. |
@@ -33,7 +33,7 @@ exits before it opens the settings, the ledger or the log. A `--data-dir` or a
 `--demo` launch uses another folder, so it runs on its own.
 
 On a first run, the onboarding window opens before anything else. Its first
-step can import a `.worktime` file instead (`transfer.rs`): WorkTime then
+step can import a `.bientot` or `.worktime` file instead (`transfer.rs`): WorkTime then
 restarts, applies it before it loads the settings, and skips the onboarding,
 since the file brings its settings. Otherwise
 the app loads the settings and opens the day (`live.rs`): the diagnostic log,
@@ -66,10 +66,22 @@ window that says why and offers the diagnostic export
 
 ## Where state lives
 
-The data directory is `%LOCALAPPDATA%\WorkTime`. A `--data-dir <path>`
+The data directory is `%LOCALAPPDATA%\Bientot`. A `--data-dir <path>`
 argument overrides it, and demo runs use a new folder under
-`%TEMP%\WorkTimeDemo`. The first .NET app used the same folder and files, so
-the Rust app reads its data with no conversion.
+`%TEMP%\BientotDemo`. The first .NET app and the builds released before the
+rename to Bientôt used `%LOCALAPPDATA%\WorkTime` with the same files, so the
+Rust app reads their data with no conversion.
+
+The first start after the rename moves that folder (`data_migration.rs`). When
+only `WorkTime` exists, it is renamed `Bientot` in one step on the same
+volume, before anything opens the database, so the folder is never split
+between the two names. On Windows the start first claims the `WorkTime` folder:
+an older build still running on it keeps it and shows its window, and nothing
+moves. When the rename fails, that run stays on `WorkTime` and the next start
+tries again. When both folders exist, `Bientot` is used and `WorkTime` is left
+untouched. The log records `data_migration.moved`,
+`data_migration.both_present` or `data_migration.failed`. A `--data-dir`
+folder and a demo folder never move.
 
 | Path | Content |
 | --- | --- |

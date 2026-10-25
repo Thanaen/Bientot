@@ -1316,7 +1316,7 @@ pub(super) static ENTRIES: [Entry; 802] = [
     Entry { name: "SettingsImportDialogTitle", fr: "Remplacer les données de ce PC\u{202f}?", en: "Replace this PC’s data?" },
     Entry { name: "SettingsImportFailed", fr: "Bientôt n’a pas pu importer ce fichier. Vos données n’ont pas changé. Réessayez.", en: "Bientôt could not import this file. Your data has not changed. Try again." },
     Entry { name: "SettingsImportNewer", fr: "Ce fichier vient d’une version plus récente de Bientôt. Installez la dernière version de Bientôt sur ce PC, puis réessayez.", en: "This file comes from a newer version of Bientôt. Update Bientôt on this PC, then try again." },
-    Entry { name: "SettingsImportNotATransfer", fr: "Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .worktime.", en: "This file is not a Bientôt export. Choose a .worktime file." },
+    Entry { name: "SettingsImportNotATransfer", fr: "Ce fichier n’est pas une exportation de Bientôt. Choisissez un fichier .bientot ou .worktime.", en: "This file is not a Bientôt export. Choose a .bientot or .worktime file." },
     Entry { name: "SettingsImportReadFailed", fr: "Bientôt n’a pas pu lire ce fichier. Copiez-le sur ce PC, puis réessayez.", en: "Bientôt could not read this file. Copy it to this PC, then try again." },
     Entry { name: "SettingsImportReading", fr: "Lecture du fichier…", en: "Reading the file…" },
     Entry { name: "SettingsImportRestarting", fr: "Redémarrage de Bientôt…", en: "Restarting Bientôt…" },

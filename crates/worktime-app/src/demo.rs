@@ -114,7 +114,7 @@ impl fmt::Display for FolderRefusal {
         match self {
             FolderRefusal::NotDemo(directory) => write!(
                 f,
-                "the folder {} holds WorkTime data that the demo did not create",
+                "the folder {} holds Bientôt data that the demo did not create",
                 directory.display()
             ),
             FolderRefusal::OtherScenario {
@@ -460,7 +460,7 @@ mod tests {
     #[test]
     fn throwaway_folders_are_new_each_time() {
         let first = throwaway_directory();
-        assert!(first.starts_with(std::env::temp_dir().join("WorkTimeDemo")));
+        assert!(first.starts_with(std::env::temp_dir().join("BientotDemo")));
         assert_ne!(first, throwaway_directory());
     }
 

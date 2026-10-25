@@ -56,14 +56,14 @@ pub fn capture_failures(
 
 /// A start whose ledger is not a database: the error, then each cause.
 const LEDGER_ERROR: [&str; 3] = [
-    r"cannot open the ledger C:\Users\Camille\AppData\Local\WorkTime\worktime.db",
+    r"cannot open the ledger C:\Users\Camille\AppData\Local\Bientot\worktime.db",
     "SQLite failed: file is not a database",
     "Error code 26: file is not a database",
 ];
 
 /// A start whose ledger did not migrate, with more causes than the details show at once.
 const MIGRATION_ERROR: [&str; 6] = [
-    r"cannot open the ledger C:\Users\Camille\AppData\Local\WorkTime\worktime.db",
+    r"cannot open the ledger C:\Users\Camille\AppData\Local\Bientot\worktime.db",
     "cannot migrate the ledger from schema 6 to schema 7",
     "migration 7 failed: ALTER TABLE activity_spans ADD COLUMN source_kind",
     "cannot write the ledger's journal",

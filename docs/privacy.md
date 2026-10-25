@@ -16,9 +16,11 @@ last keyboard or mouse input (`GetLastInputInfo`). It never reads what you
 type, which keys you press, application names or window titles. It stores only
 the start and settled end of each active or idle period.
 
-WorkTime stores everything in `%LOCALAPPDATA%\WorkTime`. A run started with
+WorkTime stores everything in `%LOCALAPPDATA%\Bientot`. Builds released
+before the rename to Bientôt used `%LOCALAPPDATA%\WorkTime`, and the first
+start of a newer build renames that folder to `Bientot`. A run started with
 `--data-dir <folder>` uses that folder instead, and a `--demo` run uses a
-temporary `WorkTimeDemo` folder.
+temporary `BientotDemo` folder.
 
 | File | Content |
 | --- | --- |
@@ -28,7 +30,7 @@ temporary `WorkTimeDemo` folder.
 | `worktime.db` | SQLite database: which activity source was selected from which time, the active and idle periods, session, lock and power events with their times, pause and finish commands, manual corrections with their optional reason, long-lock decisions, daily summaries, weekly credit, and which notifications were already shown. |
 | `secrets\*.secret` | Secrets encrypted with DPAPI for your Windows account. Only the ActivityWatch API key of the first WorkTime version was ever stored there; the current version writes none. |
 | `import.worktime` | An import chosen in **Settings › Data** or on the first step of the onboarding, waiting for the next start to apply it. |
-| `backups\` | The data an import replaced (**Settings › Data**), saved as a `.worktime` file so that its **Restore…** button can undo the import. |
+| `backups\` | The data an import replaced (**Settings › Data**), saved as a `.bientot` file (`.worktime` before the rename) so that its **Restore…** button can undo the import. |
 | `logs\worktime-*.jsonl` | Diagnostic events, at most 5 files of 1 MiB, each deleted after 14 days. |
 
 The diagnostic log also redacts at write time. Properties named like an API
@@ -38,9 +40,10 @@ inside strings are replaced too.
 
 Accounting history does not expire automatically.
 
-A `.worktime` file exported from **Settings › Data** holds a copy of the
-database and of `settings.json`. It stays where you save it; WorkTime never
-sends it anywhere.
+A `.bientot` file exported from **Settings › Data**, or a `.worktime` file
+exported before the rename, holds a copy of the database and of
+`settings.json`. It stays where you save it; WorkTime never sends it
+anywhere.
 
 ## Network requests
 
@@ -137,9 +140,10 @@ after the new archive is complete.
 1. If **Start with Windows** is on, turn it off in the WorkTime
    settings. Otherwise WorkTime starts again at the next sign-in.
 2. Quit WorkTime from the tray menu.
-3. Delete the `%LOCALAPPDATA%\WorkTime` folder, or the folder you passed with
-   `--data-dir` if you start WorkTime that way.
-4. Delete any `.worktime` file you exported.
+3. Delete the `%LOCALAPPDATA%\Bientot` folder, and `%LOCALAPPDATA%\WorkTime`
+   if it is still there, or the folder you passed with `--data-dir` if you
+   start WorkTime that way.
+4. Delete any `.bientot` or `.worktime` file you exported.
 
 The next start from the same data folder shows onboarding again and creates a
 new, empty database.

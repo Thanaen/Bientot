@@ -58,7 +58,7 @@ impl std::fmt::Display for LoadSettingsError {
         match self {
             Self::NewerSchema { schema_version } => write!(
                 f,
-                "these settings were saved by a newer WorkTime version (schema {schema_version})"
+                "these settings were saved by a newer Bientôt version (schema {schema_version})"
             ),
             Self::Io(error) => write!(f, "the settings could not be read: {error}"),
         }

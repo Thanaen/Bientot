@@ -21,8 +21,12 @@ use crate::data_directory::DataDirectory;
 use crate::database::LATEST_SCHEMA_VERSION;
 use crate::file;
 
-/// The extension of a transfer file, without its dot.
-pub const EXTENSION: &str = "worktime";
+/// The extension a transfer file is written with, without its dot.
+pub const EXTENSION: &str = "bientot";
+
+/// The extensions of the transfer files an import opens: this one and `worktime`, which the app
+/// wrote before its rename to Bientôt. Both hold the same file.
+pub const EXTENSIONS: [&str; 2] = [EXTENSION, "worktime"];
 
 /// The layout of `WorkTimeTransfer` this build writes and reads.
 const FORMAT: i64 = 1;
@@ -63,8 +67,8 @@ pub enum TransferError {
 impl std::fmt::Display for TransferError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NotATransfer => f.write_str("the file is not a WorkTime export"),
-            Self::NewerVersion => f.write_str("the file was exported by a newer WorkTime"),
+            Self::NotATransfer => f.write_str("the file is not a Bientôt export"),
+            Self::NewerVersion => f.write_str("the file was exported by a newer Bientôt"),
             Self::Io(error) => write!(f, "the transfer file could not be written: {error}"),
             Self::Sqlite(error) => write!(f, "SQLite failed: {error}"),
         }
@@ -361,7 +365,7 @@ fn prepare(pending: &Path, temporary: &Path) -> Result<(), TransferError> {
 
 const BACKUP_PREFIX: &str = "before-import-";
 
-/// `before-import-<local date>-<hours>-<minutes>-<seconds>.worktime`, on the clock the user
+/// `before-import-<local date>-<hours>-<minutes>-<seconds>.bientot`, on the clock the user
 /// sees: sorts by time, and Windows accepts it as a file name.
 fn backup_name(now: Timestamp, zone: &TimeZone) -> String {
     format!(
@@ -370,14 +374,15 @@ fn backup_name(now: Timestamp, zone: &TimeZone) -> String {
     )
 }
 
-/// The newest copy an import saved in `directory` before it replaced the data, if any.
+/// The newest copy an import saved in `directory` before it replaced the data, if any, under
+/// either extension.
 pub fn latest_backup(directory: &DataDirectory) -> Option<PathBuf> {
-    let suffix = format!(".{EXTENSION}");
     fs::read_dir(directory.backups_directory())
         .ok()?
         .filter_map(|entry| {
             let name = entry.ok()?.file_name().into_string().ok()?;
-            (name.starts_with(BACKUP_PREFIX) && name.ends_with(&suffix)).then_some(name)
+            let extension = Path::new(&name).extension()?.to_str()?;
+            (name.starts_with(BACKUP_PREFIX) && EXTENSIONS.contains(&extension)).then_some(name)
         })
         .max()
         .map(|name| directory.backups_directory().join(name))

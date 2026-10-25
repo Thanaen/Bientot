@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use worktime_core::demo::DemoScenario;
 use worktime_store::data_directory::{self, DataDirectory};
+use worktime_store::data_migration::Location;
 use worktime_windows::notifications::{ACTIVATOR_ARGUMENT, COM_SERVER_ARGUMENT};
 use worktime_windows::startup::WINDOWS_STARTUP_ARGUMENT;
 
@@ -158,16 +159,18 @@ impl Launch {
         Ok(launch)
     }
 
-    /// The folder this launch opens: the `--data-dir` one, else a new throwaway one for a demo,
-    /// else the user's, in the folder `find_local_app_data` gives, asked only then.
-    pub fn data_directory(
+    /// Where this launch keeps its data: the `--data-dir` folder, else a new throwaway one for a
+    /// demo, else the user's, in the folder `find_local_app_data` gives, asked only then.
+    pub fn location(
         &self,
         find_local_app_data: impl FnOnce() -> anyhow::Result<PathBuf>,
-    ) -> anyhow::Result<DataDirectory> {
+    ) -> anyhow::Result<Location> {
         Ok(match (&self.data_dir, self.demo) {
-            (Some(path), _) => DataDirectory::named(path)?,
-            (None, Some(_)) => DataDirectory::from(demo::throwaway_directory()),
-            (None, None) => DataDirectory::user(&find_local_app_data()?),
+            (Some(path), _) => Location::Chosen(DataDirectory::named(path)?),
+            (None, Some(_)) => Location::Chosen(DataDirectory::from(demo::throwaway_directory())),
+            (None, None) => Location::User {
+                local_app_data: find_local_app_data()?,
+            },
         })
     }
 
@@ -276,10 +279,14 @@ mod tests {
     }
 
     fn directory(arguments: &[&str]) -> PathBuf {
+        let local_app_data = PathBuf::from("/home/ana/.local/share");
+        assert!(!local_app_data.exists());
         parse(arguments)
             .unwrap()
-            .data_directory(|| Ok(PathBuf::from("/home/ana/.local/share")))
+            .location(|| Ok(local_app_data))
             .unwrap()
+            .settle(|_, _| panic!("nothing to move"))
+            .0
             .path()
             .to_owned()
     }
@@ -305,11 +312,33 @@ mod tests {
 
     #[test]
     fn without_data_dir_a_demo_opens_a_throwaway_folder_and_a_launch_the_users() {
-        assert_eq!(directory(&[]), Path::new("/home/ana/.local/share/WorkTime"));
+        assert_eq!(directory(&[]), Path::new("/home/ana/.local/share/Bientot"));
         assert!(
             directory(&["--demo-history-week"])
-                .starts_with(std::env::temp_dir().join("WorkTimeDemo"))
+                .starts_with(std::env::temp_dir().join("BientotDemo"))
         );
+    }
+
+    #[test]
+    fn only_a_launch_on_the_users_folder_moves_it_to_bientot() {
+        let local_app_data = tempfile::tempdir().unwrap();
+        let old = local_app_data.path().join("WorkTime");
+        std::fs::create_dir(&old).unwrap();
+        let chosen = local_app_data.path().join("portable");
+        let settle = |arguments: &[&str]| {
+            parse(arguments)
+                .unwrap()
+                .location(|| Ok(local_app_data.path().to_owned()))
+                .unwrap()
+                .settle(|from, to| std::fs::rename(from, to))
+                .0
+        };
+        for arguments in [&["--data-dir", chosen.to_str().unwrap()][..], &["--demo"]] {
+            assert_ne!(settle(arguments).path(), old, "{arguments:?}");
+            assert!(old.exists(), "{arguments:?}");
+        }
+        assert_eq!(settle(&[]).path(), local_app_data.path().join("Bientot"));
+        assert!(!old.exists());
     }
 
     #[test]
@@ -322,10 +351,7 @@ mod tests {
         let explicit = std::env::temp_dir().join("WorkTime Data");
         for arguments in [&["--data-dir", explicit.to_str().unwrap()][..], &["--demo"]] {
             assert!(
-                parse(arguments)
-                    .unwrap()
-                    .data_directory(unavailable)
-                    .is_ok(),
+                parse(arguments).unwrap().location(unavailable).is_ok(),
                 "{arguments:?}"
             );
         }
@@ -333,7 +359,7 @@ mod tests {
         assert_eq!(
             parse(&[])
                 .unwrap()
-                .data_directory(unavailable)
+                .location(unavailable)
                 .unwrap_err()
                 .to_string(),
             "no folder for the application data"

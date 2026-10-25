@@ -31,21 +31,21 @@ pub async fn pick_save(
     }
 }
 
-/// Asks which `extension` file, described as `file_type`, to open: `None` once the dialog is
-/// cancelled.
+/// Asks which file, named with one of `extensions` and described as `file_type`, to open:
+/// `None` once the dialog is cancelled.
 pub async fn pick_open(
     file_type: String,
-    extension: &'static str,
+    extensions: &'static [&'static str],
     cx: &mut AsyncApp,
 ) -> anyhow::Result<Option<PathBuf>> {
     #[cfg(windows)]
     {
         let _ = cx;
-        off_thread(move || worktime_windows::dialogs::pick_open_file(&file_type, extension)).await
+        off_thread(move || worktime_windows::dialogs::pick_open_file(&file_type, extensions)).await
     }
     #[cfg(not(windows))]
     {
-        let _ = (file_type, extension);
+        let _ = (file_type, extensions);
         let chosen = cx.update(|cx| {
             cx.prompt_for_paths(gpui::PathPromptOptions {
                 files: true,
