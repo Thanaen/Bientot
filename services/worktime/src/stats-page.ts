@@ -125,7 +125,7 @@ function channelsCard(month: string, { shares, others }: Breakdown): string {
           .map((r) => `<div><i ${r.swatch}></i><span>${r.label}</span><span class="n">${n(r.active)}</span><span class="pc">${percent(r.active)}</span></div>`)
           .join("")}</div>${
           others && !others.active ? `\n        <p class="note">Les modes utilisés par moins de 10 installations ne sont pas montrés.</p>` : ""
-        }${noStore ? `\n        <p class="note">Le Microsoft&nbsp;Store apparaîtra ici quand WorkTime y sera publié.</p>` : ""}
+        }${noStore ? `\n        <p class="note">Le Microsoft&nbsp;Store apparaîtra ici quand l’application y sera publiée.</p>` : ""}
       </section>`;
 }
 
@@ -173,8 +173,8 @@ export function renderContent(stats: PublicStats): string {
   const stamp = `Données jusqu’au ${format(stats.through, { day: "numeric", month: "long", year: "numeric" })} <span class="nb">· mises à jour chaque nuit</span>`;
   const head = `<div class="wrap head">
     <p class="eyebrow">Statistiques publiques</p>
-    <h1>WorkTime en chiffres</h1>
-    <p class="lede">Chaque jour, WorkTime envoie un signal anonyme, que l’on peut couper dans Paramètres&nbsp;›&nbsp;Général. Voici ce que ces signaux permettent de compter, en accès libre et sans compte à créer.</p>
+    <h1>L’application Bientôt en chiffres</h1>
+    <p class="lede">Chaque jour, l’application Bientôt envoie un signal anonyme, que l’on peut couper dans Paramètres&nbsp;›&nbsp;Général. Voici ce que ces signaux permettent de compter, en accès libre et sans compte à créer.</p>
     <p class="stamp">${stamp}</p>
   </div>`;
   if (!stats.months.some((m) => m.active !== null)) {

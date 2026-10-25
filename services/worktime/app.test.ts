@@ -72,8 +72,8 @@ describe("the site", () => {
   // The site's routes are generated, so the app's type does not name them.
   const get = async (path: string) => {
     const routes: Record<string, unknown> = app;
-    const route = routes[path] as { GET?: () => Response | Promise<Response> } | undefined;
-    return route?.GET ? route.GET() : null;
+    const route = routes[path] as { GET?: (request: Request) => Response | Promise<Response> } | undefined;
+    return route?.GET ? route.GET(new Request(`http://local${path}`)) : null;
   };
   const html = async () => (await get("/"))!.text();
 
@@ -81,7 +81,7 @@ describe("the site", () => {
     const response = (await get("/"))!;
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
     const page = await response.text();
-    expect(page).toContain("<title>WorkTime");
+    expect(page).toContain("<title>Bientôt");
     expect(page).toContain('href="/download"');
     expect(page).not.toContain("<!-- head -->");
   });
@@ -94,6 +94,22 @@ describe("the site", () => {
     expect(page).toContain(`<script defer crossorigin="anonymous" src="https://e.worktime.thanaen.dev/static/array.js"></script>`);
     expect(page).toContain(`<script defer src="/analytics.js"></script>`);
     expect(page).not.toContain("/_vercel/");
+  });
+
+  // The domain, the repository and the theme keep the old name; the pages say it only to tell
+  // that the app was renamed.
+  test.each(["/", "/statistiques"])("%p names the app Bientôt", async (path) => {
+    const page = await (await get(path))!.text();
+    expect(page).toContain('<a class="brand" href="/">');
+    expect(page).toContain('<meta property="og:site_name" content="Bientôt">');
+    expect(page).toContain("L’application s’appelait WorkTime jusqu’en octobre 2026.");
+    const rest = page
+      .replace(/https:\/\/[^"\s]+/g, "")
+      .replace("L’application s’appelait WorkTime jusqu’en octobre 2026.", "")
+      .replace('"alternateName":"WorkTime"', "")
+      .replace("Thanaen/WorkTime</a>", "")
+      .replace("Thème WorkTime One", "");
+    expect(rest).not.toContain("WorkTime");
   });
 
   test("every local file the page links to is served", async () => {
@@ -242,7 +258,7 @@ describe("the statistics", () => {
 
   test("the page carries the site's head", async () => {
     const html = await (await page()).text();
-    expect(html).toContain("<title>Statistiques · WorkTime</title>");
+    expect(html).toContain("<title>Statistiques · Bientôt</title>");
     expect(html).toContain('<link rel="canonical" href="https://worktime.thanaen.dev/statistiques">');
     expect(html).toContain(`<script defer src="/analytics.js"></script>`);
     expect(html).not.toContain("<!-- head -->");

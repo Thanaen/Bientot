@@ -1,4 +1,4 @@
-// The daily signal WorkTime sends, and the only shape the service accepts.
+// The daily signal Bientôt sends, and the only shape the service accepts.
 // README.md says what is sent and what is kept.
 
 export const CHANNELS = ["store", "direct", "zip"] as const;
