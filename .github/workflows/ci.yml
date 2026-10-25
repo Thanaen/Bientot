@@ -287,14 +287,14 @@ jobs:
           $out = Join-Path $env:RUNNER_TEMP 'packages'
           ./scripts/package-rust.ps1 -Exe target/release/worktime.exe -Channel zip -OutDir $out -MaxSizeMB 20
           ./scripts/package-rust.ps1 -Exe target/release/worktime.exe -Channel store -OutDir $out -MaxSizeMB 20 `
-            -Publisher 'CN=Thanaen, OID.2.25.311729368913984317654407730594956997722=1'
+            -Publisher 'CN=3BB427EF-EC1A-406C-8D5D-D9761E46D4FC, OID.2.25.311729368913984317654407730594956997722=1'
           Add-AppxPackage -Path (Join-Path $out 'WorkTime-win-x64-unsigned.msix') -AllowUnsigned
-          $package = Get-AppxPackage -Name 'Thanaen.WorkTime'
+          $package = Get-AppxPackage -Name 'Thanaen.Bientt'
           if (-not $package) { throw 'The MSIX did not install.' }
           Write-Host "Installed $($package.PackageFullName) at $($package.InstallLocation)"
           if (-not (Test-Path (Join-Path $package.InstallLocation 'worktime.exe'))) { throw 'The installed package has no worktime.exe.' }
           Remove-AppxPackage -Package $package.PackageFullName
-          if (Get-AppxPackage -Name 'Thanaen.WorkTime') { throw 'The MSIX did not uninstall.' }
+          if (Get-AppxPackage -Name 'Thanaen.Bientt') { throw 'The MSIX did not uninstall.' }
 
       # scripts/release-direct.sh builds the Velopack Setup.exe with this feature, outside CI.
       - name: Check the Velopack build

@@ -262,7 +262,7 @@ fn capture_data(
 fn settings_file(settings: &Settings) -> anyhow::Result<PathBuf> {
     let path = screenshot_root()
         .join("Users/Camille/AppData/Local/Packages")
-        .join("Thanaen.WorkTime_8wekyb3d8bbwe/LocalCache/Local/Bientot/settings.json");
+        .join("Thanaen.Bientt_j4qejy376e90w/LocalCache/Local/Bientot/settings.json");
     SettingsStore::new(&path)?.save(settings)?;
     Ok(path)
 }

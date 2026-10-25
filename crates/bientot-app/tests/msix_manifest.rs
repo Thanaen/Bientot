@@ -103,7 +103,11 @@ fn the_package_needs_no_windows_app_sdk_and_carries_the_workspace_version() {
             .children()
             .find(|node| node.has_tag_name("Identity"))
             .unwrap();
-        assert_eq!(identity.attribute("Name"), Some("Thanaen.WorkTime"));
+        assert_eq!(identity.attribute("Name"), Some("Thanaen.Bientt"));
+        assert_eq!(
+            identity.attribute("Publisher"),
+            Some("CN=3BB427EF-EC1A-406C-8D5D-D9761E46D4FC")
+        );
         assert_eq!(
             identity.attribute("Version"),
             Some(format!("{}.0", env!("CARGO_PKG_VERSION")).as_str())
