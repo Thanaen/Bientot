@@ -25,6 +25,7 @@ use bientot_store::sessions::{AtomicWorkdayTransition, SessionEventError, Sessio
 use jiff::Timestamp;
 
 use crate::dotnet_ticks;
+pub use crate::event_log::{CollectedRecords, collect};
 use crate::lifecycle::probe_within;
 
 #[cfg(windows)]
@@ -246,14 +247,6 @@ pub fn pair(boundaries: impl IntoIterator<Item = PowerHistoryBoundary>) -> Power
     PowerHistory { intervals, boots }
 }
 
-/// The matching records a read collected, newest first, as event XML.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CollectedRecords {
-    Complete(Vec<String>),
-    /// The log held more than the record limit; the records read are dropped.
-    Truncated,
-}
-
 /// The System log could not be queried or read.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SystemLogUnavailable;
@@ -261,26 +254,6 @@ pub struct SystemLogUnavailable;
 /// The kernel's boot, shutdown, suspend and resume records in the System log.
 pub trait SystemEventLog {
     fn read(&self, record_limit: usize) -> Result<CollectedRecords, SystemLogUnavailable>;
-}
-
-/// Reads up to `record_limit` records, then one more to tell the end of the log from the cap.
-/// Records are kept whatever their `TimeCreated`: the boot and shutdown instants come from the
-/// event data, which can order them differently.
-pub fn collect<E>(
-    mut read_next: impl FnMut() -> Result<Option<String>, E>,
-    record_limit: usize,
-) -> Result<CollectedRecords, E> {
-    let mut records = Vec::new();
-    for _ in 0..record_limit {
-        match read_next()? {
-            Some(record) => records.push(record),
-            None => return Ok(CollectedRecords::Complete(records)),
-        }
-    }
-    Ok(match read_next()? {
-        Some(_) => CollectedRecords::Truncated,
-        None => CollectedRecords::Complete(records),
-    })
 }
 
 /// The power history of a window, read from a [`SystemEventLog`].

@@ -1,6 +1,6 @@
 [package]
 name = "bientot-windows"
-description = "WorkTime's Windows integration: the built-in activity source, session and power lifecycle, the power history, start with Windows, the single instance, notifications, Store updates, the animation effects setting and the diagnostic export."
+description = "WorkTime's Windows integration: the built-in activity source, session and power lifecycle, the power and session history, start with Windows, the single instance, notifications, Store updates, the animation effects setting and the diagnostic export."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -33,6 +33,7 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
     "Win32_Security",
+    "Win32_Security_Authorization",
     "Win32_Storage_FileSystem",
     "Win32_System_EventLog",
     "Win32_System_IO",
