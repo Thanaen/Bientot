@@ -22,10 +22,10 @@ use windows::Win32::Graphics::Gdi::{
     ClientToScreen, GetMonitorInfoW, MONITOR_DEFAULTTOPRIMARY, MONITORINFO, MonitorFromPoint,
 };
 use windows::Win32::System::Registry::{HKEY_CURRENT_USER, RRF_RT_REG_DWORD, RegGetValueW};
-use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
+use windows::Win32::UI::HiDpi::{GetDpiForMonitor, GetSystemMetricsForDpi, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetClientRect, GetSystemMetricsForDpi, GetWindowRect, HMENU, SM_CXSMICON, SWP_NOACTIVATE,
-    SWP_NOZORDER, SetMenuDefaultItem, SetWindowPos, USER_DEFAULT_SCREEN_DPI,
+    GetClientRect, GetWindowRect, HMENU, SM_CXSMICON, SWP_NOACTIVATE, SWP_NOZORDER,
+    SetMenuDefaultItem, SetWindowPos, USER_DEFAULT_SCREEN_DPI,
 };
 use windows::core::w;
 
