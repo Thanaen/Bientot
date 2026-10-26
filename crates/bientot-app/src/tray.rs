@@ -21,14 +21,17 @@ use windows::Win32::Graphics::Dwm::{
 use windows::Win32::Graphics::Gdi::{
     ClientToScreen, GetMonitorInfoW, MONITOR_DEFAULTTOPRIMARY, MONITORINFO, MonitorFromPoint,
 };
+use windows::Win32::System::Registry::{HKEY_CURRENT_USER, RRF_RT_REG_DWORD, RegGetValueW};
 use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetClientRect, GetWindowRect, HMENU, SWP_NOACTIVATE, SWP_NOZORDER, SetMenuDefaultItem,
-    SetWindowPos, USER_DEFAULT_SCREEN_DPI,
+    GetClientRect, GetSystemMetricsForDpi, GetWindowRect, HMENU, SM_CXSMICON, SWP_NOACTIVATE,
+    SWP_NOZORDER, SetMenuDefaultItem, SetWindowPos, USER_DEFAULT_SCREEN_DPI,
 };
+use windows::core::w;
 
 use crate::host::{self, Today};
 use crate::shell::{self, FrameInsets};
+use crate::tray_art::{self, Taskbar};
 use crate::tray_model::{self, MenuEntry};
 use crate::workday;
 
@@ -40,19 +43,78 @@ static LAST_CLICK: Mutex<Option<(i32, i32)>> = Mutex::new(None);
 /// [`tray_model::item_id`].
 struct Tray {
     icon: TrayIcon,
-    shown: workday::TrayIcon,
+    shown: Drawn,
     menu: Vec<MenuEntry>,
     generation: u64,
 }
 
 impl Global for Tray {}
 
-fn icon(shown: workday::TrayIcon) -> anyhow::Result<Icon> {
-    let image =
-        image::load_from_memory_with_format(tray_model::icon_file(shown), image::ImageFormat::Ico)?
-            .into_rgba8();
-    let (width, height) = image.dimensions();
-    Ok(Icon::from_rgba(image.into_raw(), width, height)?)
+/// The icon as drawn: the day's icon at the taskbar's size and theme, which change with the
+/// display scale and the Windows colour mode.
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct Drawn {
+    icon: workday::TrayIcon,
+    size: u32,
+    taskbar: Taskbar,
+}
+
+impl Drawn {
+    fn now(icon: workday::TrayIcon) -> Self {
+        Self {
+            icon,
+            size: small_icon_size(),
+            taskbar: taskbar_theme(),
+        }
+    }
+
+    fn icon(self) -> anyhow::Result<Icon> {
+        let rgba = tray_art::rgba(self.icon, self.size, self.taskbar)?;
+        Ok(Icon::from_rgba(rgba, self.size, self.size)?)
+    }
+}
+
+/// The size of a notification-area icon at the primary monitor's scale, where the taskbar shows
+/// it: 16 pixels at 100 %, 24 at 150 %. Given a larger icon, Windows shrinks it without smoothing.
+fn small_icon_size() -> u32 {
+    let (mut dpi, mut dpi_y) = (USER_DEFAULT_SCREEN_DPI, USER_DEFAULT_SCREEN_DPI);
+    // SAFETY: the out-pointers are live locals; the primary monitor always exists.
+    let size = unsafe {
+        let monitor = MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTOPRIMARY);
+        if GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi, &mut dpi_y).is_err() {
+            dpi = USER_DEFAULT_SCREEN_DPI;
+        }
+        GetSystemMetricsForDpi(SM_CXSMICON, dpi)
+    };
+    u32::try_from(size)
+        .ok()
+        .filter(|size| *size > 0)
+        .unwrap_or(16)
+}
+
+/// The taskbar's colour mode, « Choisir votre mode Windows » in the settings, which can differ
+/// from the apps' mode. Dark when Windows does not say.
+fn taskbar_theme() -> Taskbar {
+    let mut light = 0u32;
+    let mut size = size_of::<u32>() as u32;
+    // SAFETY: the key and value names are static NUL-terminated strings; `light` holds the
+    // `size` bytes the call may write.
+    let read = unsafe {
+        RegGetValueW(
+            HKEY_CURRENT_USER,
+            w!(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"),
+            w!("SystemUsesLightTheme"),
+            RRF_RT_REG_DWORD,
+            None,
+            Some((&raw mut light).cast()),
+            Some(&raw mut size),
+        )
+    };
+    if read.is_ok() && light != 0 {
+        Taskbar::Light
+    } else {
+        Taskbar::Dark
+    }
 }
 
 /// Hands `append` the items of `entries`, the entries at `path` in the menu of `generation`.
@@ -101,9 +163,10 @@ pub fn show(cx: &mut App) {
     let (day, entries) = (today.view().clone(), today.menu());
     let tray = cx.global_mut::<Tray>();
     let shown = (|| -> anyhow::Result<()> {
-        if tray.shown != day.tray_icon {
-            tray.icon.set_icon(Some(icon(day.tray_icon)?))?;
-            tray.shown = day.tray_icon;
+        let drawn = Drawn::now(day.tray_icon);
+        if tray.shown != drawn {
+            tray.icon.set_icon(Some(drawn.icon()?))?;
+            tray.shown = drawn;
         }
         tray.icon.set_tooltip(Some(&day.tray_tooltip))?;
         if tray.menu != entries {
@@ -125,15 +188,16 @@ pub fn show(cx: &mut App) {
 pub fn install(cx: &mut App) -> anyhow::Result<()> {
     let today = cx.global::<Today>();
     let (day, entries) = (today.view().clone(), today.menu());
+    let drawn = Drawn::now(day.tray_icon);
     let tray = TrayIconBuilder::new()
-        .with_icon(icon(day.tray_icon)?)
+        .with_icon(drawn.icon()?)
         .with_tooltip(&day.tray_tooltip)
         .with_menu(Box::new(menu(&entries, 0)?))
         .with_menu_on_left_click(false)
         .build()?;
     cx.set_global(Tray {
         icon: tray,
-        shown: day.tray_icon,
+        shown: drawn,
         menu: entries,
         generation: 0,
     });

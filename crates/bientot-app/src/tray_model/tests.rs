@@ -1,7 +1,6 @@
 use jiff::civil::date;
 
 use super::*;
-use crate::workday::TrayColour;
 
 /// Each entry as the menu shows it: a greyed item in brackets, a separator as a rule, a
 /// submenu as its label and an arrow, then its items indented.
@@ -245,41 +244,6 @@ fn the_review_command_carries_the_lock_to_resolve() {
             action: ReviewAction::Exclude,
         }))
     );
-}
-
-#[test]
-fn every_tray_icon_is_a_bundled_ico_with_the_notification_area_sizes() {
-    for colour in [
-        TrayColour::Green,
-        TrayColour::Orange,
-        TrayColour::Red,
-        TrayColour::Blue,
-    ] {
-        for degraded in [false, true] {
-            let icon = TrayIcon { colour, degraded };
-            let decoded =
-                image::load_from_memory_with_format(icon_file(icon), image::ImageFormat::Ico)
-                    .unwrap_or_else(|error| panic!("{}: {error}", icon.file_stem()));
-            assert!(
-                decoded.width() >= 16 && decoded.width() == decoded.height(),
-                "{}: {}x{}",
-                icon.file_stem(),
-                decoded.width(),
-                decoded.height()
-            );
-        }
-        assert_ne!(
-            icon_file(TrayIcon {
-                colour,
-                degraded: false
-            }),
-            icon_file(TrayIcon {
-                colour,
-                degraded: true
-            }),
-            "{colour:?}"
-        );
-    }
 }
 
 #[test]

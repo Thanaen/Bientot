@@ -314,12 +314,14 @@
   <data name="NotificationSmokeBody" xml:space="preserve"><value>Notification smoke test. No workday data was used.</value></data>
   <data name="TrayStatusOrange" xml:space="preserve"><value>Departure near limit</value></data>
   <data name="TrayStatusRed" xml:space="preserve"><value>Departure after limit</value></data>
-  <data name="TrayProjectionFormat" xml:space="preserve"><value>Departure {0}</value></data>
+  <data name="TrayStatusBlue" xml:space="preserve"><value>Target reached · You can leave</value></data>
+  <data name="TrayUnrecordedTime" xml:space="preserve"><value>Unrecorded time</value></data>
+  <data name="TrayProjectionFormat" xml:space="preserve"><value>Leave at {0}</value></data>
   <data name="TrayOvertimeFormat" xml:space="preserve"><value>Overtime {0}</value></data>
   <data name="TraySourceFailureFormat" xml:space="preserve"><value>{0} · Open Bientôt</value></data>
   <data name="TraySourceUnavailable" xml:space="preserve"><value>Activity data unavailable</value></data>
   <data name="TraySourceUnauthorized" xml:space="preserve"><value>Activity access refused</value></data>
-  <data name="TraySourceAmbiguous" xml:space="preserve"><value>Select activity history</value></data>
+  <data name="TraySourceAmbiguous" xml:space="preserve"><value>Activity history not selected</value></data>
   <data name="TraySourceMalformed" xml:space="preserve"><value>Activity data unreadable</value></data>
   <data name="TraySourceStale" xml:space="preserve"><value>Activity data stale</value></data>
   <data name="TraySourceIncomplete" xml:space="preserve"><value>Activity tracking incomplete</value></data>

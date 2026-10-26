@@ -9,7 +9,9 @@ same messages from `fr-FR`.
 Bientôt detects activity on its own with its built-in source. When the
 source fails, Bientôt keeps the last good values. The tray icon gets a
 degraded badge, its tooltip reads "*reason* · Open Bientôt", and the flyout
-explains the problem. F5 in the flyout tries again at once.
+explains the problem. F5 in the flyout tries again at once. When the source
+works but left time unrecorded, the icon keeps the badge and its tooltip ends
+with the reason, for example "Unrecorded time".
 
 Time before onboarding was confirmed has no source. For it the tooltip reads
 "No activity source" and the banner "No activity source is selected for this

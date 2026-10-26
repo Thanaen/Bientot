@@ -59,7 +59,7 @@ pub struct TrayIcon {
 }
 
 impl TrayIcon {
-    /// The asset's name, as `TrayIconAssets.GetUri` writes it.
+    /// The icon's name, after the assets of the .NET app (`TrayIconAssets.GetUri`).
     pub fn file_stem(self) -> &'static str {
         match (self.colour, self.degraded) {
             (TrayColour::Green, false) => "indicator-green",
@@ -440,6 +440,7 @@ impl DayView {
             let tray_status = match tone {
                 Tone::NearLimit => Key::TrayStatusOrange,
                 Tone::Late => Key::TrayStatusRed,
+                Tone::Complete => Key::TrayStatusBlue,
                 _ => status,
             };
             let primary = match &headline.qualifier {
@@ -466,6 +467,15 @@ impl DayView {
                     "{tooltip} · {}",
                     language.format(Key::WorkdayDebtFormat, &[&debt.value])
                 );
+            }
+            // The icon's badge says the source is in trouble, or that time went unrecorded; the
+            // tooltip says which.
+            if tray_icon.degraded {
+                let cause = match health.filter(|health| health.is_degraded()) {
+                    Some(health) => tray_source_cause(health),
+                    None => Key::TrayUnrecordedTime,
+                };
+                tooltip = format!("{tooltip} · {}", language.text(cause));
             }
             tooltip.into()
         };

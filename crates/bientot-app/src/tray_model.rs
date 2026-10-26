@@ -12,51 +12,6 @@ use jiff::civil::{Time, Weekday};
 
 use crate::live::Tracking;
 use crate::strings::{Key, Language};
-use crate::workday::TrayIcon;
-
-const ICONS: [(&str, &[u8]); 8] = [
-    (
-        "indicator-green",
-        include_bytes!("../assets/tray/indicator-green.ico"),
-    ),
-    (
-        "indicator-orange",
-        include_bytes!("../assets/tray/indicator-orange.ico"),
-    ),
-    (
-        "indicator-red",
-        include_bytes!("../assets/tray/indicator-red.ico"),
-    ),
-    (
-        "indicator-blue",
-        include_bytes!("../assets/tray/indicator-blue.ico"),
-    ),
-    (
-        "indicator-green-degraded",
-        include_bytes!("../assets/tray/indicator-green-degraded.ico"),
-    ),
-    (
-        "indicator-orange-degraded",
-        include_bytes!("../assets/tray/indicator-orange-degraded.ico"),
-    ),
-    (
-        "indicator-red-degraded",
-        include_bytes!("../assets/tray/indicator-red-degraded.ico"),
-    ),
-    (
-        "indicator-blue-degraded",
-        include_bytes!("../assets/tray/indicator-blue-degraded.ico"),
-    ),
-];
-
-/// The ICO file of `icon`, copied from the tray assets of the first .NET app.
-pub fn icon_file(icon: TrayIcon) -> &'static [u8] {
-    ICONS
-        .iter()
-        .find(|(stem, _)| *stem == icon.file_stem())
-        .map(|(_, bytes)| *bytes)
-        .expect("every tray icon is bundled")
-}
 
 /// A long lock that has ended and waits for the user to say what it was.
 #[derive(Clone, Debug, PartialEq, Eq)]
