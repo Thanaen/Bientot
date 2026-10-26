@@ -314,6 +314,8 @@
   <data name="NotificationSmokeBody" xml:space="preserve"><value>Test de notification. Aucune donnée de journée n’a été utilisée.</value></data>
   <data name="TrayStatusOrange" xml:space="preserve"><value>Départ proche de la limite</value></data>
   <data name="TrayStatusRed" xml:space="preserve"><value>Départ après la limite</value></data>
+  <data name="TrayStatusBlue" xml:space="preserve"><value>Objectif atteint · Vous pouvez partir</value></data>
+  <data name="TrayUnrecordedTime" xml:space="preserve"><value>Temps non renseigné</value></data>
   <data name="TrayProjectionFormat" xml:space="preserve"><value>Départ {0}</value></data>
   <data name="TrayOvertimeFormat" xml:space="preserve"><value>Heures sup. {0}</value></data>
   <data name="TraySourceFailureFormat" xml:space="preserve"><value>{0} · Ouvrez l’application</value></data>

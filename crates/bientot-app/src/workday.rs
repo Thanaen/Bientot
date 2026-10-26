@@ -51,6 +51,9 @@ pub enum TrayColour {
     Blue,
 }
 
+/// The longest tray tooltip Windows shows whole, in UTF-16 units: `szTip` holds 128 with its NUL.
+const TRAY_TOOLTIP_LIMIT: usize = 127;
+
 /// The notification-area icon: the day's colour, with a badge while the source is in trouble.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TrayIcon {
@@ -59,7 +62,7 @@ pub struct TrayIcon {
 }
 
 impl TrayIcon {
-    /// The asset's name, as `TrayIconAssets.GetUri` writes it.
+    /// The icon's name, after the assets of the .NET app (`TrayIconAssets.GetUri`).
     pub fn file_stem(self) -> &'static str {
         match (self.colour, self.degraded) {
             (TrayColour::Green, false) => "indicator-green",
@@ -440,34 +443,43 @@ impl DayView {
             let tray_status = match tone {
                 Tone::NearLimit => Key::TrayStatusOrange,
                 Tone::Late => Key::TrayStatusRed,
+                Tone::Complete => Key::TrayStatusBlue,
                 _ => status,
             };
-            let primary = match &headline.qualifier {
-                Some(qualifier) => format!("{tray_primary} · {qualifier}"),
-                None => tray_primary.to_string(),
+            // The icon's badge says the source is in trouble, or that time went unrecorded; the
+            // tooltip says which.
+            let cause = tray_icon.degraded.then(|| {
+                language.text(match health.filter(|health| health.is_degraded()) {
+                    Some(health) => tray_source_cause(health),
+                    None => Key::TrayUnrecordedTime,
+                })
+            });
+            let debt = credit
+                .as_ref()
+                .filter(|_| in_debt)
+                .map(|debt| language.format(Key::WorkdayDebtFormat, &[&debt.value]));
+            let main = |qualified: bool| {
+                let primary = match headline.qualifier.as_ref().filter(|_| qualified) {
+                    Some(qualifier) => format!("{tray_primary} · {qualifier}"),
+                    None => tray_primary.to_string(),
+                };
+                match &worked.target {
+                    Some(target) => language.format(
+                        Key::WorkdayTooltipFormat,
+                        &[
+                            &language.text(tray_status),
+                            &worked.worked,
+                            &target.duration,
+                            &primary,
+                        ],
+                    ),
+                    None => language.format(
+                        Key::WorkdayTooltipNoTargetFormat,
+                        &[&language.text(tray_status), &worked.worked, &primary],
+                    ),
+                }
             };
-            let mut tooltip = match &worked.target {
-                Some(target) => language.format(
-                    Key::WorkdayTooltipFormat,
-                    &[
-                        &language.text(tray_status),
-                        &worked.worked,
-                        &target.duration,
-                        &primary,
-                    ],
-                ),
-                None => language.format(
-                    Key::WorkdayTooltipNoTargetFormat,
-                    &[&language.text(tray_status), &worked.worked, &primary],
-                ),
-            };
-            if let Some(debt) = credit.as_ref().filter(|_| in_debt) {
-                tooltip = format!(
-                    "{tooltip} · {}",
-                    language.format(Key::WorkdayDebtFormat, &[&debt.value])
-                );
-            }
-            tooltip.into()
+            fit_tray_tooltip(main, debt.as_deref(), cause).into()
         };
 
         Self {
@@ -641,6 +653,28 @@ fn missing_work(summary: &DailySummary, zone: &TimeZone, language: Language) -> 
         intervals,
         duration: total,
     })
+}
+
+/// The tray tooltip: `main`, with or without the forecast's qualifier, then the debt and the
+/// badge's cause. Windows keeps only [`TRAY_TOOLTIP_LIMIT`] units, so the qualifier and then the
+/// debt give way before the cause does.
+fn fit_tray_tooltip(
+    main: impl Fn(bool) -> String,
+    debt: Option<&str>,
+    cause: Option<&str>,
+) -> String {
+    let join = |qualified: bool, debt: Option<&str>| {
+        [main(qualified).as_str()]
+            .into_iter()
+            .chain(debt)
+            .chain(cause)
+            .collect::<Vec<_>>()
+            .join(" · ")
+    };
+    [join(true, debt), join(false, debt)]
+        .into_iter()
+        .find(|tooltip| tooltip.encode_utf16().count() <= TRAY_TOOLTIP_LIMIT)
+        .unwrap_or_else(|| join(false, None))
 }
 
 fn is_explicit_source_failure(summary: &DailySummary) -> bool {

@@ -29,6 +29,7 @@ pub mod time_text;
 pub mod transfer;
 #[cfg(windows)]
 pub mod tray;
+pub mod tray_art;
 pub mod tray_model;
 pub mod updates;
 pub mod usage_ping;

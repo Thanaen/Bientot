@@ -85,7 +85,7 @@ fn on_track_shows_the_departure_and_the_margin_left() {
             "Projected departure 5:00_PM (large)",
             "1h_30m to spare before your latest departure (6:30_PM)",
             "Time worked 6h_00m / 7h_00m at 0.86",
-            "tray: On track · 6h_00m/7h_00m · Departure 5:00_PM",
+            "tray: On track · 6h_00m/7h_00m · Leave at 5:00_PM",
         ]
     );
 }
@@ -113,7 +113,7 @@ fn a_complete_day_shows_the_overtime() {
             "Heures supplémentaires 1_h_00_min (large)",
             "Ce temps s’ajoute à votre crédit de la semaine",
             "Temps travaillé 8_h_00_min / 7_h_00_min at 1.00",
-            "tray: Objectif atteint · 8_h_00_min/7_h_00_min · Heures sup. 1_h_00_min",
+            "tray: Objectif atteint · Vous pouvez partir · 8_h_00_min/7_h_00_min · Heures sup. 1_h_00_min",
         ]
     );
 }
@@ -128,7 +128,7 @@ fn before_lunch_ends_the_departure_leaves_lunch_free() {
             "30m to spare before your latest departure (6:30_PM)",
             "Lunch break planned until 2:00_PM",
             "Time worked 2h_00m / 7h_00m at 0.29",
-            "tray: On track · 2h_00m/7h_00m · Departure 6:00_PM",
+            "tray: On track · 2h_00m/7h_00m · Leave at 6:00_PM",
         ]
     );
 }
@@ -167,7 +167,7 @@ fn an_estimated_forecast_says_what_it_is_based_on() {
             "Temps travaillé 5_h_04_min / 7_h_00_min at 0.73",
             "Unrecorded: Temps non renseigné · 26_min en 2_créneaux, entre 09:40 et 14:20. \
              Travailliez-vous\u{202f}?",
-            "tray: Dans les temps · 5_h_04_min/7_h_00_min · Départ 17:55 · Selon le travail enregistré",
+            "tray: Dans les temps · 5_h_04_min/7_h_00_min · Départ 17:55 · Selon le travail enregistré · Temps non renseigné",
         ]
     );
 }
@@ -249,7 +249,7 @@ fn the_stored_friday_has_overtime_but_no_credit_left() {
             "Complete Objectif atteint",
             "Heures supplémentaires 2_h_00_min (large)",
             "Temps travaillé 9_h_00_min / 7_h_00_min at 1.00",
-            "tray: Objectif atteint · 9_h_00_min/7_h_00_min · Heures sup. 2_h_00_min",
+            "tray: Objectif atteint · Vous pouvez partir · 9_h_00_min/7_h_00_min · Heures sup. 2_h_00_min",
         ]
     );
 }
@@ -591,6 +591,47 @@ fn a_paused_or_finished_day_without_a_summary_keeps_the_source_problem() {
                     "Recalculée dès que le suivi reprend",
                 ],
                 "{tracking:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_long_tray_tooltip_drops_the_qualifier_then_the_debt_but_keeps_the_cause() {
+    let main = |qualified: bool| {
+        let status = "Départ proche de la limite · 5 h 04 min/7 h 00 min · Départ 17:55";
+        if qualified {
+            format!("{status} · Selon le travail enregistré")
+        } else {
+            status.to_string()
+        }
+    };
+    let debt = Some("Dette : 1 h 30 min");
+    assert_eq!(
+        fit_tray_tooltip(main, debt, None),
+        "Départ proche de la limite · 5 h 04 min/7 h 00 min · Départ 17:55 · Selon le travail \
+         enregistré · Dette : 1 h 30 min"
+    );
+    assert_eq!(
+        fit_tray_tooltip(main, debt, Some("Temps non renseigné")),
+        "Départ proche de la limite · 5 h 04 min/7 h 00 min · Départ 17:55 · Dette : 1 h 30 min · \
+         Temps non renseigné"
+    );
+    assert_eq!(
+        fit_tray_tooltip(main, debt, Some("Enregistrement de l’activité interrompu")),
+        "Départ proche de la limite · 5 h 04 min/7 h 00 min · Départ 17:55 · Enregistrement de \
+         l’activité interrompu"
+    );
+}
+
+#[test]
+fn every_demo_tray_tooltip_fits_the_notification_area() {
+    for scenario in DemoScenario::ALL {
+        for language in [Language::French, Language::English] {
+            let tooltip = day(scenario, language).tray_tooltip;
+            assert!(
+                tooltip.encode_utf16().count() <= TRAY_TOOLTIP_LIMIT,
+                "{scenario:?} {language:?}: {tooltip}"
             );
         }
     }

@@ -34,9 +34,11 @@ direct = ["release", "updates"]
 anyhow = "1"
 gpui = { version = "=0.3.9", package = "gpui-pre" }
 gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform" }
-image = { version = "0.25", default-features = false, features = ["ico", "png"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
 jiff = "0.2.38"
 log = "0.4"
+# Draws the tray icon at the taskbar's size; the version gpui already builds.
+resvg = { version = "0.46", default-features = false }
 rusqlite = "0.40.2"
 serde_json = "1.0.154"
 # The system TLS: SChannel on Windows. `native-tls` also brings the Mozilla roots
@@ -62,6 +64,7 @@ windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Graphics_Dwm",
     "Win32_Graphics_Gdi",
+    "Win32_System_Registry",
     "Win32_System_Time",
     "Win32_UI_HiDpi",
     "Win32_UI_WindowsAndMessaging",

@@ -754,8 +754,10 @@ pub enum Key {
     TraySourceStale,
     TraySourceUnauthorized,
     TraySourceUnavailable,
+    TrayStatusBlue,
     TrayStatusOrange,
     TrayStatusRed,
+    TrayUnrecordedTime,
     UpdateAvailableDialogCloseButtonText,
     UpdateAvailableDialogPrimaryButtonText,
     UpdateAvailableDialogTitle,
@@ -810,7 +812,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 802] = [
+pub(super) static ENTRIES: [Entry; 804] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1541,7 +1543,7 @@ pub(super) static ENTRIES: [Entry; 802] = [
     Entry { name: "TrayOvertimeFormat", fr: "Heures sup. {0}", en: "Overtime {0}" },
     Entry { name: "TrayPause.Text", fr: "Mettre le suivi en pause", en: "Pause tracking" },
     Entry { name: "TrayPauseCommand", fr: "Mettre le suivi en pause", en: "Pause tracking" },
-    Entry { name: "TrayProjectionFormat", fr: "Départ {0}", en: "Departure {0}" },
+    Entry { name: "TrayProjectionFormat", fr: "Départ {0}", en: "Leave at {0}" },
     Entry { name: "TrayQuitCommand", fr: "Quitter Bientôt", en: "Quit Bientôt" },
     Entry { name: "TrayResume.Text", fr: "Reprendre le suivi", en: "Resume tracking" },
     Entry { name: "TrayResumeCommand", fr: "Reprendre le suivi", en: "Resume tracking" },
@@ -1549,7 +1551,7 @@ pub(super) static ENTRIES: [Entry; 802] = [
     Entry { name: "TrayReviewExcludeCommandFormat", fr: "Exclure le temps verrouillé ({0})", en: "Exclude locked time ({0})" },
     Entry { name: "TrayReviewFinishCommandFormat", fr: "Terminer au début du verrouillage ({0})", en: "Finish at lock start ({0})" },
     Entry { name: "TrayReviewSubmenuFormat", fr: "Verrouillage à vérifier · {0}–{1}", en: "Lock to review · {0}–{1}" },
-    Entry { name: "TraySourceAmbiguous", fr: "Historique d’activité à sélectionner", en: "Select activity history" },
+    Entry { name: "TraySourceAmbiguous", fr: "Historique d’activité à sélectionner", en: "Activity history not selected" },
     Entry { name: "TraySourceBuiltInInputFailed", fr: "Lecture des saisies impossible", en: "Cannot read input" },
     Entry { name: "TraySourceBuiltInInterrupted", fr: "Enregistrement de l’activité interrompu", en: "Activity recording stopped" },
     Entry { name: "TraySourceFailureFormat", fr: "{0} · Ouvrez l’application", en: "{0} · Open Bientôt" },
@@ -1559,8 +1561,10 @@ pub(super) static ENTRIES: [Entry; 802] = [
     Entry { name: "TraySourceStale", fr: "Données d’activité périmées", en: "Activity data stale" },
     Entry { name: "TraySourceUnauthorized", fr: "Accès aux activités refusé", en: "Activity access refused" },
     Entry { name: "TraySourceUnavailable", fr: "Données d’activité indisponibles", en: "Activity data unavailable" },
+    Entry { name: "TrayStatusBlue", fr: "Objectif atteint · Vous pouvez partir", en: "Target reached · You can leave" },
     Entry { name: "TrayStatusOrange", fr: "Départ proche de la limite", en: "Departure near limit" },
     Entry { name: "TrayStatusRed", fr: "Départ après la limite", en: "Departure after limit" },
+    Entry { name: "TrayUnrecordedTime", fr: "Temps non renseigné", en: "Unrecorded time" },
     Entry { name: "UpdateAvailableDialog.CloseButtonText", fr: "Plus tard", en: "Later" },
     Entry { name: "UpdateAvailableDialog.PrimaryButtonText", fr: "Mettre à jour", en: "Update" },
     Entry { name: "UpdateAvailableDialog.Title", fr: "Mise à jour disponible", en: "Update available" },
