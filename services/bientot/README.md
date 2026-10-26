@@ -22,7 +22,7 @@ statistics show no older version.
 | `GET /robots.txt`, `/sitemap.xml` | Generated from the pages listed in `src/site.ts` |
 | `POST /v1/ping` | `204`; `400` for any other shape, `413` above 256 bytes |
 | `GET /updates/<file>` | `302` to that file in the GitHub Releases (see Updates); `404` for a name the Release workflow never publishes |
-| `GET /download` | `302` to the latest installer, `Thanaen.WorkTime-win-Setup.exe` (see Updates) |
+| `GET /download` | `302` to the latest installer, `Bientot-Setup.exe` (see Updates) |
 
 ## Pages
 
@@ -125,9 +125,7 @@ The service redirects, without caching:
 
 - the feed, the installer and the portable ZIP, under either name, to the latest release's copy;
 - a package to the release of its version;
-- `/download` to `Thanaen.WorkTime-win-Setup.exe`, the name every release has. GitHub answers
-  `404` for a file the latest release lacks, so `/download` moves to `Bientot-Setup.exe` only
-  once a published release carries it.
+- `/download` to `Bientot-Setup.exe`.
 
 These addresses stay the same wherever the files live.
 

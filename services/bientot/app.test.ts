@@ -61,17 +61,16 @@ describe("GET /updates/:file", () => {
     },
   );
 
-  test.each(["Thanaen.WorkTime-win-Portable.zip", "Bientot-Setup.exe", "Bientot-Portable.zip"])(
+  test.each(["Thanaen.WorkTime-win-Setup.exe", "Thanaen.WorkTime-win-Portable.zip", "Bientot-Setup.exe", "Bientot-Portable.zip"])(
     "points at the latest release's %s",
     (file) => {
       expect(get(file).headers.get("location")).toBe(`${releases}/latest/download/${file}`);
     },
   );
 
-  // The latest release may predate the Bientot-* copies; every release has vpk's name.
-  test("/download points at the latest installer under the name every release has", () => {
+  test("/download points at the latest installer under the app's name", () => {
     expect(app["/download"].GET().headers.get("location")).toBe(
-      `${releases}/latest/download/Thanaen.WorkTime-win-Setup.exe`,
+      `${releases}/latest/download/Bientot-Setup.exe`,
     );
   });
 });
@@ -324,7 +323,7 @@ describe("the two domains", () => {
     expect(feed.headers.get("location")).toBe(`${releases}/releases.win.json`);
     const setup = await call("worktime.thanaen.dev", "/download");
     expect(setup.status).toBe(302);
-    expect(setup.headers.get("location")).toBe(`${releases}/Thanaen.WorkTime-win-Setup.exe`);
+    expect(setup.headers.get("location")).toBe(`${releases}/Bientot-Setup.exe`);
   });
 
   test.each([
