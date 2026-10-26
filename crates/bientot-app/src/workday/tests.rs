@@ -595,3 +595,44 @@ fn a_paused_or_finished_day_without_a_summary_keeps_the_source_problem() {
         }
     }
 }
+
+#[test]
+fn a_long_tray_tooltip_drops_the_qualifier_then_the_debt_but_keeps_the_cause() {
+    let main = |qualified: bool| {
+        let status = "Départ proche de la limite · 5 h 04 min/7 h 00 min · Départ 17:55";
+        if qualified {
+            format!("{status} · Selon le travail enregistré")
+        } else {
+            status.to_string()
+        }
+    };
+    let debt = Some("Dette : 1 h 30 min");
+    assert_eq!(
+        fit_tray_tooltip(main, debt, None),
+        "Départ proche de la limite · 5 h 04 min/7 h 00 min · Départ 17:55 · Selon le travail \
+         enregistré · Dette : 1 h 30 min"
+    );
+    assert_eq!(
+        fit_tray_tooltip(main, debt, Some("Temps non renseigné")),
+        "Départ proche de la limite · 5 h 04 min/7 h 00 min · Départ 17:55 · Dette : 1 h 30 min · \
+         Temps non renseigné"
+    );
+    assert_eq!(
+        fit_tray_tooltip(main, debt, Some("Enregistrement de l’activité interrompu")),
+        "Départ proche de la limite · 5 h 04 min/7 h 00 min · Départ 17:55 · Enregistrement de \
+         l’activité interrompu"
+    );
+}
+
+#[test]
+fn every_demo_tray_tooltip_fits_the_notification_area() {
+    for scenario in DemoScenario::ALL {
+        for language in [Language::French, Language::English] {
+            let tooltip = day(scenario, language).tray_tooltip;
+            assert!(
+                tooltip.encode_utf16().count() <= TRAY_TOOLTIP_LIMIT,
+                "{scenario:?} {language:?}: {tooltip}"
+            );
+        }
+    }
+}
