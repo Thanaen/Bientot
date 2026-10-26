@@ -99,7 +99,7 @@ Bientôt makes two kinds of request.
 
 The app never loads the website. The pages of `https://bientot.dev`
 measure their audience and loading speed with PostHog, hosted in the European
-Union, through `https://e.worktime.thanaen.dev`, an address PostHog runs for
+Union, through `https://e.bientot.dev`, an address PostHog runs for
 the site. The script sets no cookie and stores nothing in the browser
 (cookieless mode). PostHog counts a visit with a hash of the IP address and
 the browser that changes every day, and keeps no IP address. For each page
@@ -108,7 +108,7 @@ system, the browser, the device type, the screen size, the language and the
 time zone, and the loading-speed measurements of the page (Core Web Vitals). It records no
 clicks, no keystrokes and no session replay. PostHog's
 [privacy page](https://posthog.com/privacy) gives the details. A content
-blocker that stops `e.worktime.thanaen.dev` stops it.
+blocker that stops `e.bientot.dev` stops it.
 
 ## Diagnostic export
 

@@ -50,9 +50,8 @@ export const STATISTICS: Page = {
 
 const DAY = 86400;
 
-// PostHog's managed proxy for the WorkTime project (README.md, "Pages"), on the old domain. It
-// answers the pages of ORIGIN too: PostHog sends CORS headers for any origin.
-export const ANALYTICS = "https://e.worktime.thanaen.dev";
+// PostHog's managed proxy for the Bientôt project (README.md, "Pages").
+export const ANALYTICS = "https://e.bientot.dev";
 
 const FILES: Record<string, { url: URL; type: string; maxAge: number }> = {
   "/fonts/IBMPlexSans-Regular.woff2": { url: new URL("../site/fonts/IBMPlexSans-Regular.woff2", import.meta.url), type: "font/woff2", maxAge: 7 * DAY },
