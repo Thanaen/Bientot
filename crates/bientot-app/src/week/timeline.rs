@@ -339,10 +339,10 @@ fn place_day(
                 local_start: local(review.resolved.start()),
                 local_end: local(review.resolved.end()),
                 finish_at: review
-                    .appointment
-                    .is_none()
+                    .subject
+                    .is_lock()
                     .then(|| local(review.locked_episode.start()).time()),
-                appointment: review.appointment.clone(),
+                subject: review.subject.clone(),
                 weekday: review.weekday,
                 is_open: review.is_open,
                 gains: review.gains,

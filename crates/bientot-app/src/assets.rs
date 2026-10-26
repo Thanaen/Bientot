@@ -39,6 +39,7 @@ const ICONS: &[(&str, &[u8])] = icons![
     "clock",
     "database",
     "flag",
+    "history",
     "house",
     "info",
     "loader-circle",

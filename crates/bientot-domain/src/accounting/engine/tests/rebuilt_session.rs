@@ -8,9 +8,9 @@ use jiff::tz::TimeZone;
 use super::{Type, minutes, origin, shapes};
 use crate::accounting::{
     AccountingInput, AccountingLabel, AccountingPolicy, AccountingResult, ActivityCoverage,
-    ActivitySegment, ActivityState, AdjustmentId, LongLockReviewId, LongLockReviewReason,
-    PowerState, Recorded, RecordedTransition, SESSION_HISTORY_SOURCE_ID, SessionState,
-    WorkdayEventHistory, WorkdayEventId, WorkdayStateAnchors, calculate,
+    ActivitySegment, ActivityState, AdjustmentId, COVERAGE_GAP_ORIGIN, LongLockReviewId,
+    LongLockReviewReason, PowerState, Recorded, RecordedTransition, SESSION_HISTORY_SOURCE_ID,
+    SessionState, WorkdayEventHistory, WorkdayEventId, WorkdayStateAnchors, calculate,
 };
 use crate::adjustments::{ManualAdjustment, ManualClassification, validate_for_append};
 use crate::intervals::UtcInterval;
@@ -57,6 +57,9 @@ fn review(unlock: i64, start: (i8, i8)) -> LongLockReviewId {
 struct Day {
     transitions: Vec<RecordedTransition>,
     adjustments: Vec<ManualAdjustment>,
+    /// The source fills what it left uncovered before 14:00, as the built-in one does, rather
+    /// than leaving it without any coverage.
+    gap_filled: bool,
 }
 
 fn installed_at_two() -> Day {
@@ -68,6 +71,7 @@ fn installed_at_two() -> Day {
             observed(4, (14, 0), SessionState::Unlocked),
         ],
         adjustments: Vec::new(),
+        gap_filled: true,
     }
 }
 
@@ -84,11 +88,21 @@ impl Day {
             ActivityState::Active,
             origin("built-in"),
         );
+        let gap = ActivitySegment::new(
+            between((0, 0), (14, 0)),
+            ActivityState::Unknown,
+            origin(COVERAGE_GAP_ORIGIN),
+        );
+        let segments = if self.gap_filled {
+            vec![gap, watched]
+        } else {
+            vec![watched]
+        };
         AccountingInput::new(
             window,
             at(15, 0),
             policy,
-            ActivityCoverage::new(between((0, 0), (15, 0)), [watched]),
+            ActivityCoverage::new(between((0, 0), (15, 0)), segments),
             WorkdayEventHistory::new(WorkdayStateAnchors::default(), self.transitions.clone()),
             self.adjustments.clone(),
         )
@@ -144,6 +158,19 @@ fn the_unlocked_morning_counts_provisionally_until_bientot_watches() {
             ),
         ]
     );
+}
+
+#[test]
+fn time_no_source_covered_counts_as_time_the_source_left_uncovered() {
+    let filled = installed_at_two().calculate();
+    let uncovered = Day {
+        gap_filled: false,
+        ..installed_at_two()
+    }
+    .calculate();
+
+    assert_eq!(shapes(&uncovered), shapes(&filled));
+    assert_eq!(uncovered.pending_reviews().len(), 3);
 }
 
 #[test]

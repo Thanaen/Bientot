@@ -5,7 +5,9 @@
 //! ActivityWatch is not ported in v1, so a read has no bucket to choose and no backoff to bypass:
 //! the .NET `SelectionRequired` result, `ActivityBucketId` and `BypassBackoff` are left out.
 
-use bientot_domain::accounting::{ActivityCoverage, ActivityState, AutomaticOrigin};
+use bientot_domain::accounting::{
+    ActivityCoverage, ActivityState, AutomaticOrigin, COVERAGE_GAP_ORIGIN,
+};
 use bientot_domain::intervals::{IntervalSet, UtcInterval};
 use bientot_domain::sources::{
     SourceDiagnosticInterval, SourceDiagnostics, SourceFreshness, SourceHealth, SourceIntervalKind,
@@ -14,9 +16,8 @@ use bientot_domain::sources::{
 use bientot_store::activity::ActivityError;
 use jiff::{SignedDuration, Timestamp};
 
-/// Origins of the unknown time the normalizer adds. They keep the .NET identifiers whatever the
-/// source, because accounted segments carry them into the input fingerprints the ledger stores.
-const COVERAGE_GAP_ORIGIN: &str = "activitywatch:coverage-gap";
+/// The origin of the unknown time the normalizer adds when the source cannot answer. It keeps
+/// the .NET identifier whatever the source, as [`COVERAGE_GAP_ORIGIN`] does.
 const UNAVAILABLE_ORIGIN: &str = "activitywatch:unavailable";
 /// The longest gap between two known segments that is a rounding seam of the source rather than
 /// missing evidence.

@@ -6,8 +6,8 @@ use jiff::{SignedDuration, Timestamp};
 
 use super::evidence::{
     AccountingInput, AccountingPolicy, ActivityCoverage, ActivityState, AutomaticOrigin,
-    PowerState, Recorded, RecordedTransition, SESSION_HISTORY_SOURCE_ID, SessionState,
-    TrackingState, WorkdayEventId, WorkdayStateAnchors,
+    COVERAGE_GAP_ORIGIN, PowerState, Recorded, RecordedTransition, SESSION_HISTORY_SOURCE_ID,
+    SessionState, TrackingState, WorkdayEventId, WorkdayStateAnchors,
 };
 use super::model::{
     AccountedOrigin, AccountedSegment, AccountingLabel, AccountingResult, AccountingTimeline,
@@ -375,8 +375,17 @@ fn rebuilds(
 ) -> bool {
     session.state == SessionState::Unlocked
         && session.origin.source_id() == SESSION_HISTORY_SOURCE_ID
-        && segment.origin() == &AccountedOrigin::Automatic(missing_activity_origin())
+        && has_no_evidence(segment)
         && !policy.lunch().contains(interval.start())
+}
+
+/// No source covered the segment, or the one in use left it uncovered: before Bientôt ran.
+fn has_no_evidence(segment: &AccountedSegment) -> bool {
+    matches!(
+        segment.origin(),
+        AccountedOrigin::Automatic(origin)
+            if [MISSING_ACTIVITY_ORIGIN, COVERAGE_GAP_ORIGIN].contains(&origin.source_id())
+    )
 }
 
 fn missing_activity_origin() -> AutomaticOrigin {

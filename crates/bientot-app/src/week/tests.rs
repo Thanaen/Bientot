@@ -694,7 +694,7 @@ fn an_appointment_offers_no_finish() {
         let lock = friday.segments[1].review.as_mut().unwrap();
         lock.is_open = false;
         lock.finish_at = None;
-        lock.appointment = Some(String::new());
+        lock.subject = ReviewSubject::Appointment(String::new());
     });
     let segment = &state.timeline.day(date(9, 4)).unwrap().segments[1];
     assert!(

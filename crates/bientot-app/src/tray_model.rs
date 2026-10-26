@@ -4,7 +4,10 @@
 //! an unavailable command stays in the menu, greyed out. Unlike the .NET app, each long lock
 //! to review gets a submenu named by its time range, offering the answers of the week view.
 
-use bientot_domain::accounting::{LongLockReviewId, TrackingState};
+use bientot_domain::accounting::{
+    LongLockReview, LongLockReviewId, LongLockReviewReason, TrackingState,
+};
+use bientot_domain::configuration::RecurringAppointment;
 use bientot_domain::intervals::UtcInterval;
 use bientot_domain::time::LocalWorkday;
 use jiff::SignedDuration;
@@ -28,9 +31,48 @@ pub struct ClosedReview {
     /// How long the shown range lasts, which its local times alone miss across midnight or a
     /// change of offset.
     pub duration: SignedDuration,
-    /// The name the user gave the recurring appointment the absence fell in, empty for none;
-    /// `None` for a lock.
-    pub appointment: Option<String>,
+    pub subject: ReviewSubject,
+}
+
+/// What a review asks about, which names it and says whether the day can finish at it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ReviewSubject {
+    /// A long lock: the day can finish where it began.
+    Lock,
+    /// An absence in a recurring appointment, by the name the user gave it, empty for none.
+    /// An appointment is not left for home.
+    Appointment(String),
+    /// The session open before Bientôt watched, read from the Windows logs.
+    RebuiltSession,
+}
+
+impl ReviewSubject {
+    /// The subject of `review`, an appointment named among `appointments`, from which it may
+    /// be gone since.
+    pub fn of(review: &LongLockReview, appointments: &[RecurringAppointment]) -> Self {
+        match review.reason {
+            LongLockReviewReason::ThresholdExceeded => Self::Lock,
+            LongLockReviewReason::RecurringAppointment => {
+                Self::Appointment(review.appointment_name(appointments).unwrap_or_default())
+            }
+            LongLockReviewReason::RebuiltSession => Self::RebuiltSession,
+        }
+    }
+
+    /// The day can finish at the start of a lock, and of nothing else.
+    pub fn is_lock(&self) -> bool {
+        *self == Self::Lock
+    }
+
+    /// « Rendez-vous du jeudi », « Avant Bientôt »: what the review is named after, on a
+    /// workday of `weekday`; `None` for a lock, which its time range names.
+    pub fn name(&self, weekday: Weekday, language: Language) -> Option<String> {
+        match self {
+            Self::Lock => None,
+            Self::Appointment(name) => Some(appointment_name(name, weekday, language)),
+            Self::RebuiltSession => Some(language.text(Key::RebuiltReviewName).to_owned()),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -137,16 +179,12 @@ pub fn menu(state: &MenuState, language: Language) -> Vec<MenuEntry> {
                     ReviewAction::Exclude,
                 ),
             ];
-            let label = match &review.appointment {
+            let label = match review.subject.name(review.workday.date.weekday(), language) {
                 Some(name) => language.format(
                     Key::TrayAppointmentReviewSubmenuFormat,
-                    &[
-                        &appointment_name(name, review.workday.date.weekday(), language),
-                        &start,
-                        &end,
-                    ],
+                    &[&name, &start, &end],
                 ),
-                // The day ends where the lock began; an appointment is not left for home.
+                // The day ends where the lock began.
                 None => {
                     items.push(answer(
                         language.format(Key::HistoryBubbleFinish, &[&time(review.finish_at)]),

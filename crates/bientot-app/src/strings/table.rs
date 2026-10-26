@@ -99,6 +99,7 @@ pub enum Key {
     FlyoutOvertimeLabel,
     FlyoutPauseButton,
     FlyoutPaused,
+    FlyoutRebuiltReviewText,
     FlyoutResumeButton,
     FlyoutShortcutNameFormat,
     FlyoutShowUnrecorded,
@@ -391,6 +392,7 @@ pub enum Key {
     PaletteSettleNext,
     PaletteUndo,
     PeriodicRefreshErrorMessage,
+    RebuiltReviewName,
     SettingsAboutGroup,
     SettingsAccountingNavContent,
     SettingsAccountingTitle,
@@ -812,7 +814,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 804] = [
+pub(super) static ENTRIES: [Entry; 806] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -906,6 +908,7 @@ pub(super) static ENTRIES: [Entry; 804] = [
     Entry { name: "FlyoutOvertimeLabel", fr: "Heures supplémentaires", en: "Overtime" },
     Entry { name: "FlyoutPauseButton", fr: "Mettre en pause", en: "Pause tracking" },
     Entry { name: "FlyoutPaused", fr: "En pause", en: "Paused" },
+    Entry { name: "FlyoutRebuiltReviewText", fr: "Votre session Windows était ouverte avant l’installation de Bientôt. Ce temps est compté provisoirement comme du travail.", en: "Your Windows session was open before Bientôt was installed. This time counts as work for now." },
     Entry { name: "FlyoutResumeButton", fr: "Reprendre", en: "Resume" },
     Entry { name: "FlyoutShortcutNameFormat", fr: "{0}, {1}", en: "{0}, {1}" },
     Entry { name: "FlyoutShowUnrecorded", fr: "Voir sur la frise", en: "Show on the timeline" },
@@ -1198,6 +1201,7 @@ pub(super) static ENTRIES: [Entry; 804] = [
     Entry { name: "PaletteSettleNext", fr: "régler le prochain créneau", en: "settle next slot" },
     Entry { name: "PaletteUndo", fr: "annuler la dernière action", en: "undo last action" },
     Entry { name: "PeriodicRefreshErrorMessage", fr: "Bientôt n’a pas pu actualiser les données. Une nouvelle tentative aura lieu automatiquement.", en: "Bientôt could not refresh. It will try again automatically." },
+    Entry { name: "RebuiltReviewName", fr: "Avant Bientôt", en: "Time before Bientôt" },
     Entry { name: "SettingsAboutGroup", fr: "À propos", en: "About" },
     Entry { name: "SettingsAccountingNav.Content", fr: "Comptabilisation", en: "Accounting" },
     Entry { name: "SettingsAccountingTitle", fr: "Comptabilisation", en: "Accounting" },

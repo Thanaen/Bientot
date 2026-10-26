@@ -207,9 +207,10 @@ pub struct DayView {
     /// What to do about the activity source, when it reported a problem or left time
     /// unrecorded.
     pub source_hint: Option<SourceHint>,
-    /// The first absence in a recurring appointment that ended and awaits an answer: the
-    /// flyout asks about it. Set by the host, which knows the reviews.
-    pub appointment_review: Option<ClosedReview>,
+    /// The first review that is not of a lock, an absence in a recurring appointment or the
+    /// session before Bientôt, that ended and awaits an answer: the flyout asks about it. Set
+    /// by the host, which knows the reviews.
+    pub named_review: Option<ClosedReview>,
     /// An absence counted automatically, until the user closed its callout.
     pub counted_absence: Option<crate::automatic::CountedAbsence>,
     /// « Compter automatiquement à l’avenir », after confirmations in a row.
@@ -296,7 +297,7 @@ impl DayView {
                 worked: None,
                 credit: None,
                 source_hint: source_failure(true),
-                appointment_review: None,
+                named_review: None,
                 counted_absence: None,
                 trust_offer: None,
                 tray_tooltip: tray_source_failure(),
@@ -522,7 +523,7 @@ impl DayView {
             credit,
             source_hint: source_failure(explicit_failure)
                 .or_else(|| missing_work(summary, zone, language)),
-            appointment_review: None,
+            named_review: None,
             counted_absence: None,
             trust_offer: None,
             tray_tooltip,

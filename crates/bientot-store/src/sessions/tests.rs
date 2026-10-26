@@ -424,6 +424,27 @@ fn an_observed_unlock_after_a_rebuilt_one_makes_the_next_anchor_observed() {
     assert_eq!(anchor.origin.source_id(), "windows-session");
 }
 
+#[test]
+fn only_a_session_transition_counts_as_a_session_state() {
+    let database = TemporaryDatabase::new();
+    let clock = FrozenClock::new(created_at());
+    let repository = SessionEventRepository::new(&database.connection, &clock);
+    assert!(!repository.has_session_state().unwrap());
+
+    repository
+        .record(key("power"), power(at(8, 0), PowerState::Active))
+        .unwrap();
+    repository
+        .record(key("tracking"), tracking(at(8, 0), TrackingState::Running))
+        .unwrap();
+    assert!(!repository.has_session_state().unwrap());
+
+    repository
+        .record(key("session"), session(at(8, 0), SessionState::Unlocked))
+        .unwrap();
+    assert!(repository.has_session_state().unwrap());
+}
+
 /// Records each `(operation key, transition)` from its own thread and connection, all at once.
 fn record_concurrently(
     database: &TemporaryDatabase,

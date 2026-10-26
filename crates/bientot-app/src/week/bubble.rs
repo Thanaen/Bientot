@@ -468,13 +468,11 @@ fn breakdown_name(kind: SegmentKind) -> Key {
 /// One line per kind the range holds, and per appointment, in the order it meets them: its
 /// name alone when there is one line, else with its time to the minute.
 fn breakdown(pieces: &[(&Segment, UtcInterval)], language: Language) -> Vec<Held> {
-    // An appointment is named apart from the locks and from the other appointments.
-    let name = |segment: &Segment| {
-        if segment.is_appointment() {
-            segment.kind_name(language)
-        } else {
-            language.text(breakdown_name(segment.kind)).to_owned()
-        }
+    // An appointment or the session before Bientôt is named apart from the locks and from the
+    // other appointments.
+    let name = |segment: &Segment| match segment.review_name(language) {
+        Some(_) => segment.kind_name(language),
+        None => language.text(breakdown_name(segment.kind)).to_owned(),
     };
     let mut kinds: Vec<(SegmentKind, String, SignedDuration)> = Vec::new();
     for (segment, part) in pieces {

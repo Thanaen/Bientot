@@ -12,7 +12,7 @@ use crate::strings::Key;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, radius, size, text};
 use crate::time_text::minutes_text;
-use crate::tray_model::{ReviewAction, ReviewCommand, appointment_name};
+use crate::tray_model::{ReviewAction, ReviewCommand, ReviewSubject, appointment_name};
 use crate::widgets::{Hue, callout_box_with_icon};
 use crate::workday::{FailureRemedy, SourceHint};
 
@@ -108,16 +108,25 @@ impl Flyout {
         )
     }
 
-    /// The absence in a recurring appointment that awaits an answer: what it was, and the two
-    /// answers of the week's bubble.
-    pub(super) fn appointment_callout(&self, theme: &Theme) -> Option<AnyElement> {
-        let review = self.day.appointment_review.as_ref()?;
+    /// The review that is not of a lock and awaits an answer, an absence in a recurring
+    /// appointment or the session before Bientôt: what it was, and the two answers of the
+    /// week's bubble.
+    pub(super) fn review_callout(&self, theme: &Theme) -> Option<AnyElement> {
+        let review = self.day.named_review.as_ref()?;
         let language = self.language;
-        let title = appointment_name(
-            review.appointment.as_deref().unwrap_or_default(),
-            review.workday.date.weekday(),
-            language,
-        );
+        let title = review
+            .subject
+            .name(review.workday.date.weekday(), language)?;
+        let (id, icon, text) = match review.subject {
+            ReviewSubject::RebuiltSession => {
+                ("rebuilt-review", "history", Key::FlyoutRebuiltReviewText)
+            }
+            _ => (
+                "appointment-review",
+                "repeat",
+                Key::FlyoutAppointmentReviewText,
+            ),
+        };
         let clock = |time| language.short_time(time);
         let range = language.format(
             Key::FlyoutAppointmentReviewRangeFormat,
@@ -148,8 +157,8 @@ impl Flyout {
             self.reveal_on_tab(id, button)
         };
         Some(
-            callout_box_with_icon(Hue::Info, "repeat", theme)
-                .id("appointment-review")
+            callout_box_with_icon(Hue::Info, icon, theme)
+                .id(id)
                 .role(Role::Group)
                 .aria_label(SharedString::from(title.clone()))
                 .child(
@@ -167,8 +176,8 @@ impl Flyout {
                                 .child(range),
                         )
                         .child(div().pt(BASE_04).child(readable(
-                            "appointment-review-body",
-                            self.text(Key::FlyoutAppointmentReviewText),
+                            SharedString::from(format!("{id}-body")),
+                            self.text(text),
                         )))
                         .child(
                             div()

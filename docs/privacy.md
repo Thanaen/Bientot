@@ -16,6 +16,15 @@ last keyboard or mouse input (`GetLastInputInfo`). It never reads what you
 type, which keys you press, application names or window titles. It stores only
 the start and settled end of each active or idle period.
 
+At each start, Bientôt also reads two Windows event logs on the machine, for
+the current day only: when the computer started, slept and woke (the System
+log), and, on the first start only, when your session was opened, locked,
+unlocked and closed (`Microsoft-Windows-Winlogon/Operational`, only your own
+events). It keeps the time and kind of each of these events in `worktime.db`
+and nothing else from the logs. The time your session was open before the
+first start counts as work only provisionally, until you confirm or exclude
+it.
+
 Bientôt stores everything in `%LOCALAPPDATA%\Bientot`. Builds released
 before the rename to Bientôt used `%LOCALAPPDATA%\WorkTime`, and the first
 start of a newer build renames that folder to `Bientot`. A run started with

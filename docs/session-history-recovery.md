@@ -33,6 +33,12 @@ lock between two of the others.
 
 ## Recording and accounting
 
+On its first start, before any session state is stored, the app reads the
+history of the current workday (`LiveHost::recover_session_history`, called
+from `catch_up` before the current session state is recorded). A later start
+reads nothing: the time Bientôt was not running then stays unknown, as before.
+A failed read logs `session_history.recovery_unavailable` with its reason.
+
 `SessionHistoryRecovery` records the boundaries from the start of the workday to
 the moment the app starts watching, in one transaction. Logon and unlock record
 an unlocked session, lock a locked one, and logoff an unknown one: a closed
@@ -43,11 +49,15 @@ records nothing new. The ledger gives these transitions the origin
 cannot be recorded records nothing.
 
 The accounting credits provisionally, with the label `RebuiltWork`, the time
-without any activity evidence while such an unlock holds, outside lunch. The
-session state Bientôt observes when it starts replaces it, so the rule stops
-where Bientôt starts watching. Each run of rebuilt time has its own review, with
-the reason `RebuiltSession`, so that an answer never covers the lunch or the
-sleep between two runs. The day cannot be finished at such a review. A lock read
+without any activity evidence while such an unlock holds, outside lunch: time no
+source covered, or time the activity source left uncovered
+(`activitywatch:coverage-gap`), as the built-in source does before its first
+sample. The session state Bientôt observes when it starts replaces it, so the
+rule stops where Bientôt starts watching. Each run of rebuilt time has its own
+review, with the reason `RebuiltSession`, so that an answer never covers the
+lunch or the sleep between two runs. The day cannot be finished at such a
+review. The app names such a review « Avant Bientôt » in the flyout, the tray
+menu and the week, and offers no « Terminer la journée » for it. A lock read
 from the log is a lock like any other: it counts as locked work or lunch, and a
 long one asks for a review.
 
