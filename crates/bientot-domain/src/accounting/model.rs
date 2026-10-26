@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use jiff::{SignedDuration, Timestamp};
 
-use super::evidence::AutomaticOrigin;
+use super::evidence::{AutomaticOrigin, WorkdayEventId};
 use crate::configuration::RecurringAppointment;
 use crate::intervals::{IntervalSet, UtcInterval};
 use crate::time::WorkdayWindow;
@@ -23,6 +23,8 @@ pub enum AccountingLabel {
     OvernightLock,
     /// Away from the PC during a recurring appointment.
     ScheduledAway,
+    /// The session was open before Bientôt watched the activity, as the Windows logs tell.
+    RebuiltWork,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -93,6 +95,20 @@ impl LongLockReviewId {
     pub fn appointment_id(&self) -> Option<&str> {
         let rest = self.0.strip_prefix(APPOINTMENT_REVIEW_PREFIX)?;
         rest.split_once(':').map(|(id, _)| id)
+    }
+}
+
+const REBUILT_SESSION_REVIEW_PREFIX: &str = "session-rebuilt:";
+
+impl LongLockReviewId {
+    /// The review of the time the session was open from `start`, after the unlock recorded as
+    /// `unlock`.
+    pub fn for_rebuilt_session(unlock: WorkdayEventId, start: Timestamp) -> Self {
+        Self::new(format!(
+            "{REBUILT_SESSION_REVIEW_PREFIX}{}:{start}",
+            unlock.0
+        ))
+        .expect("the id is not blank")
     }
 }
 
@@ -253,6 +269,8 @@ pub enum LongLockReviewReason {
     ThresholdExceeded,
     /// Away from the PC during a recurring appointment, however long.
     RecurringAppointment,
+    /// The session was open before Bientôt watched the activity, however long.
+    RebuiltSession,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

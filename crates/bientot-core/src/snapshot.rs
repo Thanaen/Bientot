@@ -525,6 +525,7 @@ fn label_name(label: AccountingLabel) -> &'static str {
         AccountingLabel::Unknown => "Unknown",
         AccountingLabel::OvernightLock => "OvernightLock",
         AccountingLabel::ScheduledAway => "ScheduledAway",
+        AccountingLabel::RebuiltWork => "RebuiltWork",
     }
 }
 
@@ -542,6 +543,7 @@ fn reason_name(reason: LongLockReviewReason) -> &'static str {
     match reason {
         LongLockReviewReason::ThresholdExceeded => "ThresholdExceeded",
         LongLockReviewReason::RecurringAppointment => "RecurringAppointment",
+        LongLockReviewReason::RebuiltSession => "RebuiltSession",
     }
 }
 

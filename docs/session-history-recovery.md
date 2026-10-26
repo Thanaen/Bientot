@@ -31,6 +31,27 @@ The reader keeps at most 4,096 records. Reaching the cap, an unreadable log or a
 malformed record returns no history at all, since a missing record could hide a
 lock between two of the others.
 
-`bientot-windows` implements the reader (`session_history.rs`). Its tests replay
-event XML shaped as a real log renders it; the native query runs only on Windows
+## Recording and accounting
+
+`SessionHistoryRecovery` records the boundaries from the start of the workday to
+the moment the app starts watching, in one transaction. Logon and unlock record
+an unlocked session, lock a locked one, and logoff an unknown one: a closed
+session tells nothing about the user. Each key starts with `session-history:`
+and names the record ID and the UTC instant, so reading the same history again
+records nothing new. The ledger gives these transitions the origin
+`windows-session-history`. A read that fails, times out after three seconds or
+cannot be recorded records nothing.
+
+The accounting credits provisionally, with the label `RebuiltWork`, the time
+without any activity evidence while such an unlock holds, outside lunch. The
+session state Bientôt observes when it starts replaces it, so the rule stops
+where Bientôt starts watching. Each run of rebuilt time has its own review, with
+the reason `RebuiltSession`, so that an answer never covers the lunch or the
+sleep between two runs. The day cannot be finished at such a review. A lock read
+from the log is a lock like any other: it counts as locked work or lunch, and a
+long one asks for a review.
+
+`bientot-windows` implements the reader and the recovery (`session_history.rs`).
+Its tests replay event XML shaped as a real log renders it and account the
+recorded history; the native query runs only on Windows
 (`cargo test -p bientot-windows`).

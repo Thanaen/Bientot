@@ -31,7 +31,7 @@ const DISPOSITIONS: [(DailySummaryDisposition, &str); 5] = [
     (DailySummaryDisposition::ManualCredit, "manual-credit"),
 ];
 
-const LABELS: [(AccountingLabel, &str); 11] = [
+const LABELS: [(AccountingLabel, &str); 12] = [
     (AccountingLabel::ActiveWork, "active-work"),
     (AccountingLabel::Afk, "afk"),
     (AccountingLabel::LunchLock, "lunch-lock"),
@@ -43,6 +43,7 @@ const LABELS: [(AccountingLabel, &str); 11] = [
     (AccountingLabel::Unknown, "unknown"),
     (AccountingLabel::OvernightLock, "overnight-lock"),
     (AccountingLabel::ScheduledAway, "scheduled-away"),
+    (AccountingLabel::RebuiltWork, "rebuilt-work"),
 ];
 
 pub(crate) fn serialize(breakdown: &DailySummaryBreakdown) -> Result<String, DurationOutOfRange> {

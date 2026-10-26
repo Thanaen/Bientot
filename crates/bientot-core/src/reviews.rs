@@ -84,7 +84,8 @@ pub enum ReviewError {
     EpisodeOutsideHorizon(LongLockReviewId),
     /// The lock has not ended yet.
     StillOpen(LongLockReviewId),
-    /// The review is of a recurring appointment, which the day goes on after.
+    /// The review is of a recurring appointment or of time before Bientôt watched, which the
+    /// day goes on after.
     NotALock(LongLockReviewId),
     OutsideCurrentWeek,
     /// Includes [`LongLockResolutionError::Conflict`] when another action resolved the review.
@@ -112,7 +113,7 @@ impl std::fmt::Display for ReviewError {
             ),
             Self::NotALock(id) => write!(
                 f,
-                "Review '{id}' is of a recurring appointment; the day cannot finish at it."
+                "Review '{id}' is not of a lock; the day cannot finish at it."
             ),
             Self::OutsideCurrentWeek => f.write_str(
                 "A long-lock review can only be resolved for a day of the current local week.",
@@ -255,7 +256,7 @@ impl<'a> LongLockReviews<'a> {
     ) -> Result<RecordTransitionResult, ReviewError> {
         let window = current.timeline().window();
         match pending(current, &command.review_id) {
-            Some(review) if review.reason == LongLockReviewReason::RecurringAppointment => {
+            Some(review) if review.reason != LongLockReviewReason::ThresholdExceeded => {
                 return Err(ReviewError::NotALock(review.id.clone()));
             }
             Some(review) => validate(review, command.locked_episode)?,

@@ -6,12 +6,12 @@ use jiff::{SignedDuration, Timestamp};
 
 use super::evidence::{
     AccountingInput, AccountingPolicy, ActivityCoverage, ActivityState, AutomaticOrigin,
-    PowerState, Recorded, RecordedTransition, SessionState, TrackingState, WorkdayEventId,
-    WorkdayStateAnchors,
+    PowerState, Recorded, RecordedTransition, SESSION_HISTORY_SOURCE_ID, SessionState,
+    TrackingState, WorkdayEventId, WorkdayStateAnchors,
 };
 use super::model::{
-    AccountedSegment, AccountingLabel, AccountingResult, AccountingTimeline, LongLockReview,
-    LongLockReviewId, LongLockReviewReason, SegmentKind, append_canonical,
+    AccountedOrigin, AccountedSegment, AccountingLabel, AccountingResult, AccountingTimeline,
+    LongLockReview, LongLockReviewId, LongLockReviewReason, SegmentKind, append_canonical,
 };
 use crate::adjustments::{self, AdjustmentValidationError};
 use crate::intervals::UtcInterval;
@@ -85,6 +85,7 @@ pub fn calculate(input: &AccountingInput) -> Result<AccountingResult, Adjustment
         pieces.push(Piece { segment, away });
     }
     let appointment_episodes = cover_appointments(&mut pieces, input.policy(), window, through);
+    let rebuilt_episodes = rebuilt_episodes(&mut pieces, window, through);
     let mut segments = Vec::with_capacity(pieces.len());
     for piece in pieces {
         append_canonical(&mut segments, piece.segment);
@@ -96,6 +97,7 @@ pub fn calculate(input: &AccountingInput) -> Result<AccountingResult, Adjustment
         input.policy(),
         &lock_episodes,
         &appointment_episodes,
+        &rebuilt_episodes,
         &adjusted.timeline,
     );
     Ok(AccountingResult::new(
@@ -196,7 +198,7 @@ fn cover_appointments(
     policy: &AccountingPolicy,
     window: &WorkdayWindow,
     through: Timestamp,
-) -> Vec<AppointmentEpisode> {
+) -> Vec<CoveredEpisode> {
     let mut covered = Vec::new();
     for appointment in policy.appointments() {
         let (hours, reach) = (appointment.interval, reach(appointment.interval));
@@ -243,7 +245,7 @@ fn cover_appointments(
                 );
                 piece.away = false;
             }
-            covered.push(AppointmentEpisode {
+            covered.push(CoveredEpisode {
                 id: review_id,
                 interval: run,
                 is_open: run.end() == through && through < window.end,
@@ -253,10 +255,50 @@ fn cover_appointments(
     covered
 }
 
-struct AppointmentEpisode {
+/// One review over the provisional pieces it covers: an absence during an appointment, or the
+/// time a session was open before Bientôt watched it.
+struct CoveredEpisode {
     id: LongLockReviewId,
     interval: UtcInterval,
     is_open: bool,
+}
+
+/// One review per run of rebuilt pieces, so that an answer never covers the lunch or the sleep
+/// between two runs of one unlock: each run takes the review of its start.
+fn rebuilt_episodes(
+    pieces: &mut [Piece],
+    window: &WorkdayWindow,
+    through: Timestamp,
+) -> Vec<CoveredEpisode> {
+    let rebuilt = |piece: &Piece| piece.segment.label() == AccountingLabel::RebuiltWork;
+    let mut episodes = Vec::new();
+    for run in pieces.chunk_by_mut(|a, b| rebuilt(a) == rebuilt(b)) {
+        if !rebuilt(&run[0]) {
+            continue;
+        }
+        let interval = UtcInterval::new(
+            run[0].segment.interval().start(),
+            run[run.len() - 1].segment.interval().end(),
+        )
+        .expect("pieces have a positive duration");
+        let SegmentKind::ProvisionalCredit { review_id: id } = run[0].segment.kind().clone() else {
+            unreachable!("rebuilt time awaits a review");
+        };
+        for piece in run.iter_mut() {
+            piece.segment = AccountedSegment::provisional_credit(
+                piece.segment.interval(),
+                AccountingLabel::RebuiltWork,
+                piece.segment.origin().clone(),
+                id.clone(),
+            );
+        }
+        episodes.push(CoveredEpisode {
+            id,
+            interval,
+            is_open: interval.end() == through && through < window.end,
+        });
+    }
+    episodes
 }
 
 fn classify(
@@ -308,7 +350,37 @@ fn classify(
             review_id,
         );
     }
-    classify_activity(interval, input.activity())
+    let segment = classify_activity(interval, input.activity());
+    match state.session {
+        Some(session) if rebuilds(session, &segment, input.policy(), interval) => {
+            AccountedSegment::provisional_credit(
+                interval,
+                AccountingLabel::RebuiltWork,
+                session.origin.clone(),
+                LongLockReviewId::for_rebuilt_session(session.id, interval.start()),
+            )
+        }
+        _ => segment,
+    }
+}
+
+/// Time without activity evidence while a session the Windows logs say was unlocked, before
+/// Bientôt watched it, counts provisionally (issue #75); lunch stays unknown, as nothing says it
+/// was work.
+fn rebuilds(
+    session: &Recorded<SessionState>,
+    segment: &AccountedSegment,
+    policy: &AccountingPolicy,
+    interval: UtcInterval,
+) -> bool {
+    session.state == SessionState::Unlocked
+        && session.origin.source_id() == SESSION_HISTORY_SOURCE_ID
+        && segment.origin() == &AccountedOrigin::Automatic(missing_activity_origin())
+        && !policy.lunch().contains(interval.start())
+}
+
+fn missing_activity_origin() -> AutomaticOrigin {
+    AutomaticOrigin::new(MISSING_ACTIVITY_ORIGIN).expect("the origin is not blank")
 }
 
 fn classify_activity(interval: UtcInterval, coverage: &ActivityCoverage) -> AccountedSegment {
@@ -318,10 +390,7 @@ fn classify_activity(interval: UtcInterval, coverage: &ActivityCoverage) -> Acco
         .filter(|segment| segment.interval.contains(interval.start()))
         .collect();
     let Some(first) = evidence.first() else {
-        return AccountedSegment::unknown(
-            interval,
-            AutomaticOrigin::new(MISSING_ACTIVITY_ORIGIN).expect("the origin is not blank"),
-        );
+        return AccountedSegment::unknown(interval, missing_activity_origin());
     };
 
     let source_ids: BTreeSet<_> = evidence
@@ -345,7 +414,8 @@ fn classify_activity(interval: UtcInterval, coverage: &ActivityCoverage) -> Acco
 fn pending_reviews(
     policy: &AccountingPolicy,
     lock_episodes: &[LockEpisode],
-    appointment_episodes: &[AppointmentEpisode],
+    appointment_episodes: &[CoveredEpisode],
+    rebuilt_episodes: &[CoveredEpisode],
     timeline: &AccountingTimeline,
 ) -> Vec<LongLockReview> {
     let provisional = timeline.provisional_coverage_by_review();
@@ -377,7 +447,15 @@ fn pending_reviews(
             episode.is_open,
         )
     });
-    locks.chain(appointments).collect()
+    let rebuilt = rebuilt_episodes.iter().filter_map(|episode| {
+        review(
+            &episode.id,
+            episode.interval,
+            LongLockReviewReason::RebuiltSession,
+            episode.is_open,
+        )
+    });
+    locks.chain(appointments).chain(rebuilt).collect()
 }
 
 struct LockEpisode {

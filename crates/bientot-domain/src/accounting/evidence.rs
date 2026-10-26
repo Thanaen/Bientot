@@ -25,6 +25,10 @@ impl std::fmt::Display for BlankSourceId {
 
 impl std::error::Error for BlankSourceId {}
 
+/// The origin of a session transition read from the Windows logs after the fact, rather than
+/// observed as it happened.
+pub const SESSION_HISTORY_SOURCE_ID: &str = "windows-session-history";
+
 /// The source that produced a piece of automatic evidence.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AutomaticOrigin(String);
