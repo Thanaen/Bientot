@@ -7,7 +7,7 @@ let app: ReturnType<typeof createApp>;
 
 beforeEach(() => {
   clock = new Date("2026-10-12T22:30:00Z");
-  app = createApp({ store: new MemoryStore(), now: () => clock });
+  app = createApp({ store: new MemoryStore(), now: () => clock, latest: async () => "0.2.0-alpha.53" });
 });
 
 const ping = (body: unknown) =>
@@ -91,6 +91,26 @@ describe("the site", () => {
     expect(page).toContain("<title>Bientôt");
     expect(page).toContain('href="/download"');
     expect(page).not.toContain("<!-- head -->");
+  });
+
+  test("the page names the latest release's version", async () => {
+    const page = await html();
+    expect(page).toContain('<p class="btn-note">Version 0.2.0-alpha.53 · mises à jour automatiques avec le programme d’installation</p>');
+    expect(page).not.toContain("<!-- version -->");
+  });
+
+  test("the page leaves the version out while GitHub does not tell it, and asks again a minute later", async () => {
+    const answers = [null, "0.2.0-alpha.54"];
+    let asked = 0;
+    app = createApp({ store: new MemoryStore(), now: () => clock, latest: async () => answers[asked++] ?? null });
+    expect(await html()).toContain('<p class="btn-note">Mises à jour automatiques avec le programme d’installation</p>');
+    await html();
+    expect(asked).toBe(1);
+    clock = new Date(clock.getTime() + 60_000);
+    expect(await html()).toContain("Version 0.2.0-alpha.54 ·");
+    clock = new Date(clock.getTime() + 300_000);
+    await html();
+    expect(asked).toBe(2);
   });
 
   test("the page describes itself for search engines and link previews", async () => {
