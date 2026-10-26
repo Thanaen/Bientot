@@ -529,6 +529,10 @@ mod native {
     };
     use bientot_windows::notifications::{Sender, Toasts};
     use bientot_windows::power_history::{PowerHistoryReader, RECORD_LIMIT, SystemLog};
+    use bientot_windows::session_history::{
+        self, SessionHistoryRead, SessionHistoryReader, SessionHistoryUnavailable, WinlogonLog,
+        current_user_id,
+    };
     use bientot_windows::single_instance::{ActivationListener, PrimaryInstance};
     use futures::StreamExt as _;
     use futures::channel::mpsc;
@@ -553,11 +557,20 @@ mod native {
         }
     }
 
-    /// Records what Windows saw while WorkTime was not running, the session state now, then
-    /// the changes queued meanwhile, before the first summary.
+    /// Records what Windows saw while WorkTime was not running, on a first start the session
+    /// history of the day so far, the session state now, then the changes queued meanwhile,
+    /// before the first summary.
     pub fn catch_up(host: &mut LiveHost<'static>, lifecycle: &mut Lifecycle) -> anyhow::Result<()> {
         host.recover_power_history(|window| {
             PowerHistoryReader::new(SystemLog, RECORD_LIMIT).read(window)
+        })?;
+        host.recover_session_history(|window| {
+            match current_user_id().as_deref().and_then(WinlogonLog::new) {
+                Some(log) => {
+                    SessionHistoryReader::new(log, session_history::RECORD_LIMIT).read(window)
+                }
+                None => SessionHistoryRead::Unavailable(SessionHistoryUnavailable::LogUnavailable),
+            }
         })?;
         host.prepare_lifecycle(
             || {

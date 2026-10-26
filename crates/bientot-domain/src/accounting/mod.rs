@@ -7,7 +7,7 @@ pub mod model;
 pub use engine::calculate;
 pub use evidence::{
     AccountingInput, AccountingPolicy, ActivityCoverage, ActivitySegment, ActivityState,
-    AppointmentWindow, AutomaticOrigin, BlankSourceId, InvalidAccountingInput,
+    AppointmentWindow, AutomaticOrigin, BlankSourceId, COVERAGE_GAP_ORIGIN, InvalidAccountingInput,
     NonPositiveReviewThreshold, OperationKey, PowerState, Recorded, RecordedTransition,
     SESSION_HISTORY_SOURCE_ID, SessionState, TrackingState, WorkdayEventHistory, WorkdayEventId,
     WorkdayStateAnchors, WorkdayTransition, WorkdayTransitionKind,

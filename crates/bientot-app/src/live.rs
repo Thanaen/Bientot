@@ -47,6 +47,7 @@ use bientot_windows::PowerState;
 use bientot_windows::activity::{BuiltInActivitySource, LastInputProbe};
 use bientot_windows::lifecycle::{LifecycleEventRecorder, LifecycleHooks, LifecycleTransition};
 use bientot_windows::power_history::{PowerHistoryRead, PowerHistoryRecovery};
+use bientot_windows::session_history::{SessionHistoryRead, SessionHistoryRecovery};
 use jiff::Timestamp;
 use jiff::civil::Date;
 use rusqlite::Connection;
@@ -54,7 +55,7 @@ use rusqlite::Connection;
 use crate::automatic::{self, CountedAbsence, TrustOffer};
 use crate::ledger;
 use crate::strings::{Key, Language};
-use crate::tray_model::{ClosedReview, ReviewAction, ReviewCommand};
+use crate::tray_model::{ClosedReview, ReviewAction, ReviewCommand, ReviewSubject};
 use crate::week::{WeekCommand, WeekTimeline};
 use crate::widgets::Notice;
 use crate::workday::{DayView, TrackingStatus};
@@ -508,6 +509,33 @@ impl<'a> LiveHost<'a> {
         Ok(())
     }
 
+    /// On the first start only, before any session state is recorded, records the session
+    /// history `read` finds from the start of the current workday to now, which runs on a
+    /// thread of its own and is given up after [`SessionHistoryRecovery::READ_TIMEOUT`]. The
+    /// time the session was open meanwhile counts provisionally, to review.
+    pub fn recover_session_history(
+        &mut self,
+        read: impl FnOnce(UtcInterval) -> SessionHistoryRead + Send + 'static,
+    ) -> anyhow::Result<()> {
+        let events = SessionEventRepository::new(self.connection, self.clock);
+        if events.has_session_state()? {
+            return Ok(());
+        }
+        let calendar = WorkdayCalendar::new(self.zones);
+        let now = self.clock.now();
+        let window = calendar.window(&calendar.workday(now))?;
+        let history = SessionHistoryRecovery::new(events, SessionHistoryRecovery::READ_TIMEOUT)
+            .recover(&window, now, read);
+        if let Some(reason) = history.reason() {
+            self.log(
+                DiagnosticLogLevel::Warning,
+                "session_history.recovery_unavailable",
+                &[("reason", reason.into())],
+            );
+        }
+        Ok(())
+    }
+
     /// Records the session state at startup and the power as active, then the session and power
     /// changes that arrived while WorkTime started, in the order they happened. The state
     /// `probe` reads, `None` when it gave up, is stamped with the instant before it runs, as
@@ -889,7 +917,7 @@ impl<'a> LiveHost<'a> {
                     local_start: local(shown.start()),
                     local_end: local(shown.end()),
                     finish_at: local(review.locked_episode.start()),
-                    appointment: review.appointment_name(&self.settings.recurring_appointments),
+                    subject: ReviewSubject::of(review, &self.settings.recurring_appointments),
                     duration: shown.duration(),
                 }
             })
@@ -1077,10 +1105,10 @@ impl<'a> LiveHost<'a> {
             .current()
             .map_or(&unpublished, |publication| &publication.summary);
         let mut view = DayView::present(state, &self.settings, &self.zones.local().1, language);
-        view.appointment_review = self
+        view.named_review = self
             .closed_reviews()
             .into_iter()
-            .filter(|review| review.appointment.is_some())
+            .filter(|review| !review.subject.is_lock())
             .min_by_key(|review| review.locked_episode.start());
         view.counted_absence = self.counted_absence();
         view.trust_offer = self.trust_offer();

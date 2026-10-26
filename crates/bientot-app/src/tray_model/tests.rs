@@ -60,7 +60,7 @@ fn review(
         local_end: at(end_hour, end_minute).time(),
         finish_at: at(start_hour, start_minute).time(),
         duration: instant(end_hour, end_minute).duration_since(instant(start_hour, start_minute)),
-        appointment: None,
+        subject: ReviewSubject::Lock,
     }
 }
 
@@ -251,7 +251,7 @@ fn an_appointment_review_is_named_after_it_and_offers_no_finish() {
     let state = MenuState {
         tracking: Tracking::new(TrackingState::Running, true),
         reviews: vec![ClosedReview {
-            appointment: Some(String::new()),
+            subject: ReviewSubject::Appointment(String::new()),
             ..review(
                 "recurring-appointment:meeting:2026-10-08",
                 (14, 2),
@@ -280,5 +280,32 @@ fn an_appointment_review_is_named_after_it_and_offers_no_finish() {
     assert_eq!(
         appointment_name(" Réunion d’équipe ", Weekday::Thursday, Language::English),
         "Réunion d’équipe"
+    );
+}
+
+#[test]
+fn a_rebuilt_session_review_is_named_apart_and_offers_no_finish() {
+    let state = MenuState {
+        tracking: Tracking::new(TrackingState::Running, true),
+        reviews: vec![ClosedReview {
+            subject: ReviewSubject::RebuiltSession,
+            ..review("session-rebuilt:7:2026-10-08T06:12:00Z", (8, 12), (10, 30))
+        }],
+        has_latest_adjustment: false,
+    };
+
+    let submenus: Vec<String> = shown(&state, Language::French)
+        .into_iter()
+        .skip_while(|line| !line.ends_with(" >"))
+        .take(3)
+        .collect();
+
+    assert_eq!(
+        submenus,
+        [
+            "Avant Bientôt à vérifier · 08:12–10:30 >",
+            "  Oui, je travaillais",
+            "  Ce n’était pas du travail",
+        ]
     );
 }

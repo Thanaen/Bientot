@@ -409,7 +409,7 @@ impl Flyout {
                 .map(|callout| (Part::SourceCallout, callout)),
         );
         parts.extend(
-            self.appointment_callout(theme)
+            self.review_callout(theme)
                 .map(|callout| (Part::AppointmentCallout, callout)),
         );
         parts.extend(

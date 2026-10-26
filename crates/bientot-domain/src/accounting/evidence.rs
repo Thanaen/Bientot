@@ -25,6 +25,11 @@ impl std::fmt::Display for BlankSourceId {
 
 impl std::error::Error for BlankSourceId {}
 
+/// The origin of the unknown time a source leaves uncovered, filled in before accounting. It
+/// keeps the .NET identifier whatever the source, because accounted segments carry it into the
+/// input fingerprints the ledger stores.
+pub const COVERAGE_GAP_ORIGIN: &str = "activitywatch:coverage-gap";
+
 /// The origin of a session transition read from the Windows logs after the fact, rather than
 /// observed as it happened.
 pub const SESSION_HISTORY_SOURCE_ID: &str = "windows-session-history";

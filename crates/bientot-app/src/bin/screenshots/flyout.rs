@@ -31,7 +31,7 @@ use bientot_app::strings::{Key, Language};
 use bientot_app::theme::motion;
 use bientot_app::theme::size::FLYOUT_WIDTH;
 use bientot_app::time_text::minutes_text;
-use bientot_app::tray_model::ClosedReview;
+use bientot_app::tray_model::{ClosedReview, ReviewSubject};
 use bientot_app::updates::{DemoOffer, InstallFailure, Offer, Updates};
 use bientot_app::widgets::Notice;
 use bientot_app::workday::SourceHint;
@@ -189,6 +189,40 @@ pub fn capture_unrecorded_counted(
     )
 }
 
+/// The session open before Bientôt, read from the Windows logs on the first start, to review.
+pub fn capture_rebuilt_review(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    let directory = demo::throwaway_directory();
+    let day = DemoHost::open(DemoScenario::OnTrack, &directory).and_then(|mut host| {
+        let mut day = host.refresh(language)?;
+        let today = host.today();
+        let at = |hour, minute| {
+            today
+                .at(hour, minute, 0, 0)
+                .to_zoned(jiff::tz::TimeZone::UTC)
+                .map(|zoned| zoned.timestamp())
+        };
+        let (start, end) = (at(8, 12)?, at(10, 30)?);
+        let local = |instant: jiff::Timestamp| instant.to_zoned(jiff::tz::TimeZone::UTC).time();
+        day.named_review = Some(ClosedReview {
+            workday: LocalWorkday::new(today, "UTC"),
+            id: LongLockReviewId::new(format!("session-rebuilt:1:{start}"))?,
+            locked_episode: UtcInterval::new(start, end)?,
+            local_start: local(start),
+            local_end: local(end),
+            finish_at: local(start),
+            duration: end.duration_since(start),
+            subject: ReviewSubject::RebuiltSession,
+        });
+        Ok(day)
+    });
+    std::fs::remove_dir_all(&directory).ok();
+    capture_flyout(cx, day?, None, &output.join("flyout-rebuilt-review.png"))
+}
+
 pub fn capture_appointment_review(
     cx: &mut HeadlessAppContext,
     language: Language,
@@ -206,7 +240,7 @@ pub fn capture_appointment_review(
         };
         let (start, end) = (at(14, 2)?, at(15, 47)?);
         let local = |instant: jiff::Timestamp| instant.to_zoned(jiff::tz::TimeZone::UTC).time();
-        day.appointment_review = Some(ClosedReview {
+        day.named_review = Some(ClosedReview {
             workday: LocalWorkday::new(today, "UTC"),
             id: LongLockReviewId::for_appointment("monday-1400", start),
             locked_episode: UtcInterval::new(start, end)?,
@@ -214,7 +248,7 @@ pub fn capture_appointment_review(
             local_end: local(end),
             finish_at: local(start),
             duration: end.duration_since(start),
-            appointment: Some(String::new()),
+            subject: ReviewSubject::Appointment(String::new()),
         });
         Ok(day)
     });

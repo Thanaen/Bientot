@@ -287,6 +287,15 @@ impl<'a> SessionEventRepository<'a> {
         Ok(results)
     }
 
+    /// Whether a session state was ever recorded: Bientôt has watched this user's session before.
+    pub fn has_session_state(&self) -> Result<bool, SessionEventError> {
+        Ok(self.connection.query_row(
+            "SELECT EXISTS (SELECT 1 FROM SessionEvent WHERE Source = $source)",
+            named_params! { "$source": Lane::WindowsSession.storage() },
+            |row| row.get(0),
+        )?)
+    }
+
     /// The transition stored under `operation_key`, if any.
     pub fn find(
         &self,

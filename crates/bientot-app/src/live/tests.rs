@@ -8,6 +8,9 @@ use bientot_windows::power_history::{
     PowerHistory, PowerHistoryBoundary, PowerHistoryBoundaryKind, PowerHistoryInterval,
     PowerHistoryIntervalKind,
 };
+use bientot_windows::session_history::{
+    SessionHistory, SessionHistoryBoundary, SessionHistoryBoundaryKind, SessionHistoryUnavailable,
+};
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp};
 
@@ -368,6 +371,65 @@ fn a_power_history_that_could_not_be_read_is_logged() {
     assert!(log.contains(r#""Level":"Warning","Event":"power_history.recovery_unavailable","Properties":{"status":"Truncated","reason":"windows-system-log-record-limit"}"#), "{log}");
 }
 
+/// The session unlocked at 06:00, read from the Windows logs, before Bientôt starts at 08:00.
+fn unlocked_at_six(_: UtcInterval) -> SessionHistoryRead {
+    SessionHistoryRead::Complete(SessionHistory {
+        before_window: None,
+        in_window: vec![SessionHistoryBoundary {
+            kind: SessionHistoryBoundaryKind::Unlock,
+            record_id: NonZeroU64::new(7).unwrap(),
+            occurred_at: "2026-10-08T06:00:00Z".parse().unwrap(),
+        }],
+    })
+}
+
+#[test]
+fn the_session_before_the_first_start_is_rebuilt_to_review() {
+    let machine = Machine::new();
+    let mut host = machine.start();
+    host.recover_session_history(unlocked_at_six).unwrap();
+    host.prepare_lifecycle(|| Some(SessionState::Unlocked), std::iter::empty());
+    host.poll();
+    machine.work(&mut host, SignedDuration::from_mins(5));
+    host.refresh();
+
+    let reviews = host.closed_reviews();
+    let [review] = reviews.as_slice() else {
+        panic!("{reviews:?}");
+    };
+    assert_eq!(review.subject, ReviewSubject::RebuiltSession);
+    assert_eq!(review.duration, SignedDuration::from_hours(2));
+    assert_eq!(
+        host.view(Language::French).named_review.as_ref(),
+        Some(review)
+    );
+    assert_eq!(machine.log(), "");
+}
+
+#[test]
+fn the_session_history_is_read_only_before_bientot_watched_the_session() {
+    let machine = Machine::new();
+    let mut host = machine.start();
+    host.prepare_lifecycle(|| Some(SessionState::Locked), std::iter::empty());
+
+    host.recover_session_history(|_| panic!("read on a later start"))
+        .unwrap();
+
+    assert_eq!(machine.log(), "");
+}
+
+#[test]
+fn a_session_history_that_could_not_be_read_is_logged() {
+    let machine = Machine::new();
+    let mut host = machine.start();
+    host.recover_session_history(|_| {
+        SessionHistoryRead::Unavailable(SessionHistoryUnavailable::LogUnavailable)
+    })
+    .unwrap();
+    let log = machine.log();
+    assert!(log.contains(r#""Level":"Warning","Event":"session_history.recovery_unavailable","Properties":{"reason":"windows-winlogon-log-unavailable"}"#), "{log}");
+}
+
 #[test]
 fn a_session_probe_that_gave_up_is_logged() {
     let machine = Machine::new();
@@ -541,14 +603,17 @@ fn the_flyout_asks_about_an_absence_in_a_recurring_appointment() {
     machine.work(&mut host, SignedDuration::from_mins(5));
     host.refresh();
 
-    let review = host.view(Language::French).appointment_review.unwrap();
-    assert_eq!(review.appointment.as_deref(), Some("Réunion"));
+    let review = host.view(Language::French).named_review.unwrap();
+    assert_eq!(
+        review.subject,
+        ReviewSubject::Appointment("Réunion".to_owned())
+    );
     assert_eq!(review.duration, SignedDuration::from_hours(1));
     host.resolve_review(&ReviewCommand {
         review,
         action: ReviewAction::ConfirmWork,
     });
-    assert_eq!(host.view(Language::French).appointment_review, None);
+    assert_eq!(host.view(Language::French).named_review, None);
     assert_eq!(machine.log(), "");
 }
 
@@ -1081,7 +1146,7 @@ fn an_automatic_appointment_counts_the_absence_once_the_user_is_back() {
     host.refresh();
 
     let view = host.view(Language::French);
-    assert_eq!(view.appointment_review, None);
+    assert_eq!(view.named_review, None);
     let counted = view.counted_absence.expect("the absence is counted");
     assert_eq!(counted.appointment, "Réunion");
     assert_eq!(counted.duration, SignedDuration::from_hours(1));
@@ -1099,7 +1164,7 @@ fn an_automatic_appointment_counts_the_absence_once_the_user_is_back() {
 
     host.undo_count(&counted.adjustment_id);
     assert_eq!(host.view(Language::French).counted_absence, None);
-    assert_eq!(host.view(Language::French).appointment_review, None);
+    assert_eq!(host.view(Language::French).named_review, None);
     assert_eq!(worked_today(&host), keep_together("2h 05m"));
     host.refresh();
     assert_eq!(worked_today(&host), keep_together("2h 05m"));
@@ -1298,7 +1363,7 @@ fn four_confirmations_in_a_row_offer_to_count_automatically() {
         ));
         machine.work(&mut host, SignedDuration::from_mins(5));
         host.refresh();
-        let review = host.view(Language::French).appointment_review.unwrap();
+        let review = host.view(Language::French).named_review.unwrap();
         host.resolve_review(&ReviewCommand {
             review,
             action: ReviewAction::ConfirmWork,

@@ -1082,4 +1082,10 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="FlyoutUnrecordedCountedFormat" xml:space="preserve">
     <value>Compté comme travail : {0}.</value>
   </data>
+  <data name="RebuiltReviewName" xml:space="preserve">
+    <value>Avant Bientôt</value>
+  </data>
+  <data name="FlyoutRebuiltReviewText" xml:space="preserve">
+    <value>Votre session Windows était ouverte avant l’installation de Bientôt. Ce temps est compté provisoirement comme du travail.</value>
+  </data>
 </root>

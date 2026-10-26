@@ -35,6 +35,7 @@ use jiff::SignedDuration;
 use rusqlite::Connection;
 
 use crate::strings::Key;
+use crate::tray_model::ReviewSubject;
 use crate::week::{Gains, LockReview, Offer, WeekCommand, WeekTimeline};
 
 /// What each answer on a lock would change, kept from one week read to the next: a dry run
@@ -294,7 +295,7 @@ fn pending_locks(
                 locked_episode: review.locked_episode,
                 resolved,
                 is_open: review.is_open,
-                appointment: review.appointment_name(&context.settings.recurring_appointments),
+                subject: ReviewSubject::of(review, &context.settings.recurring_appointments),
                 weekday: workday.date.weekday(),
                 gains: cache.gains(&review.id, &day, &mut kept, measured),
             }

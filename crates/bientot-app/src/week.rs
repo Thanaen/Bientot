@@ -14,7 +14,7 @@ use bientot_domain::configuration::AppointmentProposal;
 
 use crate::strings::{Key, Language};
 use crate::time_text::{duration_text, long_date, minute_range, minutes_text, range_text};
-use crate::tray_model::appointment_name;
+use crate::tray_model::{ReviewSubject, appointment_name};
 
 pub const DEFAULT_START_HOUR: i8 = 8;
 pub const DEFAULT_END_HOUR: i8 = 19;
@@ -137,9 +137,7 @@ pub struct LockReview {
     pub resolved: UtcInterval,
     /// The lock goes on: the ledger refuses to resolve it yet.
     pub is_open: bool,
-    /// The name of the recurring appointment the absence fell in, empty for none, which the
-    /// day cannot finish at the start of; `None` for a lock.
-    pub appointment: Option<String>,
+    pub subject: ReviewSubject,
     /// The weekday of the lock's workday, which names an appointment left unnamed.
     pub weekday: Weekday,
     /// What counting the lock as work, then excluding it, would change in its day's credit, as
@@ -162,10 +160,10 @@ pub struct Lock {
     pub resolved: UtcInterval,
     pub local_start: DateTime,
     pub local_end: DateTime,
-    /// Where finishing the day at the start of the lock ends it, unless it is an appointment.
+    /// Where finishing the day at the start of the lock ends it, for a lock only.
     pub finish_at: Option<Time>,
-    /// As [`LockReview::appointment`] and [`LockReview::weekday`].
-    pub appointment: Option<String>,
+    /// As [`LockReview::subject`] and [`LockReview::weekday`].
+    pub subject: ReviewSubject,
     pub weekday: Weekday,
     pub is_open: bool,
     pub gains: Option<Gains>,
@@ -192,27 +190,26 @@ impl Segment {
         self.local_start.time().strftime("%H:%M").to_string()
     }
 
-    /// What the segment counts as, or the appointment a review segment fell in:
-    /// « Réunion du jeudi à vérifier ».
+    /// What the segment counts as, or what a review segment is named after:
+    /// « Réunion du jeudi à vérifier », « Avant Bientôt à vérifier ».
     pub fn kind_name(&self, language: Language) -> String {
-        match &self.review {
-            Some(Lock {
-                appointment: Some(name),
-                weekday,
-                ..
-            }) => language.format(
-                Key::AppointmentReviewNameFormat,
-                &[&appointment_name(name, *weekday, language)],
-            ),
-            _ => self.kind.name(language).to_owned(),
+        match self.review_name(language) {
+            Some(name) => language.format(Key::AppointmentReviewNameFormat, &[&name]),
+            None => self.kind.name(language).to_owned(),
         }
+    }
+
+    /// What a review segment is named after, unless it is a piece of a lock.
+    pub fn review_name(&self, language: Language) -> Option<String> {
+        let lock = self.review.as_ref()?;
+        lock.subject.name(lock.weekday, language)
     }
 
     /// The segment is a piece of an absence in a recurring appointment.
     pub fn is_appointment(&self) -> bool {
         self.review
             .as_ref()
-            .is_some_and(|lock| lock.appointment.is_some())
+            .is_some_and(|lock| matches!(lock.subject, ReviewSubject::Appointment(_)))
     }
 
     /// « Trou, 10:20–11:05 (45 min) », as screen readers read the segment.

@@ -30,7 +30,7 @@ pub(super) const RETENTION: SignedDuration = SignedDuration::from_hours(RETENTIO
 const MAXIMUM_RECORD_DEPTH: usize = 8;
 
 const LEVELS: [&str; 4] = ["Debug", "Information", "Warning", "Error"];
-const EVENTS: [&str; 15] = [
+const EVENTS: [&str; 16] = [
     "notification.activated",
     "notification.smoke_registered",
     "notification.smoke_accepted",
@@ -43,6 +43,7 @@ const EVENTS: [&str; 15] = [
     "periodic_refresh.failed",
     "lifecycle.current_probe_unavailable",
     "power_history.recovery_unavailable",
+    "session_history.recovery_unavailable",
     "update_check.failed",
     "update_check.unavailable",
     "startup.tray_ready",
