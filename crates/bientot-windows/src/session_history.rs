@@ -10,11 +10,22 @@ mod event_xml;
 mod native;
 
 use std::num::NonZeroU64;
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::time::Duration;
 
+use bientot_domain::accounting::{
+    OperationKey, SessionState, WorkdayTransition, WorkdayTransitionKind,
+};
 use bientot_domain::intervals::UtcInterval;
+use bientot_domain::time::WorkdayWindow;
+use bientot_store::sessions::{
+    AtomicWorkdayTransition, SESSION_HISTORY_KEY_PREFIX, SessionEventError, SessionEventRepository,
+};
 use jiff::{SignedDuration, Timestamp};
 
+use crate::dotnet_ticks;
 pub use crate::event_log::{CollectedRecords, LogUnavailable};
+use crate::lifecycle::probe_within;
 
 #[cfg(windows)]
 pub use native::{WinlogonLog, current_user_id};
@@ -47,6 +58,16 @@ impl SessionHistoryBoundaryKind {
             _ => None,
         }
     }
+
+    /// The state the session is in from the boundary on. A closed session tells nothing about
+    /// the user, so it reads as unknown.
+    fn state(self) -> SessionState {
+        match self {
+            Self::Logon | Self::Unlock => SessionState::Unlocked,
+            Self::Lock => SessionState::Locked,
+            Self::Logoff => SessionState::Unknown,
+        }
+    }
 }
 
 /// One change of the session as the log records it.
@@ -72,6 +93,9 @@ pub struct SessionHistory {
 pub enum SessionHistoryUnavailable {
     MalformedEvent,
     LogUnavailable,
+    Timeout,
+    PersistenceFailed,
+    RecoveryFailed,
 }
 
 /// The outcome of one read. An incomplete read carries no evidence at all, since a missing
@@ -93,6 +117,9 @@ impl SessionHistoryRead {
             Self::Truncated => "windows-winlogon-log-record-limit",
             Self::Unavailable(MalformedEvent) => "windows-winlogon-log-malformed-event",
             Self::Unavailable(LogUnavailable) => "windows-winlogon-log-unavailable",
+            Self::Unavailable(Timeout) => "windows-winlogon-log-timeout",
+            Self::Unavailable(PersistenceFailed) => "windows-session-history-persistence-failed",
+            Self::Unavailable(RecoveryFailed) => "windows-session-history-recovery-failed",
         })
     }
 }
@@ -168,6 +195,88 @@ impl<L: WinlogonEventLog> SessionHistoryReader<L> {
             in_window: inside,
         })
     }
+}
+
+/// Records, on the first launch, how the session went from the start of the workday until the
+/// app started watching it, so that the time it was unlocked counts provisionally (issue #75).
+pub struct SessionHistoryRecovery<'a> {
+    events: SessionEventRepository<'a>,
+    read_timeout: Duration,
+}
+
+impl<'a> SessionHistoryRecovery<'a> {
+    /// How long startup waits for the log; see [`probe_within`].
+    pub const READ_TIMEOUT: Duration = Duration::from_secs(3);
+
+    pub fn new(events: SessionEventRepository<'a>, read_timeout: Duration) -> Self {
+        Self {
+            events,
+            read_timeout,
+        }
+    }
+
+    /// Reads the history from the start of `window` to `now` with `read` and records each of its
+    /// boundaries, all in one transaction, under a key that names its record and instant, so
+    /// that reading it again records nothing new. A history that fails to record is returned as
+    /// unavailable.
+    pub fn recover(
+        &self,
+        window: &WorkdayWindow,
+        now: Timestamp,
+        read: impl FnOnce(UtcInterval) -> SessionHistoryRead + Send + 'static,
+    ) -> SessionHistoryRead {
+        let failed = SessionHistoryRead::Unavailable(SessionHistoryUnavailable::RecoveryFailed);
+        let Ok(before_now) = UtcInterval::new(window.start, now.min(window.end)) else {
+            return failed;
+        };
+        let history = probe_within(self.read_timeout, move || {
+            catch_unwind(AssertUnwindSafe(|| read(before_now))).unwrap_or(failed)
+        })
+        .unwrap_or(SessionHistoryRead::Unavailable(
+            SessionHistoryUnavailable::Timeout,
+        ));
+        match history {
+            SessionHistoryRead::Complete(history) => match self.record(&history) {
+                Ok(()) => SessionHistoryRead::Complete(history),
+                Err(_) => {
+                    SessionHistoryRead::Unavailable(SessionHistoryUnavailable::PersistenceFailed)
+                }
+            },
+            incomplete => incomplete,
+        }
+    }
+
+    fn record(&self, history: &SessionHistory) -> Result<(), SessionEventError> {
+        let transitions: Vec<_> = history
+            .in_window
+            .iter()
+            .map(|boundary| AtomicWorkdayTransition {
+                operation_key: history_key(boundary),
+                transition: WorkdayTransition::new(
+                    boundary.occurred_at,
+                    "UTC",
+                    WorkdayTransitionKind::SessionObserved(boundary.kind.state()),
+                )
+                .expect("UTC is not blank"),
+            })
+            .collect();
+        self.events.record_atomically(&transitions)?;
+        Ok(())
+    }
+}
+
+fn history_key(boundary: &SessionHistoryBoundary) -> OperationKey {
+    let state = match boundary.kind.state() {
+        SessionState::Unlocked => "unlocked",
+        SessionState::Locked => "locked",
+        SessionState::Unknown => "unknown",
+    };
+    OperationKey::new(format!(
+        "{SESSION_HISTORY_KEY_PREFIX}{state}:{}:{}",
+        boundary.record_id,
+        dotnet_ticks(boundary.occurred_at)
+    ))
+    .expect("the key starts with its prefix")
 }
 
 #[cfg(test)]

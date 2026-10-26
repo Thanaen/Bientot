@@ -1,5 +1,6 @@
 mod long_lock_review;
 mod overnight_lock;
+mod rebuilt_session;
 mod recurring_appointment;
 
 use jiff::civil::date;

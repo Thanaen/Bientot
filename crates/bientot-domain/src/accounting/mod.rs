@@ -9,8 +9,8 @@ pub use evidence::{
     AccountingInput, AccountingPolicy, ActivityCoverage, ActivitySegment, ActivityState,
     AppointmentWindow, AutomaticOrigin, BlankSourceId, InvalidAccountingInput,
     NonPositiveReviewThreshold, OperationKey, PowerState, Recorded, RecordedTransition,
-    SessionState, TrackingState, WorkdayEventHistory, WorkdayEventId, WorkdayStateAnchors,
-    WorkdayTransition, WorkdayTransitionKind,
+    SESSION_HISTORY_SOURCE_ID, SessionState, TrackingState, WorkdayEventHistory, WorkdayEventId,
+    WorkdayStateAnchors, WorkdayTransition, WorkdayTransitionKind,
 };
 pub use model::{
     AccountedOrigin, AccountedSegment, AccountingLabel, AccountingResult, AccountingTimeline,

@@ -1320,6 +1320,30 @@ fn an_appointment_review_cannot_finish_the_day_and_nothing_is_written() {
 }
 
 #[test]
+fn a_rebuilt_session_review_cannot_finish_the_day_and_nothing_is_written() {
+    let database = Database::new();
+    let clock = FrozenClock::new(at(9, 31));
+    let day = pending_day();
+    let rebuilt_reviews = day
+        .pending_reviews()
+        .iter()
+        .cloned()
+        .map(|review| LongLockReview {
+            reason: LongLockReviewReason::RebuiltSession,
+            ..review
+        })
+        .collect();
+    let day = day.with_pending_reviews(rebuilt_reviews);
+
+    let error = reviews(&database.connection, &clock)
+        .finish_at_lock_start(&day, &finish_command())
+        .unwrap_err();
+
+    assert!(matches!(error, ReviewError::NotALock(id) if id == review_id()));
+    assert_nothing_written(&database.connection);
+}
+
+#[test]
 fn resolution_of_reads_back_the_review_and_the_answer_of_its_adjustment() {
     let workday = LocalWorkday::new(DAY, "Europe/Paris");
     let review = LongLockReviewId::for_appointment("thursday:meeting", on(DAY, 14, 0));

@@ -4,9 +4,9 @@
 use std::collections::HashSet;
 
 use bientot_domain::accounting::{
-    AutomaticOrigin, OperationKey, PowerState, Recorded, RecordedTransition, SessionState,
-    TrackingState, WorkdayEventHistory, WorkdayEventId, WorkdayStateAnchors, WorkdayTransition,
-    WorkdayTransitionKind,
+    AutomaticOrigin, OperationKey, PowerState, Recorded, RecordedTransition,
+    SESSION_HISTORY_SOURCE_ID, SessionState, TrackingState, WorkdayEventHistory, WorkdayEventId,
+    WorkdayStateAnchors, WorkdayTransition, WorkdayTransitionKind,
 };
 use bientot_domain::time::{Clock, WorkdayWindow};
 use jiff::Timestamp;
@@ -159,11 +159,17 @@ fn lane_and_kind(kind: WorkdayTransitionKind) -> (Lane, &'static str) {
         .expect("every transition kind has a stored form")
 }
 
+/// The operation keys of the session transitions read from the Windows logs after the fact;
+/// they are recorded with [`SESSION_HISTORY_SOURCE_ID`] as their origin.
+pub const SESSION_HISTORY_KEY_PREFIX: &str = "session-history:";
+
 /// A transition as the ledger holds it, its instant truncated to .NET ticks.
 #[derive(Clone, Debug)]
 struct StoredTransition {
     id: WorkdayEventId,
     transition: WorkdayTransition,
+    /// Read from the Windows logs rather than observed.
+    from_history: bool,
 }
 
 impl StoredTransition {
@@ -172,7 +178,12 @@ impl StoredTransition {
     }
 
     fn to_recorded(&self) -> RecordedTransition {
-        let origin = AutomaticOrigin::new(self.lane().storage()).expect("lane names are not blank");
+        let source_id = if self.from_history {
+            SESSION_HISTORY_SOURCE_ID
+        } else {
+            self.lane().storage()
+        };
+        let origin = AutomaticOrigin::new(source_id).expect("source names are not blank");
         let at = self.transition.occurred_at();
         match self.transition.kind() {
             WorkdayTransitionKind::SessionObserved(state) => {
@@ -459,11 +470,13 @@ fn parse(row: &StoredRow) -> Result<StoredTransition, InvalidStoredValue> {
     let lane = Lane::parse(row.text("Source")?)
         .ok_or_else(|| row.invalid("Source is not a recognized event source"))?;
     row.instant("CreatedAtUtc")?;
-    if let Some(key) = row.optional_text("OperationKey")?
+    let key = row.optional_text("OperationKey")?;
+    if let Some(key) = key
         && !OperationKey::new(key).is_ok_and(|parsed| parsed.as_str() == key)
     {
         return Err(row.invalid("OperationKey is not canonical"));
     }
+    let from_history = key.is_some_and(|key| key.starts_with(SESSION_HISTORY_KEY_PREFIX));
     let kind = KINDS
         .into_iter()
         .find(|&(_, stored_lane, text)| stored_lane == lane && text == kind)
@@ -474,6 +487,7 @@ fn parse(row: &StoredRow) -> Result<StoredTransition, InvalidStoredValue> {
     Ok(StoredTransition {
         id: WorkdayEventId(id),
         transition,
+        from_history,
     })
 }
 
