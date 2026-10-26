@@ -101,6 +101,13 @@ export function head(page: Page): string {
   ].join("\n");
 }
 
+// The note under the download button names the version /download serves, filled in per request
+// where the page says `<!-- version -->`.
+export function versionNote(version: string | null): string {
+  const updates = "mises à jour automatiques avec le programme d’installation";
+  return version ? `Version ${version} · ${updates}` : `M${updates.slice(1)}`;
+}
+
 const rendered = new Map<Page, Promise<string>>();
 
 function render(page: Page): Promise<string> {
@@ -122,15 +129,16 @@ export function sitemap(): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 
-// One GET route per page and per file.
-export function siteRoutes(): Record<string, { GET(request: Request): Response | Promise<Response> }> {
+// One GET route per page and per file. `version` gives the latest release's version, or null.
+export function siteRoutes(version: () => Promise<string | null>): Record<string, { GET(request: Request): Response | Promise<Response> }> {
   const routes: Record<string, { GET(request: Request): Response | Promise<Response> }> = {};
   for (const page of PAGES) {
     routes[page.path] = {
       async GET(request) {
         const redirect = moved(request);
         if (redirect) return redirect;
-        return new Response(await render(page), {
+        const [html, latest] = await Promise.all([render(page), version()]);
+        return new Response(html.replace("<!-- version -->", versionNote(latest)), {
           headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" },
         });
       },

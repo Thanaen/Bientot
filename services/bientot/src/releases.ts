@@ -12,6 +12,19 @@ export const SETUP = "Bientot-Setup.exe";
 // The packages vpk names after their version, which names their release: v<version>.
 const PACKAGE = /^Thanaen\.WorkTime-(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)-(?:full|delta)\.nupkg$/;
 
+// The version of the latest release, read from the address GitHub sends releases/latest to
+// (…/releases/tag/v<version>), which costs no API quota. Null when GitHub does not answer in time.
+export async function latestVersion(): Promise<string | null> {
+  try {
+    const response = await fetch(`${RELEASES}/latest`, { redirect: "manual", signal: AbortSignal.timeout(3000) });
+    return VERSION_TAG.exec(response.headers.get("location") ?? "")?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+const VERSION_TAG = /\/releases\/tag\/v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)$/;
+
 // The files of which only the latest release's copy matters: its feed lists every package.
 const LATEST = new Set([
   "releases.win.json",
