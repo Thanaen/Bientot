@@ -397,6 +397,33 @@ fn a_session_read_from_the_windows_logs_keeps_its_lane_and_names_its_origin() {
     );
 }
 
+#[test]
+fn an_observed_unlock_after_a_rebuilt_one_makes_the_next_anchor_observed() {
+    let database = TemporaryDatabase::new();
+    let clock = FrozenClock::new(created_at());
+    let repository = SessionEventRepository::new(&database.connection, &clock);
+    let rebuilt = repository
+        .record(
+            key(&format!("{SESSION_HISTORY_KEY_PREFIX}unlocked:1")),
+            session(at(7, 0), SessionState::Unlocked),
+        )
+        .unwrap();
+    repository
+        .record(
+            key("session-unlocked"),
+            session(at(8, 0), SessionState::Unlocked),
+        )
+        .unwrap();
+
+    let history = repository
+        .read_for_accounting(&window_between(9, 10))
+        .unwrap();
+
+    let anchor = history.before_window().session.as_ref().unwrap();
+    assert_eq!(anchor.id, rebuilt.authoritative_id);
+    assert_eq!(anchor.origin.source_id(), "windows-session");
+}
+
 /// Records each `(operation key, transition)` from its own thread and connection, all at once.
 fn record_concurrently(
     database: &TemporaryDatabase,

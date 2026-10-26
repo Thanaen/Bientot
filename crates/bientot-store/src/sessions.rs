@@ -389,17 +389,22 @@ ORDER BY OccurredAtUtc DESC, {STATE_PRIORITY} DESC, Id DESC"
         "$before": format_instant(before),
     })?;
     let mut anchor: Option<StoredTransition> = None;
+    // The latest row of the run says whether the state was observed: an observed unlock
+    // replaces one read from the Windows logs, as it does in the accounting.
+    let mut from_history = false;
     while let Some(row) = rows.next()? {
         let candidate = parse(&StoredRow::new(row, "SessionEvent"))?;
-        if anchor
-            .as_ref()
-            .is_some_and(|anchor| anchor.transition.kind() != candidate.transition.kind())
-        {
-            break;
+        match &anchor {
+            None => from_history = candidate.from_history,
+            Some(anchor) if anchor.transition.kind() != candidate.transition.kind() => break,
+            Some(_) => {}
         }
         anchor = Some(candidate);
     }
-    Ok(anchor)
+    Ok(anchor.map(|anchor| StoredTransition {
+        from_history,
+        ..anchor
+    }))
 }
 
 fn read_in_window(
