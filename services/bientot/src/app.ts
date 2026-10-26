@@ -15,18 +15,21 @@ export interface AppOptions {
 // Nothing here logs the request, its body or the caller's address.
 export function createApp({ store, now = () => new Date(), latest = latestVersion }: AppOptions) {
   // The Release workflow publishes at most a few times a day: a warm function asks GitHub again
-  // after ten minutes, and after one when GitHub did not answer.
+  // after ten minutes, or after one when GitHub did not answer. Once a version is known, pages show
+  // it at once while the next answer is awaited, and keep it when GitHub does not answer.
   let version: { until: number; value: Promise<string | null> } | undefined;
+  let known: string | null = null;
   const latestRelease = () => {
     const time = now().getTime();
     if (!version || time >= version.until) {
-      const value = latest();
-      version = { until: time + 600_000, value };
-      value.then((found) => {
-        if (!found && version?.value === value) version.until = time + 60_000;
+      const value: Promise<string | null> = latest().then((found) => {
+        if (found) known = found;
+        else if (version?.value === value) version.until = time + 60_000;
+        return known;
       });
+      version = { until: time + 600_000, value };
     }
-    return version.value;
+    return known ? Promise.resolve(known) : version.value;
   };
 
   // The public figures only change when a UTC day ends: a warm function computes them once per day,

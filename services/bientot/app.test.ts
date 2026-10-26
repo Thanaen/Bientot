@@ -113,6 +113,23 @@ describe("the site", () => {
     expect(asked).toBe(2);
   });
 
+  test("the page keeps the version it knows while GitHub is slow or does not answer", async () => {
+    let answer: (version: string | null) => void = () => {};
+    let asked = 0;
+    app = createApp({
+      store: new MemoryStore(),
+      now: () => clock,
+      latest: () => (asked++ === 0 ? Promise.resolve("0.2.0-alpha.53") : new Promise((resolve) => (answer = resolve))),
+    });
+    expect(await html()).toContain("Version 0.2.0-alpha.53 ·");
+    clock = new Date(clock.getTime() + 600_000);
+    expect(await html()).toContain("Version 0.2.0-alpha.53 ·");
+    expect(asked).toBe(2);
+    answer(null);
+    await Bun.sleep(0);
+    expect(await html()).toContain("Version 0.2.0-alpha.53 ·");
+  });
+
   test("the page describes itself for search engines and link previews", async () => {
     const page = await html();
     expect(page).toContain('<link rel="canonical" href="https://bientot.dev/">');
