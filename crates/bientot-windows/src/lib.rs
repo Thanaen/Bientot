@@ -9,12 +9,14 @@ pub mod activity;
 pub mod animation_effects;
 pub mod diagnostics;
 pub mod dialogs;
+mod event_log;
 pub mod lifecycle;
 pub mod notifications;
 pub mod power_history;
 pub mod process;
 #[cfg(windows)]
 mod registry;
+pub mod session_history;
 pub mod single_instance;
 pub mod startup;
 pub mod updates;
