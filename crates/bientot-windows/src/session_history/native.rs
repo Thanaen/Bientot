@@ -35,6 +35,10 @@ impl WinlogonLog {
 }
 
 impl WinlogonEventLog for WinlogonLog {
+    fn user_id(&self) -> &str {
+        &self.user_id
+    }
+
     fn read(
         &self,
         since: Timestamp,
@@ -113,7 +117,7 @@ mod tests {
         let user_id = current_user_id().expect("the process has a user");
         let log = WinlogonLog::new(&user_id).expect("a security identifier");
         let now = Timestamp::now();
-        let read = SessionHistoryReader::new(log, user_id, RECORD_LIMIT)
+        let read = SessionHistoryReader::new(log, RECORD_LIMIT)
             .read(UtcInterval::new(now - jiff::SignedDuration::from_hours(24), now).unwrap());
 
         assert!(

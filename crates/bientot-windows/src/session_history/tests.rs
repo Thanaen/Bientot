@@ -168,6 +168,10 @@ impl FakeLog {
 }
 
 impl WinlogonEventLog for &FakeLog {
+    fn user_id(&self) -> &str {
+        USER
+    }
+
     fn read(
         &self,
         since: Timestamp,
@@ -199,7 +203,7 @@ fn the_reader_returns_the_morning_of_its_user_and_the_state_before_it() {
     records.reverse();
     let log = FakeLog::holding(records);
 
-    let read = SessionHistoryReader::new(&log, USER, RECORD_LIMIT).read(morning());
+    let read = SessionHistoryReader::new(&log, RECORD_LIMIT).read(morning());
 
     assert_eq!(log.asked_since.get(), Some(at(0, 0, 0) - LOOKBACK));
     assert_eq!(
@@ -222,7 +226,7 @@ fn a_boundary_older_than_the_lookback_does_not_set_the_state_at_the_window_start
         started(90, at(-30, 0, 0), 4, "Sens"),
     ]);
 
-    let read = SessionHistoryReader::new(&log, USER, RECORD_LIMIT).read(morning());
+    let read = SessionHistoryReader::new(&log, RECORD_LIMIT).read(morning());
 
     assert_eq!(
         read,
@@ -243,7 +247,7 @@ fn a_truncated_malformed_or_unreadable_log_returns_no_history_and_its_reason() {
         ]),
         FakeLog::answering(Err(LogUnavailable)),
     ]
-    .map(|log| SessionHistoryReader::new(&log, USER, RECORD_LIMIT).read(morning()));
+    .map(|log| SessionHistoryReader::new(&log, RECORD_LIMIT).read(morning()));
 
     assert_eq!(
         reads.each_ref().map(SessionHistoryRead::reason),

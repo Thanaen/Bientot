@@ -99,6 +99,9 @@ impl SessionHistoryRead {
 
 /// The Winlogon notifications of one user in the `Microsoft-Windows-Winlogon/Operational` log.
 pub trait WinlogonEventLog {
+    /// The user's security identifier, as `S-1-5-21-…`.
+    fn user_id(&self) -> &str;
+
     /// The records of the notifications that began at `since` or later.
     fn read(
         &self,
@@ -118,22 +121,16 @@ pub fn collapse(
     ordered
 }
 
-/// The session history of a window, read from a [`WinlogonEventLog`] for one user.
+/// The session history of a window, read from a [`WinlogonEventLog`] for its user.
 pub struct SessionHistoryReader<L> {
     log: L,
-    user_id: String,
     record_limit: usize,
 }
 
 impl<L: WinlogonEventLog> SessionHistoryReader<L> {
-    /// `user_id` is the user's security identifier, as `S-1-5-21-…`; notifications of other
-    /// users are left out.
-    pub fn new(log: L, user_id: impl Into<String>, record_limit: usize) -> Self {
-        Self {
-            log,
-            user_id: user_id.into(),
-            record_limit,
-        }
+    /// Notifications of users other than the log's are left out.
+    pub fn new(log: L, record_limit: usize) -> Self {
+        Self { log, record_limit }
     }
 
     /// The boundaries inside `window`, and the last one in the [`LOOKBACK`] before it.
@@ -157,7 +154,7 @@ impl<L: WinlogonEventLog> SessionHistoryReader<L> {
             notifications
                 .into_iter()
                 .flatten()
-                .filter(|notification| notification.user_id == self.user_id)
+                .filter(|notification| notification.user_id == self.log.user_id())
                 .map(|notification| notification.boundary)
                 .filter(|boundary| {
                     since <= boundary.occurred_at && boundary.occurred_at < window.end()
