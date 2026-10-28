@@ -110,3 +110,75 @@ fn a_source_in_trouble_adds_a_badge_that_contrasts_with_the_taskbar() {
         }
     }
 }
+
+#[test]
+fn the_badge_leaves_the_symbol_centred() {
+    for colour in COLOURS {
+        for size in SIZES {
+            let plain = rgba(
+                TrayIcon {
+                    colour,
+                    degraded: false,
+                },
+                size,
+                Taskbar::Dark,
+            )
+            .unwrap();
+            let badged = rgba(
+                TrayIcon {
+                    colour,
+                    degraded: true,
+                },
+                size,
+                Taskbar::Dark,
+            )
+            .unwrap();
+            // Away from the bottom-right corner, the two icons are the same pixel for pixel. The
+            // disc's smoothed rim is left out: it shifts slightly when it goes through a mask.
+            let clear = size / 2 + size / 8;
+            let half = size as f32 / 2.;
+            for y in 0..size {
+                for x in 0..size {
+                    let rim = (x as f32 + 0.5 - half).hypot(y as f32 + 0.5 - half) > half - 2.;
+                    if (x < clear || y < clear) && !rim {
+                        assert_eq!(
+                            pixel(&badged, size, x, y),
+                            pixel(&plain, size, x, y),
+                            "{colour:?} {size} at ({x}, {y})"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn the_badge_keeps_clear_of_the_symbol() {
+    for colour in COLOURS {
+        for size in SIZES {
+            let icon = TrayIcon {
+                colour,
+                degraded: true,
+            };
+            // On a light taskbar the badge is dark, so any white left is the symbol's.
+            let image = rgba(icon, size, Taskbar::Light).unwrap();
+            let plain = rgba(
+                TrayIcon {
+                    colour,
+                    degraded: false,
+                },
+                size,
+                Taskbar::Light,
+            )
+            .unwrap();
+            let white = |image: &[u8]| {
+                image
+                    .chunks(4)
+                    .filter(|pixel| pixel[0] > 128 && pixel[1] > 128 && pixel[2] > 128)
+                    .count()
+            };
+            assert_eq!(white(&image), white(&plain), "{colour:?} {size}");
+        }
+    }
+}

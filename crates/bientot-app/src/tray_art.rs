@@ -58,31 +58,31 @@ pub fn svg(icon: TrayIcon, size: u32, taskbar: Taskbar) -> String {
         32 => 4,
         _ => (size as f32 / 8.).round() as u32,
     };
-    // The symbol moves away from the badge so the badge does not hide it.
-    let shift = if icon.degraded {
-        (s / 24.).round().max(1.)
-    } else {
-        0.
-    };
     let mut out = format!(
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">"#
     );
+    // The badge stays small enough to keep clear of the centred symbol at every size.
     let badge = icon.degraded.then(|| {
-        let diameter = match size {
-            16 => 5.,
-            20 => 6.,
-            24 => 8.,
-            32 => 10.,
-            _ => (s * 0.32).round(),
+        let diameter = (s / 4.).round();
+        let gap = if size >= 32 {
+            2.
+        } else {
+            (s / 24.).round().max(1.)
         };
-        let gap = (s / 24.).round().max(1.);
         (s - diameter / 2., diameter / 2., gap)
     });
     if let Some((centre, radius, gap)) = badge {
+        let cut = if size == 16 {
+            dot16(12, 11, 4)
+        } else {
+            format!(
+                r#"<circle cx="{centre}" cy="{centre}" r="{}""#,
+                radius + gap
+            )
+        };
         let _ = write!(
             out,
-            r##"<defs><mask id="badge"><rect width="{size}" height="{size}" fill="#fff"/><circle cx="{centre}" cy="{centre}" r="{}" fill="#000"/></mask></defs><g mask="url(#badge)">"##,
-            radius + gap
+            r##"<defs><mask id="badge"><rect width="{size}" height="{size}" fill="#fff"/>{cut} fill="#000"/></mask></defs><g mask="url(#badge)">"##
         );
     } else {
         out.push_str("<g>");
@@ -95,7 +95,7 @@ pub fn svg(icon: TrayIcon, size: u32, taskbar: Taskbar) -> String {
     );
     let rounding = if size < 24 { 0. } else { stroke as f32 / 4. };
     if icon.colour == TrayColour::Orange {
-        let x = (s / 2. - stroke as f32 / 2. + 0.5).floor() - shift;
+        let x = (s / 2. - stroke as f32 / 2. + 0.5).floor();
         let (bar_top, bar_bottom, dot_top) = match size {
             16 => (3., 10., 11.),
             20 => (4., 12., 14.),
@@ -110,12 +110,12 @@ pub fn svg(icon: TrayIcon, size: u32, taskbar: Taskbar) -> String {
             let _ = write!(
                 out,
                 r##"<rect x="{x}" y="{}" width="{stroke}" height="{height}" rx="{rounding}" fill="#fff"/>"##,
-                top - shift
+                top
             );
         }
     } else {
         // An odd stroke is centred on a pixel's middle, so its edges fall on whole pixels.
-        let centre = s / 2. + if stroke % 2 == 1 { 0.5 } else { 0. } - shift;
+        let centre = s / 2. + if stroke % 2 == 1 { 0.5 } else { 0. };
         let scale = s / 2.
             * if icon.colour == TrayColour::Red {
                 0.62
@@ -149,13 +149,22 @@ pub fn svg(icon: TrayIcon, size: u32, taskbar: Taskbar) -> String {
             Taskbar::Dark => "#FFFFFF",
             Taskbar::Light => "#1A1A1A",
         };
-        let _ = write!(
-            out,
-            r#"<circle cx="{centre}" cy="{centre}" r="{radius}" fill="{text}"/>"#
-        );
+        let dot = if size == 16 {
+            dot16(13, 12, 2)
+        } else {
+            format!(r#"<circle cx="{centre}" cy="{centre}" r="{radius}""#)
+        };
+        let _ = write!(out, r#"{dot} fill="{text}"/>"#);
     }
     out.push_str("</svg>");
     out
+}
+
+/// A round dot on whole pixels for the 16 px icon, where a smoothed 4 px circle reads as a smudge:
+/// a square `side + 2` pixels wide without its corner pixels, its top edge `side` pixels long from
+/// (`x`, `y`). The element is left open for the caller's fill.
+fn dot16(x: u32, y: u32, side: u32) -> String {
+    format!(r#"<path d="M{x} {y}h{side}v1h1v{side}h-1v1h-{side}v-1h-1v-{side}h1z""#)
 }
 
 /// The icon at `size` pixels as straight (not premultiplied) RGBA rows, as `tray-icon` takes it.
