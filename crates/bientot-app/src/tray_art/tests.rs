@@ -175,7 +175,9 @@ fn the_badge_keeps_clear_of_the_symbol() {
             let white = |image: &[u8]| {
                 image
                     .chunks(4)
-                    .filter(|pixel| pixel[0] > 128 && pixel[1] > 128 && pixel[2] > 128)
+                    .filter(|pixel| {
+                        pixel[0] > 128 && pixel[1] > 128 && pixel[2] > 128 && pixel[3] == 255
+                    })
                     .count()
             };
             assert_eq!(white(&image), white(&plain), "{colour:?} {size}");
