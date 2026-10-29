@@ -1,5 +1,7 @@
 // The public pages and the files they use, served from site/. Each file is named with a literal URL
 // so that Vercel's file tracing ships it with the function.
+import { FONTS } from "./fonts";
+
 export const ORIGIN = "https://bientot.dev";
 
 // The site's first address. Installed copies still read their feed and send their signal there,
@@ -53,12 +55,9 @@ const DAY = 86400;
 // PostHog's managed proxy for the Bientôt project (README.md, "Pages").
 export const ANALYTICS = "https://e.bientot.dev";
 
-const FILES: Record<string, { url: URL; type: string; maxAge: number }> = {
-  "/fonts/IBMPlexSans-Regular.woff2": { url: new URL("../site/fonts/IBMPlexSans-Regular.woff2", import.meta.url), type: "font/woff2", maxAge: 7 * DAY },
-  "/fonts/IBMPlexSans-Medium.woff2": { url: new URL("../site/fonts/IBMPlexSans-Medium.woff2", import.meta.url), type: "font/woff2", maxAge: 7 * DAY },
-  "/fonts/IBMPlexSans-SemiBold.woff2": { url: new URL("../site/fonts/IBMPlexSans-SemiBold.woff2", import.meta.url), type: "font/woff2", maxAge: 7 * DAY },
-  "/fonts/IBMPlexMono-Regular.woff2": { url: new URL("../site/fonts/IBMPlexMono-Regular.woff2", import.meta.url), type: "font/woff2", maxAge: 7 * DAY },
-  "/fonts/IBMPlexMono-Medium.woff2": { url: new URL("../site/fonts/IBMPlexMono-Medium.woff2", import.meta.url), type: "font/woff2", maxAge: 7 * DAY },
+const FILES: Record<string, { url: URL; type: string; maxAge: number; immutable?: true }> = {
+  // Named by their content (scripts/fonts/subset.py), so a new version is a new address.
+  ...Object.fromEntries(Object.entries(FONTS).map(([path, url]) => [path, { url, type: "font/woff2", maxAge: 365 * DAY, immutable: true as const }])),
   "/favicon.svg": { url: new URL("../site/favicon.svg", import.meta.url), type: "image/svg+xml", maxAge: DAY },
   "/favicon.ico": { url: new URL("../site/favicon.ico", import.meta.url), type: "image/x-icon", maxAge: DAY },
   "/apple-touch-icon.png": { url: new URL("../site/apple-touch-icon.png", import.meta.url), type: "image/png", maxAge: DAY },
@@ -148,7 +147,7 @@ export function siteRoutes(version: () => Promise<string | null>): Record<string
     routes[path] = {
       GET() {
         return new Response(Bun.file(file.url), {
-          headers: { "content-type": file.type, "cache-control": `public, max-age=${file.maxAge}` },
+          headers: { "content-type": file.type, "cache-control": `public, max-age=${file.maxAge}${file.immutable ? ", immutable" : ""}` },
         });
       },
     };

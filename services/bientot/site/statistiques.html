@@ -4,15 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- head -->
-<link rel="preload" href="/fonts/IBMPlexSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/IBMPlexSans-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/sans-400-core.cbc478cc.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/sans-500-core.ff0e212e.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/sans-600-core.2f3f51a4.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/mono-400-core.d5bb6b68.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/mono-500-core.fc127d43.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 /* Thème WorkTime One, comme la page d’accueil (index.html) : mêmes polices et mêmes tokens. */
-@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("/fonts/IBMPlexSans-Regular.woff2") format("woff2"); }
-@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("/fonts/IBMPlexSans-Medium.woff2") format("woff2"); }
-@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("/fonts/IBMPlexSans-SemiBold.woff2") format("woff2"); }
-@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("/fonts/IBMPlexMono-Regular.woff2") format("woff2"); }
-@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("/fonts/IBMPlexMono-Medium.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("/fonts/sans-400-core.cbc478cc.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E8-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("/fonts/sans-400-ext.a26eeb58.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E7, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("/fonts/sans-500-core.ff0e212e.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E8-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("/fonts/sans-500-ext.800cc717.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E7, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("/fonts/sans-600-core.2f3f51a4.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E8-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("/fonts/sans-600-ext.60d6d344.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E7, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("/fonts/mono-400-core.d5bb6b68.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+E0, U+E9, U+FB, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("/fonts/mono-400-ext.5242ecfc.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-DF, U+E1-E8, U+EA-FA, U+FC-17F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("/fonts/mono-500-core.fc127d43.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+E0, U+E9, U+FB, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("/fonts/mono-500-ext.1ca74e17.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-DF, U+E1-E8, U+EA-FA, U+FC-17F; }
 :root {
   --background: #dcdcdd; --surface: #ebebec; --editor: #fafafa;
   --border: #c9c9ca; --border-variant: #dfdfe0; --border-focused: #7d82e8;
