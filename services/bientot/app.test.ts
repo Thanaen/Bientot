@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createApp } from "./src/app";
+import { FONTS } from "./src/fonts";
 import { MemoryStore } from "./src/store";
 
 let clock: Date;
@@ -158,17 +159,27 @@ describe("the site", () => {
 
   test("every local file the page links to is served", async () => {
     const paths = new Set(
-      [...(await html()).matchAll(/(?:href|src|content)="(?:https:\/\/bientot\.dev)?(\/[\w./-]+\.\w+)"/g)].map(
+      [...(await html()).matchAll(/(?:(?:href|src|content)="|url\(")(?:https:\/\/bientot\.dev)?(\/[\w./-]+\.\w+)"/g)].map(
         (match) => match[1] ?? "",
       ),
     );
     expect(paths).toContain("/og/home.png");
-    expect(paths).toContain("/fonts/IBMPlexSans-Regular.woff2");
+    expect([...paths].filter((path) => path.startsWith("/fonts/")).sort()).toEqual(Object.keys(FONTS).sort());
     expect(paths).toContain("/analytics.js");
     for (const path of paths) {
       const response = await get(path);
       expect(response?.status, path).toBe(200);
       expect((await response!.arrayBuffer()).byteLength, path).toBeGreaterThan(100);
+    }
+  });
+
+  // A font file's name carries a hash of its content (scripts/fonts/subset.py).
+  test("font files may be kept for good", async () => {
+    for (const path of Object.keys(FONTS)) {
+      expect(path).toMatch(/^\/fonts\/(sans|mono)-\d00-(core|ext)\.[0-9a-f]{8}\.woff2$/);
+      const response = (await get(path))!;
+      expect(response.headers.get("content-type")).toBe("font/woff2");
+      expect(response.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
     }
   });
 
@@ -183,7 +194,7 @@ describe("the site", () => {
     expect(await (await get("/sitemap.xml"))!.text()).toContain("<loc>https://bientot.dev/</loc>");
   });
 
-  test.each(["/fonts/OFL.txt", "/og/home.html", "/fonts/IBMPlexSans-Regular.ttf"])("serves no file at %p", async (path) => {
+  test.each(["/fonts/OFL.txt", "/og/home.html", "/fonts/IBMPlexSans-Regular.ttf", "/fonts/IBMPlexSans-Regular.woff2"])("serves no file at %p", async (path) => {
     expect(await get(path)).toBeNull();
   });
 });
@@ -334,7 +345,7 @@ describe("the two domains", () => {
     ["GET", "/robots.txt"],
     ["GET", "/sitemap.xml"],
     ["GET", "/og/home.png"],
-    ["GET", "/fonts/IBMPlexSans-Regular.woff2"],
+    ["GET", Object.keys(FONTS)[0]!],
     ["GET", "/analytics.js"],
     ["GET", "/favicon.ico"],
   ])("%s %s answers on worktime.thanaen.dev as on bientot.dev", async (method, path) => {

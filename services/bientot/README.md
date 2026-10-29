@@ -27,7 +27,7 @@ statistics show no older version.
 ## Pages
 
 `site/index.html` is a static page in French, in the app's WorkTime One theme. It sets no
-cookie: the fonts are Latin subsets of the app's IBM Plex fonts, made with `pyftsubset`. Its
+cookie: the fonts are subsets of the app's IBM Plex fonts (see Fonts below). Its
 only scripts measure the audience and the loading speed with PostHog (see `docs/privacy.md`):
 PostHog's library from `https://e.bientot.dev`, then `site/analytics.js`, which starts
 it in cookieless mode with Web Vitals and nothing else (no autocapture, no session recording, no
@@ -47,6 +47,53 @@ Each page has a 1200 × 630 share image, drawn from an HTML source next to it. A
 ```sh
 playwright screenshot --viewport-size=1200,630 "file://$PWD/site/og/home.html" site/og/home.png
 ```
+
+### Fonts
+
+The pages use five faces of the app's IBM Plex fonts (`crates/bientot-app/assets/fonts`): Sans
+400, 500 and 600, Mono 400 and 500. `scripts/fonts/subset.sh` cuts each face into two WOFF2 files
+in `site/fonts`:
+
+- a core file with printable ASCII, the no-break space, curly quotes, guillemets, en and em dashes,
+  the ellipsis and every other character its family draws on the pages. Each page preloads the
+  core files of the faces it uses.
+- an extended file with the rest of Latin-1 and Latin Extended-A. Its `unicode-range` keeps it from
+  downloading until a page draws one of its characters; no page does today.
+
+Each file keeps the source's outlines, metrics and TrueType hinting, and only the OpenType features
+its text uses (`kern`, and `liga` for « fi »). Plex is a Reserved Font Name under the OFL
+(`site/fonts/OFL.txt`), so the subsets are named Bientot Sans and Bientot Mono inside the files. The
+file names carry a hash of their content, so the service lets browsers keep them for a year.
+
+The script renders every page and state with the service's code (`scripts/fonts/pages.ts`), reads in
+Chromium which characters each face draws (`scripts/fonts/browse.ts`), then writes the fonts, their
+`@font-face` rules and preloads in `site/index.html`, `site/statistiques.html` and
+`site/og/home.html`, and `src/fonts.ts`. It is not part of the build: run it by hand and commit what
+it writes. It needs bun, Playwright's Chromium, python3 and `pip install fonttools brotli`.
+
+```sh
+./scripts/fonts/subset.sh
+```
+
+Run it again after a change that adds characters to the pages or the statistics, changes a
+`font-weight`, `font-family`, `text-overflow` or `hyphens`, or adds a face. Until then, a new
+character outside the core files still shows in Plex, from the extended file, a moment later;
+one outside Latin-1 and Latin Extended-A shows in the fallback font.
+
+To check that a change leaves the pages looking the same, render the pages of both versions and
+compare their screenshots (`--hinting full` applies the fonts' hinting, as Windows does):
+
+```sh
+git worktree add /tmp/before main
+bun scripts/fonts/pages.ts /tmp/before/services/bientot /tmp/pages-before
+bun scripts/fonts/browse.ts /tmp/pages-before /tmp/before/services/bientot /tmp/before.json --shots /tmp/shots-before --hinting full
+bun scripts/fonts/pages.ts /tmp/pages-after
+bun scripts/fonts/browse.ts /tmp/pages-after . /tmp/after.json --shots /tmp/shots-after --hinting full
+python3 scripts/fonts/diff.py /tmp/shots-before /tmp/shots-after /tmp/shots-diff
+```
+
+The reports list the font files each page downloads and preloads. `specimen.html` is not a page of
+the site: it shows text the pages do not use today (italics, other Latin letters, CJK).
 
 ## Usage signal
 
