@@ -1,0 +1,73 @@
+name: Store package
+
+# Builds the MSIX that goes to the Microsoft Store (#3), with the Partner Center identity of the
+# manifest and an exe built for the Store channel. Run it from the Actions tab and upload the
+# `bientot-store-msix` artifact in Partner Center › Packages. The Store signs the package, so
+# this one stays unsigned and Windows does not install it as is.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package
+    # Like release-direct.sh: only main ships, and a branch's commit count could exceed main's
+    # and block its next submission.
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install
+
+      # The Store takes four numbers and needs the last one at 0; each submission needs a higher
+      # version than the last, which the commit count gives. The app shows the same version as
+      # the direct channel's build of this commit. Windows' jq ends its output with CRLF.
+      - name: Compute the version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "bientot-app") | .version' | tr -d '\r')
+          count=$(git rev-list --count HEAD)
+          IFS=. read -r major minor _ <<< "$base"
+          echo "app=${base}-alpha.${count}" >> "$GITHUB_OUTPUT"
+          echo "package=${major}.${minor}.${count}.0" >> "$GITHUB_OUTPUT"
+          echo "released=$(git log -1 --format=%cs HEAD)" >> "$GITHUB_OUTPUT"
+
+      # The Store updates the app, so the exe has no Velopack updater.
+      - name: Build the executable
+        env:
+          BIENTOT_CHANNEL: store
+          BIENTOT_VERSION: ${{ steps.version.outputs.app }}
+          BIENTOT_RELEASE_DATE: ${{ steps.version.outputs.released }}
+          CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: -C target-feature=+crt-static
+        run: cargo build --release --locked -p bientot-app --bin worktime --features release
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'store'
+          ./scripts/package-rust.ps1 -Exe target/release/worktime.exe -Channel store -OutDir $out -MaxSizeMB 20 `
+            -Version '${{ steps.version.outputs.package }}'
+          Rename-Item (Join-Path $out 'WorkTime-win-x64-unsigned.msix') "Bientot-${{ steps.version.outputs.package }}.msix"
+          "Store package Bientot-${{ steps.version.outputs.package }}.msix" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload the package
+        uses: actions/upload-artifact@v7
+        with:
+          name: bientot-store-msix
+          path: ${{ runner.temp }}/store/*.msix
+          retention-days: 30
+          if-no-files-found: error
