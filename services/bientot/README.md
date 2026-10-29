@@ -69,7 +69,12 @@ The script renders every page and state with the service's code (`scripts/fonts/
 Chromium which characters each face draws (`scripts/fonts/browse.ts`), then writes the fonts, their
 `@font-face` rules and preloads in `site/index.html`, `site/statistiques.html` and
 `site/og/home.html`, and `src/fonts.ts`. It is not part of the build: run it by hand and commit what
-it writes. It needs bun, Playwright's Chromium, python3 and `pip install fonttools brotli`.
+it writes. It needs bun, python3 and, once per checkout:
+
+```sh
+bun add --no-save playwright && bunx playwright install chromium
+pip install fonttools brotli numpy pillow
+```
 
 ```sh
 ./scripts/fonts/subset.sh

@@ -1,6 +1,6 @@
 // Opens rendered pages (pages.ts) in Chromium, serving the site's files from a service root, and
 // reports for each page the fonts it downloads and preloads and the characters each font face draws.
-// With --shots <dir>, it also takes full-page screenshots for the pixel diffs (diff.ts).
+// With --shots <dir>, it also takes full-page screenshots for the pixel diffs (diff.py).
 // Usage: bun scripts/fonts/browse.ts <pages dir> <service root> <report.json> [--shots <dir>] [--hinting full]
 import { readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
