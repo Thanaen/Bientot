@@ -13,6 +13,9 @@ permissions:
 jobs:
   package:
     name: Package
+    # Like release-direct.sh: only main ships, and a branch's commit count could exceed main's
+    # and block its next submission.
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: windows-latest
     timeout-minutes: 60
 
@@ -29,16 +32,18 @@ jobs:
         run: rustup toolchain install
 
       # The Store takes four numbers and needs the last one at 0; each submission needs a higher
-      # version than the last, which the commit count gives.
+      # version than the last, which the commit count gives. The app shows the same version as
+      # the direct channel's build of this commit. Windows' jq ends its output with CRLF.
       - name: Compute the version
         id: version
         shell: bash
         run: |
           set -euo pipefail
-          base=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "bientot-app") | .version')
+          base=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "bientot-app") | .version' | tr -d '\r')
+          count=$(git rev-list --count HEAD)
           IFS=. read -r major minor _ <<< "$base"
-          echo "app=${base}" >> "$GITHUB_OUTPUT"
-          echo "package=${major}.${minor}.$(git rev-list --count HEAD).0" >> "$GITHUB_OUTPUT"
+          echo "app=${base}-alpha.${count}" >> "$GITHUB_OUTPUT"
+          echo "package=${major}.${minor}.${count}.0" >> "$GITHUB_OUTPUT"
           echo "released=$(git log -1 --format=%cs HEAD)" >> "$GITHUB_OUTPUT"
 
       # The Store updates the app, so the exe has no Velopack updater.
