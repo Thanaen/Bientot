@@ -40,12 +40,18 @@ application names or window titles.
 
 Bientôt runs on Windows 11 x64.
 
+- **Microsoft Store**: install
+  [Bientôt from the Microsoft Store](https://apps.microsoft.com/detail/9N4FL1HRF4KL).
+  Microsoft signs it and the Store keeps it up to date.
 - **Installer**: download `Setup.exe` from
   [bientot.dev/download](https://bientot.dev/download). The
   app then updates itself. The installer is not signed yet, so Windows
   SmartScreen may ask you to confirm with **More info › Run anyway**
   ([why](docs/code-signing.md)).
-- **Microsoft Store**: planned for version 1.0.
+
+If you used the installer first, the Store build reads and writes the same
+folder, so you can move to the Store build without losing your history
+([details](docs/privacy.md#delete-your-data)).
 
 Bientôt is still in alpha: expect rough edges, and please
 [report what goes wrong](https://github.com/Thanaen/Bientot/issues/new/choose).
