@@ -6,7 +6,8 @@ name: Store package
 # Store secrets of that environment it is skipped, and the `bientot-store-msix` artifact is
 # uploaded in Partner Center › Packages by hand. The Store signs the package, so this one stays
 # unsigned and Windows does not install it as is. Not nightly like the direct channel: each
-# submission goes through certification before it reaches users.
+# submission goes through certification before it reaches users. A submission replaces any draft
+# started by hand in Partner Center.
 on:
   workflow_dispatch:
     inputs:
@@ -84,7 +85,7 @@ jobs:
           if-no-files-found: error
 
   # Apart from the build, so that only this job, behind the environment's reviewer, holds the
-  # Partner Center credentials.
+  # Partner Center credentials, and only in the steps that use them.
   submit:
     name: Submit
     needs: package
@@ -93,16 +94,15 @@ jobs:
     timeout-minutes: 30
     environment: release
 
-    env:
-      MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
-      MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
-      MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
-      MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
-
     steps:
       - name: Check the Store secrets
         id: secrets
         shell: bash
+        env:
+          MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+          MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+          MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+          MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
         run: |
           missing=()
           for name in MSSTORE_TENANT_ID MSSTORE_CLIENT_ID MSSTORE_CLIENT_SECRET MSSTORE_SELLER_ID; do
@@ -130,6 +130,11 @@ jobs:
       - name: Submit for certification
         if: ${{ steps.secrets.outputs.ready == 'true' }}
         shell: pwsh
+        env:
+          MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+          MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+          MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+          MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
         run: |
           msstore reconfigure --tenantId $env:MSSTORE_TENANT_ID --sellerId $env:MSSTORE_SELLER_ID `
             --clientId $env:MSSTORE_CLIENT_ID --clientSecret $env:MSSTORE_CLIENT_SECRET
