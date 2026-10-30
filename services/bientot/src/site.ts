@@ -100,11 +100,12 @@ export function head(page: Page): string {
   ].join("\n");
 }
 
-// The note under the download button names the version /download serves, filled in per request
-// where the page says `<!-- version -->`.
+// The note under the download buttons is about the installer, the second choice after the Microsoft
+// Store: it names the version /download serves, filled in per request where the page says
+// `<!-- version -->`.
 export function versionNote(version: string | null): string {
-  const updates = "mises à jour automatiques avec le programme d’installation";
-  return version ? `Version ${version} · ${updates}` : `M${updates.slice(1)}`;
+  const installer = version ? `Le programme d’installation (version <span class="nb">${version}</span>)` : "Le programme d’installation";
+  return `${installer} met l’application à jour automatiquement. Il n’est pas signé&nbsp;: Windows peut demander une confirmation.`;
 }
 
 const rendered = new Map<Page, Promise<string>>();

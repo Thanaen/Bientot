@@ -85,18 +85,19 @@ describe("the site", () => {
   };
   const html = async () => (await get("/"))!.text();
 
-  test("/ serves the page, which downloads through /download", async () => {
+  test("/ serves the page, which offers the Microsoft Store first and the installer through /download", async () => {
     const response = (await get("/"))!;
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
     const page = await response.text();
     expect(page).toContain("<title>Bientôt");
-    expect(page).toContain('href="/download"');
+    expect(page.indexOf('href="https://apps.microsoft.com/detail/9N4FL1HRF4KL"')).toBeGreaterThan(-1);
+    expect(page.indexOf('href="https://apps.microsoft.com/detail/9N4FL1HRF4KL"')).toBeLessThan(page.indexOf('href="/download"'));
     expect(page).not.toContain("<!-- head -->");
   });
 
   test("the page names the latest release's version", async () => {
     const page = await html();
-    expect(page).toContain('<p class="btn-note">Version 0.2.0-alpha.53 · mises à jour automatiques avec le programme d’installation</p>');
+    expect(page).toContain('<p class="btn-note">Le programme d’installation (version <span class="nb">0.2.0-alpha.53</span>) met l’application à jour automatiquement.');
     expect(page).not.toContain("<!-- version -->");
   });
 
@@ -104,11 +105,11 @@ describe("the site", () => {
     const answers = [null, "0.2.0-alpha.54"];
     let asked = 0;
     app = createApp({ store: new MemoryStore(), now: () => clock, latest: async () => answers[asked++] ?? null });
-    expect(await html()).toContain('<p class="btn-note">Mises à jour automatiques avec le programme d’installation</p>');
+    expect(await html()).toContain('<p class="btn-note">Le programme d’installation met l’application à jour automatiquement.');
     await html();
     expect(asked).toBe(1);
     clock = new Date(clock.getTime() + 60_000);
-    expect(await html()).toContain("Version 0.2.0-alpha.54 ·");
+    expect(await html()).toContain(`(version <span class="nb">0.2.0-alpha.54</span>)`);
     clock = new Date(clock.getTime() + 300_000);
     await html();
     expect(asked).toBe(2);
@@ -122,13 +123,13 @@ describe("the site", () => {
       now: () => clock,
       latest: () => (asked++ === 0 ? Promise.resolve("0.2.0-alpha.53") : new Promise((resolve) => (answer = resolve))),
     });
-    expect(await html()).toContain("Version 0.2.0-alpha.53 ·");
+    expect(await html()).toContain(`(version <span class="nb">0.2.0-alpha.53</span>)`);
     clock = new Date(clock.getTime() + 600_000);
-    expect(await html()).toContain("Version 0.2.0-alpha.53 ·");
+    expect(await html()).toContain(`(version <span class="nb">0.2.0-alpha.53</span>)`);
     expect(asked).toBe(2);
     answer(null);
     await Bun.sleep(0);
-    expect(await html()).toContain("Version 0.2.0-alpha.53 ·");
+    expect(await html()).toContain(`(version <span class="nb">0.2.0-alpha.53</span>)`);
   });
 
   test("the page describes itself for search engines and link previews", async () => {
