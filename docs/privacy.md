@@ -157,6 +157,11 @@ after the new archive is complete.
 The next start from the same data folder shows onboarding again and creates a
 new, empty database.
 
-The Store build can also keep data in its own package folder, because Windows
-virtualizes packaged writes under `%LOCALAPPDATA%`. Uninstalling the app
-removes that package data.
+The Store build uses the same `%LOCALAPPDATA%\Bientot` folder when it already
+exists, for example after the portable build or the Setup.exe build: it reads
+and writes it in place, and uninstalling the Store app leaves it there. On a PC
+where no other build created that folder, Windows keeps the Store build's
+folder in
+`%LOCALAPPDATA%\Packages\Thanaen.Bientt_j4qejy376e90w\LocalCache\Local\Bientot`
+instead, and uninstalling the app deletes it. Export your data first if you
+want to keep it.
