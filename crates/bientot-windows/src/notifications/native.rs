@@ -47,6 +47,10 @@ impl Sender {
 /// Shows WorkTime's toasts and calls back when the user clicks one.
 pub struct Toasts {
     notifier: ToastNotifier,
+    /// Whether `Setting` can tell a refused toast: only with package identity. Without it,
+    /// Windows answers `Setting` only once the AppUserModelID has shown a toast, so checking it
+    /// first would refuse every toast forever.
+    reads_setting: bool,
     /// Receives the clicks on the popup and on the toasts kept in Notification Center alike. The
     /// toast's own `Activated` event goes unheard: Windows raises it too for a toast the app still
     /// holds, so listening to it would report one click twice.
@@ -86,14 +90,16 @@ impl Toasts {
             ActivatorRegistration::register(GUID::from_u128(class), Arc::new(activated))?;
         Ok(Self {
             notifier,
+            reads_setting: matches!(sender, Sender::Package),
             activator,
         })
     }
 
     /// Fails when Windows will not show it, such as when the user turned WorkTime's
-    /// notifications off, where the .NET app gets no notification id.
+    /// notifications off, where the .NET app gets no notification id. Without package identity,
+    /// Windows drops such a toast silently instead.
     pub fn show(&self, request: &NotificationRequest) -> windows::core::Result<()> {
-        if self.notifier.Setting()? != NotificationSetting::Enabled {
+        if self.reads_setting && self.notifier.Setting()? != NotificationSetting::Enabled {
             return Err(Error::new(
                 E_FAIL,
                 "Windows did not accept the notification.",
