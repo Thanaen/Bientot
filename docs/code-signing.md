@@ -19,7 +19,7 @@ v1 ships through the Store ([D-016](product-decisions.md)).
 | Microsoft Store | Microsoft Store | Microsoft, after certification | Nothing: the Store installs it. |
 | `Bientot-Setup.exe` | GitHub Releases, `bientot.dev/download` | Nobody | SmartScreen may ask to confirm with **More info › Run anyway**. |
 | `Bientot-Portable.zip` | GitHub Releases | Nobody | SmartScreen may warn the first time `worktime.exe` starts. |
-| `Bientot-<version>.msix` | The **Store package** workflow | Nobody | Not installable as is: it is only uploaded to Partner Center, which signs it. |
+| `Bientot-<version>.msix` | The **Store package** workflow | Nobody | Not installable as is: it only goes to Partner Center, which signs it. The workflow submits it, or it is uploaded by hand. |
 | CI MSIX | The `Rust on Windows` job | Nobody | Installed with `-AllowUnsigned` to test the package, then removed. |
 
 The CI MSIX is not the Store package. It wraps the executable the CI job
