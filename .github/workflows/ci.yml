@@ -62,7 +62,7 @@ jobs:
           fi
 
           rust_windows=false
-          if grep -qE '^crates/bientot-(app|windows|store)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+          if grep -qE '^crates/bientot-(app|windows|store)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
             rust_windows=true
           fi
 
@@ -293,8 +293,11 @@ jobs:
           if (-not $package) { throw 'The MSIX did not install.' }
           Write-Host "Installed $($package.PackageFullName) at $($package.InstallLocation)"
           if (-not (Test-Path (Join-Path $package.InstallLocation 'worktime.exe'))) { throw 'The installed package has no worktime.exe.' }
+          ./scripts/verify-package-data.ps1 -Package $package
           Remove-AppxPackage -Package $package.PackageFullName
           if (Get-AppxPackage -Name 'Thanaen.Bientt') { throw 'The MSIX did not uninstall.' }
+          $private = Join-Path $env:LOCALAPPDATA "Packages\$($package.PackageFamilyName)"
+          Write-Host "Package data left after uninstall: $(Test-Path $private)"
 
       # scripts/release-direct.sh builds the Velopack Setup.exe with this feature, outside CI.
       - name: Check the Velopack build
