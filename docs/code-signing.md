@@ -22,10 +22,11 @@ v1 ships through the Store ([D-016](product-decisions.md)).
 | `Bientot-<version>.msix` | The **Store package** workflow | Nobody | Not installable as is: it is only uploaded to Partner Center, which signs it. |
 | CI MSIX | The `Rust on Windows` job | Nobody | Installed with `-AllowUnsigned` to test the package, then removed. |
 
-The Store package and the CI MSIX differ only in the publisher. The Store
-package keeps the publisher Partner Center assigned
-(`CN=3BB427EF-EC1A-406C-8D5D-D9761E46D4FC`). The CI MSIX adds the
-unsigned-package OID to it, which lets Windows install it without a signature.
+The CI MSIX is not the Store package. It wraps the executable the CI job
+already built, without the Store channel or version, and adds the
+unsigned-package OID to the publisher Partner Center assigned
+(`CN=3BB427EF-EC1A-406C-8D5D-D9761E46D4FC`), which lets Windows install it
+without a signature. The Store package keeps that publisher as is.
 
 ## Where the builds come from
 
