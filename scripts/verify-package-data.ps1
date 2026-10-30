@@ -31,9 +31,9 @@ while (-not (Test-Path -LiteralPath $probe)) {
     Start-Sleep -Milliseconds 250
 }
 
-$read = (Get-Content -Raw -LiteralPath "$probe.read").Trim()
-$reread = (Get-Content -Raw -LiteralPath "$probe.reread").Trim()
-$seed = (Get-Content -Raw -LiteralPath (Join-Path $folder 'seed.txt')).Trim()
+$read = ([string](Get-Content -Raw -LiteralPath "$probe.read")).Trim()
+$reread = ([string](Get-Content -Raw -LiteralPath "$probe.reread")).Trim()
+$seed = ([string](Get-Content -Raw -LiteralPath (Join-Path $folder 'seed.txt'))).Trim()
 Write-Host "Package read the portable file as: $read"
 Write-Host "Package read its own rewrite as: $reread"
 Write-Host "The portable folder's file now holds: $seed"
