@@ -49,8 +49,9 @@ Bientôt runs on Windows 11 x64.
   SmartScreen may ask you to confirm with **More info › Run anyway**
   ([why](docs/code-signing.md)).
 
-Both builds keep their data in the same folder, so you can move from the
-installer to the Store build without losing your history.
+If you used the installer first, the Store build reads and writes the same
+folder, so you can move to the Store build without losing your history
+([details](docs/privacy.md#delete-your-data)).
 
 Bientôt is still in alpha: expect rough edges, and please
 [report what goes wrong](https://github.com/Thanaen/Bientot/issues/new/choose).
