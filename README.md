@@ -43,7 +43,8 @@ Bientôt runs on Windows 11 x64.
 - **Installer**: download `Setup.exe` from
   [bientot.dev/download](https://bientot.dev/download). The
   app then updates itself. The installer is not signed yet, so Windows
-  SmartScreen may ask you to confirm with **More info › Run anyway**.
+  SmartScreen may ask you to confirm with **More info › Run anyway**
+  ([why](docs/code-signing.md)).
 - **Microsoft Store**: planned for version 1.0.
 
 Bientôt is still in alpha: expect rough edges, and please
