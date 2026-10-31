@@ -153,6 +153,9 @@ jobs:
 
     permissions:
       contents: write
+      # Sign the build provenance attestations with a Sigstore certificate and store them.
+      id-token: write
+      attestations: write
 
     steps:
       # The history from the previous release, for the notes.
@@ -167,6 +170,14 @@ jobs:
         with:
           name: release-${{ needs.plan.outputs.version }}
           path: dist
+
+      # A signed SLSA build provenance attestation for each file, before the release lists it:
+      # `gh attestation verify <file> --repo Thanaen/Bientot` checks that a workflow of this
+      # repository built it. Windows and SmartScreen ignore it: it is not a code signature.
+      - name: Attest the build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/*
 
       # A draft first: the release becomes the latest, whose feed installed copies read, only
       # once every package it lists is uploaded.
