@@ -175,9 +175,15 @@ jobs:
       # `gh attestation verify <file> --repo Thanaen/Bientot` checks that a workflow of this
       # repository built it. Windows and SmartScreen ignore it: it is not a code signature.
       - name: Attest the build provenance
+        id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: dist/*
+
+      - name: Add the attestation to the release
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "$BUNDLE" dist/Bientot.intoto.jsonl
 
       # A draft first: the release becomes the latest, whose feed installed copies read, only
       # once every package it lists is uploaded.
