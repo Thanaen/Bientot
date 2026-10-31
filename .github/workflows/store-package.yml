@@ -7,7 +7,7 @@ name: Store package
 # uploaded in Partner Center › Packages by hand. The Store signs the package, so this one stays
 # unsigned and Windows does not install it as is. Not nightly like the direct channel: each
 # submission goes through certification before it reaches users. A submission replaces any draft
-# started by hand in Partner Center.
+# started by hand in Partner Center, and sends the listing texts of packaging/store/listing.json.
 on:
   workflow_dispatch:
     inputs:
@@ -115,6 +115,13 @@ jobs:
             echo "Not submitted: the \`release\` environment has no ${missing[*]}. Upload the \`bientot-store-msix\` artifact in Partner Center by hand." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Checkout the listing
+        if: ${{ steps.secrets.outputs.ready == 'true' }}
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: packaging/store
+          sparse-checkout-cone-mode: false
+
       - name: Download the package
         if: ${{ steps.secrets.outputs.ready == 'true' }}
         uses: actions/download-artifact@v8
@@ -139,7 +146,23 @@ jobs:
           msstore reconfigure --tenantId $env:MSSTORE_TENANT_ID --sellerId $env:MSSTORE_SELLER_ID `
             --clientId $env:MSSTORE_CLIENT_ID --clientSecret $env:MSSTORE_CLIENT_SECRET
           if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
+          [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
           $package = Join-Path $PWD 'store/Bientot-${{ needs.package.outputs.package }}.msix'
-          msstore publish $package -id 9N4FL1HRF4KL
+          # The draft starts from the last published submission and gets the new package.
+          msstore publish $package -id 9N4FL1HRF4KL --noCommit
           if ($LASTEXITCODE -ne 0) { throw "msstore publish failed ($LASTEXITCODE)" }
-          "Submitted Bientot-${{ needs.package.outputs.package }}.msix for certification." >> $env:GITHUB_STEP_SUMMARY
+          $draft = Join-Path $env:RUNNER_TEMP 'draft.json'
+          msstore submission get 9N4FL1HRF4KL | Out-File -Encoding utf8 $draft
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed ($LASTEXITCODE)" }
+          # The listing texts come from packaging/store/listing.json; images and other fields stay
+          # as Partner Center has them. `submission update` takes the whole submission as one
+          # argument, which Windows limits to 32,767 characters.
+          $submission = jq -c --slurpfile listing packaging/store/listing.json `
+            '.Listings |= with_entries(.value.BaseListing += ($listing[0][.key] // {}))' $draft
+          if ($LASTEXITCODE -ne 0) { throw "jq failed ($LASTEXITCODE)" }
+          if ($submission.Length -gt 32000) { throw "The submission is $($submission.Length) characters, too long to pass to msstore" }
+          msstore submission update 9N4FL1HRF4KL $submission
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission update failed ($LASTEXITCODE)" }
+          msstore submission publish 9N4FL1HRF4KL
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission publish failed ($LASTEXITCODE)" }
+          "Submitted Bientot-${{ needs.package.outputs.package }}.msix for certification, with the listing of packaging/store/listing.json." >> $env:GITHUB_STEP_SUMMARY

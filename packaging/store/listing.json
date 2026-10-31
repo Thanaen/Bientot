@@ -1,0 +1,58 @@
+{
+  "en-us": {
+    "Title": "Bientôt",
+    "ShortDescription": "Know at a glance whether you’ll leave on time. Bientôt counts your working time from the notification area, with nothing to type, using keyboard and mouse activity. Your data stays on your PC, with no account.",
+    "Description": "Will you finish today’s work before the time you want to leave? Bientôt counts your working time from the notification area, with nothing to type, and its icon tells you at a glance whether you’re on track.\n\nSet your hours once, then work as usual: Bientôt notices keyboard and mouse activity, session locks and sleep.\n\n• The tray icon turns green, orange, red or blue with your projected departure time.\n• One click shows the time worked, the time left and your projected departure time.\n• Pause or finish your day, add a meeting away from the PC, or correct a recorded period.\n• Review your week as timelines: extra minutes lighten the following days.\n• Get a notification shortly before you reach your target and before your latest departure time.\n\nYour hours stay on your PC, with no account. Bientôt never reads what you type, application names or window titles. Once a day it sends one anonymous usage signal with no identifier, which you can turn off in Settings.\n\nFree and open source under the MIT license. Source code: https://github.com/Thanaen/Bientot",
+    "Features": [
+      "Tray icon that changes color with your projected departure time, with a symbol for each color",
+      "Automatic tracking from keyboard and mouse activity and session locks: nothing to type",
+      "Time worked, time left and projected departure time in one click",
+      "Pause, resume or finish your day; add time worked away from the PC or correct a recorded period",
+      "Week view as timelines, with extra minutes carried as credit to the following days",
+      "Notifications shortly before you reach your target and before your latest departure time",
+      "Recurring appointments, such as a weekly meeting away from your desk",
+      "Data stored on your PC with no account, plus export and import to move to another PC"
+    ],
+    "Keywords": [
+      "working time",
+      "work hours",
+      "workday",
+      "departure time tracker",
+      "overtime",
+      "time tracking",
+      "work schedule"
+    ],
+    "ReleaseNotes": "First release on the Microsoft Store. Bientôt now installs and updates through the Store.",
+    "CopyrightAndTrademarkInfo": "© 2026 Thanaen",
+    "LicenseTerms": "Bientôt is open source under the MIT License: https://github.com/Thanaen/Bientot/blob/main/LICENSE",
+    "DevStudio": "Thanaen"
+  },
+  "fr-fr": {
+    "Title": "Bientôt",
+    "ShortDescription": "Sachez d’un coup d’œil si vous partirez à l’heure. Bientôt compte votre temps de travail depuis la zone de notification, sans rien saisir, à partir de l’activité du clavier et de la souris. Vos données restent sur votre PC, sans compte.",
+    "Description": "À quelle heure pourrez-vous partir aujourd’hui ? Bientôt compte votre temps de travail depuis la zone de notification, sans rien saisir, et son icône vous dit d’un coup d’œil si vous êtes dans les temps.\n\nRéglez vos horaires une fois, puis travaillez normalement : Bientôt repère l’activité du clavier et de la souris, le verrouillage de la session et la mise en veille.\n\n• L’icône passe au vert, à l’orange, au rouge ou au bleu selon votre heure de départ prévue.\n• Un clic affiche le temps travaillé, le temps restant et l’heure de départ prévue.\n• Mettez en pause, terminez la journée, déclarez une réunion loin du PC ou corrigez une période.\n• Relisez la semaine en frises : les minutes en plus allègent les jours suivants.\n• Une notification vous prévient peu avant l’objectif et avant votre heure limite.\n\nVos heures restent sur votre PC, sans compte. Bientôt ne lit jamais ce que vous tapez, ni le nom des applications, ni le titre des fenêtres. Une fois par jour, il envoie un signal d’utilisation anonyme, sans identifiant, que vous pouvez couper dans les Paramètres.\n\nLibre et gratuit, sous licence MIT. Code source : https://github.com/Thanaen/Bientot",
+    "Features": [
+      "Icône de la zone de notification qui change de couleur selon votre heure de départ prévue, avec un symbole par couleur",
+      "Comptage automatique à partir du clavier, de la souris et du verrouillage de la session : rien à saisir",
+      "Temps travaillé, temps restant et heure de départ prévue en un clic",
+      "Pause, reprise et fin de journée ; déclaration du temps travaillé loin du PC et correction des périodes enregistrées",
+      "Vue de la semaine en frises, avec les minutes en plus reportées en crédit sur les jours suivants",
+      "Notifications peu avant l’objectif atteint et avant votre heure limite de départ",
+      "Rendez-vous récurrents, comme une réunion hebdomadaire hors de votre bureau",
+      "Données stockées sur votre PC, sans compte, avec export et import vers un autre ordinateur"
+    ],
+    "Keywords": [
+      "temps de travail",
+      "heures de travail",
+      "horaires",
+      "heure de départ",
+      "heures supplémentaires",
+      "journée de travail",
+      "suivi du temps"
+    ],
+    "ReleaseNotes": "Première version sur le Microsoft Store. Bientôt s’installe et se met à jour depuis le Store.",
+    "CopyrightAndTrademarkInfo": "© 2026 Thanaen",
+    "LicenseTerms": "Bientôt is open source under the MIT License: https://github.com/Thanaen/Bientot/blob/main/LICENSE",
+    "DevStudio": "Thanaen"
+  }
+}
