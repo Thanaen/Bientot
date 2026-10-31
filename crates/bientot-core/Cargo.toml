@@ -10,7 +10,7 @@ license.workspace = true
 [dependencies]
 flate2 = "1.1.10"
 jiff = "0.2.38"
-sha2 = "0.10.9"
+sha2 = "0.11.1"
 bientot-domain = { path = "../bientot-domain" }
 bientot-store = { path = "../bientot-store" }
 
