@@ -62,7 +62,7 @@ pub fn open(failure: StartupFailure, cx: &mut App) -> anyhow::Result<()> {
         ..Default::default()
     };
     let window = cx.open_window(options, |window, cx| {
-        window.on_window_should_close(cx, |_, cx| {
+        widgets::close_on_request(window, cx, |_, cx| {
             cx.quit();
             true
         });

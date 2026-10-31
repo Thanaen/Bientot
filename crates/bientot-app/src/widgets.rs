@@ -156,6 +156,23 @@ pub(crate) fn control(
         .child(self::icon(icon, theme.text_muted).size(token::ICON_XS))
 }
 
+/// Closes `window` with `remove_window` when Windows asks it to close (Alt+F4, « Fermer la
+/// fenêtre » on the taskbar, GPUI's own close area) and `may_close` allows it. GPUI 0.3.9 keeps
+/// the renderer of a window Windows destroys itself: about 30 MiB of private memory and 10 MiB of
+/// GPU memory per close. So the request is always refused, and the window closed this way instead.
+pub(crate) fn close_on_request(
+    window: &Window,
+    cx: &App,
+    may_close: impl Fn(&mut Window, &mut App) -> bool + 'static,
+) {
+    window.on_window_should_close(cx, move |window, cx| {
+        if may_close(window, cx) {
+            window.remove_window();
+        }
+        false
+    });
+}
+
 pub(crate) fn icon(name: &str, color: Hsla) -> gpui::Svg {
     svg()
         .path(SharedString::from(format!("icons/{name}.svg")))

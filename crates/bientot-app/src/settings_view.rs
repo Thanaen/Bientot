@@ -402,7 +402,7 @@ impl SettingsView {
             }));
         }
         let view = cx.entity().downgrade();
-        window.on_window_should_close(cx, move |window, cx| {
+        widgets::close_on_request(window, cx, move |window, cx| {
             view.update(cx, |view, cx| view.should_close(window, cx))
                 .unwrap_or(true)
         });
