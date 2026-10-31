@@ -30,7 +30,9 @@ jobs:
           MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
           MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
           MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
+        # pwsh decodes msstore's UTF-8 output with the console code page, which garbles accents.
         run: |
+          [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
           msstore reconfigure --tenantId $env:MSSTORE_TENANT_ID --sellerId $env:MSSTORE_SELLER_ID `
             --clientId $env:MSSTORE_CLIENT_ID --clientSecret $env:MSSTORE_CLIENT_SECRET
           if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
