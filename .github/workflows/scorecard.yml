@@ -1,0 +1,54 @@
+name: Scorecard
+
+# Scores the repository's security practices with OpenSSF Scorecard
+# (https://scorecard.dev/viewer/?uri=github.com/Thanaen/Bientot), lists the failed checks as
+# code scanning alerts, and publishes the score that the README badge shows. Scorecard's API
+# accepts the published results only from a workflow without top-level env, defaults or write
+# permissions, whose job runs only the actions below on an Ubuntu runner.
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Every Monday at 05:23 UTC too, because a change to the repository settings pushes no commit.
+    - cron: "23 5 * * 1"
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      # Uploads the results as code scanning alerts.
+      security-events: write
+      # Signs the published results.
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Scorecard publishes no major version tag, so the action is pinned to the commit of v2.5.0.
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload the results
+        uses: actions/upload-artifact@v7
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 7
+
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif

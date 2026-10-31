@@ -35,6 +35,18 @@ on GitHub-hosted runners from a commit on `main`, and publishes them to GitHub
 Releases. Each release tag points at the commit it was built from. Nobody builds or
 uploads a release by hand.
 
+Before it publishes a release, the workflow attests the build provenance of each
+file it uploads. The attestation is signed with a short-lived Sigstore
+certificate and stored by GitHub. With the [GitHub CLI](https://cli.github.com/),
+this command checks that a workflow of this repository built a downloaded file,
+and shows which workflow and commit the attestation names:
+
+```bash
+gh attestation verify Bientot-Setup.exe --repo Thanaen/Bientot
+```
+
+An attestation is not a code signature: Windows and SmartScreen do not read it.
+
 ## If this changes
 
 A certificate, or Azure Artifact Signing through a company, would let the
