@@ -251,6 +251,7 @@ impl WeekView {
     ) -> Self {
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle, cx);
+        widgets::close_on_request(window, cx, |_, _| true);
         // A control that goes away with the focus, as the Details toggle on a day without a
         // summary, hands it back to the week: without it the week's keys fall to the root.
         let keep_focus = cx.on_focus_lost(window, |week, window, cx| {

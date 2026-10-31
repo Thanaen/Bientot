@@ -15,7 +15,7 @@ use crate::strings::{Key, Language};
 use crate::text_input::TextInput;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, text};
-use crate::widgets::ClockFocus;
+use crate::widgets::{self, ClockFocus};
 use window::deliver;
 
 mod chrome;
@@ -123,7 +123,7 @@ impl AdjustView {
             }));
         }
         let view = cx.entity().downgrade();
-        window.on_window_should_close(cx, move |window, cx| {
+        widgets::close_on_request(window, cx, move |window, cx| {
             view.update(cx, |view, cx| view.may_close(window, cx))
                 .unwrap_or(true)
         });

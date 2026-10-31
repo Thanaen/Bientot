@@ -22,7 +22,7 @@ use crate::theme::{Theme, TypeStyled as _, motion, radius, size, text};
 use crate::tray_model::ReviewCommand;
 use crate::updates::Updates;
 use crate::week::WeekCommand;
-use crate::widgets::disabled_control;
+use crate::widgets::{self, disabled_control};
 use crate::widgets::{Notice, NoticeKind, icon, scroll_thumb};
 use crate::workday::{self, DayView, TrackingStatus};
 
@@ -242,6 +242,10 @@ impl Flyout {
     ) -> Self {
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle, cx);
+        widgets::close_on_request(window, cx, |_, cx| {
+            shell::flyout_closed(cx);
+            true
+        });
         let close_on_deactivate = cx.observe_window_activation(window, |_, window, cx| {
             if !window.is_window_active() {
                 shell::flyout_closed(cx);
