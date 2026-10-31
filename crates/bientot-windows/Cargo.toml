@@ -49,5 +49,5 @@ windows-sys = { version = "0.61.2", features = [
 ] }
 
 [dev-dependencies]
-rusqlite = "0.40.2"
+rusqlite = "0.41.0"
 tempfile = "3.27.0"

@@ -39,7 +39,7 @@ jiff = "0.2.38"
 log = "0.4"
 # Draws the tray icon at the taskbar's size; the version gpui already builds.
 resvg = { version = "0.46", default-features = false }
-rusqlite = "0.40.2"
+rusqlite = "0.41.0"
 serde_json = "1.0.154"
 # The system TLS: SChannel on Windows. `native-tls` also brings the Mozilla roots
 # (webpki-root-certs), which `RootCerts::PlatformVerifier` never reads, but ureq 3.4.2 compiles its
