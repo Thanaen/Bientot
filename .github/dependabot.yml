@@ -32,6 +32,12 @@ updates:
       default-days: 7
     commit-message:
       prefix: build(site)
+    # Vercel type-checks the service with the project's own TypeScript through its JavaScript API,
+    # which the native TypeScript 7 compiler does not have yet: the build fails with
+    # "Cannot read properties of undefined (reading 'readFile')".
+    ignore:
+      - dependency-name: typescript
+        versions: [">= 7"]
     groups:
       bun-minor-and-patch:
         update-types: [minor, patch]
