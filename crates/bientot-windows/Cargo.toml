@@ -27,7 +27,7 @@ windows = { version = "0.62.2", features = [
     "Win32_UI_Shell_Common",
 ] }
 # `#[implement]` expands to paths in `windows_core`, which `windows` re-exports as `windows::core`.
-windows-core = "0.62.2"
+windows-core = "0.100.0"
 windows-sys = { version = "0.61.2", features = [
     "Wdk_System_SystemServices",
     "Win32_Foundation",
