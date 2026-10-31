@@ -45,6 +45,13 @@ and shows which workflow and commit the attestation names:
 gh attestation verify Bientot-Setup.exe --repo Thanaen/Bientot
 ```
 
+Each release also lists the attestation as `Bientot.intoto.jsonl`. With it, the
+check does not read GitHub's attestation store:
+
+```bash
+gh attestation verify Bientot-Setup.exe --repo Thanaen/Bientot --bundle Bientot.intoto.jsonl
+```
+
 An attestation is not a code signature: Windows and SmartScreen do not read it.
 
 ## If this changes

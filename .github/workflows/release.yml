@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
           fetch-depth: 0
@@ -79,7 +79,7 @@ jobs:
         run: git config --global core.autocrlf false
 
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.sha }}
           fetch-depth: 0
@@ -135,7 +135,7 @@ jobs:
           ls -l "$dist"
 
       - name: Upload the release
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-${{ needs.plan.outputs.version }}
           path: dist/
@@ -160,13 +160,13 @@ jobs:
     steps:
       # The history from the previous release, for the notes.
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.sha }}
           fetch-depth: 0
 
       - name: Download the release
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-${{ needs.plan.outputs.version }}
           path: dist
@@ -175,9 +175,15 @@ jobs:
       # `gh attestation verify <file> --repo Thanaen/Bientot` checks that a workflow of this
       # repository built it. Windows and SmartScreen ignore it: it is not a code signature.
       - name: Attest the build provenance
-        uses: actions/attest@v4
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: dist/*
+
+      - name: Add the attestation to the release
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "$BUNDLE" dist/Bientot.intoto.jsonl
 
       # A draft first: the release becomes the latest, whose feed installed copies read, only
       # once every package it lists is uploaded.

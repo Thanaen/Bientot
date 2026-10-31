@@ -129,7 +129,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Installs the toolchain pinned in rust-toolchain.toml.
       - name: Install Rust toolchain
@@ -138,7 +138,7 @@ jobs:
       # A pull request's cache is visible to that pull request only, so this saves the
       # dependency builds between its pushes, not across pull requests.
       - name: Cache dependency builds
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload GPUI screenshots
         if: ${{ always() && needs.plan.outputs.gpui-screenshots == 'true' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gpui-screenshots-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/gpui-screenshots/
@@ -191,13 +191,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Rust toolchain
         run: rustup toolchain install
 
       - name: Cache dependency builds
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       # The DPAPI secret store and the Windows path cases only compile and run here.
       - name: Test the store
@@ -307,7 +307,7 @@ jobs:
       # over a gate.
       - name: Upload executable
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: worktime-rust-windows-${{ github.run_attempt }}
           path: target/release/worktime.exe
@@ -340,7 +340,7 @@ jobs:
           gh api "repos/${REPOSITORY}/commits/${SHA}" --jq '.commit.tree.sha' > artifacts/tested-tree.txt
 
       - name: Upload tested tree
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tested-tree-${{ github.run_attempt }}
           path: artifacts/tested-tree.txt
