@@ -17,6 +17,12 @@ updates:
       default-days: 7
     commit-message:
       prefix: build(app)
+    ignore:
+      # windows-core moves with the windows crate: two windows_core versions break the Windows build.
+      - dependency-name: windows-core
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      # resvg follows the version gpui-pre builds.
+      - dependency-name: resvg
     groups:
       cargo-minor-and-patch:
         update-types: [minor, patch]
