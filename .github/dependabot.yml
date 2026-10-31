@@ -1,0 +1,52 @@
+# Version updates, once a week and grouped, so that they arrive as a few pull requests. Security
+# updates are turned on in the repository settings and use the same commit messages.
+# Titles follow CONTRIBUTING.md ("Commits and pull requests"), which the pull request title check
+# enforces. A new release waits a week before it is proposed, so that a compromised version is
+# more likely to be pulled before it reaches the app.
+version: 2
+
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build(app)
+    groups:
+      cargo-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: bun
+    directory: /services/bientot
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build(site)
+    groups:
+      bun-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci(repo)
+    groups:
+      actions:
+        patterns: ["*"]
