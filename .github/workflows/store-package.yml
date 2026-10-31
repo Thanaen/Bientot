@@ -129,9 +129,12 @@ jobs:
           name: bientot-store-msix
           path: store
 
+      # `submission update --payload`, which reads the submission from a file, is in 0.4.3, not 0.4.0.
       - name: Install the Microsoft Store CLI
         if: ${{ steps.secrets.outputs.ready == 'true' }}
         uses: microsoft/microsoft-store-apppublisher@v1.4
+        with:
+          version: v0.4.3
 
       # The Store ID of the listing: https://apps.microsoft.com/detail/9N4FL1HRF4KL
       - name: Submit for certification
@@ -155,14 +158,18 @@ jobs:
           msstore submission get 9N4FL1HRF4KL | Out-File -Encoding utf8 $draft
           if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed ($LASTEXITCODE)" }
           # The listing texts come from packaging/store/listing.json; images and other fields stay
-          # as Partner Center has them. `submission update` takes the whole submission as one
-          # argument, which Windows limits to 32,767 characters.
-          $submission = jq -c --slurpfile listing packaging/store/listing.json `
-            '.Listings |= with_entries(.value.BaseListing += ($listing[0][.key] // {}))' $draft
+          # as Partner Center has them.
+          $merged = Join-Path $env:RUNNER_TEMP 'submission.json'
+          jq -c --slurpfile listing packaging/store/listing.json `
+            '.Listings |= with_entries(.value.BaseListing += ($listing[0][.key] // {}))' $draft | Out-File -Encoding utf8 $merged
           if ($LASTEXITCODE -ne 0) { throw "jq failed ($LASTEXITCODE)" }
-          if ($submission.Length -gt 32000) { throw "The submission is $($submission.Length) characters, too long to pass to msstore" }
-          msstore submission update 9N4FL1HRF4KL $submission
+          # `submission update` prints the submission, signed upload URLs included, and the logs
+          # of this public repository are public.
+          msstore submission update 9N4FL1HRF4KL --payload $merged | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "msstore submission update failed ($LASTEXITCODE)" }
           msstore submission publish 9N4FL1HRF4KL
           if ($LASTEXITCODE -ne 0) { throw "msstore submission publish failed ($LASTEXITCODE)" }
+          # `submission publish` returns once the commit starts; polling fails on a rejected one.
+          msstore submission poll 9N4FL1HRF4KL
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission poll failed ($LASTEXITCODE)" }
           "Submitted Bientot-${{ needs.package.outputs.package }}.msix for certification, with the listing of packaging/store/listing.json." >> $env:GITHUB_STEP_SUMMARY
