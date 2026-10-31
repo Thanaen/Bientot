@@ -92,6 +92,20 @@ bun install --frozen-lockfile
 bun test
 ```
 
+To fuzz what Bientôt reads from disk (`settings.json`, transfer files, and the dates and
+instants of the ledger), install nightly Rust and
+[cargo-fuzz](https://rust-fuzz.github.io/book/cargo-fuzz.html), then run a target of `fuzz/`
+(`codec`, `settings` or `transfer`):
+
+```bash
+cp Cargo.lock fuzz/Cargo.lock
+fuzz/seed.sh
+cd fuzz && cargo +nightly fuzz run settings -- -max_total_time=60
+```
+
+A failing input lands in `fuzz/artifacts/<target>/`. Turn it into a regular test of
+`bientot-store` once it is fixed.
+
 ### What only Windows checks
 
 A green Linux run does not prove these:
