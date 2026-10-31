@@ -117,14 +117,14 @@ jobs:
 
       - name: Download the package
         if: ${{ steps.secrets.outputs.ready == 'true' }}
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: bientot-store-msix
           path: store
 
       - name: Install the Microsoft Store CLI
         if: ${{ steps.secrets.outputs.ready == 'true' }}
-        uses: microsoft/microsoft-store-apppublisher@v1.1
+        uses: microsoft/microsoft-store-apppublisher@v1.4
 
       # The Store ID of the listing: https://apps.microsoft.com/detail/9N4FL1HRF4KL
       - name: Submit for certification

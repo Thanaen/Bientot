@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Install the Store CLI
-        uses: microsoft/microsoft-store-apppublisher@v1.1
+        uses: microsoft/microsoft-store-apppublisher@v1.4
 
       - name: Read the submission
         shell: pwsh
