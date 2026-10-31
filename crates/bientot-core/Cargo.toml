@@ -15,5 +15,5 @@ bientot-domain = { path = "../bientot-domain" }
 bientot-store = { path = "../bientot-store" }
 
 [dev-dependencies]
-rusqlite = "0.40.2"
+rusqlite = "0.41.0"
 tempfile = "3.27.0"
