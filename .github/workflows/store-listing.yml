@@ -1,0 +1,59 @@
+name: Store listing
+
+# Reads the current Store submission of Bientôt (listing texts, images, package details) through
+# the Store API, so the listing can be kept in the repository (#3). It also shows that the
+# Partner Center secrets of the `release` environment work, without submitting anything. The
+# logs of this public repository are public, so signed upload URLs are removed before the
+# submission is printed.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    name: Read
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    environment: release
+
+    steps:
+      - name: Install the Store CLI
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      - name: Read the submission
+        shell: pwsh
+        env:
+          MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+          MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+          MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+          MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
+        # pwsh decodes msstore's UTF-8 output with the console code page, which garbles accents.
+        run: |
+          [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+          msstore reconfigure --tenantId $env:MSSTORE_TENANT_ID --sellerId $env:MSSTORE_SELLER_ID `
+            --clientId $env:MSSTORE_CLIENT_ID --clientSecret $env:MSSTORE_CLIENT_SECRET
+          if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
+          msstore submission status 9N4FL1HRF4KL
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission status failed ($LASTEXITCODE)" }
+          msstore submission get 9N4FL1HRF4KL | Out-File -Encoding utf8 (Join-Path $env:RUNNER_TEMP 'submission-raw.json')
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed ($LASTEXITCODE)" }
+
+      # A shared access signature (`sig=`) lets anyone write to the submission's storage.
+      - name: Remove signed URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq 'walk(if type == "string" and test("sig="; "i") then "<removed>" else . end)' \
+            "$RUNNER_TEMP/submission-raw.json" > submission.json
+          rm "$RUNNER_TEMP/submission-raw.json"
+          cat submission.json
+
+      - name: Upload the submission
+        uses: actions/upload-artifact@v7
+        with:
+          name: store-submission
+          path: submission.json
+          retention-days: 7
