@@ -33,4 +33,25 @@ fuzz_target!(|bytes: &[u8]| {
     };
     store.save(&settings).expect("settings that load save");
     assert_eq!(store.peek(), Some(settings));
+    let saved = fs::read(store.path()).expect("the saved file reads");
+    if let Some(before) = members(bytes) {
+        let after = members(&saved).expect("the saved file is a JSON object");
+        for name in before {
+            assert!(
+                after.iter().any(|kept| kept.eq_ignore_ascii_case(&name)),
+                "the member {name:?} was dropped"
+            );
+        }
+    }
 });
+
+/// The names of the top-level members of a JSON object, when the bytes are one.
+fn members(bytes: &[u8]) -> Option<Vec<String>> {
+    let bytes = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes);
+    match serde_json::from_slice(bytes).ok()? {
+        serde_json::Value::Object(members) => {
+            Some(members.into_iter().map(|(name, _)| name).collect())
+        }
+        _ => None,
+    }
+}

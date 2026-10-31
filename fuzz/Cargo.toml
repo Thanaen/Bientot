@@ -1,6 +1,6 @@
 [package]
 name = "bientot-fuzz"
-description = "Fuzz targets for the files Bientôt reads from disk. Run with cargo-fuzz, see docs/fuzzing.md."
+description = "Fuzz targets for the files Bientôt reads from disk. Run with cargo-fuzz, see docs/ci-quality-gates.md."
 version = "0.0.0"
 edition = "2024"
 publish = false
@@ -12,6 +12,7 @@ cargo-fuzz = true
 [dependencies]
 jiff = "0.2.38"
 libfuzzer-sys = "0.4.13"
+serde_json = "1.0.154"
 bientot-store = { path = "../crates/bientot-store" }
 
 # Not a member of the app's workspace: these targets build only with cargo-fuzz and nightly Rust.

@@ -44,12 +44,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # cargo-fuzz needs nightly Rust for the sanitizer flags; the app keeps its pinned toolchain.
-      - name: Install nightly Rust and cargo-fuzz
-        run: |
-          rustup toolchain install nightly --profile minimal
-          cargo install cargo-fuzz --locked --version 0.13.2
-
       # The targets build against the dependency versions the app ships.
       - name: Use the workspace lock file
         run: cp Cargo.lock fuzz/Cargo.lock
@@ -59,6 +53,13 @@ jobs:
         with:
           workspaces: fuzz
           key: ${{ matrix.target }}
+
+      # After the cache step, which restores cargo-fuzz. cargo-fuzz needs nightly Rust for the
+      # sanitizer flags; the app keeps its pinned toolchain.
+      - name: Install nightly Rust and cargo-fuzz
+        run: |
+          rustup toolchain install nightly --profile minimal
+          cargo install cargo-fuzz --locked --version 0.13.2
 
       - name: Seed the corpus from the test fixtures
         run: fuzz/seed.sh
