@@ -7,7 +7,7 @@ name: Store package
 # uploaded in Partner Center › Packages by hand. The Store signs the package, so this one stays
 # unsigned and Windows does not install it as is. Not nightly like the direct channel: each
 # submission goes through certification before it reaches users. A submission replaces any draft
-# started by hand in Partner Center.
+# started by hand in Partner Center, and sends the listing texts of packaging/store/listing.json.
 on:
   workflow_dispatch:
     inputs:
@@ -115,6 +115,13 @@ jobs:
             echo "Not submitted: the \`release\` environment has no ${missing[*]}. Upload the \`bientot-store-msix\` artifact in Partner Center by hand." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Checkout the listing
+        if: ${{ steps.secrets.outputs.ready == 'true' }}
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: packaging/store
+          sparse-checkout-cone-mode: false
+
       - name: Download the package
         if: ${{ steps.secrets.outputs.ready == 'true' }}
         uses: actions/download-artifact@v8
@@ -122,9 +129,12 @@ jobs:
           name: bientot-store-msix
           path: store
 
+      # `submission update --payload`, which reads the submission from a file, is in 0.4.3, not 0.4.0.
       - name: Install the Microsoft Store CLI
         if: ${{ steps.secrets.outputs.ready == 'true' }}
         uses: microsoft/microsoft-store-apppublisher@v1.4
+        with:
+          version: v0.4.3
 
       # The Store ID of the listing: https://apps.microsoft.com/detail/9N4FL1HRF4KL
       - name: Submit for certification
@@ -139,7 +149,27 @@ jobs:
           msstore reconfigure --tenantId $env:MSSTORE_TENANT_ID --sellerId $env:MSSTORE_SELLER_ID `
             --clientId $env:MSSTORE_CLIENT_ID --clientSecret $env:MSSTORE_CLIENT_SECRET
           if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
+          [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
           $package = Join-Path $PWD 'store/Bientot-${{ needs.package.outputs.package }}.msix'
-          msstore publish $package -id 9N4FL1HRF4KL
+          # The draft starts from the last published submission and gets the new package.
+          msstore publish $package -id 9N4FL1HRF4KL --noCommit
           if ($LASTEXITCODE -ne 0) { throw "msstore publish failed ($LASTEXITCODE)" }
-          "Submitted Bientot-${{ needs.package.outputs.package }}.msix for certification." >> $env:GITHUB_STEP_SUMMARY
+          $draft = Join-Path $env:RUNNER_TEMP 'draft.json'
+          msstore submission get 9N4FL1HRF4KL | Out-File -Encoding utf8 $draft
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed ($LASTEXITCODE)" }
+          # The listing texts come from packaging/store/listing.json; images and other fields stay
+          # as Partner Center has them.
+          $merged = Join-Path $env:RUNNER_TEMP 'submission.json'
+          jq -c --slurpfile listing packaging/store/listing.json `
+            '.Listings |= with_entries(.value.BaseListing += ($listing[0][.key] // {}))' $draft | Out-File -Encoding utf8 $merged
+          if ($LASTEXITCODE -ne 0) { throw "jq failed ($LASTEXITCODE)" }
+          # `submission update` prints the submission, signed upload URLs included, and the logs
+          # of this public repository are public.
+          msstore submission update 9N4FL1HRF4KL --payload $merged | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission update failed ($LASTEXITCODE)" }
+          msstore submission publish 9N4FL1HRF4KL
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission publish failed ($LASTEXITCODE)" }
+          # `submission publish` returns once the commit starts; polling fails on a rejected one.
+          msstore submission poll 9N4FL1HRF4KL
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission poll failed ($LASTEXITCODE)" }
+          "Submitted Bientot-${{ needs.package.outputs.package }}.msix for certification, with the listing of packaging/store/listing.json." >> $env:GITHUB_STEP_SUMMARY

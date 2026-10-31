@@ -1,7 +1,7 @@
 name: Store listing
 
 # Reads the current Store submission of Bientôt (listing texts, images, package details) through
-# the Store API, so the listing can be kept in the repository (#3). It also shows that the
+# the Store API and compares its listing texts with packaging/store/listing.json (#3). It also shows that the
 # Partner Center secrets of the `release` environment work, without submitting anything. The
 # logs of this public repository are public, so signed upload URLs are removed before the
 # submission is printed.
@@ -50,6 +50,31 @@ jobs:
             "$RUNNER_TEMP/submission-raw.json" > submission.json
           rm "$RUNNER_TEMP/submission-raw.json"
           cat submission.json
+
+      - name: Checkout the listing
+        uses: actions/checkout@v7
+        with:
+          path: repo
+          sparse-checkout: packaging/store
+          sparse-checkout-cone-mode: false
+
+      # The Store package workflow sends these texts with each submission, so a difference means
+      # an edit made in Partner Center that the next submission would undo, or one in the
+      # repository that is not submitted yet.
+      - name: Compare with the repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -S --slurpfile listing repo/packaging/store/listing.json \
+            '.Listings | with_entries(.value = (.value.BaseListing | with_entries(select(.key as $k | $listing[0] | any(.[]; has($k))))))' \
+            submission.json > partner-center.json
+          jq -S . repo/packaging/store/listing.json > repository.json
+          if diff -u repository.json partner-center.json > listing.diff; then
+            echo "The listing texts in Partner Center match packaging/store/listing.json." >> "$GITHUB_STEP_SUMMARY"
+          else
+            { echo "The listing texts in Partner Center differ from packaging/store/listing.json:"; echo '```diff'; cat listing.diff; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            cat listing.diff
+          fi
 
       - name: Upload the submission
         uses: actions/upload-artifact@v7
