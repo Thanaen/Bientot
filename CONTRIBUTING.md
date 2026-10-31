@@ -69,7 +69,7 @@ To look at the flyout without Windows, render every demo scenario to PNG files i
 language and one theme (Linux, with a Vulkan driver such as Mesa's `mesa-vulkan-drivers`):
 
 ```bash
-cargo run --release --features screenshots --bin bientot-screenshots -p bientot-app -- shots/fr-dark --french --dark
+cargo run --profile screenshots --features screenshots --bin bientot-screenshots -p bientot-app -- shots/fr-dark --french --dark
 ```
 
 The Rust app reads its texts from `crates/bientot-app/strings/fr-FR.resw` and
@@ -123,10 +123,11 @@ A green Linux run does not prove these:
 - **Plan** (Ubuntu) decides which jobs a run needs. For a push to `main` it
   looks for a passed pull request run that built the same tree and, if found,
   skips the other jobs.
-- **Rust** (Ubuntu) checks formatting, lints and tests the Cargo workspace, and
-  renders the screenshots when the app crate changes. **Publish screenshots**
-  pushes them to the `refs/ci-screenshots/<pull request>` ref (not a
-  branch, so Vercel ignores it) and links them from the job summary.
+- **Rust** (Ubuntu) checks formatting, lints and tests the Cargo workspace.
+- **GPUI screenshots** (Ubuntu) renders the screenshots when the app crate
+  changes, beside **Rust**. **Publish screenshots** pushes them to the
+  `refs/ci-screenshots/<pull request>` ref (not a branch, so Vercel ignores it)
+  and links them from the job summary.
 - **Rust on Windows** tests `bientot-store` and `bientot-windows`, builds the
   release executable and measures its size, startup time and memory. Then
   `scripts/measure-performance.ps1` runs it with the built-in activity source,
