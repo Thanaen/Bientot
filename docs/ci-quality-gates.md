@@ -32,6 +32,16 @@ The `Store listing` workflow (`.github/workflows/store-listing.yml`) also runs o
 
 The `Scorecard` workflow (`.github/workflows/scorecard.yml`) runs [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/Thanaen/Bientot) on each push to `main` and every Monday, since a change to the repository settings pushes no commit. It lists the failed checks as code scanning alerts in the Security tab and publishes the score that the README badge shows. It does not run for pull requests and blocks nothing. Scorecard's API accepts the published results only from a workflow without top-level `env`, `defaults` or write permissions, whose job runs on Ubuntu and uses only `actions/checkout`, `actions/upload-artifact`, `github/codeql-action/upload-sarif` and `ossf/scorecard-action`: keep it that way.
 
+## Fuzzing
+
+The `Fuzz` workflow (`.github/workflows/fuzz.yml`) runs the [cargo-fuzz](https://rust-fuzz.github.io/book/cargo-fuzz.html) targets of `fuzz/`, one job each, with nightly Rust and the versions of `Cargo.lock`:
+
+- `codec` reads any text as the ledger's dates and instants, and checks that what reads writes back to text that reads as the same value.
+- `settings` loads any file as `settings.json`, and checks that settings which load save to a file that loads as the same settings.
+- `transfer` overwrites bytes of a real transfer file and inspects it, as an import does before it asks to confirm.
+
+No input may panic. The corpus starts from the inputs of the `bientot-store` test fixtures (`fuzz/seed.sh`). The workflow fuzzes each target for 60 seconds on a pull request that changes `fuzz/`, `crates/bientot-domain/`, `crates/bientot-store/` or `Cargo.lock`, for 10 minutes every Sunday, and for the chosen number of seconds from the Actions tab. A failing job keeps the input that failed as the `fuzz-<target>-artifacts` artifact for 30 days.
+
 ## Required checks
 
 Configure `Rust` and `Rust on Windows` as required checks on `main`. A skipped job counts as passed, so a documentation-only pull request is not blocked.

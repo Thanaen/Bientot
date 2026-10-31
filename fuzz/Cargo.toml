@@ -1,0 +1,39 @@
+[package]
+name = "bientot-fuzz"
+description = "Fuzz targets for the files Bientôt reads from disk. Run with cargo-fuzz, see docs/fuzzing.md."
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+jiff = "0.2.38"
+libfuzzer-sys = "0.4.13"
+bientot-store = { path = "../crates/bientot-store" }
+
+# Not a member of the app's workspace: these targets build only with cargo-fuzz and nightly Rust.
+[workspace]
+
+[[bin]]
+name = "settings"
+path = "fuzz_targets/settings.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "transfer"
+path = "fuzz_targets/transfer.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "codec"
+path = "fuzz_targets/codec.rs"
+test = false
+doc = false
+bench = false
