@@ -16,3 +16,10 @@ opt-level = "s"
 lto = "fat"
 codegen-units = 1
 strip = true
+
+# The screenshot tool: optimised, it renders one language and theme in 24 s on CI, against
+# 217 s for a debug build. The debug assertions stay on.
+[profile.screenshots]
+inherits = "dev"
+opt-level = 3
+debug = false

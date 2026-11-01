@@ -34,9 +34,10 @@ jobs:
 
     steps:
       # Screenshots only matter when the pull request can change what the app looks like; the
-      # Linux Rust job takes them. The Rust job runs only when a Rust file, `packaging/` (read by
-      # the tests) or this workflow changes. The Windows Rust job, the costliest minutes, runs only
-      # when the app crate, the store's Windows-only code, the dependencies or this workflow change.
+      # GPUI screenshots job takes them. The Rust job runs only when a Rust file, `packaging/`
+      # (read by the tests) or this workflow changes. The Windows Rust job, the costliest minutes,
+      # runs only when the app crate, the store's Windows-only code, the dependencies or this
+      # workflow change.
       - name: Detect pull request changes
         id: pull-request
         if: ${{ github.event_name == 'pull_request' }}
@@ -117,8 +118,7 @@ jobs:
     needs: plan
     if: ${{ !cancelled() && needs.plan.outputs.verified != 'true' && needs.plan.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
-    # A pull request's first run builds without a cache, then renders every screenshot on the
-    # software Vulkan driver; together they passed 15 minutes on #20.
+    # A pull request's first run builds without a cache.
     timeout-minutes: 30
 
     permissions:
@@ -150,20 +150,69 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-features --locked
 
-      # The flyout of every demo scenario, rendered off screen by Mesa's software Vulkan driver.
-      - name: Capture GPUI screenshots
-        if: ${{ needs.plan.outputs.gpui-screenshots == 'true' }}
+  # The flyout of every demo scenario and the other windows, rendered off screen by Mesa's
+  # software Vulkan driver in French and English, light and dark. Apart from the Rust job, so
+  # that the Windows job does not wait for it.
+  gpui-screenshots:
+    name: GPUI screenshots
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.outputs.verified != 'true' && needs.plan.outputs.gpui-screenshots == 'true' }}
+    runs-on: ubuntu-latest
+    # A pull request's first run builds the optimised tool without a cache in about 5 minutes.
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache dependency builds
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Install the software Vulkan driver
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers
-          cargo build --locked -p bientot-app --features screenshots --bin bientot-screenshots
-          for variant in fr-dark fr-light en-dark en-light; do
+
+      # The `screenshots` profile renders one language and theme in 24 s, a debug build in 217 s.
+      - name: Build the screenshot tool
+        run: cargo build --locked --profile screenshots -p bientot-app --features screenshots --bin bientot-screenshots
+
+      # The four variants render at the same time. Each gets its own temporary directory, because
+      # the tool keeps its demo data there under fixed names.
+      - name: Capture GPUI screenshots
+        run: |
+          variants=(fr-dark fr-light en-dark en-light)
+          pids=()
+          for variant in "${variants[@]}"; do
             case "$variant" in fr-*) language=--french ;; *) language=--english ;; esac
-            target/debug/bientot-screenshots "artifacts/gpui-screenshots/${variant}" "$language" "--${variant#*-}"
+            mkdir -p "${RUNNER_TEMP}/tmp-${variant}"
+            TMPDIR="${RUNNER_TEMP}/tmp-${variant}" target/screenshots/bientot-screenshots \
+              "artifacts/gpui-screenshots/${variant}" "$language" "--${variant#*-}" \
+              > "${RUNNER_TEMP}/${variant}.log" 2>&1 &
+            pids+=("$!")
           done
 
+          status=0
+          for i in "${!variants[@]}"; do
+            variant=${variants[$i]}
+            if wait "${pids[$i]}"; then result=passed; else result=failed; status=1; fi
+            echo "::group::${variant} (${result})"
+            cat "${RUNNER_TEMP}/${variant}.log"
+            echo "::endgroup::"
+          done
+          exit "$status"
+
       - name: Upload GPUI screenshots
-        if: ${{ always() && needs.plan.outputs.gpui-screenshots == 'true' }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gpui-screenshots-${{ github.run_id }}-${{ github.run_attempt }}
@@ -321,6 +370,7 @@ jobs:
     needs:
       - plan
       - rust
+      - gpui-screenshots
       - rust-windows
     if: ${{ github.event_name == 'pull_request' && !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
@@ -348,13 +398,13 @@ jobs:
           if-no-files-found: error
 
   # Publishes the screenshots in the repository so reviewers and Claude can open them without
-  # downloading an archive. Kept apart from the Rust job so no pull request code runs with
-  # write access.
+  # downloading an archive. Kept apart from the job that renders them so no pull request code
+  # runs with write access.
   screenshots:
     name: Publish screenshots
     needs:
       - plan
-      - rust
+      - gpui-screenshots
     if: ${{ !cancelled() && needs.plan.outputs.gpui-screenshots == 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
