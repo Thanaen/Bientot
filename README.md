@@ -53,9 +53,12 @@ Bientôt runs on Windows 11 x64.
 
 If you used the installer first, the Store build reads and writes the same
 folder, so you can move to the Store build without losing your history
-([details](docs/privacy.md#delete-your-data)).
+([details](docs/privacy.md#delete-your-data)). Then uninstall the installer
+copy, so that only the Store build starts when you sign in
+([why](docs/startup-registration.md#moving-to-the-store-build)).
 
-Bientôt is still in alpha: expect rough edges, and please
+The Microsoft Store build is the released version. The installer gets a new
+build every night and may have rough edges. Please
 [report what goes wrong](https://github.com/Thanaen/Bientot/issues/new/choose).
 
 ## Privacy

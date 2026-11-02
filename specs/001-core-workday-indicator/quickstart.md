@@ -1,39 +1,37 @@
 # Quickstart and Validation Scenarios
 
-**Status**: Design-time guide; commands become executable after project setup.
+**Status**: Executable against the Rust app. The `docs/validation-report.md`
+records each run of these scenarios, `docs/release-checklist.md` the release
+smoke and Store package checks, and `docs/accessibility-checklist.md` the
+accessibility checks.
+
+The first version of the app, then called WorkTime, was a .NET app that could
+also read ActivityWatch. It was removed in October 2026 (D-022). The steps
+that only applied to ActivityWatch now check what an upgraded user sees.
 
 ## Development prerequisites
 
-- Windows 11 x64
-- Visual Studio with WinUI / Windows App SDK workload
-- .NET 10 SDK
-- PowerShell 7
-- optional: local ActivityWatch using `aw-server-rust` or Python `aw-server`,
-  to validate the ActivityWatch source (the built-in source needs nothing)
+- Windows 11 x64 to run the app; the tests also run on Linux and macOS
+- `rustup`; the toolchain of `rust-toolchain.toml` installs on the first
+  `cargo` command
+- PowerShell 7 (`pwsh`) for the scripts in `scripts/`
 
-## Expected first implementation commands
+## Commands
 
 ```powershell
-dotnet restore WorkTime.slnx
-dotnet build WorkTime.slnx -c Debug
-dotnet test WorkTime.slnx -c Debug
-dotnet run --project src/WorkTime.App/WorkTime.App.csproj
+cargo test --workspace --all-features --locked
+cargo build --release --locked -p bientot-app --bin worktime --features release
+target\release\worktime.exe --demo
 ```
 
-Exact solution and package versions are created by the setup tasks.
-
-## Source validation
-
-The built-in source needs no preparation. To validate the ActivityWatch
-source, check the server before running WorkTime:
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:5600/api/0/info
-Invoke-RestMethod http://127.0.0.1:5600/api/0/buckets/
-```
-
-If bearer authentication is enabled, provide the key interactively; do not
-place it in repository files or shell history.
+`--demo [scenario]` opens a throwaway data folder with a fixed clock. The
+scenarios are listed in `crates/bientot-app/src/demo.rs`: `on-track`,
+`near-limit`, `late`, `goal-reached`, `morning`, `morning-near-limit`,
+`morning-late`, `credit`, `history-week`, `problem-periods`,
+`fragmented-day`, `source-unavailable` and `source-activitywatch`.
+`--data-dir <folder>` runs on a folder of your choice; `--english`,
+`--french`, `--light`, `--dark`, `--onboarding` and `--demo-update` override
+what the app would pick.
 
 ## Core scenario
 
@@ -53,7 +51,8 @@ Validate:
 4. A lock outside lunch is provisional work and is flagged after 90 minutes.
 5. A lock left active past the end of the workday is excluded as
    `overnight-lock` on both days until the unlock, with no review.
-6. Before 14:00, no numeric departure is shown.
+6. Before 14:00, the departure time is shown with the line that lunch is
+   planned until 14:00 (D-015, revised on 2026-10-23).
 7. After 14:00, green/orange/red matches exact threshold tests.
 8. At target completion, state becomes blue and overtime grows only with newly
    credited time.
@@ -78,38 +77,38 @@ Validate:
 
 ## Resilience scenario
 
-1. With ActivityWatch selected, stop ActivityWatch; verify stale/degraded
-   state, no crash, no false zero.
-2. Restart it; verify automatic recovery.
+1. When the built-in source cannot read input, verify the degraded state, no
+   crash and no false zero. (Was: ActivityWatch stopped.)
+2. When it reads input again, verify automatic recovery. (Was: ActivityWatch
+   restarted.)
 3. Suspend while locked; verify sleeping time is excluded.
-4. Start WorkTime after morning activity; verify known activity is credited and
-   unknown session gaps remain visible. With the built-in source, the time
-   before launch is unknown; with ActivityWatch, its recorded activity is
-   credited.
+4. Start Bientôt after morning activity; verify the session before the first
+   start is rebuilt from the Windows event logs, counts provisionally and is
+   offered for review, and that any other time before launch stays unknown.
 5. Restart after notifications fired; verify no duplicate.
-6. With the built-in source, leave the keyboard and mouse untouched for longer
-   than the idle threshold; verify the idle time is excluded from the last
-   input, not from the moment it was detected.
-7. With the built-in source, end the WorkTime process from Task Manager and
-   start it again; verify the interval in between is unknown and not credited.
-   Repeat with a clean exit from the tray less than the idle threshold after
-   the last input; verify the time after the last input is unknown, also when
-   read again hours later.
-8. Switch the source in the middle of a workday; verify each part of the day
-   is read from the source selected at that time, never from both.
+6. Leave the keyboard and mouse untouched for longer than the idle threshold;
+   verify the idle time is excluded from the last input, not from the moment
+   it was detected.
+7. End the Bientôt process from Task Manager and start it again; verify the
+   interval in between is unknown and not credited. Repeat with a clean exit
+   from the tray less than the idle threshold after the last input; verify the
+   time after the last input is unknown, also when read again hours later.
+8. Only a one-time switch from ActivityWatch to the built-in source remains,
+   for a user upgraded from the first version. Verify each part of that day is
+   read from the source selected at that time, never from both, and that time
+   selected for ActivityWatch reads as unavailable.
 
 ## Release smoke scenario
 
-On a clean Windows 11 x64 VM:
+On a clean Windows 11 x64 machine:
 
-1. Install WorkTime from the Microsoft Store and complete French onboarding
-   without ActivityWatch installed; verify no ActivityWatch step appears and
-   the built-in source is healthy. Repeat with ActivityWatch running and verify
-   onboarding offers it. For an alpha, extract the portable ZIP from
-   `alpha-latest` instead. After onboarding with the built-in source, verify
-   that the time before confirmation is unknown, even with ActivityWatch
-   running. Upgrade a build from before D-021 configured with ActivityWatch
-   and verify earlier days still read ActivityWatch.
+1. Install Bientôt from the Microsoft Store and complete French onboarding;
+   verify no ActivityWatch step appears and the built-in source is healthy.
+   For an alpha, install `Bientot-Setup.exe` or extract `Bientot-Portable.zip`
+   from the latest GitHub release instead. After onboarding, verify that the
+   time before confirmation is unknown. Upgrade a data folder from the first
+   version configured with ActivityWatch and verify earlier days keep their
+   stored totals.
 2. Verify start-with-Windows consent and sign-in launch.
 3. Verify tray recovery after Explorer restart.
 4. Verify English override and resource completeness.
@@ -117,11 +116,12 @@ On a clean Windows 11 x64 VM:
 6. Verify update offer requires user action.
 7. Export diagnostics and confirm no secret, app title, or window title.
 8. Measure usable tray startup under 3 seconds, average idle CPU under 0.5%,
-   and working set at or below 150 MiB.
+   and working set at or below 150 MiB with
+   `scripts/measure-performance.ps1 -Release`.
 
 ## Start-with-Windows visibility scenario
 
-Use an isolated portable build before the clean-VM release smoke:
+Use an isolated portable build before the clean-machine release smoke:
 
 1. Run `scripts/verify-startup-visibility.ps1` in `Startup` mode. Verify that
    the process stays alive, the demo database appears, and no top-level window
@@ -134,52 +134,53 @@ Use an isolated portable build before the clean-VM release smoke:
    change the real `WorkTime` startup registration.
 5. Close a normal initialized window to the tray. Verify that a tray activation
    and a notification activation each reopen the existing window.
+   `scripts/test-rust-toast-activation.ps1` checks a notification activation
+   of a stopped app.
 
 The script observes one launched process for eight seconds and writes
-`visibility.json`. It does not simulate a Windows sign-in. Validate the signed
-MSIX and `WorkTimeStartupTask` payload on a clean Windows 11 x64 VM.
+`visibility.json`. It does not simulate a Windows sign-in. Validate the
+Store-signed MSIX and its `WorkTimeStartupTask` on a clean Windows 11 x64
+machine.
 
 ### Diagnostic export smoke
 
-1. Start WorkTime and immediately choose **Export diagnostics…** in the main
+1. Start Bientôt and immediately choose **Export diagnostics…** in the main
    window, including while initialization is still running or after a controlled
    startup failure.
-2. Repeat from **Export diagnostics…** in the tray menu. Verify that WorkTime is
+2. Repeat from **Export diagnostics…** in the tray menu. Verify that Bientôt is
    brought into view and the Windows save picker suggests
-   `worktime-diagnostics.zip` with the ZIP file type.
-3. Cancel the picker. Verify that WorkTime adds no success or failure notice and does not
-   create or replace a file.
+   `bientot-diagnostics.zip` with the ZIP file type.
+3. Cancel the picker. Verify that Bientôt adds no success or failure notice and
+   does not create or replace a file.
 4. Complete the export and confirm the archive contains only `manifest.json`,
    `snapshot.json`, and `logs.jsonl`. Verify the success notice and confirm that
    the ZIP is saved only to the destination chosen in the picker, with no
    automatic upload.
 5. Inspect every entry for test API keys, bucket and machine identifiers, local
-   paths, ActivityWatch application names, and window titles. None may appear;
-   logs contain only the documented finite events and values.
+   paths, application names, and window titles. None may appear; logs contain
+   only the documented finite events and values.
 6. In a controlled test location where publication is denied, verify the
    localized failure notice contains no exception or path and an existing
    destination remains unchanged.
 
-The symbolic-link boundary test needs Developer Mode or the Windows permission
-to create symbolic links. Its normal skip is explicit. To run it on a prepared
-host, set `WORKTIME_NATIVE_DIAGNOSTIC_LINK_TEST=1` and run the
-`DiagnosticPrivacyTests.ExportAsync_RejectsReparseRoot` test. A missing permission
-then fails the test rather than silently passing it.
+The symbolic-link boundary test (`rejects_reparse_root` in
+`crates/bientot-core/tests/diagnostics_export.rs`) runs on Unix only. On
+Windows, `is_reparse_point` in `crates/bientot-core/src/diagnostics/export.rs`
+checks the reparse-point attribute; check a real junction by hand.
 
-### T057 lifecycle smoke boundary
+### Lifecycle smoke boundary
 
-The automated T057 tests exercise startup probes, deterministic callback keys,
-stream consumption, SQLite persistence, restart replay, and refresh requests.
-They do not prove that Windows delivers real `WM_WTSSESSION_CHANGE` and
-`WM_POWERBROADCAST` messages to the WinUI window handle. Before calling the
-Windows lifecycle path release-ready, run the packaged app on Windows 11 x64,
-lock and unlock the active session, then suspend and resume the machine. Verify
-that each transition appears once in `SessionEvent` and changes the published
-summary. This remains a manual smoke gap until the clean-VM lifecycle harness
-exists.
+The automated lifecycle tests exercise startup probes, deterministic callback
+keys, SQLite persistence and restart replay. The Windows-only
+`messages_of_this_session_reach_the_host_until_the_window_is_dropped` test
+posts `WM_WTSSESSION_CHANGE` and `WM_POWERBROADCAST` to the app's message
+window, which proves the decoding, not that Windows delivers them. Before
+calling the lifecycle path release-ready, run the packaged app on Windows 11
+x64, lock and unlock the active session, then suspend and resume the machine.
+Verify that each transition is recorded once and changes the published
+summary.
 
-The integration test retries adjustments with an explicit stable ID. The UI
-creates one ID before submission and keeps it while the open dialog retries;
-there is no automatic cross-restart retry of an interrupted dialog submission.
-Editing appends a superseding adjustment; removal remains unavailable. Do not
-treat UI restart retry or adjustment removal as covered by T057.
+The adjustment dialog creates one ID before submission and keeps it while it
+retries; there is no automatic cross-restart retry of an interrupted dialog
+submission. Editing appends a superseding adjustment, and a correction can be
+revoked.
