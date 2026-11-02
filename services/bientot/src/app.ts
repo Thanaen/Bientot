@@ -53,7 +53,7 @@ export function createApp({ store, now = () => new Date(), latest = latestVersio
     return new Response(await body(stats), { headers });
   };
 
-  return {
+  return withHead({
     ...siteRoutes(latestRelease),
     "/v1/ping": {
       async POST(request: Request): Promise<Response> {
@@ -105,7 +105,24 @@ export function createApp({ store, now = () => new Date(), latest = latestVersio
         return redirect(releaseUrl(SETUP));
       },
     },
-  };
+  });
+}
+
+type Handler = (request: Request & { params: Record<string, string> }) => Response | Promise<Response>;
+
+// A HEAD for every GET: the same status and headers, without the body. Bun.serve answers HEAD from
+// GET by itself, but not on Vercel, where a HEAD fell through to the 404 of server.ts, and crawlers
+// and link checkers ask with HEAD whether a page exists.
+function withHead<T extends Record<string, object>>(routes: T): T {
+  for (const route of Object.values(routes) as { GET?: Handler; HEAD?: Handler }[]) {
+    const get = route.GET;
+    if (!get) continue;
+    route.HEAD = async (request) => {
+      const { status, headers } = await get(request);
+      return new Response(null, { status, headers });
+    };
+  }
+  return routes;
 }
 
 // Browsers keep an answer ten minutes; Vercel's CDN keeps it until five minutes past the next UTC
