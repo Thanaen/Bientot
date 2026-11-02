@@ -52,9 +52,9 @@ impl AdjustView {
             let selected = slot.selected;
             let (background, border, color) = match (locked, selected) {
                 (false, true) => (theme.accent_background, theme.accent, theme.accent),
-                (true, true) => (theme.element_active, theme.border, theme.text_placeholder),
+                (true, true) => (theme.element_active, theme.border, theme.text_disabled),
                 (false, false) => (theme.editor, theme.border, theme.text),
-                (true, false) => (theme.element, theme.border_variant, theme.text_placeholder),
+                (true, false) => (theme.element, theme.border_variant, theme.text_disabled),
             };
             let focused = theme.border_focused;
             let hover = theme.element_hover;

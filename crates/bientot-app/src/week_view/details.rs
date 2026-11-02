@@ -249,7 +249,7 @@ fn action(
         let frame = button(id, name, theme).bg(theme.element).on_click(on_click);
         (frame, theme.text_muted)
     } else {
-        (disabled(id, name, theme).border_1(), theme.text_placeholder)
+        (disabled(id, name, theme).border_1(), theme.text_disabled)
     };
     frame
         .border_color(theme.border_variant)

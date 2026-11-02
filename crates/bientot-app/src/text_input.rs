@@ -704,7 +704,7 @@ impl Render for TextInput {
         let theme = Theme::current(window, cx);
         let colors = Colors {
             text: if self.disabled {
-                theme.text_placeholder
+                theme.text_disabled
             } else {
                 theme.text
             },

@@ -44,7 +44,7 @@ fn caps(keystroke: &str, look: Caps, language: Language, theme: &Theme) -> AnyEl
             return flyout::keys(flyout::key_caps(keystroke, language), theme).into_any_element();
         }
         Caps::OnAccent(color) => (color.opacity(0.8), transparent_black(), color.opacity(0.8)),
-        Caps::Disabled => (theme.element, theme.element, theme.text_placeholder),
+        Caps::Disabled => (theme.element, theme.element, theme.text_disabled),
     };
     div()
         .flex()
@@ -193,7 +193,7 @@ impl AdjustView {
             } else {
                 button
                     .aria_label(page.secondary)
-                    .text_color(theme.text_placeholder)
+                    .text_color(theme.text_disabled)
             }
         };
         let enabled = page.primary_enabled && !page.busy;
@@ -201,7 +201,7 @@ impl AdjustView {
         let (background, border, color) = if enabled {
             (theme.accent, theme.accent, on_accent)
         } else {
-            (theme.element, theme.border_variant, theme.text_placeholder)
+            (theme.element, theme.border_variant, theme.text_disabled)
         };
         let spinner = widgets::icon("loader-circle", theme.text_muted)
             .size(token::ICON_SM)

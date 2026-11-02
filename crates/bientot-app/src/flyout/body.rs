@@ -229,7 +229,7 @@ impl Flyout {
                 .rounded(radius::SM)
                 .border_1()
                 .border_color(theme.border_on_tint)
-                .text_color(theme.text_placeholder)
+                .text_color(theme.text_disabled)
                 .whitespace_nowrap()
                 .child(spinner)
                 .child(label)

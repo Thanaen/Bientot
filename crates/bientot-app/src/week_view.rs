@@ -685,7 +685,7 @@ fn disabled(
         .gap(BASE_04)
         .rounded(radius::SM)
         .whitespace_nowrap()
-        .text_color(theme.text_placeholder)
+        .text_color(theme.text_disabled)
 }
 
 fn icon_button(
@@ -1003,7 +1003,7 @@ impl WeekView {
         let label = self.text(action.label);
         let icon_color = match action.click {
             Click::Enabled(_) => theme.text_muted,
-            Click::Disabled => theme.text_placeholder,
+            Click::Disabled => theme.text_disabled,
         };
         let icon = action
             .icon

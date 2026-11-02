@@ -231,7 +231,7 @@ fn exporting(action: &Action, theme: &Theme) -> Stateful<Div> {
         .border_1()
         .border_color(theme.border_variant)
         .bg(theme.element)
-        .text_color(theme.text_placeholder)
+        .text_color(theme.text_disabled)
         .font_weight(FontWeight::MEDIUM)
         .whitespace_nowrap()
         .child(spinner(theme))
