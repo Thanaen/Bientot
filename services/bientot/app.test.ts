@@ -477,3 +477,28 @@ describe("the two domains", () => {
     expect(await response.text()).toContain(`<link rel="canonical" href="${canonical}">`);
   });
 });
+
+describe("HEAD", () => {
+  const head = async (path: string, params: Record<string, string> = {}) => {
+    const route = app[path as keyof typeof app] as { GET(r: Request): Response | Promise<Response>; HEAD?(r: Request): Response | Promise<Response> };
+    const request = () => Object.assign(new Request(`http://local${path}`), { params });
+    return { get: await route.GET(request()), head: await route.HEAD?.(request()) };
+  };
+
+  test.each([
+    ["/", {}],
+    ["/en", {}],
+    ["/statistiques", {}],
+    ["/robots.txt", {}],
+    ["/sitemap.xml", {}],
+    ["/og/home.png", {}],
+    ["/download", {}],
+    ["/statistiques/:file", { file: "mensuel.csv" }],
+    ["/updates/:file", { file: "releases.win.json" }],
+  ])("%s answers like its GET, without the body", async (path, params) => {
+    const { get, head: answer } = await head(path, params);
+    expect(answer?.status).toBe(get.status);
+    expect(Object.fromEntries(answer!.headers)).toEqual(Object.fromEntries(get.headers));
+    expect(answer!.body).toBeNull();
+  });
+});

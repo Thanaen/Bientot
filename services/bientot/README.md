@@ -25,6 +25,8 @@ statistics show no older version.
 | `GET /updates/<file>` | `302` to that file in the GitHub Releases (see Updates); `404` for a name the Release workflow never publishes |
 | `GET /download` | `302` to the latest installer, `Bientot-Setup.exe` (see Updates) |
 
+Every `GET` route also answers `HEAD`, with the same status and headers and no body.
+
 ## Pages
 
 `site/index.html` is a static page in French, and `site/en.html` the same page in English, in the
