@@ -80,7 +80,7 @@ impl SettingsView {
         };
         let reveal = row.reveal.map(|label| {
             div().pt(BASE_04).flex().child(
-                widgets::disclosure(("reveal", which as usize), label, false, theme)
+                widgets::link(("reveal", which as usize), label, "chevron-right", theme)
                     .on_click(cx.listener(move |view, _, _, cx| view.reveal(which, cx))),
             )
         });

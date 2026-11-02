@@ -1010,13 +1010,10 @@ fn group(
         .flex()
         .flex_col()
         .gap(BASE_08)
-        .children(heading.map(|heading| {
-            div()
-                .id("heading")
-                .role(Role::Heading)
-                .type_style(text::HEADLINE_SM)
-                .child(heading)
-        }))
+        .children(
+            heading
+                .map(|heading| widgets::heading("heading", heading).type_style(text::HEADLINE_SM)),
+        )
         .child(card(theme).children(rows))
 }
 
@@ -1154,7 +1151,11 @@ pub(crate) fn ping_details<V: 'static>(
     toggle: fn(&mut V),
 ) -> gpui::Div {
     let open = details.shown.is_some();
-    let button = widgets::disclosure("ping-details-toggle", details.label, open, theme).on_click(
+    let button = widgets::disclosure(
+        "ping-details-toggle",
+        details.label,
+        open,
+        theme,
         cx.listener(move |view, _, _, cx| {
             toggle(view);
             cx.notify();
@@ -1290,12 +1291,14 @@ impl SettingsView {
                 .child(self.time_field(clock, invalid, theme, cx))
                 .into_any_element(),
             Control::Range {
+                name,
                 start,
                 end,
                 invalid,
             } => div()
                 .id("lunch")
                 .role(Role::Group)
+                .aria_label(name)
                 .track_focus(&self.lunch)
                 .flex()
                 .items_center()
@@ -1888,14 +1891,7 @@ pub(crate) fn page_header(
         .flex()
         .flex_col()
         .gap(BASE_02)
-        .child(
-            div()
-                .id("page-title")
-                .role(Role::Heading)
-                .aria_label(title)
-                .type_style(text::HEADLINE_LG)
-                .child(title),
-        )
+        .child(widgets::heading("page-title", title).type_style(text::HEADLINE_LG))
         .child(status)
 }
 

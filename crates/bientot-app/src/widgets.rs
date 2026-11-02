@@ -3,11 +3,13 @@
 //! thumb of a scroll bar and the shade of a scrolled edge, the tooltips, and a text shaped on
 //! one line and how wide it is.
 
+use std::rc::Rc;
+
 use gpui::{
-    App, Bounds, ClickEvent, Div, ElementId, FocusHandle, Font, FontFeatures, Hsla, Pixels, Role,
-    ScrollHandle, ShapedLine, SharedString, Stateful, TextRun, Window, WindowControlArea, canvas,
-    div, fill, font, hsla, linear_color_stop, linear_gradient, point, prelude::*, px, size, svg,
-    transparent_black,
+    AccessibleAction, App, Bounds, ClickEvent, Div, ElementId, FocusHandle, Font, FontFeatures,
+    Hsla, Pixels, Role, ScrollHandle, ShapedLine, SharedString, Stateful, TextRun, Window,
+    WindowControlArea, canvas, div, fill, font, hsla, linear_color_stop, linear_gradient, point,
+    prelude::*, px, size, svg, transparent_black,
 };
 
 use crate::assets::{FONT_FAMILY, MONO_FONT_FAMILY};
@@ -322,25 +324,66 @@ fn lowered_notice_box(
         .aria_label(SharedString::from(notice.message.clone()))
 }
 
-/// A link that shows or hides what follows it, its chevron down while `open`; the caller makes
-/// it toggle.
+/// Exposes `node` as expanded or collapsed, and `toggle`s it when a screen reader expands a
+/// collapsed `node` or collapses an expanded one. UIA gives such a node no Invoke pattern, and
+/// GPUI turns only a screen reader's click into one, so every `aria_expanded` goes through here
+/// (`tests/accessible_names.rs`).
+pub(crate) fn expandable<E: StatefulInteractiveElement>(
+    node: E,
+    open: bool,
+    toggle: impl Fn(&(), &mut Window, &mut App) + 'static,
+) -> E {
+    let toggle = Rc::new(toggle);
+    let expand = Rc::clone(&toggle);
+    node.aria_expanded(open)
+        .on_a11y_action(AccessibleAction::Expand, move |_, window, cx| {
+            if !open {
+                expand(&(), window, cx);
+            }
+        })
+        .on_a11y_action(AccessibleAction::Collapse, move |_, window, cx| {
+            if open {
+                toggle(&(), window, cx);
+            }
+        })
+}
+
+/// A link that shows or hides what follows it, its chevron down while `open`; a click, or a
+/// screen reader, makes `toggle` run.
 pub(crate) fn disclosure(
     id: impl Into<ElementId>,
     label: &'static str,
     open: bool,
     theme: &Theme,
+    toggle: impl Fn(&(), &mut Window, &mut App) + 'static,
 ) -> Stateful<Div> {
-    let (accent, focused) = (theme.accent, theme.border_focused);
+    let toggle = Rc::new(toggle);
+    let on_click = Rc::clone(&toggle);
     let chevron = if open {
         "chevron-down"
     } else {
         "chevron-right"
     };
+    expandable(
+        link(id, label, chevron, theme),
+        open,
+        move |event, window, cx| toggle(event, window, cx),
+    )
+    .on_click(move |_, window, cx| on_click(&(), window, cx))
+}
+
+/// A button drawn as a link with its `icon` before `label`; the caller makes it act.
+pub(crate) fn link(
+    id: impl Into<ElementId>,
+    label: &'static str,
+    icon_name: &'static str,
+    theme: &Theme,
+) -> Stateful<Div> {
+    let (accent, focused) = (theme.accent, theme.border_focused);
     div()
         .id(id)
         .role(Role::Button)
         .aria_label(label)
-        .aria_expanded(open)
         .tab_index(0)
         .h(token::BUTTON_DEFAULT)
         .flex()
@@ -356,7 +399,7 @@ pub(crate) fn disclosure(
         .cursor_pointer()
         .hover(|style| style.underline())
         .focus_visible(move |style| style.border_color(focused))
-        .child(icon(chevron, accent).size(token::ICON_XS))
+        .child(icon(icon_name, accent).size(token::ICON_XS))
         .child(label)
 }
 
@@ -421,6 +464,17 @@ pub(crate) fn shape_text(text: &str, style: TypeStyle, color: Hsla, window: &Win
         &[run],
         None,
     )
+}
+
+/// A heading that screen readers announce as `text`. GPUI names a node from its label, never
+/// from its child text, so every heading of the app is built here (`tests/accessible_names.rs`).
+pub(crate) fn heading(id: impl Into<ElementId>, text: impl Into<SharedString>) -> Stateful<Div> {
+    let text = text.into();
+    div()
+        .id(id)
+        .role(Role::Heading)
+        .aria_label(text.clone())
+        .child(text)
 }
 
 pub(crate) fn small(child: impl IntoElement, color: Hsla) -> impl IntoElement {

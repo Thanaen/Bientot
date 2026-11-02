@@ -810,12 +810,7 @@ impl WeekView {
                     .flex_col()
                     .gap(BASE_04)
                     .child(
-                        div()
-                            .id("week-title")
-                            .role(Role::Heading)
-                            .aria_label(SharedString::from(header.title.clone()))
-                            .type_style(text::HEADLINE_LG)
-                            .child(header.title),
+                        widgets::heading("week-title", header.title).type_style(text::HEADLINE_LG),
                     )
                     .child(
                         div()

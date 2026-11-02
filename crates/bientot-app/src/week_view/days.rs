@@ -209,8 +209,20 @@ impl WeekView {
                         let id = segment.id;
                         let focused = theme.border_focused;
                         let opened = holder == Some(id);
-                        node.role(Role::Button)
-                            .aria_expanded(opened)
+                        let expandable = widgets::expandable(
+                            node.role(Role::Button),
+                            opened,
+                            cx.listener(move |view, _, window, cx| {
+                                view.change(window, cx, |state| {
+                                    if opened {
+                                        state.close_bubble();
+                                    } else {
+                                        state.open(id);
+                                    }
+                                });
+                            }),
+                        );
+                        expandable
                             .tab_index(0)
                             .rounded(radius::XS)
                             .border_2()

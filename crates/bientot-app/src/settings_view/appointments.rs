@@ -8,6 +8,7 @@ use gpui::{
 use super::{
     RowText, SettingsView, card, field_error, filled, outlined, row_frame, switch_frame, time_field,
 };
+use crate::widgets;
 use bientot_domain::configuration::{AppointmentProposal, DismissedProposal};
 
 use crate::settings::appointments::{AppointmentRow, AppointmentsView, EditorView};
@@ -52,11 +53,8 @@ impl SettingsView {
             .flex_col()
             .gap(BASE_08)
             .child(
-                div()
-                    .id("appointments-heading")
-                    .role(Role::Heading)
-                    .type_style(text::HEADLINE_SM)
-                    .child(view.heading),
+                widgets::heading("appointments-heading", view.heading)
+                    .type_style(text::HEADLINE_SM),
             )
             .child(
                 div()

@@ -476,11 +476,7 @@ impl Onboarding {
                         invalid,
                         enabled: true,
                     },
-                    Setting::Lunch => Control::Range {
-                        start: Clock::LunchStart,
-                        end: Clock::LunchEnd,
-                        invalid,
-                    },
+                    Setting::Lunch => Control::lunch(language, invalid),
                     _ => Control::Time {
                         clock: Clock::Departure,
                         invalid,
