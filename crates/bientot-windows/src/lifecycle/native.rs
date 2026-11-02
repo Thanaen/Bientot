@@ -9,6 +9,7 @@
 
 use std::cell::RefCell;
 use std::io;
+use std::mem::MaybeUninit;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::ptr;
 use std::sync::mpsc;
@@ -68,7 +69,7 @@ pub fn current_session_state() -> SessionState {
 }
 
 fn session_flags(session_id: u32) -> Option<i32> {
-    let mut buffer: PWSTR = ptr::null_mut();
+    let mut buffer = MaybeUninit::<PWSTR>::uninit();
     let mut returned_bytes = 0u32;
     // SAFETY: both out pointers are live, writable locals. A buffer Windows allocates is freed
     // below.
@@ -77,11 +78,16 @@ fn session_flags(session_id: u32) -> Option<i32> {
             WTS_CURRENT_SERVER_HANDLE,
             session_id,
             WTSSessionInfoEx,
-            &mut buffer,
+            buffer.as_mut_ptr(),
             &mut returned_bytes,
         )
     };
-    if queried == 0 || buffer.is_null() {
+    if queried == 0 {
+        return None;
+    }
+    // SAFETY: a successful query writes the buffer pointer.
+    let buffer = unsafe { buffer.assume_init() };
+    if buffer.is_null() {
         return None;
     }
     let flags = (returned_bytes as usize >= size_of::<WTSINFOEXW>())
