@@ -93,6 +93,8 @@ p { margin: 0; text-wrap: pretty; }
 .fl-actions { border-top: 1px solid var(--border-variant); padding: 8px; display: flex; gap: 4px; }
 .fl-actions div { flex: 1; min-width: 0; display: block; text-align: center; height: 32px; line-height: 30px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--border-variant); background: var(--element); font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 400px) { .fl-actions div { font-size: 12px; } }
+/* Sous 360 px, les libellés passent sur deux lignes plutôt que d’être coupés. */
+@media (max-width: 360px) { .fl-actions div { white-space: normal; height: auto; min-height: 32px; line-height: 16px; padding: 7px 2px; display: flex; align-items: center; justify-content: center; } }
 
 .tl { display: grid; gap: 6px; }
 .tl-row { display: grid; grid-template-columns: 56px 1fr 84px; align-items: center; gap: 12px; }
@@ -169,6 +171,7 @@ footer .foot-note { flex-basis: 100%; }
   .nav nav { margin-left: 0; flex: 1 1 100%; flex-wrap: wrap; gap: 0 16px; }
   .nav nav a { padding-block: 6px; }
   .faq p { max-width: 68ch; }
+  .desk { justify-self: start; }
 }
 @media (max-width: 600px) {
   footer .wrap > span:first-child { flex-basis: 100%; }
@@ -270,7 +273,7 @@ footer .foot-note { flex-basis: 100%; }
         <div class="state"><svg class="tray"><use href="#t-green"/></svg><h3>Dans les temps</h3><p>Vous finirez votre journée bien avant votre heure limite.</p></div>
         <div class="state"><svg class="tray"><use href="#t-orange"/></svg><h3>Proche de la limite</h3><p>Le départ prévu tombe près de votre heure limite.</p></div>
         <div class="state"><svg class="tray"><use href="#t-red"/></svg><h3>En retard</h3><p>À ce rythme, vous partirez après votre heure limite.</p></div>
-        <div class="state"><svg class="tray"><use href="#t-blue"/></svg><h3>Journée terminée</h3><p>Votre objectif est atteint. Les minutes en plus vont au crédit de la semaine.</p></div>
+        <div class="state"><svg class="tray"><use href="#t-blue"/></svg><h3>Objectif atteint</h3><p>Vous pouvez partir. Les minutes en plus vont au crédit de la semaine.</p></div>
       </div>
     </div>
   </section>
@@ -327,6 +330,6 @@ footer .foot-note { flex-basis: 100%; }
       </div>
     </div>
   </section>
-  <footer><div class="wrap"><span>Bientôt · licence MIT</span><a href="https://github.com/Thanaen/Bientot">GitHub</a><a href="https://apps.microsoft.com/detail/9N4FL1HRF4KL">Télécharger</a><a href="/statistiques">Statistiques</a><span class="foot-note">L’application s’appelait WorkTime jusqu’en octobre 2026.</span><span class="foot-note">Audience mesurée par PostHog, <a href="https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md#the-website">sans cookie</a>.</span></div></footer>
+  <footer><div class="wrap"><span>Bientôt · licence MIT</span><a href="https://github.com/Thanaen/Bientot">GitHub</a><a href="https://apps.microsoft.com/detail/9N4FL1HRF4KL">Télécharger</a><a href="/statistiques">Statistiques</a><a href="/en" hreflang="en" lang="en">English</a><span class="foot-note">L’application s’appelait WorkTime jusqu’en octobre 2026.</span><span class="foot-note">Audience mesurée par PostHog, <a href="https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md#the-website">sans cookie</a>.</span></div></footer>
 </body>
 </html>

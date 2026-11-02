@@ -184,7 +184,7 @@ describe("the site", () => {
   test.each([
     ["/", "/", "L’application s’appelait WorkTime jusqu’en octobre 2026."],
     ["/statistiques", "/", "L’application s’appelait WorkTime jusqu’en octobre 2026."],
-    ["/en", "/en", "The app was called WorkTime until October 2026."],
+    ["/en", "/en", "The app was called WorkTime until October&nbsp;2026."],
   ])("%p names the app Bientôt", async (path, home, renamed) => {
     const page = await (await get(path))!.text();
     expect(page).toContain(`<a class="brand" href="${home}">`);
