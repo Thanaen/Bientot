@@ -9,7 +9,7 @@ Bientôt (also written "Bientot"; called WorkTime until October 2026) is maintai
 - Counts working time automatically from keyboard and mouse activity, session lock and sleep. After 3 minutes without input (adjustable from 30 seconds to 30 minutes) the time counts as idle. It never reads what you type, application names or window titles.
 - Compares the time worked with a daily target (7 hours by default) and shows the projected departure time.
 - Tray icon colors: green when on track, orange when the projected departure is close to the latest departure time, red when it is later, blue when the daily target is reached and overtime accumulates.
-- Carries overtime to later days of the same week: extra minutes on Monday shorten Tuesday (down to a 6-hour floor by default). Missing time creates no debt, and unused credit expires after Friday.
+- Carries overtime to later days of the same week: extra minutes on Monday shorten Tuesday (down to a 6-hour floor by default). By default missing time creates no debt (an optional weekly debt can be turned on), and unused credit expires after Friday.
 - Lets you pause, resume or finish the day, declare time worked away from the computer (a meeting), correct a recorded period, and set recurring appointments.
 - Shows the week as timelines, sends a notification shortly before the target or the latest departure time, and exports or imports data as a `.bientot` file.
 - Sends one anonymous usage signal a day (app version, install channel, first signal of the month), with no identifier; it can be turned off in Settings.
