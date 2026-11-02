@@ -44,8 +44,9 @@ jobs:
         run: rustup toolchain install
 
       # The Store takes four numbers and needs the last one at 0; each submission needs a higher
-      # version than the last, which the commit count gives. The app shows the same version as
-      # the direct channel's build of this commit. Windows' jq ends its output with CRLF.
+      # version than the last, which the commit count gives. The Store build is a release, so the
+      # app shows the workspace version without the direct channel's `-alpha.<count>`: bump it in
+      # Cargo.toml before submitting a new release. Windows' jq ends its output with CRLF.
       - name: Compute the version
         id: version
         shell: bash
@@ -54,7 +55,7 @@ jobs:
           base=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "bientot-app") | .version' | tr -d '\r')
           count=$(git rev-list --count HEAD)
           IFS=. read -r major minor _ <<< "$base"
-          echo "app=${base}-alpha.${count}" >> "$GITHUB_OUTPUT"
+          echo "app=${base}" >> "$GITHUB_OUTPUT"
           echo "package=${major}.${minor}.${count}.0" >> "$GITHUB_OUTPUT"
           echo "released=$(git log -1 --format=%cs HEAD)" >> "$GITHUB_OUTPUT"
 

@@ -19,7 +19,7 @@
   <Identity
     Name="Thanaen.Bientt"
     Publisher="CN=3BB427EF-EC1A-406C-8D5D-D9761E46D4FC"
-    Version="0.2.0.0"
+    Version="1.0.0.0"
     ProcessorArchitecture="x64" />
 
   <Properties>

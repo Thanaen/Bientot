@@ -42,7 +42,9 @@ public static class WorkTimeVisibilityProbe
 
     public static Observation Run(string executable, string arguments, int seconds)
     {
-        var startup = new StartupInfo { Size = Marshal.SizeOf<StartupInfo>(), Flags = 1, ShowWindow = 0 };
+        // No STARTF_USESHOWWINDOW: Windows would apply its SW_HIDE to the app's first ShowWindow and
+        // hide the window that a manual launch and a failed start must show.
+        var startup = new StartupInfo { Size = Marshal.SizeOf<StartupInfo>() };
         if (!CreateProcess(executable, new StringBuilder("\"" + executable + "\" " + arguments),
             IntPtr.Zero, IntPtr.Zero, false, 4, IntPtr.Zero, System.IO.Path.GetDirectoryName(executable),
             ref startup, out var process))

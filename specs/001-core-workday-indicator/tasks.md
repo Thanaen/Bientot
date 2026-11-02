@@ -507,6 +507,13 @@ languages.
 
 - [ ] T108 [US10] Document clean-VM onboarding, update, and package smoke results in `docs/release-checklist.md`
 
+  2026-11-02: Run on the maintainer's PC, where Bientôt had never been
+  installed, not on a clean VM (Windows Sandbox and Hyper-V need an
+  administrator and a restart there). Onboarding, Explorer restart, English
+  override, diagnostics and the `-Release` performance run pass. A sign-in
+  launch and a live Store update remain manual; the update is checked when
+  the 1.0.0 submission reaches the installed `0.2.62.0`.
+
 **Checkpoint**: A public v1 candidate installs, onboards, runs in both
 languages, updates only with consent, and exports no sensitive activity data.
 
@@ -516,7 +523,12 @@ languages, updates only with consent, and exports no sensitive activity data.
 
 **Purpose**: Enforce constitution quality gates and prepare the first release.
 
-- [ ] T109 [P] Run and document keyboard, screen-reader, contrast, and non-colour state validation in `docs/accessibility-checklist.md`
+- [x] T109 [P] Run and document keyboard, screen-reader, contrast, and non-colour state validation in `docs/accessibility-checklist.md`
+
+  2026-11-02: The UIA tree of every window was read on Windows; Narrator
+  itself was not run. Five screen-reader defects and two contrast failures
+  were fixed in #121. `text-placeholder` stays below 4.5:1, tracked in
+  #123.
 - [x] T110 [P] Add Explorer restart, DPI, theme, and multi-monitor tray tests in `tests/WorkTime.Windows.Tests/Tray/TrayLifecycleTests.cs`
 
   2026-10-11: Two product fixes came with the tests. Explorer restart:
@@ -597,7 +609,11 @@ languages, updates only with consent, and exports no sensitive activity data.
   no longer says that custom endpoint and API-key onboarding are missing.
   Not covered: how packaged `AppData` virtualization affects data locations
   and deletion, which T117 validates on a Store install.
-- [ ] T116 Execute and record every scenario from `specs/001-core-workday-indicator/quickstart.md` in `docs/validation-report.md`
+- [x] T116 Execute and record every scenario from `specs/001-core-workday-indicator/quickstart.md` in `docs/validation-report.md`
+
+  2026-11-02: `quickstart.md` was rewritten for the Rust app first. A night
+  (overnight lock), a real suspend and a sign-in were not run live; their
+  tests are named in the report.
 - [ ] T117 Perform Microsoft Store install, update, uninstall, and startup validation in `docs/release-checklist.md`
 
   2026-10-11: Revised for the Store decision (D-016, #108). Validate the
@@ -607,6 +623,10 @@ languages, updates only with consent, and exports no sensitive activity data.
   in `%LocalAppData%\WorkTime` is found after installing the Store build,
   given packaged `AppData` write virtualization (see plan, "Packaging and
   updates").
+
+  2026-11-02: The Store install, the data of a portable build, the startup
+  task, the uninstall and a reinstall pass on the Store-signed `0.2.62.0`.
+  The update is checked when the 1.0.0 submission reaches it.
 
 - [x] T118 Update `README.md` with supported platform, ActivityWatch variants, install, privacy, and release links
 - [x] T119 [P] Add FsCheck interval invariants for no double counting, split conservation, and covered-duration bounds in `tests/WorkTime.Domain.Tests/Intervals/IntervalPropertyTests.cs`

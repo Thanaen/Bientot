@@ -59,6 +59,18 @@ the exact `WorkTimeStartupTask` activation.
 Demo mode disables startup registration so an isolated demo cannot register
 its test executable as the real Bientôt startup entry.
 
+## Moving to the Store build
+
+The Store build manages only its own startup task. It does not remove the Run
+value of an installer or portable copy, which starts another executable. After
+moving to the Store build, uninstall the installer copy, which removes its
+Run value. Otherwise both start at sign-in. Only one runs, because a second
+copy hands over to the one that already holds the data folder, but it may be
+the older copy. For a portable copy, quit the Store build first, start the
+portable copy, and turn off **Windows startup** in its settings: while the
+Store build runs, starting the portable copy only brings up the Store build,
+whose toggle controls its own startup task. #124 tracks a fix in the app.
+
 ## Verification
 
 The `bientot-windows` tests cover the registry states, path quoting,
@@ -83,6 +95,6 @@ failure window. It watches for eight seconds, writes `visibility.json`, and stop
 that process during cleanup. It does not simulate a Windows sign-in or validate
 a Store-signed MSIX.
 
-Installation from the Microsoft Store, Windows
-sign-in, packaged startup-task payload, upgrade, and uninstall validation remain
-release acceptance checks.
+The Store install, the startup task, and the uninstall were checked for v1.0.0;
+see [release-checklist.md](release-checklist.md#microsoft-store-package). A
+real sign-in launch and a Store update remain manual checks.
