@@ -261,14 +261,7 @@ impl Render for StartupFailureView {
                     .flex()
                     .flex_col()
                     .gap(BASE_04)
-                    .child(
-                        div()
-                            .id("heading")
-                            .role(Role::Heading)
-                            .aria_label(page.heading)
-                            .type_style(text::HEADLINE_SM)
-                            .child(page.heading),
-                    )
+                    .child(widgets::heading("heading", page.heading).type_style(text::HEADLINE_SM))
                     .child(
                         div()
                             .text_color(theme.text_muted)

@@ -36,8 +36,13 @@ impl WeekView {
     ) -> Option<AnyElement> {
         let state = self.state.as_ref().filter(|state| state.has_details())?;
         let label = self.text(Key::HistoryDetailsToggleContent);
-        let toggle = widgets::disclosure("details-toggle", label, state.details_open(), theme)
-            .on_click(cx.listener(|view, _, _, cx| view.toggle_details(cx)));
+        let toggle = widgets::disclosure(
+            "details-toggle",
+            label,
+            state.details_open(),
+            theme,
+            cx.listener(|view, _, _, cx| view.toggle_details(cx)),
+        );
         Some(toggle.into_any_element())
     }
 

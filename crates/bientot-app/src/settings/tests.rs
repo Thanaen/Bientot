@@ -822,11 +822,7 @@ fn a_lunch_ending_before_it_starts_is_refused_on_the_lunch_row() {
     );
     assert_eq!(
         row(&view, Setting::Lunch).control,
-        Control::Range {
-            start: Clock::LunchStart,
-            end: Clock::LunchEnd,
-            invalid: true,
-        }
+        Control::lunch(Language::English, true)
     );
 }
 

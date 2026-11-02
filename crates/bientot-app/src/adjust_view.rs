@@ -315,12 +315,7 @@ impl Render for AdjustView {
                     .flex_col()
                     .gap(BASE_04)
                     .child(
-                        div()
-                            .id("adjust-title")
-                            .role(Role::Heading)
-                            .aria_label(page.title)
-                            .type_style(text::HEADLINE_SM)
-                            .child(page.title),
+                        widgets::heading("adjust-title", page.title).type_style(text::HEADLINE_SM),
                     )
                     .child(
                         div()

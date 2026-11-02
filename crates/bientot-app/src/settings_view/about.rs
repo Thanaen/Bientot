@@ -13,7 +13,8 @@ pub(super) fn section(about: AboutView, theme: &Theme) -> impl IntoElement {
     let version = div()
         .id("version")
         .role(Role::Label)
-        .aria_label(about.label)
+        // AccessKit names a Label from its value, not its label.
+        .aria_value(about.label)
         .flex_none()
         .whitespace_nowrap()
         .child(about.version);

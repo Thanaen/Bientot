@@ -319,3 +319,40 @@ fn the_palette_s_selected_row_reads_at_4_5_to_1() {
         }
     }
 }
+
+/// `color` laid over `base`, as the screen shows a translucent background.
+fn over(color: Hsla, base: Hsla) -> Hsla {
+    let (top, bottom) = (color.to_rgb(), base.to_rgb());
+    let mix = |a: f32, b: f32| a * top.a + b * (1. - top.a);
+    gpui::Rgba {
+        r: mix(top.r, bottom.r),
+        g: mix(top.g, bottom.g),
+        b: mix(top.b, bottom.b),
+        a: 1.,
+    }
+    .into()
+}
+
+#[test]
+fn state_colours_read_at_4_5_to_1_on_their_callout() {
+    for (id, theme) in [("dark", Theme::dark()), ("light", Theme::light())] {
+        for (name, color, background) in [
+            ("success", theme.success, theme.success_background),
+            ("warning", theme.warning, theme.warning_background),
+            ("error", theme.error, theme.error_background),
+        ] {
+            let ratio = contrast(color, over(background, theme.surface));
+            assert!(ratio >= 4.5, "{id} {name}: {ratio:.2}:1");
+        }
+    }
+}
+
+#[test]
+fn the_focus_ring_reads_at_3_to_1_on_surface_and_editor() {
+    for (id, theme) in [("dark", Theme::dark()), ("light", Theme::light())] {
+        for (name, background) in [("surface", theme.surface), ("editor", theme.editor)] {
+            let ratio = contrast(theme.border_focused, background);
+            assert!(ratio >= 3.0, "{id} focus ring on {name}: {ratio:.2}:1");
+        }
+    }
+}

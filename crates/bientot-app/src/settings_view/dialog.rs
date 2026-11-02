@@ -83,11 +83,8 @@ impl SettingsView {
                             .flex_col()
                             .gap(BASE_08)
                             .child(
-                                div()
-                                    .id("dialog-title")
-                                    .role(Role::Heading)
-                                    .type_style(text::HEADLINE_SM)
-                                    .child(text.title),
+                                widgets::heading("dialog-title", text.title)
+                                    .type_style(text::HEADLINE_SM),
                             )
                             .children(
                                 text.paragraphs

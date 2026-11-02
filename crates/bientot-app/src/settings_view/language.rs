@@ -25,29 +25,32 @@ impl SettingsView {
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let (hover, focused) = (theme.element_hover, theme.border_focused);
-        let button = div()
-            .id("language")
-            .role(Role::ComboBox)
-            .aria_label(name)
-            .aria_value(value.label(self.language))
-            .aria_expanded(self.language_open)
-            .w(SELECT_WIDTH)
-            .h(token::BUTTON_MEDIUM)
-            .px(BASE_08)
-            .flex()
-            .items_center()
-            .justify_between()
-            .rounded(radius::SM)
-            .border_1()
-            .border_color(theme.border)
-            .bg(theme.editor)
-            .tab_index(0)
-            .cursor_pointer()
-            .hover(move |style| style.bg(hover))
-            .focus_visible(move |style| style.border_color(focused))
-            .child(value.label(self.language))
-            .child(widgets::icon("chevron-down", theme.text_muted).size(token::ICON_SM))
-            .on_click(cx.listener(|view, _, _, cx| view.toggle_language_list(cx)));
+        let button = widgets::expandable(
+            div()
+                .id("language")
+                .role(Role::ComboBox)
+                .aria_label(name)
+                .aria_value(value.label(self.language)),
+            self.language_open,
+            cx.listener(|view, _, _, cx| view.toggle_language_list(cx)),
+        )
+        .w(SELECT_WIDTH)
+        .h(token::BUTTON_MEDIUM)
+        .px(BASE_08)
+        .flex()
+        .items_center()
+        .justify_between()
+        .rounded(radius::SM)
+        .border_1()
+        .border_color(theme.border)
+        .bg(theme.editor)
+        .tab_index(0)
+        .cursor_pointer()
+        .hover(move |style| style.bg(hover))
+        .focus_visible(move |style| style.border_color(focused))
+        .child(value.label(self.language))
+        .child(widgets::icon("chevron-down", theme.text_muted).size(token::ICON_SM))
+        .on_click(cx.listener(|view, _, _, cx| view.toggle_language_list(cx)));
         let menu = self.language_open.then(|| {
             let options = LanguageChoice::ALL
                 .into_iter()

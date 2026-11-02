@@ -783,7 +783,9 @@ pub enum Control {
         clock: Clock,
         invalid: bool,
     },
+    /// The lunch window: its two times in one group, which `name` announces.
     Range {
+        name: &'static str,
         start: Clock,
         end: Clock,
         invalid: bool,
@@ -803,6 +805,17 @@ pub enum Control {
         name: &'static str,
         on: bool,
     },
+}
+
+impl Control {
+    pub fn lunch(language: Language, invalid: bool) -> Self {
+        Self::Range {
+            name: language.text(Key::SettingsLunchCardHeader),
+            start: Clock::LunchStart,
+            end: Clock::LunchEnd,
+            invalid,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1351,11 +1364,7 @@ impl SettingsForm {
             Setting::Startup => switch(Switch::Startup),
             Setting::Target => text(Field::Target),
             Setting::Minimum => text(Field::Minimum),
-            Setting::Lunch => Control::Range {
-                start: Clock::LunchStart,
-                end: Clock::LunchEnd,
-                invalid,
-            },
+            Setting::Lunch => Control::lunch(language, invalid),
             Setting::Departure => Control::Time {
                 clock: Clock::Departure,
                 invalid,

@@ -15,6 +15,7 @@ use crate::settings::json::{Token, first_row, lines, rows, tokens_within};
 use crate::strings::{Key, Language};
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, radius, size as token, text};
+use crate::widgets;
 
 const LINE: Pixels = px(20.);
 const NUMBER_WIDTH: Pixels = px(40.);
@@ -188,16 +189,12 @@ impl JsonPage {
                     .items_end()
                     .gap(BASE_08)
                     .child(
-                        div()
-                            .id("json-title")
-                            .role(Role::Heading)
-                            .aria_label(title)
+                        widgets::heading("json-title", title)
                             .flex_none()
                             .font_family(MONO_FONT_FAMILY)
                             .text_size(px(16.))
                             .line_height(px(28.))
-                            .font_weight(FontWeight::MEDIUM)
-                            .child(title),
+                            .font_weight(FontWeight::MEDIUM),
                     )
                     .children(folder)
                     .child(badge),

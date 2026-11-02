@@ -502,14 +502,7 @@ impl OnboardingView {
                     .text_color(theme.text_muted)
                     .child(page.counter.to_uppercase()),
             )
-            .child(
-                div()
-                    .id("heading")
-                    .role(Role::Heading)
-                    .aria_label(page.heading)
-                    .type_style(text::HEADLINE_LG)
-                    .child(page.heading),
-            )
+            .child(widgets::heading("heading", page.heading).type_style(text::HEADLINE_LG))
             .child(div().text_color(theme.text_muted).child(page.intro))
     }
 
@@ -705,13 +698,7 @@ impl OnboardingView {
             .flex()
             .flex_col()
             .gap(BASE_08)
-            .child(
-                div()
-                    .id("import-title")
-                    .role(Role::Heading)
-                    .type_style(text::HEADLINE_SM)
-                    .child(dialog.title),
-            )
+            .child(widgets::heading("import-title", dialog.title).type_style(text::HEADLINE_SM))
             .children(
                 dialog
                     .paragraphs
@@ -789,6 +776,7 @@ impl OnboardingView {
                     .into_any_element()
             }
             Control::Range {
+                name,
                 start,
                 end,
                 invalid,
@@ -798,6 +786,7 @@ impl OnboardingView {
                 div()
                     .id("lunch")
                     .role(Role::Group)
+                    .aria_label(name)
                     .track_focus(&self.lunch)
                     .flex()
                     .items_center()
