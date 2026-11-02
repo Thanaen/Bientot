@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- head -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","@id":"https://bientot.dev/#app","name":"Bientôt","alternateName":["Bientot"],"description":"Free, open-source Windows app that counts your working hours on its own, from the taskbar, compares them with your daily target and tells you what time you can leave. Your data stays on your PC, with no account.","applicationCategory":"BusinessApplication","applicationSubCategory":"Working time tracker","operatingSystem":"Windows 11","url":"https://bientot.dev/en","downloadUrl":"https://apps.microsoft.com/detail/9N4FL1HRF4KL","screenshot":"https://bientot.dev/og/home.png","featureList":["Counts working time from keyboard and mouse activity, with nothing to type","Compares the time worked with a daily target and shows the projected departure time","Taskbar icon turns green, orange, red or blue depending on how far ahead or behind you are","Extra minutes on one day shorten the following days of the week","Log time worked away from the PC, adjust recorded time, set recurring appointments","Notifications before the target and before the latest departure time","Data export and import, in English and French"],"keywords":"working time tracker, work hours tracker, time clock, overtime, daily target, time tracker, free software, open source, Windows","license":"https://opensource.org/license/mit","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":["fr","en"],"author":{"@type":"Person","name":"Thanaen","url":"https://github.com/Thanaen"},"sameAs":["https://github.com/Thanaen/Bientot","https://apps.microsoft.com/detail/9N4FL1HRF4KL"]},{"@type":"SoftwareSourceCode","codeRepository":"https://github.com/Thanaen/Bientot","programmingLanguage":"Rust","license":"https://opensource.org/license/mit","targetProduct":{"@id":"https://bientot.dev/#app"}}]}
+</script>
+<link rel="preload" href="/fonts/sans-400-core.cbc478cc.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/sans-500-core.a83fb58d.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/sans-600-core.2f3f51a4.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/mono-400-core.d5bb6b68.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/mono-500-core.fc127d43.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* Thème WorkTime One (design system GPUI) : clair par défaut, sombre selon le système. */
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("/fonts/sans-400-core.cbc478cc.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E8-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("/fonts/sans-400-ext.a26eeb58.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E7, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("/fonts/sans-500-core.a83fb58d.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E8-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("/fonts/sans-500-ext.800cc717.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E7, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("/fonts/sans-600-core.2f3f51a4.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E8-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("/fonts/sans-600-ext.60d6d344.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E7, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("/fonts/mono-400-core.d5bb6b68.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+E0, U+E9, U+FB, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("/fonts/mono-400-ext.5242ecfc.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-DF, U+E1-E8, U+EA-FA, U+FC-17F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("/fonts/mono-500-core.fc127d43.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+E0, U+E9, U+FB, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("/fonts/mono-500-ext.1ca74e17.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-DF, U+E1-E8, U+EA-FA, U+FC-17F; }
+:root {
+  --background: #dcdcdd; --surface: #ebebec; --editor: #fafafa;
+  --border: #c9c9ca; --border-variant: #dfdfe0; --border-focused: #7d82e8;
+  --element: #ebebec; --element-hover: #dfdfe0; --element-active: #cacaca;
+  --text: #242529; --text-muted: #58585a; --text-placeholder: #7e8086;
+  --accent: #4560c4; --accent-background: #e2e2fa; --accent-border: #cbcdf6;
+  --success: #3f6e34; --success-background: #dfeadb; --success-border: #c8dcc1;
+  --warning: #7d6400; --warning-background: #faf2e6; --warning-border: #f4e7d1;
+  --error: #ad4234; --hint: #7274a7;
+  --tl-pause: #c9c9ca; --tl-on-fill: #fafafa;
+  --desktop: #c3c8cf; --taskbar: #e6e8eb;
+  --shadow-modal: 0 2px 3px rgba(0,0,0,0.06), 0 3px 6px rgba(0,0,0,0.06), 0 6px 12px rgba(0,0,0,0.04), 0 1px 0 rgba(0,0,0,0.04);
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  --page: 1120px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --background: #3b414d; --surface: #2f343e; --editor: #282c33;
+  --border: #464b57; --border-variant: #363c46; --border-focused: #74ade8;
+  --element: #2e343e; --element-hover: #363c46; --element-active: #454a56;
+  --text: #dce0e5; --text-muted: #a9afbc; --text-placeholder: #878a98;
+  --accent: #74ade8; --accent-background: #74ade81a; --accent-border: #293b5b;
+  --success: #a1c181; --success-background: #a1c1811a; --success-border: #38482f;
+  --warning: #dec184; --warning-background: #dec1841a; --warning-border: #5d4c2f;
+  --error: #df8589; --hint: #788ca6;
+  --tl-pause: #4b5263; --tl-on-fill: #282c33;
+  --desktop: #1f2329; --taskbar: #2a2e35;
+  --shadow-modal: 0 2px 3px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.08), 0 6px 12px rgba(0,0,0,0.04), 0 1px 0 rgba(0,0,0,0.12);
+  color-scheme: dark;
+} }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--editor); color: var(--text); font: 400 16px/1.6 var(--font-sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--border-focused); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; text-wrap: pretty; }
+.tnum { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); }
+.wrap { max-width: var(--page); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.nb { white-space: nowrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 4px; font: 500 15px/1 var(--font-sans); text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--element); white-space: nowrap; }
+.btn:hover { background: var(--element-hover); }
+.btn:active { background: var(--element-active); }
+.btn--primary { background: var(--accent); border-color: var(--accent); color: var(--tl-on-fill); }
+.btn--primary:hover { background: var(--accent); filter: brightness(1.06); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn-note { font-size: 13px; line-height: 18px; color: var(--text-muted); }
+
+.tray { width: 20px; height: 20px; display: block; flex: none; }
+
+.flyout { width: 360px; max-width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-modal); font-size: 14px; line-height: 20px; overflow: hidden; text-align: left; }
+.fl-head { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--border-variant); }
+.fl-head .st { font: 400 16px/24px var(--font-sans); color: var(--success); display: flex; align-items: center; gap: 6px; }
+.fl-head .st svg { width: 16px; height: 16px; }
+.fl-body { padding: 16px; display: grid; gap: 16px; }
+.fl-label { font-size: 12px; line-height: 16px; color: var(--text-muted); }
+.fl-hero { font: 600 40px/48px var(--font-sans); font-variant-numeric: tabular-nums; margin-bottom: 2px; }
+.fl-hint { font-size: 12px; line-height: 16px; color: var(--text-muted); }
+.fl-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 8px; }
+.fl-val { white-space: nowrap; }
+.fl-val { font: 500 22px/28px var(--font-sans); font-variant-numeric: tabular-nums; }
+.fl-val small { font-size: 14px; color: var(--text-muted); font-weight: 400; }
+.fl-bar { height: 4px; border-radius: 2px; background: var(--element-active); overflow: hidden; margin-top: 6px; }
+.fl-bar i { display: block; height: 100%; width: 81%; background: var(--accent); }
+.fl-actions { border-top: 1px solid var(--border-variant); padding: 8px; display: flex; gap: 4px; }
+.fl-actions div { flex: 1; min-width: 0; display: block; text-align: center; height: 32px; line-height: 30px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--border-variant); background: var(--element); font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 400px) { .fl-actions div { font-size: 12px; } }
+
+.tl { display: grid; gap: 6px; }
+.tl-row { display: grid; grid-template-columns: 56px 1fr 84px; align-items: center; gap: 12px; }
+.tl-day { font-size: 12px; line-height: 16px; color: var(--text-muted); }
+.tl-total { font: 400 12px/16px var(--font-mono); text-align: right; color: var(--text-muted); }
+.tl-track { position: relative; height: 16px; background: var(--element); border-radius: 2px; }
+.tl-row.open .tl-track { height: 40px; background: var(--editor); border: 1px solid var(--border-variant); }
+.tl-track.future { background: transparent; border: 1px dashed var(--border); }
+.seg { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+.open .seg { top: 3px; bottom: 3px; }
+.seg.w { background: var(--accent); }
+.seg.m { background: var(--success); }
+.seg.p { background: var(--tl-pause); }
+.seg.g { background: repeating-linear-gradient(135deg, var(--warning) 0 1.5px, var(--warning-background) 1.5px 6px); box-shadow: inset 0 0 0 1px var(--warning); }
+.seg span { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font: 400 12px/16px var(--font-mono); color: var(--tl-on-fill); white-space: nowrap; }
+.now { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); border-radius: 1px; }
+.tl-axis { display: grid; grid-template-columns: 56px 1fr 84px; gap: 12px; }
+.tl-axis div:nth-child(2) { position: relative; height: 16px; font: 400 12px/16px var(--font-mono); color: var(--text-muted); }
+.tl-axis div:nth-child(2) span { position: absolute; transform: translateX(-50%); }
+.tl-axis div:nth-child(2) span:first-child { transform: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; line-height: 16px; color: var(--text-muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+
+section { padding-block: 72px; }
+.nav { display: flex; align-items: center; gap: 24px; padding-block: 20px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 600 18px/26px var(--font-sans); color: var(--text); text-decoration: none; }
+.brand .tray { width: 24px; height: 24px; }
+.nav nav { margin-left: auto; display: flex; gap: 20px; font-size: 14px; }
+.nav nav a { color: var(--text-muted); text-decoration: none; }
+.nav nav a:hover { color: var(--text); }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 56px; align-items: center; padding-block: 40px 80px; }
+.eyebrow { font: 500 13px/18px var(--font-mono); color: var(--text-muted); }
+h1 { font: 600 52px/1.08 var(--font-sans); letter-spacing: -0.02em; margin-top: 16px; }
+.lede { font-size: 18px; line-height: 28px; color: var(--text-muted); max-width: 32em; margin-top: 20px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+.hero .btn-note { margin-top: 12px; }
+.desk { width: 100%; max-width: 440px; justify-self: end; background: var(--desktop); border-radius: 12px; padding: 32px 24px 0; display: flex; flex-direction: column; align-items: flex-end; overflow: hidden; border: 1px solid var(--border); }
+.desk .flyout { margin-right: 4px; }
+.taskbar { margin: 16px -24px 0; align-self: stretch; height: 44px; background: var(--taskbar); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 16px; font: 400 12px/14px var(--font-sans); color: var(--text); }
+.taskbar .tray { width: 18px; height: 18px; box-shadow: 0 0 0 5px var(--element-hover); border-radius: 50%; }
+.taskbar .clock { text-align: right; }
+.tb-ic { width: 16px; height: 16px; color: var(--text-muted); }
+h2 { font: 600 32px/40px var(--font-sans); letter-spacing: -0.01em; }
+.sec-lede { color: var(--text-muted); margin-top: 12px; max-width: 40em; }
+.alt { background: var(--surface); border-block: 1px solid var(--border-variant); }
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
+.state { background: var(--editor); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: grid; gap: 8px; align-content: start; }
+.state .tray { width: 32px; height: 32px; }
+.state h3 { font: 600 16px/24px var(--font-sans); margin-top: 8px; }
+.state p { font-size: 14px; line-height: 22px; color: var(--text-muted); }
+.week { margin-top: 40px; background: var(--editor); border: 1px solid var(--border); border-radius: 8px; padding: 24px; display: grid; gap: 16px; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.panel { border: 1px solid var(--border); border-radius: 8px; padding: 28px; display: grid; gap: 12px; align-content: start; background: var(--editor); }
+.panel h2 { font-size: 24px; line-height: 32px; }
+.panel p { color: var(--text-muted); }
+.panel ul { margin: 0; padding-left: 18px; color: var(--text-muted); display: grid; gap: 6px; }
+.panel .row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.faq { columns: 2; column-gap: 48px; margin-top: 40px; }
+.faq > div { break-inside: avoid; padding-bottom: 32px; }
+.faq > div:last-child { padding-bottom: 0; }
+.faq h3 { font: 600 18px/26px var(--font-sans); text-wrap: pretty; }
+.faq p { color: var(--text-muted); margin-top: 8px; }
+footer { border-top: 1px solid var(--border-variant); padding-block: 28px; font-size: 13px; color: var(--text-muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+footer a { color: var(--text-muted); }
+footer .foot-note { flex-basis: 100%; }
+
+@media (max-width: 860px) {
+  .hero, .two { grid-template-columns: minmax(0, 1fr); }
+  .faq { columns: 1; }
+  .states { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nav { flex-wrap: wrap; gap: 12px 24px; }
+  .nav nav { margin-left: 0; flex: 1 1 100%; flex-wrap: wrap; gap: 0 16px; }
+  .nav nav a { padding-block: 6px; }
+  .faq p { max-width: 68ch; }
+}
+@media (max-width: 600px) {
+  footer .wrap > span:first-child { flex-basis: 100%; }
+  .seg span { display: none; }
+  .tl-row, .tl-axis { grid-template-columns: 44px 1fr 72px; gap: 8px; }
+  .tl-axis div:nth-child(2) span:nth-child(even) { visibility: hidden; }
+  .legend .leg-now { display: none; }
+  .panel { padding: 16px; }
+}
+@media (max-width: 520px) {
+  .nav nav { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; column-gap: 16px; }
+  h1 { font-size: 38px; }
+  section { padding-block: 48px; }
+  .states { grid-template-columns: minmax(0, 1fr); }
+  .desk { padding: 16px 12px 0; }
+  .taskbar { margin-inline: -12px; }
+  .cta .btn, .panel .row .btn { flex: 1 1 100%; justify-content: center; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .btn { transition: background-color 120ms ease-out, filter 120ms ease-out, transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .btn:active { transform: scale(0.97); }
+  /* Le panneau s'ouvre depuis l'icône de la barre des tâches, une fois, au chargement. */
+  .desk .flyout { transform-origin: bottom right; animation: fly-in 400ms cubic-bezier(0.23, 1, 0.32, 1) 200ms backwards; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .desk .flyout { animation: fade-in 200ms ease-out backwards; }
+}
+@keyframes fly-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
+@keyframes fade-in { from { opacity: 0; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="t-green" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#15803d"/><path d="M9.875 16.211L14.31 20.646l8.237-8.87" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="t-orange" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#d9590b"/><rect x="14" y="6" width="4" height="13" rx="1" fill="#fff"/><rect x="14" y="22" width="4" height="4" rx="1" fill="#fff"/></symbol>
+    <symbol id="t-red" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#dc2626"/><path d="M11.437 11.437l9.126 9.126M20.563 11.437l-9.126 9.126" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="t-blue" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#2563eb"/><path d="M9.453 16h12.461M16.634 10.509L22.336 16l-5.702 5.491" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-store" viewBox="0 0 16 16"><path fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" d="M5.5 4.5V3.6a2.5 2.5 0 0 1 5 0v.9M2 4.6h12v8.2a1.6 1.6 0 0 1-1.6 1.6H3.6A1.6 1.6 0 0 1 2 12.8z"/><path fill="currentColor" d="M5.4 7h2.3v2.3H5.4zm2.9 0h2.3v2.3H8.3zM5.4 9.9h2.3v2.3H5.4zm2.9 0h2.3v2.3H8.3z"/></symbol>
+    <symbol id="i-dl" viewBox="0 0 16 16"><path d="M8 2v8m-3.5-3.5L8 10l3.5-3.5M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-gh" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.2.8a7.4 7.4 0 0 1 4 0c1.5-1 2.2-.8 2.2-.8.4 1.1.2 1.9.1 2.1.5.6.8 1.3.8 2.1 0 3.1-1.9 3.8-3.6 4 .3.3.6.8.6 1.5v2.2c0 .2.1.5.6.4A8 8 0 0 0 8 0z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20zM9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+  <div class="wrap nav">
+    <a class="brand" href="/en"><svg class="tray" aria-hidden="true"><use href="#t-green"/></svg>Bientôt</a>
+    <nav aria-label="Sections"><a href="#how">How it works</a><a href="#privacy">Privacy</a><a href="#faq">Questions</a><a href="https://github.com/Thanaen/Bientot">Source code</a><a href="/" hreflang="fr" lang="fr">Français</a></nav>
+  </div>
+  <div class="wrap hero">
+    <div>
+      <p class="eyebrow">Free · open source · for Windows</p>
+      <h1>What time can you leave today?</h1>
+      <p class="lede">Bientôt counts your working time from the taskbar, with nothing to type. One look at its icon tells you whether you’re on track.</p>
+      <div class="cta">
+        <a class="btn btn--primary" href="https://apps.microsoft.com/detail/9N4FL1HRF4KL"><svg><use href="#i-store"/></svg>Get it from the Microsoft Store</a>
+        <a class="btn" href="/download"><svg><use href="#i-dl"/></svg>Installer</a>
+      </div>
+      <p class="btn-note"><!-- version --> <a class="nb" href="https://github.com/Thanaen/Bientot">View the code</a></p>
+    </div>
+    <div class="desk">
+  <div class="flyout" role="img" aria-label="The Bientôt panel opened from the taskbar: on track, projected departure at 4:54 PM.">
+    <div class="fl-head">
+      <span class="st"><svg><use href="#i-check"/></svg>On track</span>
+    </div>
+    <div class="fl-body">
+      <div>
+        <div class="fl-label">Projected departure</div>
+        <div class="fl-hero">4:54&nbsp;PM</div>
+        <div class="fl-hint"><span class="nb">1h 36m</span> to spare before your latest departure (<span class="nb">6:30 PM</span>)</div>
+      </div>
+      <div>
+        <div class="fl-row"><span class="fl-label">Time worked</span><span class="fl-val">6h 00m</span></div>
+        <div class="fl-bar"><i></i></div>
+        <div class="fl-hint" style="margin-top:6px">Target: <span class="nb">7h 24m</span></div>
+      </div>
+      <div class="fl-row"><span class="fl-label">Weekly credit</span><span class="fl-hint">35m</span></div>
+    </div>
+    <div class="fl-actions">
+      <div>Pause tracking</div>
+      <div>Adjust time…</div>
+      <div>Finish day</div>
+    </div>
+  </div>
+      <div class="taskbar" aria-hidden="true">
+        <svg class="tb-ic" viewBox="0 0 16 16"><path fill="none" stroke="currentColor" stroke-width="1.3" d="M2 6h2.5L8 3v10L4.5 10H2zM11 5.5a3.5 3.5 0 0 1 0 5"/></svg>
+        <svg class="tray"><use href="#t-green"/></svg>
+        <span class="clock tnum">3:30 PM<br>10/8/2026</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="alt" id="how">
+    <div class="wrap">
+      <h2>The taskbar icon</h2>
+      <p class="sec-lede">The icon changes color with your projected departure time. Each color also has its own symbol, so you can read it without telling colors apart.</p>
+      <div class="states">
+        <div class="state"><svg class="tray"><use href="#t-green"/></svg><h3>On track</h3><p>You’ll finish your day well before your latest departure time.</p></div>
+        <div class="state"><svg class="tray"><use href="#t-orange"/></svg><h3>Near the limit</h3><p>Your projected departure is close to your latest departure time.</p></div>
+        <div class="state"><svg class="tray"><use href="#t-red"/></svg><h3>Late</h3><p>At this pace, you’ll leave after your latest departure time.</p></div>
+        <div class="state"><svg class="tray"><use href="#t-blue"/></svg><h3>Day finished</h3><p>You’ve reached your target. Extra minutes go to the weekly credit.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Nothing to type</h2>
+      <p class="sec-lede">Set your hours the first time you start it, then work as usual: the app notices keyboard and mouse activity and flags absences for you to review. A meeting away from your PC? Add it with “Log time worked…”, then look over your week as timelines.</p>
+      <div class="week">
+  <div class="tl" role="img" aria-label="A week as timelines: work in blue, breaks in gray, a manual correction in green, a hatched period to review; Thursday in progress.">
+    <div class="tl-axis"><div></div><div><span style="left:0">08</span><span style="left:18.2%">10</span><span style="left:36.4%">12</span><span style="left:54.5%">14</span><span style="left:72.7%">16</span><span style="left:90.9%">18</span></div><div></div></div>
+    <div class="tl-row"><span class="tl-day">Mon 5</span><div class="tl-track"><i class="seg w" style="left:6.8%;width:30%"></i><i class="seg p" style="left:36.8%;width:7.6%"></i><i class="seg w" style="left:44.4%;width:38.5%"></i></div><span class="tl-total tnum">7h 32m</span></div>
+    <div class="tl-row"><span class="tl-day">Tue 6</span><div class="tl-track"><i class="seg w" style="left:2.3%;width:24.2%"></i><i class="seg g" style="left:26.5%;width:6.8%"></i><i class="seg w" style="left:33.3%;width:6.1%"></i><i class="seg p" style="left:39.4%;width:8.3%"></i><i class="seg w" style="left:47.7%;width:38.6%"></i></div><span class="tl-total tnum">7h 35m</span></div>
+    <div class="tl-row"><span class="tl-day">Wed 7</span><div class="tl-track"><i class="seg w" style="left:9%;width:27.4%"></i><i class="seg p" style="left:36.4%;width:6.8%"></i><i class="seg w" style="left:43.2%;width:22%"></i><i class="seg m" style="left:65.2%;width:9.1%"></i><i class="seg w" style="left:74.3%;width:11.2%"></i></div><span class="tl-total tnum">7h 40m</span></div>
+    <div class="tl-row open"><span class="tl-day">Thu 8</span><div class="tl-track"><i class="seg w" style="left:7.6%;width:29.5%"><span>08:50–12:05</span></i><i class="seg p" style="left:37.1%;width:6.1%"></i><i class="seg w" style="left:43.2%;width:25%"><span>12:45–15:30</span></i><i class="now" style="left:68.2%"></i></div><span class="tl-total tnum">6h 00m</span></div>
+    <div class="tl-row"><span class="tl-day">Fri 9</span><div class="tl-track future"></div><span class="tl-total">—</span></div>
+  </div>
+        <div class="legend"><span style="flex-basis:100%">Example · week of October 5–9</span><span><i style="background:var(--accent)"></i>Work</span><span><i style="background:var(--tl-pause)"></i>Break</span><span><i style="background:var(--success)"></i>Manual correction</span><span><i class="seg g" style="position:static"></i>To review</span><span class="leg-now"><i style="background:var(--text);width:2px"></i>Now</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="privacy">
+    <div class="wrap two">
+      <div class="panel">
+        <h2>Your hours stay with you</h2>
+        <p>Everything is stored on your PC, with no account. You can export your data and import it on another computer.</p>
+        <p>Once a day, the app sends an anonymous signal (its version, how it was installed, and whether it’s the first signal of the month) to count the PCs that use it. It’s on by default; you can turn it off in Settings&nbsp;›&nbsp;General. The totals are public on the <a href="/statistiques" hreflang="fr">Statistics</a> page, in French.</p>
+      </div>
+      <div class="panel">
+        <h2>Free and open source</h2>
+        <p>Bientôt is a personal project, maintained by one person in their free time and released under the MIT license. No subscription, no ads, no paid version.</p>
+        <p>An idea or a bug? Issues are open on GitHub.</p>
+        <div class="row"><a class="btn" href="https://github.com/Thanaen/Bientot"><svg><use href="#i-gh"/></svg>Thanaen/Bientot</a><a class="btn" href="https://github.com/Thanaen/Bientot/issues">Report a problem</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <h2 id="faq-title">Frequently asked questions</h2>
+      <div class="faq">
+        <div><h3>How do I know if I’ve worked my hours today?</h3><p>Bientôt, a free and open-source app for Windows&nbsp;11, counts your hours for the day with nothing to type and compares them with your daily target (7 hours by default). Click its icon in the taskbar to see the time worked and your projected departure time; once you reach the target, the icon turns blue. The week view, opened from the same panel, also gives each day’s total.</p></div>
+        <div><h3>How does Bientôt count my hours without clocking in?</h3><p>Bientôt checks when you last used the keyboard or mouse. After 3&nbsp;minutes without input, it counts you as away from that last input. You can set this idle threshold from 30&nbsp;seconds to 30&nbsp;minutes in Settings&nbsp;› General. Sleep isn’t counted. A locked session during your lunch window (12:00 to 14:00 by default) counts as a break; outside it, it counts as work, and Bientôt asks you to review locks longer than 90&nbsp;minutes (by default). If the session stays locked until the next day, the day ends when it was locked. It never reads what you type, application names or window titles.</p></div>
+        <div><h3>How do I count a meeting away from my computer in Bientôt?</h3><p>Click the Bientôt icon in the taskbar, then the calendar icon (“Open week”), and add the meeting with “Log time worked…”. To remove or reclassify time already counted, use “Adjust time…”. For a meeting that comes back every week or every other week, add a recurring appointment in Settings&nbsp;› Accounting: if you’re away from your PC at that time, Bientôt counts it as work and, by default, asks you to confirm it when you’re back.</p></div>
+        <div><h3>What does Bientôt do with my overtime?</h3><p>Once you reach the day’s target (7 hours by default), the icon turns blue and the extra minutes go to the weekly credit. That credit automatically shortens the following days, never below the minimum target (6 hours by default), and expires after Friday. By default, a short day creates no debt. If you turn on the weekly debt in Settings&nbsp;› Accounting, your next extra minutes first make up the missing time, without ever lengthening a day.</p></div>
+        <div><h3>Can I set Bientôt to my contract hours (37.5, 40, part time)?</h3><p>Yes, if you work Monday to Friday. Set your daily target (for example 7:30 for 37.5 hours a week), your lunch window and your latest departure time when you first start it, or later in Settings&nbsp;› Schedule. The same target applies to all five days: Bientôt can’t set a different target for each day, or mark a weekday as a day off, such as a free Wednesday when you work part time.</p></div>
+        <div><h3>Is Bientôt really free and open source?</h3><p>Yes. No subscription, no ads, no paid version: Bientôt is free software released under the MIT license, maintained by one person in their free time. Its code is on <a href="https://github.com/Thanaen/Bientot">GitHub</a>.</p></div>
+        <div><h3>Do I need an account or an Internet connection to use Bientôt?</h3><p>No. Bientôt works without an account and offline: your hours stay on your PC. It only goes online to check for updates and to send an anonymous usage signal, each at most once a day, with no data about your hours. You can turn both off in Settings&nbsp;› General.</p></div>
+        <div><h3>Can my employer see my hours in Bientôt?</h3><p>No, Bientôt sends them nothing. It’s for keeping track of your own day, not for monitoring employees: your hours stay in a file on your PC and are never sent to an employer or an online service. On a PC managed by your company, though, its administrators can reach the files in your session, as with any other software.</p></div>
+        <div><h3>How is Bientôt different from Clockify or Toggl?</h3><p>Clockify and Toggl time tasks and projects, with an online account. Bientôt doesn’t track projects: it only counts your working time for the day, on its own and on your PC, and tells you when you’ve worked your hours.</p></div>
+        <div><h3>Is Bientôt available in English?</h3><p>Yes. Bientôt, French for “soon”, is made in France and comes in English and French. It follows the Windows display language, and you can change it in Settings&nbsp;› General.</p></div>
+        <div><h3>Does Bientôt work on Windows&nbsp;10, Mac or Linux?</h3><p>No. Bientôt needs Windows&nbsp;11 on an x64 PC (Intel or AMD). There’s no version for Windows&nbsp;10, Mac, Linux or phones.</p></div>
+        <div><h3>Where can I download Bientôt?</h3><p>From the <a href="https://apps.microsoft.com/detail/9N4FL1HRF4KL">Microsoft Store</a>, which signs it and keeps it up to date. You can also use the <a href="/download">installer</a>: Bientôt then updates itself. The installer isn’t signed yet, so Windows SmartScreen may ask you to confirm with “More info&nbsp;› Run anyway”.</p></div>
+      </div>
+    </div>
+  </section>
+  <footer><div class="wrap"><span>Bientôt · MIT license</span><a href="https://github.com/Thanaen/Bientot">GitHub</a><a href="https://apps.microsoft.com/detail/9N4FL1HRF4KL">Download</a><a href="/statistiques" hreflang="fr">Statistics (in French)</a><span class="foot-note">The app was called WorkTime until October 2026.</span><span class="foot-note">Audience measured by PostHog, <a href="https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md#the-website">without cookies</a>.</span></div></footer>
+</body>
+</html>

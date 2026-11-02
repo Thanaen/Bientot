@@ -84,7 +84,7 @@ describe("the site", () => {
     const route = routes[path] as { GET?: (request: Request) => Response | Promise<Response> } | undefined;
     return route?.GET ? route.GET(new Request(`http://local${path}`)) : null;
   };
-  const html = async () => (await get("/"))!.text();
+  const html = async (path = "/") => (await get(path))!.text();
 
   test("/ serves the page, which offers the Microsoft Store first and the installer through /download", async () => {
     const response = (await get("/"))!;
@@ -133,6 +133,42 @@ describe("the site", () => {
     expect(await html()).toContain(`(version <span class="nb">0.2.0-alpha.53</span>)`);
   });
 
+  test("/en serves the page in English, with the installer's version", async () => {
+    const page = await html("/en");
+    expect(page).toStartWith('<!doctype html>\n<html lang="en">');
+    expect(page).toContain("<title>Bientôt · free working hours tracker for Windows</title>");
+    expect(page).toContain('<p class="btn-note">The installer (version <span class="nb">0.2.0-alpha.53</span>) keeps the app up to date.');
+    expect(page.indexOf('href="https://apps.microsoft.com/detail/9N4FL1HRF4KL"')).toBeLessThan(page.indexOf('href="/download"'));
+    expect(page).not.toContain("<!-- ");
+  });
+
+  // Search engines show each reader the homepage in their language, the English one by default.
+  test.each([
+    ["/", "fr_FR", "en_US"],
+    ["/en", "en_US", "fr_FR"],
+  ])("%p names its translation, and each page links to the other", async (path, locale, alternate) => {
+    const page = await html(path);
+    expect(page).toContain(`<link rel="canonical" href="https://bientot.dev${path}">`);
+    expect(page).toContain('<link rel="alternate" hreflang="fr" href="https://bientot.dev/">');
+    expect(page).toContain('<link rel="alternate" hreflang="en" href="https://bientot.dev/en">');
+    expect(page).toContain('<link rel="alternate" hreflang="x-default" href="https://bientot.dev/en">');
+    expect(page).toContain(`<meta property="og:locale" content="${locale}">`);
+    expect(page).toContain(`<meta property="og:locale:alternate" content="${alternate}">`);
+    expect(page).toContain(path === "/" ? '<a href="/en" hreflang="en" lang="en">English</a>' : '<a href="/" hreflang="fr" lang="fr">Français</a>');
+  });
+
+  test("the statistics page, in French only, names no translation", async () => {
+    const page = await html("/statistiques");
+    expect(page).not.toContain("hreflang");
+    expect(page).not.toContain("og:locale:alternate");
+  });
+
+  // The two homepages are one design: only the words differ.
+  test("the English page has the same styles as the French one", async () => {
+    const style = (page: string) => page.match(/<style>[\s\S]*?<\/style>/)![0];
+    expect(style(await html("/en"))).toBe(style(await html("/")));
+  });
+
   test("the page describes itself for search engines and link previews", async () => {
     const page = await html();
     expect(page).toContain('<link rel="canonical" href="https://bientot.dev/">');
@@ -145,26 +181,33 @@ describe("the site", () => {
 
   // The domain, the repository and the theme keep the old name; the pages say it only to tell
   // that the app was renamed.
-  test.each(["/", "/statistiques"])("%p names the app Bientôt", async (path) => {
+  test.each([
+    ["/", "/", "L’application s’appelait WorkTime jusqu’en octobre 2026."],
+    ["/statistiques", "/", "L’application s’appelait WorkTime jusqu’en octobre 2026."],
+    ["/en", "/en", "The app was called WorkTime until October 2026."],
+  ])("%p names the app Bientôt", async (path, home, renamed) => {
     const page = await (await get(path))!.text();
-    expect(page).toContain('<a class="brand" href="/">');
+    expect(page).toContain(`<a class="brand" href="${home}">`);
     expect(page).toContain('<meta property="og:site_name" content="Bientôt">');
-    expect(page).toContain("L’application s’appelait WorkTime jusqu’en octobre 2026.");
+    expect(page).toContain(renamed);
     const rest = page
       .replace(/https:\/\/[^"\s]+/g, "")
-      .replace("L’application s’appelait WorkTime jusqu’en octobre 2026.", "")
+      .replace(renamed, "")
       .replace("Thanaen/Bientot</a>", "")
       .replace("Thème WorkTime One", "");
     expect(rest).not.toContain("WorkTime");
   });
 
-  test("every local file the page links to is served", async () => {
+  test.each([
+    ["/", "/og/home.png"],
+    ["/en", "/og/home-en.png"],
+  ])("every local file %p links to is served", async (page, image) => {
     const paths = new Set(
-      [...(await html()).matchAll(/(?:(?:href|src|content)="|url\(")(?:https:\/\/bientot\.dev)?(\/[\w./-]+\.\w+)"/g)].map(
+      [...(await html(page)).matchAll(/(?:(?:href|src|content)="|url\(")(?:https:\/\/bientot\.dev)?(\/[\w./-]+\.\w+)"/g)].map(
         (match) => match[1] ?? "",
       ),
     );
-    expect(paths).toContain("/og/home.png");
+    expect(paths).toContain(image);
     expect([...paths].filter((path) => path.startsWith("/fonts/")).sort()).toEqual(Object.keys(FONTS).sort());
     expect(paths).toContain("/analytics.js");
     for (const path of paths) {
@@ -184,15 +227,17 @@ describe("the site", () => {
     }
   });
 
-  test("the share image is a 1200 × 630 PNG", async () => {
-    const bytes = new DataView(await (await get("/og/home.png"))!.arrayBuffer());
+  test.each(["/og/home.png", "/og/home-en.png"])("the share image %p is a 1200 × 630 PNG", async (path) => {
+    const bytes = new DataView(await (await get(path))!.arrayBuffer());
     expect(bytes.getUint32(16)).toBe(1200);
     expect(bytes.getUint32(20)).toBe(630);
   });
 
   test("robots.txt points at the sitemap, which lists the page", async () => {
     expect(await (await get("/robots.txt"))!.text()).toContain("Sitemap: https://bientot.dev/sitemap.xml");
-    expect(await (await get("/sitemap.xml"))!.text()).toContain("<loc>https://bientot.dev/</loc>");
+    const sitemap = await (await get("/sitemap.xml"))!.text();
+    expect(sitemap).toContain("<loc>https://bientot.dev/</loc>");
+    expect(sitemap).toContain("<loc>https://bientot.dev/en</loc>");
   });
 
   test("llms.txt describes the app in plain text for AI assistants", async () => {
@@ -204,8 +249,8 @@ describe("the site", () => {
     expect(text).toContain("https://github.com/Thanaen/Bientot");
   });
 
-  test("the questions of the FAQ are also given as FAQPage data, word for word", async () => {
-    const page = await html();
+  test.each(["/", "/en"])("the questions of the FAQ on %p are also given as FAQPage data, word for word", async (path) => {
+    const page = await html(path);
     const scripts = [...page.matchAll(/<script type="application\/ld\+json">\n?(.*?)\n?<\/script>/g)].map((match) => JSON.parse(match[1]!));
     const faq = scripts.find((data) => data["@type"] === "FAQPage");
     const visible = page.match(/<section id="faq"[^>]*>[\s\S]*?<\/section>/)![0];
@@ -222,8 +267,8 @@ describe("the site", () => {
     expect(await (await get(`/${INDEXNOW_KEY}.txt`))!.text()).toBe(INDEXNOW_KEY);
   });
 
-  test("the structured data is valid JSON naming the app, its source and its download", async () => {
-    const json = (await html()).match(/<script type="application\/ld\+json">\n(.*)\n<\/script>/)?.[1];
+  test.each(["/", "/en"])("the structured data of %p is valid JSON naming the app, its source and its download", async (path) => {
+    const json = (await html(path)).match(/<script type="application\/ld\+json">\n(.*)\n<\/script>/)?.[1];
     const graph = JSON.parse(json!)["@graph"];
     const app = graph.find((node: { "@type": string }) => node["@type"] === "SoftwareApplication");
     expect(app.name).toBe("Bientôt");
@@ -413,6 +458,7 @@ describe("the two domains", () => {
 
   test.each([
     ["/", "https://bientot.dev/"],
+    ["/en", "https://bientot.dev/en"],
     ["/statistiques", "https://bientot.dev/statistiques"],
     ["/?utm_source=x", "https://bientot.dev/?utm_source=x"],
   ])("the old domain moves the page %p to bientot.dev", async (path, location) => {
@@ -423,6 +469,7 @@ describe("the two domains", () => {
 
   test.each([
     ["/", "https://bientot.dev/"],
+    ["/en", "https://bientot.dev/en"],
     ["/statistiques", "https://bientot.dev/statistiques"],
   ])("bientot.dev serves the page %p", async (path, canonical) => {
     const response = await call("bientot.dev", path);
