@@ -52,6 +52,8 @@ export const STATISTICS: Page = {
 
 const DAY = 86400;
 
+export const INDEXNOW_KEY = "fc1df1497d565dd2216861364de720c3";
+
 // PostHog's managed proxy for the Bientôt project (README.md, "Pages").
 export const ANALYTICS = "https://e.bientot.dev";
 
@@ -63,6 +65,10 @@ const FILES: Record<string, { url: URL; type: string; maxAge: number; immutable?
   "/apple-touch-icon.png": { url: new URL("../site/apple-touch-icon.png", import.meta.url), type: "image/png", maxAge: DAY },
   "/analytics.js": { url: new URL("../site/analytics.js", import.meta.url), type: "text/javascript", maxAge: 3600 },
   "/og/home.png": { url: new URL("../site/og/home.png", import.meta.url), type: "image/png", maxAge: DAY },
+  // What the app is, in a few lines, for AI assistants and the search engines behind them (llmstxt.org).
+  "/llms.txt": { url: new URL("../site/llms.txt", import.meta.url), type: "text/plain; charset=utf-8", maxAge: DAY },
+  // The key that proves to IndexNow (Bing, Yandex…) that our submissions come from the site (scripts/indexnow.ts).
+  [`/${INDEXNOW_KEY}.txt`]: { url: new URL("../site/indexnow-key.txt", import.meta.url), type: "text/plain; charset=utf-8", maxAge: DAY },
 };
 
 const escape = (text: string) =>

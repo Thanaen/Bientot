@@ -1,0 +1,32 @@
+# Bientôt
+
+> Bientôt is a free, open-source (MIT) Windows 11 app that tracks your working hours on its own, from the notification area, and compares them with your daily target. It tells you how long you have worked today, how much time is left, and at what time you can leave. Data stays on your PC, with no account. Available in French and English.
+
+Bientôt (also written "Bientot"; called WorkTime until October 2026) is maintained by one person, Thanaen, in their free time. It is a time tracker for one person's own working day, not a team timesheet or employee monitoring tool.
+
+## What it does
+
+- Counts working time automatically from keyboard and mouse activity, session lock and sleep. After 3 minutes without input (adjustable from 30 seconds to 30 minutes) the time counts as idle. It never reads what you type, application names or window titles.
+- Compares the time worked with a daily target (7 hours by default) and shows the projected departure time.
+- Tray icon colors: green when on track, orange when the projected departure is close to the latest departure time, red when it is later, blue when the daily target is reached and overtime accumulates.
+- Carries overtime to later days of the same week: extra minutes on Monday shorten Tuesday (down to a 6-hour floor by default). By default missing time creates no debt (an optional weekly debt can be turned on), and unused credit expires after Friday.
+- Lets you pause, resume or finish the day, declare time worked away from the computer (a meeting), correct a recorded period, and set recurring appointments.
+- Shows the week as timelines, sends a notification shortly before the target or the latest departure time, and exports or imports data as a `.bientot` file.
+- Sends one anonymous usage signal a day (app version, install channel, first signal of the month), with no identifier; it can be turned off in Settings.
+
+## Download
+
+- [Microsoft Store](https://apps.microsoft.com/detail/9N4FL1HRF4KL): signed by Microsoft, updated by the Store.
+- [Installer](https://bientot.dev/download): `Setup.exe`, updates itself; not code-signed yet, so SmartScreen may ask for confirmation.
+
+## Links
+
+- [Website (French)](https://bientot.dev/)
+- [Source code and README (English)](https://github.com/Thanaen/Bientot)
+- [Privacy: every stored file and network request](https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md)
+- [Public usage statistics](https://bientot.dev/statistiques)
+- [Report a problem](https://github.com/Thanaen/Bientot/issues)
+
+## En français
+
+Bientôt est une application Windows gratuite et open source (licence MIT) qui compte vos heures de travail toute seule, depuis la barre des tâches, et les compare à votre objectif quotidien. Elle indique le temps travaillé, le temps restant et l’heure à laquelle vous pourrez partir, et reporte les minutes en plus sur les jours suivants de la semaine. Les données restent sur votre PC, sans compte. Elle convient à qui cherche une pointeuse ou un compteur d’heures personnel, simple et hors ligne, pour Windows 11.
