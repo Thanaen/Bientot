@@ -25,7 +25,7 @@ impl AdjustView {
         let options = page.intents.iter().enumerate().map(|(position, option)| {
             let intent = option.intent;
             let (ring, dot) = match (locked, option.selected) {
-                (true, _) => (theme.border, theme.text_placeholder),
+                (true, _) => (theme.border, theme.text_disabled),
                 (false, true) => (theme.accent, theme.accent),
                 (false, false) => (theme.text_placeholder, transparent_black()),
             };
@@ -49,7 +49,7 @@ impl AdjustView {
                 .border_1()
                 .border_color(transparent_black())
                 .text_color(if locked {
-                    theme.text_placeholder
+                    theme.text_disabled
                 } else {
                     theme.text
                 })
@@ -167,7 +167,7 @@ impl AdjustView {
                     .border_color(if invalid { theme.error } else { theme.border })
                     .bg(if locked { theme.element } else { theme.editor })
                     .text_color(if locked {
-                        theme.text_placeholder
+                        theme.text_disabled
                     } else {
                         theme.text
                     })
@@ -260,12 +260,12 @@ impl AdjustView {
             let selected = self.form.classification() == classification;
             let (background, border, color) = match (locked, selected) {
                 (false, true) => (theme.accent_background, theme.accent, theme.accent),
-                (true, true) => (theme.element_active, theme.border, theme.text_placeholder),
+                (true, true) => (theme.element_active, theme.border, theme.text_disabled),
                 (false, false) => (transparent_black(), transparent_black(), theme.text_muted),
                 (true, false) => (
                     transparent_black(),
                     transparent_black(),
-                    theme.text_placeholder,
+                    theme.text_disabled,
                 ),
             };
             let focused = theme.border_focused;

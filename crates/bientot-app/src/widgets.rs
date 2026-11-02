@@ -725,7 +725,7 @@ pub fn disabled_control(
         .rounded(radius::SM)
         .border_1()
         .border_color(gpui::transparent_black())
-        .text_color(theme.text_placeholder)
+        .text_color(theme.text_disabled)
         .focus_visible(move |style| style.border_color(focused))
         // Without this, GPUI focuses a clicked node that has a tab index.
         .on_any_mouse_down(|_, window, _| window.prevent_default())

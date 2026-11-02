@@ -527,8 +527,8 @@ languages, updates only with consent, and exports no sensitive activity data.
 
   2026-11-02: The UIA tree of every window was read on Windows; Narrator
   itself was not run. Five screen-reader defects and two contrast failures
-  were fixed in #121. `text-placeholder` stays below 4.5:1, tracked in
-  #123.
+  were fixed in #121. #123 raised `text-placeholder` to 4.5:1 on `editor`
+  and `surface`; disabled controls use the exempt `text-disabled`.
 - [x] T110 [P] Add Explorer restart, DPI, theme, and multi-monitor tray tests in `tests/WorkTime.Windows.Tests/Tray/TrayLifecycleTests.cs`
 
   2026-10-11: Two product fixes came with the tests. Explorer restart:

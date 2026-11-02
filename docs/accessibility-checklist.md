@@ -65,18 +65,21 @@ focus indicators and the parts of a control 3:1.
 | `error` (state and callout icon) on its callout | 4.11, now 4.60 | 4.62 | Fixed in #121 |
 | `border-focused` on `surface` | 5.28 | 2.83, now 3.11 | Fixed in #121 |
 | Selected palette row | 4.61 | 4.64 | Pass |
-| `text-placeholder` on `editor` | 4.08 | 3.78 | Below, see below |
+| `text-placeholder` on `editor` / `surface` | 5.06 / 4.51 | 5.16 / 4.52 | Fixed in #123 |
+| `text-disabled` on `editor` | 4.08 | 3.78 | Exempt (disabled controls) |
 
-Two theme tests keep the fixed pairs at AA in both themes.
+Theme tests keep the fixed pairs at AA in both themes.
 
 In the light theme, the focus ring of an outlined button inside a tinted
 callout reads 2.8 to 3.0:1 against the callout and 3.55:1 against the
 button's own fill, which WCAG 1.4.11 accepts.
 
-`text-placeholder` stays below 4.5:1. The token also greys disabled controls,
-which WCAG exempts, and placeholder text such as « Aucune limite » sits in a
-field that already has a visible label. Splitting the token is a design-system
-change, tracked in [#123](https://github.com/Thanaen/Bientot/issues/123).
+`text-placeholder` now only fills an empty field (« Aucune limite », the
+palette search) and draws the neutral strokes of an enabled control (an
+unchecked radio ring, timeline borders, step dots, a scroll thumb). Disabled
+controls, which WCAG exempts, use `text-disabled`, the former
+`text-placeholder` value, so they still look inactive next to an empty field
+([#123](https://github.com/Thanaen/Bientot/issues/123)).
 
 ## States that do not rely on colour
 

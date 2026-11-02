@@ -520,8 +520,9 @@ impl OnboardingView {
             let choice = option.choice;
             let (ring, dot) = match (option.selected, locked) {
                 (true, false) => (theme.accent, theme.accent),
-                (true, true) => (theme.text_placeholder, theme.text_placeholder),
-                (false, _) => (theme.text_placeholder, transparent_black()),
+                (true, true) => (theme.text_disabled, theme.text_disabled),
+                (false, true) => (theme.text_disabled, transparent_black()),
+                (false, false) => (theme.text_placeholder, transparent_black()),
             };
             let (hover, focused) = (theme.element_hover, theme.border_focused);
             let last = position + 1 == count;
@@ -554,7 +555,7 @@ impl OnboardingView {
                                 children.parent_node().set_disabled()
                             })
                             .tab_stop(false)
-                            .text_color(theme.text_placeholder)
+                            .text_color(theme.text_disabled)
                             .on_any_mouse_down(|_, window, _| window.prevent_default())
                     } else {
                         radio
@@ -832,7 +833,7 @@ impl OnboardingView {
         let previous = page.previous.map(|label| {
             let button = outlined("previous", label, token::BUTTON_LARGE, theme);
             if page.saving {
-                return button.text_color(theme.text_placeholder);
+                return button.text_color(theme.text_disabled);
             }
             button.on_click(cx.listener(|view, _, window, cx| view.previous(window, cx)))
         });

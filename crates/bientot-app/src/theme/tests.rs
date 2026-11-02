@@ -1,6 +1,6 @@
 //! Checks every token against `design/tokens.json`, a copy of the design system's
 //! `project/tokens.json` (https://claude.ai/artifact/BL74JiT44VFwkEk2wpCUnf, version
-//! 1792292012-8732). After the design system changes, copy the new file over it: these tests
+//! 1793658955-0bd9). After the design system changes, copy the new file over it: these tests
 //! then name each token to update.
 
 use std::collections::BTreeSet;
@@ -17,7 +17,7 @@ const NOT_IN_THE_APP: [&str; 5] = [
     "tray-orange",
     "tray-red",
     "tray-blue",
-    "tray-gray",
+    "tray-badge",
 ];
 
 fn tokens() -> Value {
@@ -47,6 +47,7 @@ fn colors(theme: &Theme) -> Vec<(&'static str, Hsla)> {
         ("text", theme.text),
         ("text-muted", theme.text_muted),
         ("text-placeholder", theme.text_placeholder),
+        ("text-disabled", theme.text_disabled),
         ("accent", theme.accent),
         ("accent-background", theme.accent_background),
         ("accent-border", theme.accent_border),
@@ -161,6 +162,51 @@ fn lengths_match_the_design_system() {
         ("size", "timeline-row", size::TIMELINE_ROW),
         ("size", "timeline-row-focused", size::TIMELINE_ROW_FOCUSED),
         ("size", "day-column", size::DAY_COLUMN),
+        (
+            "size",
+            "appointment-marker-stroke",
+            size::APPOINTMENT_MARKER_STROKE,
+        ),
+        (
+            "size",
+            "appointment-marker-height",
+            size::APPOINTMENT_MARKER_HEIGHT,
+        ),
+        (
+            "size",
+            "appointment-marker-gap",
+            size::APPOINTMENT_MARKER_GAP,
+        ),
+        (
+            "size",
+            "appointment-marker-gap-focused",
+            size::APPOINTMENT_MARKER_GAP_FOCUSED,
+        ),
+        (
+            "size",
+            "appointment-marker-inset",
+            size::APPOINTMENT_MARKER_INSET,
+        ),
+        (
+            "size",
+            "appointment-marker-hit",
+            size::APPOINTMENT_MARKER_HIT,
+        ),
+        (
+            "size",
+            "appointment-marker-now-clearance",
+            size::APPOINTMENT_MARKER_NOW_CLEARANCE,
+        ),
+        (
+            "size",
+            "appointment-marker-fade",
+            size::APPOINTMENT_MARKER_FADE,
+        ),
+        (
+            "size",
+            "appointment-tooltip-gap",
+            size::APPOINTMENT_TOOLTIP_GAP,
+        ),
     ];
     let mut in_file = BTreeSet::new();
     for family in ["spacing", "radius", "size"] {
@@ -354,5 +400,23 @@ fn the_focus_ring_reads_at_3_to_1_on_surface_and_editor() {
             let ratio = contrast(theme.border_focused, background);
             assert!(ratio >= 3.0, "{id} focus ring on {name}: {ratio:.2}:1");
         }
+    }
+}
+
+#[test]
+fn placeholder_text_reads_at_4_5_to_1_where_fields_sit() {
+    for (id, theme) in [("dark", Theme::dark()), ("light", Theme::light())] {
+        for (name, background) in [
+            ("editor", theme.editor),
+            ("surface", theme.surface),
+            ("elevated-surface", theme.elevated_surface),
+        ] {
+            let ratio = contrast(theme.text_placeholder, background);
+            assert!(ratio >= 4.5, "{id} placeholder on {name}: {ratio:.2}:1");
+        }
+        assert_ne!(
+            theme.text_placeholder, theme.text_disabled,
+            "{id}: a disabled control must not look like an empty field"
+        );
     }
 }

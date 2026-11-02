@@ -1066,7 +1066,7 @@ pub(crate) fn row_frame(
     let (title_color, description_color) = match row.tone {
         RowTone::Normal => (theme.text, theme.text_muted),
         RowTone::Unavailable => (theme.text_muted, theme.text_muted),
-        RowTone::Disabled => (theme.text_placeholder, theme.text_placeholder),
+        RowTone::Disabled => (theme.text_disabled, theme.text_disabled),
     };
     div()
         .py(BASE_12)
@@ -1388,7 +1388,7 @@ impl SettingsView {
             let color = if enabled {
                 theme.text_muted
             } else {
-                theme.text_placeholder
+                theme.text_disabled
             };
             let button = div()
                 .id(id)
@@ -1447,7 +1447,7 @@ impl SettingsView {
                     .text_color(if enabled {
                         theme.text_muted
                     } else {
-                        theme.text_placeholder
+                        theme.text_disabled
                     })
                     .child(unit),
             )
@@ -1594,8 +1594,8 @@ pub(crate) fn switch_frame(
     let (track, border, knob) = match (enabled, on) {
         (true, true) => (theme.accent, theme.accent, theme.tl_on_fill),
         (true, false) => (transparent_black(), theme.text_muted, theme.text_muted),
-        (false, true) => (theme.element_active, theme.border, theme.text_placeholder),
-        (false, false) => (theme.element, theme.border, theme.text_placeholder),
+        (false, true) => (theme.element_active, theme.border, theme.text_disabled),
+        (false, false) => (theme.element, theme.border, theme.text_disabled),
     };
     let focused = theme.border_focused;
     let control = div()
