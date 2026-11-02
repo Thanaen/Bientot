@@ -21,7 +21,8 @@ Bientôt (also written "Bientot"; called WorkTime until October 2026) is maintai
 
 ## Links
 
-- [Website (French)](https://bientot.dev/)
+- [Website (English)](https://bientot.dev/en)
+- [Site web (français)](https://bientot.dev/)
 - [Source code and README (English)](https://github.com/Thanaen/Bientot)
 - [Privacy: every stored file and network request](https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md)
 - [Public usage statistics](https://bientot.dev/statistiques)

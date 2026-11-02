@@ -16,9 +16,12 @@ export function moved(request: Request): Response | null {
   return new Response(null, { status: 301, headers: { location: ORIGIN + pathname + search } });
 }
 
+export type Language = "fr" | "en";
+
 export interface Page {
   path: string;
   file: URL;
+  language: Language;
   title: string;
   description: string;
   // The image shown when the link is shared: a 1200 × 630 PNG listed in FILES.
@@ -30,6 +33,7 @@ export const PAGES: Page[] = [
   {
     path: "/",
     file: new URL("../site/index.html", import.meta.url),
+    language: "fr",
     title: "Bientôt · suivi gratuit des heures de travail pour Windows",
     description:
       "Bientôt compte vos heures de travail sous Windows 11, sans rien saisir, et vous dit à quelle heure partir. Gratuit, open source, sans compte et hors ligne.",
@@ -38,12 +42,29 @@ export const PAGES: Page[] = [
       alt: "L’application Bientôt : « À quelle heure pourrez-vous partir aujourd’hui ? », à côté du panneau de la barre des tâches qui indique « Dans les temps », départ prévu à 16:54.",
     },
   },
+  {
+    path: "/en",
+    file: new URL("../site/en.html", import.meta.url),
+    language: "en",
+    title: "Bientôt · free working hours tracker for Windows",
+    description:
+      "Bientôt counts your working hours on Windows 11 with nothing to type, and tells you what time you can leave. Free, open source, no account, works offline.",
+    image: {
+      path: "/og/home-en.png",
+      alt: "“What time can you leave today?” next to the Bientôt taskbar panel showing “On track” and a projected departure of 4:54 PM.",
+    },
+  },
 ];
+
+// The homepage in each language. Search engines show each reader the one in their language, and
+// the English one to everyone else.
+const HOMEPAGES: Record<Language | "x-default", string> = { fr: "/", en: "/en", "x-default": "/en" };
 
 // The statistics page is drawn per request from its template (stats-page.ts), with the same head.
 export const STATISTICS: Page = {
   path: "/statistiques",
   file: new URL("../site/statistiques.html", import.meta.url),
+  language: "fr",
   title: "Statistiques · Bientôt",
   description:
     "Combien d’installations de Bientôt sont actives chaque mois, par version et par mode d’installation : les chiffres du signal anonyme, publiés en données ouvertes.",
@@ -65,6 +86,7 @@ const FILES: Record<string, { url: URL; type: string; maxAge: number; immutable?
   "/apple-touch-icon.png": { url: new URL("../site/apple-touch-icon.png", import.meta.url), type: "image/png", maxAge: DAY },
   "/analytics.js": { url: new URL("../site/analytics.js", import.meta.url), type: "text/javascript", maxAge: 3600 },
   "/og/home.png": { url: new URL("../site/og/home.png", import.meta.url), type: "image/png", maxAge: DAY },
+  "/og/home-en.png": { url: new URL("../site/og/home-en.png", import.meta.url), type: "image/png", maxAge: DAY },
   // What the app is, in a few lines, for AI assistants and the search engines behind them (llmstxt.org).
   "/llms.txt": { url: new URL("../site/llms.txt", import.meta.url), type: "text/plain; charset=utf-8", maxAge: DAY },
   // The key that proves to IndexNow (Bing, Yandex…) that our submissions come from the site (scripts/indexnow.ts).
@@ -78,13 +100,19 @@ const escape = (text: string) =>
 export function head(page: Page): string {
   const url = ORIGIN + page.path;
   const image = ORIGIN + page.image.path;
+  const translated = Object.values(HOMEPAGES).includes(page.path);
+  const locale = (language: Language) => (language === "fr" ? "fr_FR" : "en_US");
   return [
     `<title>${escape(page.title)}</title>`,
     `<meta name="description" content="${escape(page.description)}">`,
     `<link rel="canonical" href="${url}">`,
+    ...(translated
+      ? Object.entries(HOMEPAGES).map(([language, path]) => `<link rel="alternate" hreflang="${language}" href="${ORIGIN + path}">`)
+      : []),
     `<meta property="og:type" content="website">`,
     `<meta property="og:site_name" content="Bientôt">`,
-    `<meta property="og:locale" content="fr_FR">`,
+    `<meta property="og:locale" content="${locale(page.language)}">`,
+    ...(translated ? [`<meta property="og:locale:alternate" content="${locale(page.language === "fr" ? "en" : "fr")}">`] : []),
     `<meta property="og:url" content="${url}">`,
     `<meta property="og:title" content="${escape(page.title)}">`,
     `<meta property="og:description" content="${escape(page.description)}">`,
@@ -109,8 +137,13 @@ export function head(page: Page): string {
 // The note under the download buttons is about the installer, the second choice after the Microsoft
 // Store: it names the version /download serves, filled in per request where the page says
 // `<!-- version -->`.
-export function versionNote(version: string | null): string {
-  const installer = version ? `Le programme d’installation (version <span class="nb">${version}</span>)` : "Le programme d’installation";
+export function versionNote(version: string | null, language: Language): string {
+  const nb = (text: string) => `<span class="nb">${text}</span>`;
+  if (language === "en") {
+    const installer = version ? `The installer (version ${nb(version)})` : "The installer";
+    return `${installer} keeps the app up to date. It isn’t signed yet, so Windows may ask you to confirm.`;
+  }
+  const installer = version ? `Le programme d’installation (version ${nb(version)})` : "Le programme d’installation";
   return `${installer} met l’application à jour automatiquement. Il n’est pas signé&nbsp;: Windows peut demander une confirmation.`;
 }
 
@@ -177,7 +210,7 @@ export function siteRoutes(version: () => Promise<string | null>): Record<string
         const redirect = moved(request);
         if (redirect) return redirect;
         const [html, latest] = await Promise.all([render(page), version()]);
-        return new Response(html.replace("<!-- version -->", versionNote(latest)), {
+        return new Response(html.replace("<!-- version -->", versionNote(latest, page.language)), {
           headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" },
         });
       },

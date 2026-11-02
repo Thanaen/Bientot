@@ -1,6 +1,6 @@
-// Every page the site can show, rendered to HTML with the service's own code: the homepage with and
-// without a release version, the OG image's source, and the statistics page in each of its states,
-// one per month of a made-up year so that every month and weekday name appears.
+// Every page the site can show, rendered to HTML with the service's own code: the homepage in each
+// language with and without a release version, the OG images' sources, and the statistics page in
+// each of its states, one per month of a made-up year so that every month and weekday name appears.
 // Usage: bun scripts/fonts/pages.ts [service root] <output dir>
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -49,6 +49,8 @@ const routes = siteRoutes(async () => "1.12.0-beta.3");
 pages["index.html"] = await (await routes["/"].GET(new Request("https://bientot.dev/"))).text();
 const noVersion = siteRoutes(async () => null);
 pages["index-sans-version.html"] = await (await noVersion["/"].GET(new Request("https://bientot.dev/"))).text();
+pages["en.html"] = await (await routes["/en"].GET(new Request("https://bientot.dev/en"))).text();
+pages["en-no-version.html"] = await (await noVersion["/en"].GET(new Request("https://bientot.dev/en"))).text();
 pages["statistiques-vide.html"] = await renderPage(publish([], [], `${year}-01-05`));
 pages["statistiques-un-mois-sous-10.html"] = await renderPage(publish(days.slice(31, 59), cells.filter((c) => c.month === `${year}-02`), `${year}-03-02`));
 for (let m = 1; m <= 12; m++) {
@@ -74,6 +76,7 @@ pages["specimen.html"] = home.slice(0, home.indexOf("<body")) + `<body><main cla
 </main></body></html>`;
 // The OG image's source loads its fonts from ../fonts, so it sits one folder down.
 pages["og/home.html"] = await Bun.file(join(root, "site/og/home.html")).text();
+pages["og/home-en.html"] = await Bun.file(join(root, "site/og/home-en.html")).text();
 
 await mkdir(join(out, "og"), { recursive: true });
 for (const [name, html] of Object.entries(pages)) await Bun.write(join(out, name), html);

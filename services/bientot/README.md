@@ -8,7 +8,7 @@ The service also answers at `https://worktime.thanaen.dev`, the site's first add
 copies read their update feed and send their usage signal there (`FEED_URL` in
 `crates/bientot-app/src/updates/direct.rs`, `ENDPOINT` in `crates/bientot-core/src/usage_ping.rs`),
 and the usage signal follows no redirect. On that host, every route answers exactly as on
-`bientot.dev`, except the two HTML pages, `/` and `/statistiques`, which answer `301` to the same
+`bientot.dev`, except the HTML pages, `/`, `/en` and `/statistiques`, which answer `301` to the same
 address on `bientot.dev` (`moved` in `src/site.ts`, decided by the `Host` header). The app's two
 addresses move to `bientot.dev` in a later release; the old host must keep serving until the
 statistics show no older version.
@@ -16,6 +16,7 @@ statistics show no older version.
 | Route | Answer |
 | --- | --- |
 | `GET /` | The homepage, `site/index.html`; `301` to `bientot.dev` on the old host |
+| `GET /en` | The homepage in English, `site/en.html`; `301` to `bientot.dev` on the old host |
 | `GET /statistiques` | The public statistics page, built from `site/statistiques.html`; `301` to `bientot.dev` on the old host |
 | `GET /statistiques/<name>.<csv\|json>` | The open data files: `mensuel`, `quotidien`, `details` |
 | `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png`, `/analytics.js` | The files listed in `src/site.ts`; `404` for any other path |
@@ -26,7 +27,11 @@ statistics show no older version.
 
 ## Pages
 
-`site/index.html` is a static page in French, in the app's WorkTime One theme. It sets no
+`site/index.html` is a static page in French, and `site/en.html` the same page in English, in the
+app's WorkTime One theme. The two pages share their styles word for word (a test checks it), so a
+change to one goes to the other. Each names the other with `hreflang` links (`HOMEPAGES` in
+`src/site.ts`), the English one also for readers of any other language. The statistics page is
+French only. It sets no
 cookie: the fonts are subsets of the app's IBM Plex fonts (see Fonts below). Its
 only scripts measure the audience and the loading speed with PostHog (see `docs/privacy.md`):
 PostHog's library from `https://e.bientot.dev`, then `site/analytics.js`, which starts
@@ -53,10 +58,11 @@ bun run scripts/indexnow.ts
 ```
 
 Each page has a 1200 × 630 share image, drawn from an HTML source next to it. After changing
-`site/og/home.html`, regenerate the PNG:
+`site/og/home.html` or `site/og/home-en.html`, regenerate the PNG:
 
 ```sh
 playwright screenshot --viewport-size=1200,630 "file://$PWD/site/og/home.html" site/og/home.png
+playwright screenshot --viewport-size=1200,630 "file://$PWD/site/og/home-en.html" site/og/home-en.png
 ```
 
 ### Fonts

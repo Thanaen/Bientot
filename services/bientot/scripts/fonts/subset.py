@@ -34,8 +34,10 @@ OUT = SERVICE / "site/fonts"
 # one, and whether it preloads its fonts (the OG image's source is not served).
 TEMPLATES = {
     "site/index.html": (r"index(-.*)?\.html", True),
+    "site/en.html": (r"en(-.*)?\.html", True),
     "site/statistiques.html": (r"statistiques-.*\.html", True),
     "site/og/home.html": (r"og/home\.html", False),
+    "site/og/home-en.html": (r"og/home-en\.html", False),
 }
 
 FACES = [
