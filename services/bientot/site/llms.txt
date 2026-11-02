@@ -6,7 +6,7 @@ Bientôt (also written "Bientot"; called WorkTime until October 2026) is maintai
 
 ## What it does
 
-- Counts working time automatically from keyboard and mouse activity, session lock and sleep. After 3 minutes without input (adjustable from 30 seconds to 30 minutes) the time counts as idle. It never reads what you type, application names or window titles.
+- Counts working time automatically from keyboard and mouse activity. A locked session counts as a break during the lunch window (12:00–14:00 by default) and as work outside it (locks over 90 minutes are flagged for review); a session still locked at midnight ends the day when it was locked; sleep is not counted. After 3 minutes without input (adjustable from 30 seconds to 30 minutes) the time counts as idle. It never reads what you type, application names or window titles.
 - Compares the time worked with a daily target (7 hours by default) and shows the projected departure time.
 - Tray icon colors: green when on track, orange when the projected departure is close to the latest departure time, red when it is later, blue when the daily target is reached and overtime accumulates.
 - Carries overtime to later days of the same week: extra minutes on Monday shorten Tuesday (down to a 6-hour floor by default). By default missing time creates no debt (an optional weekly debt can be turned on), and unused credit expires after Friday.

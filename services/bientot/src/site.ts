@@ -30,9 +30,9 @@ export const PAGES: Page[] = [
   {
     path: "/",
     file: new URL("../site/index.html", import.meta.url),
-    title: "Bientôt · suivi du temps de travail pour Windows",
+    title: "Bientôt · suivi gratuit des heures de travail pour Windows",
     description:
-      "L’application Bientôt compte votre temps de travail depuis la barre des tâches de Windows, sans rien saisir, et vous dit à quelle heure partir. Gratuite, licence MIT.",
+      "Bientôt compte vos heures de travail sous Windows 11, sans rien saisir, et vous dit à quelle heure partir. Gratuit, open source, sans compte et hors ligne.",
     image: {
       path: "/og/home.png",
       alt: "L’application Bientôt : « À quelle heure pourrez-vous partir aujourd’hui ? », à côté du panneau de la barre des tâches qui indique « Dans les temps », départ prévu à 16:54.",
@@ -114,6 +114,39 @@ export function versionNote(version: string | null): string {
   return `${installer} met l’application à jour automatiquement. Il n’est pas signé&nbsp;: Windows peut demander une confirmation.`;
 }
 
+// The HTML without its tags, or without all but its links; repeated until no tag is left to remove.
+function withoutTags(html: string, keepLinks: boolean): string {
+  const tag = keepLinks ? /<(?!\/?a[ >])[^>]*>/g : /<[^>]*>/g;
+  for (let previous = ""; previous !== html; ) {
+    previous = html;
+    html = html.replace(tag, "");
+  }
+  return html;
+}
+
+// The text of a question or an answer: links kept in answers, with absolute addresses.
+const plain = (html: string, keepLinks: boolean) =>
+  withoutTags(
+    html.replace(/<a [^>]*href="([^"]+)"[^>]*>/g, (_, href: string) => `<a href="${href.startsWith("/") ? ORIGIN + href : href}">`),
+    keepLinks,
+  )
+    .replace(/&nbsp;/g, "\u00a0")
+    .replace(/&amp;/g, "&");
+
+// The questions of a page's `<section id="faq">`, as schema.org data, so that search engines and AI
+// assistants read them as questions and answers. Drawn from the visible text so the two never differ.
+export function faqData(html: string): string {
+  const section = html.match(/<section id="faq"[^>]*>([\s\S]*?)<\/section>/)?.[1];
+  if (!section) return "";
+  const questions = [...section.matchAll(/<h3>([\s\S]*?)<\/h3><p>([\s\S]*?)<\/p>/g)].map(([, question, answer]) => ({
+    "@type": "Question",
+    name: plain(question!, false),
+    acceptedAnswer: { "@type": "Answer", text: plain(answer!, true) },
+  }));
+  const data = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: questions };
+  return `\n<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
+}
+
 const rendered = new Map<Page, Promise<string>>();
 
 function render(page: Page): Promise<string> {
@@ -121,7 +154,7 @@ function render(page: Page): Promise<string> {
   if (!html) {
     html = Bun.file(page.file)
       .text()
-      .then((text) => text.replace("<!-- head -->", head(page)));
+      .then((text) => text.replace("<!-- head -->", head(page) + faqData(text)));
     rendered.set(page, html);
   }
   return html;
