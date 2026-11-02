@@ -114,11 +114,22 @@ export function versionNote(version: string | null): string {
   return `${installer} met l’application à jour automatiquement. Il n’est pas signé&nbsp;: Windows peut demander une confirmation.`;
 }
 
-// The text of an answer: its links kept, with absolute addresses, and every other tag dropped.
-const plain = (html: string) =>
-  html
-    .replace(/<a [^>]*href="([^"]+)"[^>]*>/g, (_, href: string) => `<a href="${href.startsWith("/") ? ORIGIN + href : href}">`)
-    .replace(/<(?!\/?a[ >])[^>]+>/g, "")
+// The HTML without its tags, or without all but its links; repeated until no tag is left to remove.
+function withoutTags(html: string, keepLinks: boolean): string {
+  const tag = keepLinks ? /<(?!\/?a[ >])[^>]*>/g : /<[^>]*>/g;
+  for (let previous = ""; previous !== html; ) {
+    previous = html;
+    html = html.replace(tag, "");
+  }
+  return html;
+}
+
+// The text of a question or an answer: links kept in answers, with absolute addresses.
+const plain = (html: string, keepLinks: boolean) =>
+  withoutTags(
+    html.replace(/<a [^>]*href="([^"]+)"[^>]*>/g, (_, href: string) => `<a href="${href.startsWith("/") ? ORIGIN + href : href}">`),
+    keepLinks,
+  )
     .replace(/&nbsp;/g, "\u00a0")
     .replace(/&amp;/g, "&");
 
@@ -129,8 +140,8 @@ export function faqData(html: string): string {
   if (!section) return "";
   const questions = [...section.matchAll(/<h3>([\s\S]*?)<\/h3><p>([\s\S]*?)<\/p>/g)].map(([, question, answer]) => ({
     "@type": "Question",
-    name: plain(question!).replace(/<[^>]+>/g, ""),
-    acceptedAnswer: { "@type": "Answer", text: plain(answer!) },
+    name: plain(question!, false),
+    acceptedAnswer: { "@type": "Answer", text: plain(answer!, true) },
   }));
   const data = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: questions };
   return `\n<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
