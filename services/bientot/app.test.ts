@@ -153,7 +153,7 @@ describe("the site", () => {
     const rest = page
       .replace(/https:\/\/[^"\s]+/g, "")
       .replace("L’application s’appelait WorkTime jusqu’en octobre 2026.", "")
-            .replace("Thanaen/Bientot</a>", "")
+      .replace("Thanaen/Bientot</a>", "")
       .replace("Thème WorkTime One", "");
     expect(rest).not.toContain("WorkTime");
   });
