@@ -41,6 +41,17 @@ Cloudflare) still answers for pages cached before the switch.
 (Open Graph, `summary_large_image`), icons, theme colours and the two analytics scripts, and adds the page to
 `/sitemap.xml`. A new page or file must be listed there.
 
+For search engines and AI assistants, the homepage also carries schema.org structured data (a
+`SoftwareApplication` and its `SoftwareSourceCode`, in `site/index.html`), and `site/llms.txt`
+summarises the app in English and French at `/llms.txt` ([llmstxt.org](https://llmstxt.org/)). Keep
+both in step with the README when a feature changes. After a change to the pages reaches production,
+tell IndexNow (Bing, and the assistants that search with it, such as DuckDuckGo's) to crawl them
+again:
+
+```sh
+bun run scripts/indexnow.ts
+```
+
 Each page has a 1200 × 630 share image, drawn from an HTML source next to it. After changing
 `site/og/home.html`, regenerate the PNG:
 

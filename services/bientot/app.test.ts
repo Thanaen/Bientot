@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createApp } from "./src/app";
 import { FONTS } from "./src/fonts";
+import { INDEXNOW_KEY } from "./src/site";
 import { MemoryStore } from "./src/store";
 
 let clock: Date;
@@ -152,7 +153,7 @@ describe("the site", () => {
     const rest = page
       .replace(/https:\/\/[^"\s]+/g, "")
       .replace("L’application s’appelait WorkTime jusqu’en octobre 2026.", "")
-      .replace('"alternateName":"WorkTime"', "")
+      .replace('"alternateName":["Bientot","WorkTime"]', "")
       .replace("Thanaen/Bientot</a>", "")
       .replace("Thème WorkTime One", "");
     expect(rest).not.toContain("WorkTime");
@@ -193,6 +194,28 @@ describe("the site", () => {
   test("robots.txt points at the sitemap, which lists the page", async () => {
     expect(await (await get("/robots.txt"))!.text()).toContain("Sitemap: https://bientot.dev/sitemap.xml");
     expect(await (await get("/sitemap.xml"))!.text()).toContain("<loc>https://bientot.dev/</loc>");
+  });
+
+  test("llms.txt describes the app in plain text for AI assistants", async () => {
+    const response = (await get("/llms.txt"))!;
+    expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
+    const text = await response.text();
+    expect(text).toStartWith("# Bientôt\n\n> ");
+    expect(text).toContain("https://apps.microsoft.com/detail/9N4FL1HRF4KL");
+    expect(text).toContain("https://github.com/Thanaen/Bientot");
+  });
+
+  test("the IndexNow key file holds the key it is named after", async () => {
+    expect(await (await get(`/${INDEXNOW_KEY}.txt`))!.text()).toBe(INDEXNOW_KEY);
+  });
+
+  test("the structured data is valid JSON naming the app, its source and its download", async () => {
+    const json = (await html()).match(/<script type="application\/ld\+json">\n(.*)\n<\/script>/)?.[1];
+    const graph = JSON.parse(json!)["@graph"];
+    const app = graph.find((node: { "@type": string }) => node["@type"] === "SoftwareApplication");
+    expect(app.name).toBe("Bientôt");
+    expect(app.downloadUrl).toBe("https://apps.microsoft.com/detail/9N4FL1HRF4KL");
+    expect(app.sameAs).toContain("https://github.com/Thanaen/Bientot");
   });
 
   test.each(["/fonts/OFL.txt", "/og/home.html", "/fonts/IBMPlexSans-Regular.ttf", "/fonts/IBMPlexSans-Regular.woff2"])("serves no file at %p", async (path) => {
