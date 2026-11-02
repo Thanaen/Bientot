@@ -175,6 +175,7 @@ footer .foot-note { flex-basis: 100%; }
 }
 @media (max-width: 600px) {
   footer .wrap > span:first-child { flex-basis: 100%; }
+  footer a { padding-block: 4px; }
   .seg span { display: none; }
   .tl-row, .tl-axis { grid-template-columns: 44px 1fr 72px; gap: 8px; }
   .tl-axis div:nth-child(2) span:nth-child(even) { visibility: hidden; }
@@ -226,7 +227,7 @@ footer .foot-note { flex-basis: 100%; }
     <div>
       <p class="eyebrow">Free · open source · for Windows</p>
       <h1>What time can you leave today?</h1>
-      <p class="lede">Bientôt counts your working time from the taskbar, with nothing to type. One look at its icon tells you whether you’re on track.</p>
+      <p class="lede">Bientôt sits in your taskbar and counts your working time, with nothing to type. One look at its icon tells you whether you’re on track.</p>
       <div class="cta">
         <a class="btn btn--primary" href="https://apps.microsoft.com/detail/9N4FL1HRF4KL"><svg><use href="#i-store"/></svg>Get it from the Microsoft Store</a>
         <a class="btn" href="/download"><svg><use href="#i-dl"/></svg>Installer</a>
@@ -281,7 +282,7 @@ footer .foot-note { flex-basis: 100%; }
   <section>
     <div class="wrap">
       <h2>Nothing to type</h2>
-      <p class="sec-lede">Set your hours the first time you start it, then work as usual: the app notices keyboard and mouse activity and flags absences for you to review. A meeting away from your PC? Add it with “Log time worked…”, then review your week on a timeline.</p>
+      <p class="sec-lede">Set your hours the first time you open Bientôt, then work as usual: it notices keyboard and mouse activity and flags absences for you to review. A meeting away from your PC? Add it with <span class="nb">“Log time worked…”</span> in the week view, which shows each day on a timeline.</p>
       <div class="week">
   <div class="tl" role="img" aria-label="A week as timelines: work in blue, breaks in gray, a manual correction in green, a hatched period to review; Thursday in progress.">
     <div class="tl-axis"><div></div><div><span style="left:0">08</span><span style="left:18.2%">10</span><span style="left:36.4%">12</span><span style="left:54.5%">14</span><span style="left:72.7%">16</span><span style="left:90.9%">18</span></div><div></div></div>
@@ -301,7 +302,7 @@ footer .foot-note { flex-basis: 100%; }
       <div class="panel">
         <h2>Your hours stay with you</h2>
         <p>Everything is stored on your PC, with no account. You can export your data and import it on another computer.</p>
-        <p>Once a day, the app sends an anonymous signal (its version, how it was installed, and whether it’s the first signal of the month) to count the PCs that use it. It’s on by default; you can turn it off in Settings&nbsp;›&nbsp;General. The totals are public on the <a href="/statistiques" hreflang="fr">Statistics</a> page, in French.</p>
+        <p>Once a day, the app sends an anonymous signal (its version, how it was installed, and whether it’s the first signal of the month) to count the PCs that use it. It’s on by default; you can turn it off in Settings&nbsp;›&nbsp;General. The totals are public on the <a href="/statistiques" hreflang="fr">Statistics</a> page,&nbsp;in&nbsp;French.</p>
       </div>
       <div class="panel">
         <h2>Free and open source</h2>
@@ -318,12 +319,12 @@ footer .foot-note { flex-basis: 100%; }
       <div class="faq">
         <div><h3>How do I know if I’ve worked my hours today?</h3><p>Bientôt, a free and open-source app for Windows&nbsp;11, counts your hours for the day with nothing to type and compares them with your daily target (7&nbsp;hours by default). Click its icon in the taskbar to see the time worked and your projected departure time; once you reach the target, the icon turns blue. The week view, opened from the same panel, also gives each day’s total.</p></div>
         <div><h3>How does Bientôt count my hours without clocking in?</h3><p>Bientôt checks when you last used the keyboard or mouse. After 3&nbsp;minutes without input, it counts you as away from that last input. You can set this idle threshold from 30&nbsp;seconds to 30&nbsp;minutes in Settings&nbsp;›&nbsp;General. Time while your PC is asleep isn’t counted. A locked session during your lunch window (noon to 2&nbsp;PM by default) counts as a break; outside it, it counts as work, and Bientôt asks you to review locks longer than 90&nbsp;minutes (by default). If the session stays locked until the next day, the day ends at the time you locked it. It never reads what you type, application names or window titles.</p></div>
-        <div><h3>How do I count a meeting away from my computer in Bientôt?</h3><p>Click the Bientôt icon in the taskbar, then the calendar icon (“Open week”), and add the meeting with “Log time worked…”. To remove or reclassify time already counted, use “Adjust time…”. For a meeting that happens every week or every other week, add a recurring appointment in Settings&nbsp;›&nbsp;Accounting: if you’re away from your PC at that time, Bientôt counts it as work and, by default, asks you to confirm it when you’re back.</p></div>
+        <div><h3>How do I count a meeting away from my computer in Bientôt?</h3><p>Click the Bientôt icon in the taskbar, then the calendar icon (<span class="nb">“Open week”</span>), and add the meeting with <span class="nb">“Log time worked…”</span>. To remove or reclassify time already counted, use <span class="nb">“Adjust time…”</span>. For a meeting that happens every week or every other week, add a recurring appointment in Settings&nbsp;›&nbsp;Accounting: if you’re away from your PC at that time, Bientôt counts it as work and, by default, asks you to confirm it when you’re back.</p></div>
         <div><h3>What does Bientôt do with my overtime?</h3><p>Once you reach the day’s target (7&nbsp;hours by default), the icon turns blue and the extra minutes go to the weekly credit. That credit automatically shortens the following days, never below the minimum target (6&nbsp;hours by default), and expires after Friday. By default, a short day creates no debt. If you turn on the weekly debt in Settings&nbsp;›&nbsp;Accounting, your next extra minutes first make up the missing time, without ever lengthening a day.</p></div>
-        <div><h3>Can I set Bientôt to my weekly hours (37.5, 40, part-time)?</h3><p>Yes, if you work Monday to Friday. Set your daily target (for example 7:30 for 37.5 hours a week), your lunch window and your latest departure time when you first start it, or later in Settings&nbsp;›&nbsp;Schedule. The same target applies to all five days: Bientôt can’t set a different target for each day, or mark a weekday as a day off, such as a free Wednesday when you work part time.</p></div>
+        <div><h3>Can I set Bientôt to my weekly hours (37.5, 40, part-time)?</h3><p>Yes, if you work Monday to Friday. Set your daily target (for example 7:30 for 37.5 hours a week), your lunch window and your latest departure time when you first start it, or later in Settings&nbsp;›&nbsp;Schedule. The same target applies to all five days: Bientôt can’t set a different target for each day, or mark a weekday as a day off, such as Wednesdays off if you work part time.</p></div>
         <div><h3>Is Bientôt really free and open source?</h3><p>Yes. No subscription, no ads, no paid version: Bientôt is free software released under the MIT license, maintained by one person in their free time. Its code is on <a href="https://github.com/Thanaen/Bientot">GitHub</a>.</p></div>
         <div><h3>Do I need an account or an Internet connection to use Bientôt?</h3><p>No. Bientôt works without an account and offline: your hours stay on your PC. It only goes online to check for updates and to send an anonymous usage signal, each at most once a day, with no data about your hours. You can turn both off in Settings&nbsp;›&nbsp;General.</p></div>
-        <div><h3>Can my employer see my hours in Bientôt?</h3><p>No, Bientôt sends them nothing. It’s for keeping track of your own day, not for monitoring employees: your hours stay in a file on your PC and are never sent to an employer or an online service. On a PC managed by your company, though, its administrators can reach the files in your session, as with any other software.</p></div>
+        <div><h3>Can my employer see my hours in Bientôt?</h3><p>No, Bientôt sends them nothing. It’s for keeping track of your own day, not for monitoring employees: your hours stay in a file on your PC and are never sent to an employer or an online service. On a PC managed by your company, though, its administrators can access the files in your Windows account, as with any other software.</p></div>
         <div><h3>How is Bientôt different from Clockify or Toggl?</h3><p>Clockify and Toggl time tasks and projects, with an online account. Bientôt doesn’t track projects: it only counts your working time for the day, on its own and on your PC, and tells you when you’ve worked your hours.</p></div>
         <div><h3>Is Bientôt available in English?</h3><p>Yes. Bientôt, French for “soon”, is made in France and comes in English and French. It follows the Windows display language, and you can change it in Settings&nbsp;›&nbsp;General.</p></div>
         <div><h3>Does Bientôt work on Windows&nbsp;10, Mac or Linux?</h3><p>No. Bientôt needs Windows&nbsp;11 on an x64 PC (Intel or AMD). There’s no version for Windows&nbsp;10, Mac, Linux or phones.</p></div>

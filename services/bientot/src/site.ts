@@ -51,7 +51,7 @@ export const PAGES: Page[] = [
       "Bientôt counts your working hours on Windows 11 with nothing to type, and tells you what time you can leave. Free, open source, no account, works offline.",
     image: {
       path: "/og/home-en.png",
-      alt: "The Bientôt app: “What time can you leave today?”, next to the taskbar panel showing “On track”, projected departure at 4:54 PM.",
+      alt: "“What time can you leave today?” next to the Bientôt taskbar panel showing “On track” and a projected departure of 4:54 PM.",
     },
   },
 ];
