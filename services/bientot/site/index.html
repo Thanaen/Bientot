@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- head -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","@id":"https://bientot.dev/#app","name":"Bientôt","alternateName":["Bientot","WorkTime"],"description":"Application Windows gratuite et open source qui compte vos heures de travail toute seule, depuis la barre des tâches, les compare à votre objectif quotidien et vous dit à quelle heure partir. Données sur votre PC, sans compte.","applicationCategory":"BusinessApplication","applicationSubCategory":"Suivi du temps de travail","operatingSystem":"Windows 11","url":"https://bientot.dev/","downloadUrl":"https://apps.microsoft.com/detail/9N4FL1HRF4KL","screenshot":"https://bientot.dev/og/home.png","featureList":["Compte le temps de travail à partir de l’activité du clavier et de la souris, sans rien saisir","Compare le temps travaillé à un objectif quotidien et affiche l’heure de départ prévue","Icône de la barre des tâches verte, orange, rouge ou bleue selon l’avance ou le retard","Les minutes en plus d’un jour allègent les jours suivants de la semaine","Déclaration du temps travaillé loin du PC, corrections et rendez-vous réguliers","Notifications avant l’objectif et avant l’heure limite","Export et import des données, en français et en anglais"],"keywords":"suivi du temps de travail, heures de travail, compteur d’heures, pointeuse, heures supplémentaires, objectif quotidien, time tracker, logiciel libre, open source, Windows","license":"https://opensource.org/license/mit","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":["fr","en"],"author":{"@type":"Person","name":"Thanaen","url":"https://github.com/Thanaen"},"sameAs":["https://github.com/Thanaen/Bientot","https://apps.microsoft.com/detail/9N4FL1HRF4KL"]},{"@type":"SoftwareSourceCode","codeRepository":"https://github.com/Thanaen/Bientot","programmingLanguage":"Rust","license":"https://opensource.org/license/mit","targetProduct":{"@id":"https://bientot.dev/#app"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","@id":"https://bientot.dev/#app","name":"Bientôt","alternateName":["Bientot"],"description":"Application Windows gratuite et open source qui compte vos heures de travail toute seule, depuis la barre des tâches, les compare à votre objectif quotidien et vous dit à quelle heure partir. Données sur votre PC, sans compte.","applicationCategory":"BusinessApplication","applicationSubCategory":"Suivi du temps de travail","operatingSystem":"Windows 11","url":"https://bientot.dev/","downloadUrl":"https://apps.microsoft.com/detail/9N4FL1HRF4KL","screenshot":"https://bientot.dev/og/home.png","featureList":["Compte le temps de travail à partir de l’activité du clavier et de la souris, sans rien saisir","Compare le temps travaillé à un objectif quotidien et affiche l’heure de départ prévue","Icône de la barre des tâches verte, orange, rouge ou bleue selon l’avance ou le retard","Les minutes en plus d’un jour allègent les jours suivants de la semaine","Déclaration du temps travaillé loin du PC, corrections et rendez-vous réguliers","Notifications avant l’objectif et avant l’heure limite","Export et import des données, en français et en anglais"],"keywords":"suivi du temps de travail, heures de travail, compteur d’heures, pointeuse, heures supplémentaires, objectif quotidien, time tracker, logiciel libre, open source, Windows","license":"https://opensource.org/license/mit","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":["fr","en"],"author":{"@type":"Person","name":"Thanaen","url":"https://github.com/Thanaen"},"sameAs":["https://github.com/Thanaen/Bientot","https://apps.microsoft.com/detail/9N4FL1HRF4KL"]},{"@type":"SoftwareSourceCode","codeRepository":"https://github.com/Thanaen/Bientot","programmingLanguage":"Rust","license":"https://opensource.org/license/mit","targetProduct":{"@id":"https://bientot.dev/#app"}}]}
 </script>
 <link rel="preload" href="/fonts/sans-400-core.cbc478cc.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/sans-500-core.a83fb58d.woff2" as="font" type="font/woff2" crossorigin>
@@ -151,6 +151,11 @@ h2 { font: 600 32px/40px var(--font-sans); letter-spacing: -0.01em; }
 .panel p { color: var(--text-muted); }
 .panel ul { margin: 0; padding-left: 18px; color: var(--text-muted); display: grid; gap: 6px; }
 .panel .row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.faq { columns: 2; column-gap: 48px; margin-top: 40px; }
+.faq > div { break-inside: avoid; padding-bottom: 32px; }
+.faq > div:last-child { padding-bottom: 0; }
+.faq h3 { font: 600 18px/26px var(--font-sans); text-wrap: pretty; }
+.faq p { color: var(--text-muted); margin-top: 8px; }
 footer { border-top: 1px solid var(--border-variant); padding-block: 28px; font-size: 13px; color: var(--text-muted); }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; }
 footer a { color: var(--text-muted); }
@@ -158,9 +163,12 @@ footer .foot-note { flex-basis: 100%; }
 
 @media (max-width: 860px) {
   .hero, .two { grid-template-columns: minmax(0, 1fr); }
+  .faq { columns: 1; }
   .states { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .nav { flex-wrap: wrap; gap: 12px 24px; }
-  .nav nav { margin-left: 0; flex: 1 1 100%; overflow-x: auto; gap: 16px; white-space: nowrap; padding-bottom: 2px; }
+  .nav nav { margin-left: 0; flex: 1 1 100%; flex-wrap: wrap; gap: 0 16px; }
+  .nav nav a { padding-block: 6px; }
+  .faq p { max-width: 68ch; }
 }
 @media (max-width: 600px) {
   footer .wrap > span:first-child { flex-basis: 100%; }
@@ -171,6 +179,7 @@ footer .foot-note { flex-basis: 100%; }
   .panel { padding: 16px; }
 }
 @media (max-width: 520px) {
+  .nav nav { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; column-gap: 16px; }
   h1 { font-size: 38px; }
   section { padding-block: 48px; }
   .states { grid-template-columns: minmax(0, 1fr); }
@@ -208,7 +217,7 @@ footer .foot-note { flex-basis: 100%; }
 
   <div class="wrap nav">
     <a class="brand" href="/"><svg class="tray" aria-hidden="true"><use href="#t-green"/></svg>Bientôt</a>
-    <nav aria-label="Sections"><a href="#how">Fonctionnement</a><a href="#privacy">Vie privée</a><a href="/statistiques">Statistiques</a><a href="https://github.com/Thanaen/Bientot">Code source</a></nav>
+    <nav aria-label="Sections"><a href="#how">Fonctionnement</a><a href="#privacy">Vie privée</a><a href="#faq">Questions</a><a href="/statistiques">Statistiques</a><a href="https://github.com/Thanaen/Bientot">Code source</a></nav>
   </div>
   <div class="wrap hero">
     <div>
@@ -300,6 +309,24 @@ footer .foot-note { flex-basis: 100%; }
     </div>
   </section>
 
+  <section id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <h2 id="faq-title">Questions fréquentes</h2>
+      <div class="faq">
+        <div><h3>Comment savoir si j’ai fait mes heures aujourd’hui&nbsp;?</h3><p>Bientôt, une application gratuite et open source pour Windows&nbsp;11, compte vos heures de la journée sans rien saisir et les compare à votre objectif quotidien (7&nbsp;h par défaut). Un clic sur son icône, dans la barre des tâches, affiche le temps travaillé et l’heure de départ prévue&nbsp;; quand l’objectif est atteint, l’icône passe au bleu. La vue de la semaine, ouverte depuis le même panneau, donne aussi le total de chaque jour.</p></div>
+        <div><h3>Comment Bientôt <span class="nb">compte-t-il</span> mes heures sans pointage&nbsp;?</h3><p>Bientôt regarde quand vous avez utilisé le clavier ou la souris pour la dernière fois. Après 3&nbsp;minutes sans saisie, il compte une absence à partir de cette dernière saisie. Ce seuil d’inactivité se règle de 30&nbsp;secondes à 30&nbsp;minutes dans Paramètres&nbsp;› Général. La mise en veille n’est pas comptée. Une session verrouillée pendant la pause déjeuner (de 12&nbsp;h à 14&nbsp;h par défaut) compte comme une pause&nbsp;; en dehors, elle compte comme du travail, et Bientôt vous demande de vérifier les verrouillages de plus de 90&nbsp;minutes (par défaut). Si la session reste verrouillée jusqu’au lendemain, la journée s’arrête au moment du verrouillage. Il ne lit jamais ce que vous tapez, ni le nom des applications, ni le titre des fenêtres.</p></div>
+        <div><h3>Comment compter une réunion loin de l’ordinateur dans Bientôt&nbsp;?</h3><p>Cliquez sur l’icône de Bientôt dans la barre des tâches, puis sur l’icône de calendrier («&nbsp;Ouvrir la semaine&nbsp;»), et ajoutez la réunion avec «&nbsp;Déclarer du temps travaillé…&nbsp;». Pour retirer ou reclasser un temps déjà compté, utilisez «&nbsp;Corriger le temps…&nbsp;». Pour une réunion qui revient chaque semaine ou une semaine sur deux, ajoutez un <span class="nb">rendez-vous</span> régulier dans Paramètres&nbsp;› Comptabilisation&nbsp;: si vous êtes loin du PC à ce <span class="nb">moment-là</span>, Bientôt compte ce temps comme du travail et, par défaut, vous demande de le confirmer à votre retour.</p></div>
+        <div><h3>Que fait Bientôt de mes heures&nbsp;supplémentaires&nbsp;?</h3><p>Une fois l’objectif du jour atteint (7&nbsp;h par défaut), l’icône passe au bleu et les minutes en plus vont au crédit de la semaine. Ce crédit raccourcit automatiquement les jours suivants, sans descendre sous l’objectif minimum (6&nbsp;h par défaut), et s’efface après le vendredi. Par défaut, une journée trop courte ne crée pas de dette. Si vous activez la dette hebdomadaire dans Paramètres&nbsp;› Comptabilisation, vos prochaines minutes en plus servent d’abord à rattraper le temps manquant, sans jamais allonger une journée.</p></div>
+        <div><h3>Puis-je régler Bientôt sur mon&nbsp;contrat (35&nbsp;h, 37&nbsp;h, temps&nbsp;partiel)&nbsp;?</h3><p>Oui, si vous travaillez du lundi au vendredi. Réglez votre objectif quotidien (par exemple 7&nbsp;h&nbsp;24 pour 37&nbsp;h par semaine), votre pause déjeuner et votre heure limite au premier lancement, ou plus tard dans Paramètres&nbsp;› Horaires. Le même objectif vaut pour les cinq jours&nbsp;: Bientôt ne permet pas de fixer un objectif différent selon le jour, ni de marquer un jour non travaillé en semaine, comme un mercredi libre à temps partiel.</p></div>
+        <div><h3>Bientôt <span class="nb">est-il</span> vraiment gratuit et open source&nbsp;?</h3><p>Oui. Pas d’abonnement, pas de publicité, pas de version payante&nbsp;: Bientôt est un logiciel libre publié sous licence MIT, maintenu bénévolement par une seule personne. Son code est sur <a href="https://github.com/Thanaen/Bientot">GitHub</a>.</p></div>
+        <div><h3><span class="nb">Faut-il</span> un compte ou une connexion Internet pour utiliser Bientôt&nbsp;?</h3><p>Non. Bientôt fonctionne sans compte et hors ligne&nbsp;: vos heures restent sur votre PC. Il ne se connecte à Internet que pour rechercher les mises à jour et envoyer un signal d’utilisation anonyme, au plus une fois par jour chacun, sans aucune donnée sur vos heures. Vous pouvez couper les deux dans Paramètres&nbsp;› Général.</p></div>
+        <div><h3>Mon employeur <span class="nb">peut-il</span> voir mes heures dans Bientôt&nbsp;?</h3><p>Non, Bientôt ne lui transmet rien. Il sert à suivre votre propre journée, pas à surveiller des salariés&nbsp;: vos heures restent dans un fichier sur votre PC et ne sont envoyées ni à un employeur ni à un service en ligne. Sur un PC géré par votre entreprise, les administrateurs de l’entreprise peuvent toutefois accéder aux fichiers de votre session, comme pour tout autre logiciel.</p></div>
+        <div><h3>Quelle différence entre Bientôt et Clockify ou Toggl&nbsp;?</h3><p>Clockify et Toggl chronomètrent des tâches et des projets, avec un compte en ligne. Bientôt ne suit pas de projets&nbsp;: il compte seulement votre temps de travail de la journée, tout seul et sur votre PC, et vous dit quand vous avez fait vos heures.</p></div>
+        <div><h3>Bientôt <span class="nb">fonctionne-t-il</span> sur Windows&nbsp;10, Mac ou Linux&nbsp;?</h3><p>Non. Bientôt demande Windows&nbsp;11 sur un PC x64 (Intel ou AMD). Il n’existe pas de version pour Windows&nbsp;10, Mac, Linux ou téléphone.</p></div>
+        <div><h3>Où télécharger Bientôt&nbsp;?</h3><p>Sur le <a href="https://apps.microsoft.com/detail/9N4FL1HRF4KL">Microsoft Store</a>, qui le signe et le tient à jour. Vous pouvez aussi utiliser le <a class="nb" href="/download">programme d’installation</a>&nbsp;: Bientôt se met ensuite à jour tout seul. Ce programme n’est pas encore signé, et Windows SmartScreen peut demander de confirmer avec «&nbsp;Informations complémentaires&nbsp;› Exécuter quand même&nbsp;».</p></div>
+      </div>
+    </div>
+  </section>
   <footer><div class="wrap"><span>Bientôt · licence MIT</span><a href="https://github.com/Thanaen/Bientot">GitHub</a><a href="https://apps.microsoft.com/detail/9N4FL1HRF4KL">Télécharger</a><a href="/statistiques">Statistiques</a><span class="foot-note">L’application s’appelait WorkTime jusqu’en octobre 2026.</span><span class="foot-note">Audience mesurée par PostHog, <a href="https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md#the-website">sans cookie</a>.</span></div></footer>
 </body>
 </html>

@@ -153,8 +153,7 @@ describe("the site", () => {
     const rest = page
       .replace(/https:\/\/[^"\s]+/g, "")
       .replace("L’application s’appelait WorkTime jusqu’en octobre 2026.", "")
-      .replace('"alternateName":["Bientot","WorkTime"]', "")
-      .replace("Thanaen/Bientot</a>", "")
+            .replace("Thanaen/Bientot</a>", "")
       .replace("Thème WorkTime One", "");
     expect(rest).not.toContain("WorkTime");
   });
@@ -203,6 +202,20 @@ describe("the site", () => {
     expect(text).toStartWith("# Bientôt\n\n> ");
     expect(text).toContain("https://apps.microsoft.com/detail/9N4FL1HRF4KL");
     expect(text).toContain("https://github.com/Thanaen/Bientot");
+  });
+
+  test("the questions of the FAQ are also given as FAQPage data, word for word", async () => {
+    const page = await html();
+    const scripts = [...page.matchAll(/<script type="application\/ld\+json">\n?(.*?)\n?<\/script>/g)].map((match) => JSON.parse(match[1]!));
+    const faq = scripts.find((data) => data["@type"] === "FAQPage");
+    const visible = page.match(/<section id="faq"[^>]*>[\s\S]*?<\/section>/)![0];
+    expect(faq.mainEntity.length).toBe([...visible.matchAll(/<h3>/g)].length);
+    expect(faq.mainEntity.length).toBeGreaterThan(4);
+    for (const question of faq.mainEntity) {
+      expect(question.name).toEndWith("?");
+      expect(question.name).not.toMatch(/[<>]|&nbsp;/);
+      expect(question.acceptedAnswer.text.replace(/<a href="https:\/\/[^"]+">|<\/a>/g, "")).not.toMatch(/[<>]|&nbsp;/);
+    }
   });
 
   test("the IndexNow key file holds the key it is named after", async () => {
