@@ -460,7 +460,7 @@ impl WeekView {
                 Some(loupe) if !loupe_before => {
                     self.loupe_aimed = None;
                     while self.loupe_focus.len() < loupe.segments.len() {
-                        self.loupe_focus.push(cx.focus_handle());
+                        self.loupe_focus.push(widgets::tab_stop(cx));
                     }
                     self.loupe_entrance = motion::Entrance::at_rest();
                     if let Some(handle) = self.loupe_focus.get(loupe.first) {
