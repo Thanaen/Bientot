@@ -7,7 +7,7 @@ const COMPANY: &str = "Thanaen";
 pub const COPYRIGHT: &str = "Copyright (c) 2026 Thanaen";
 const ORIGINAL_FILENAME: &str = "worktime.exe";
 
-/// The `.rc` source for `version`, `0.2.0` or a release's `0.2.0-alpha.<commit count>`.
+/// The `.rc` source for `version`, `1.0.0` or a release's `1.0.<commit count>`.
 pub fn rc(version: &str) -> Result<String, String> {
     let [major, minor, patch, build] = numbers(version)?;
     let numeric = format!("{major},{minor},{patch},{build}");

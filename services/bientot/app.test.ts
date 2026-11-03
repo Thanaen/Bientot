@@ -22,7 +22,13 @@ describe("POST /v1/ping", () => {
     expect(response.status).toBe(204);
   });
 
+  test("accepts a direct release numbered by main's commit count", async () => {
+    const response = await ping({ version: "1.0.1234", channel: "direct", first_this_month: false });
+    expect(response.status).toBe(204);
+  });
+
   test.each([
+    ["a patch number of six digits", { version: "1.0.123456", channel: "direct", first_this_month: true }],
     ["an extra field", { version: "1.0.0", channel: "store", first_this_month: true, id: "abc" }],
     ["a missing field", { version: "1.0.0", channel: "store" }],
     ["free text as version", { version: "hello world", channel: "store", first_this_month: true }],

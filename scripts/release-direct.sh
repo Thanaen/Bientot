@@ -42,9 +42,11 @@ fi
 # tr: jq.exe ends its lines with CRLF under Git Bash on Windows.
 base=$(cargo metadata --no-deps --format-version 1 --manifest-path "$root/Cargo.toml" |
     jq -r '.packages[] | select(.name == "bientot-app") | .version' | tr -d '\r')
-version="$base-alpha.$(git -C "$root" rev-list --count HEAD)"
+# <major>.<minor>.<commit count>, as the Store package's first three numbers.
+IFS=. read -r major minor _ <<< "$base"
+version="$major.$minor.$(git -C "$root" rev-list --count HEAD)"
 # The version the usage ping accepts (services/bientot/src/ping.ts), which the app parses.
-[[ $version =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(-[0-9A-Za-z.]{1,20})?$ ]] || fail "unexpected version $version"
+[[ $version =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,5}(-[0-9A-Za-z.]{1,20})?$ ]] || fail "unexpected version $version"
 echo "Bientôt $version"
 
 export XWIN_ACCEPT_LICENSE=1 CARGO_TARGET_DIR=$target_dir
