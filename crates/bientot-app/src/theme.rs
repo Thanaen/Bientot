@@ -307,6 +307,12 @@ pub mod size {
     pub const TIMELINE_ROW_FOCUSED: Pixels = px(40.);
     /// Fits « Il manque 10 h 00 min » and « 10 h 00 min / 10 h 00 min » on one line.
     pub const DAY_COLUMN: Pixels = px(160.);
+    /// The outline of what the pointer aims at on the strip: as wide as it, at least this, and
+    /// this far past each side.
+    pub const AIM_OUTLINE_MIN_WIDTH: Pixels = px(8.);
+    pub const AIM_OUTLINE_OUTSET: Pixels = px(3.);
+    /// Inside the loupe a click on a cluster of short segments opens, around its strip.
+    pub const LOUPE_PADDING: Pixels = px(12.);
 
     // Not tokens of `tokens.json`: sizes the mockups and the week view spec give.
     /// The smallest key cap of a KeyBinding.
@@ -325,12 +331,6 @@ pub mod size {
     pub const RANGE_HANDLE_HIT: Pixels = px(24.);
     /// Between a range handle and the outline, on its outer side.
     pub const RANGE_HANDLE_GAP: Pixels = px(4.);
-    /// The outline of what the pointer aims at on the strip: as wide as it, at least this, and
-    /// this far past each side.
-    pub const AIM_OUTLINE_MIN_WIDTH: Pixels = px(8.);
-    pub const AIM_OUTLINE_OUTSET: Pixels = px(3.);
-    /// Inside the loupe a click on a cluster of short segments opens, around its strip.
-    pub const LOUPE_PADDING: Pixels = px(12.);
     /// The command palette, narrower over a narrower window.
     pub const PALETTE_WIDTH: Pixels = px(520.);
     pub const WEEK_WINDOW_WIDTH: Pixels = px(980.);
