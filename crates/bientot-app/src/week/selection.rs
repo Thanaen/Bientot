@@ -14,7 +14,8 @@ use super::{
 use crate::strings::Key;
 use crate::time_text::minutes_text;
 
-/// What a range snaps to, and the shortest one.
+/// What a range snaps to, and the shortest one its edges make. A segment clicked keeps its own
+/// length, however short.
 pub const RANGE_STEP: SignedDuration = SignedDuration::from_mins(5);
 
 /// The range selected on a day, which the bubble under it corrects.
@@ -76,7 +77,15 @@ impl DayTimeline {
                 (start, end) = (clamp(end - RANGE_STEP), clamp(start + RANGE_STEP));
             }
         }
-        let mut range = UtcInterval::new(start, end).ok()?;
+        self.covering(start, end)
+    }
+
+    /// `start`–`end` within the day and over the whole of each lock to review it touches, as
+    /// short as it is: a segment clicked selects its exact bounds, however short.
+    fn covering(&self, start: Timestamp, end: Timestamp) -> Option<UtcInterval> {
+        let extent = self.extent()?;
+        let clamp = |instant: Timestamp| instant.clamp(extent.start(), extent.end());
+        let mut range = UtcInterval::new(clamp(start), clamp(end)).ok()?;
         // Covering one lock may reach another.
         loop {
             let covered = self
@@ -289,12 +298,17 @@ impl WeekState {
         }
     }
 
-    /// ← and → on the open day: the segment before or after the selected one, or the first or
-    /// the last when none is.
+    /// ← and → on the open day, ‹ and › in the bubble: the segment before or after the
+    /// selected one, or the first or the last when none is.
     pub fn step(&mut self, delta: isize) {
-        let Some(day) = self.timeline.day(self.focused) else {
-            return;
-        };
+        if let Some(id) = self.stepped(delta) {
+            self.open(id);
+        }
+    }
+
+    /// The segment [`Self::step`] selects, if any.
+    pub fn stepped(&self, delta: isize) -> Option<SegmentId> {
+        let day = self.timeline.day(self.focused)?;
         let count = day.segments.len();
         let selected = self
             .selection
@@ -313,10 +327,7 @@ impl WeekState {
             None if delta < 0 => count.checked_sub(1),
             None => (count > 0).then_some(0),
         };
-        if let Some(segment) = index.and_then(|index| day.segments.get(index)) {
-            let id = segment.id(day.date);
-            self.open(id);
-        }
+        Some(day.segments.get(index?)?.id(day.date))
     }
 
     /// Selects the segment `id`, or the whole lock when it is a piece of one, and opens its
@@ -328,11 +339,10 @@ impl WeekState {
         if !day.selectable() {
             return;
         }
-        let Some(range) =
-            day.normalized(segment.interval.start(), segment.interval.end(), Edge::End)
-        else {
+        let Some(range) = day.covering(segment.interval.start(), segment.interval.end()) else {
             return;
         };
+        self.loupe = None;
         self.focused = id.date;
         self.selection = Some(Selection {
             date: id.date,
@@ -365,7 +375,7 @@ impl WeekState {
                         .any(|interval| interval.overlaps(segment.interval))
             });
         let range = if only_work_between { whole } else { *first };
-        let Some(range) = day.normalized(range.start(), range.end(), Edge::End) else {
+        let Some(range) = day.covering(range.start(), range.end()) else {
             return;
         };
         let selection = Selection {
@@ -395,6 +405,7 @@ impl WeekState {
                     text: note,
                 }
             });
+        self.loupe = None;
         self.focused = date;
         self.selection = Some(selection);
     }
@@ -429,16 +440,17 @@ impl WeekState {
         let Some(selection) = self.selection else {
             return;
         };
-        let range = self.timeline.day(selection.date).and_then(|day| {
-            day.normalized(selection.range.start(), selection.range.end(), Edge::End)
-        });
+        let range = self
+            .timeline
+            .day(selection.date)
+            .and_then(|day| day.covering(selection.range.start(), selection.range.end()));
         let Some(range) = range else {
             self.selection = None;
             return;
         };
         let anchor = selection.anchor.filter(|id| {
             self.timeline.segment(*id).and_then(|(day, segment)| {
-                day.normalized(segment.interval.start(), segment.interval.end(), Edge::End)
+                day.covering(segment.interval.start(), segment.interval.end())
             }) == Some(range)
         });
         self.selection = Some(Selection {
@@ -448,9 +460,22 @@ impl WeekState {
         });
     }
 
-    /// Escape: the selection and its bubble close.
+    /// The segment that holds the bubble open: the one clicked, or once the range moved, the
+    /// one it starts in. Clicking it again closes the bubble.
+    pub fn holder(&self) -> Option<SegmentId> {
+        let selection = self.selection?;
+        selection.anchor.or_else(|| {
+            let day = self.timeline.day(selection.date)?;
+            day.segments
+                .iter()
+                .rfind(|segment| segment.interval.start() <= selection.range.start())
+                .map(|segment| segment.id(day.date))
+        })
+    }
+
+    /// Escape: the loupe closes, else the selection and its bubble.
     pub fn close_bubble(&mut self) -> bool {
-        self.selection.take().is_some()
+        self.loupe.take().is_some() || self.selection.take().is_some()
     }
 }
 

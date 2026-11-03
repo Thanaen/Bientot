@@ -66,6 +66,8 @@ pub struct Entrance(Phase);
 enum Phase {
     #[default]
     Hidden,
+    /// As `Hidden`, but comes in already opaque: in place of another surface just gone.
+    HiddenOpaque,
     Coming(Instant),
     /// Stays so until `reset`: turning reduced motion off while it shows does not replay it.
     AtRest,
@@ -84,6 +86,9 @@ impl Entrance {
         let now = cx.background_executor().now();
         let shown = match self.0 {
             Phase::Hidden => now,
+            Phase::HiddenOpaque => now
+                .checked_sub(timing.duration().mul_f32(OPAQUE_AT))
+                .unwrap_or(now),
             Phase::Coming(shown) => shown,
             Phase::AtRest => return 1.,
         };
@@ -107,6 +112,12 @@ impl Entrance {
     /// For what no longer shows: it comes in again the next time.
     pub fn reset(&mut self) {
         self.0 = Phase::Hidden;
+    }
+
+    /// As [`Self::reset`], for what takes the place of another surface: it comes in from where
+    /// [`slide_over`] is opaque, so that nothing shows through between the two.
+    pub fn reset_opaque(&mut self) {
+        self.0 = Phase::HiddenOpaque;
     }
 }
 

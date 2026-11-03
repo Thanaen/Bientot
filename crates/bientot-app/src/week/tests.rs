@@ -1436,3 +1436,89 @@ fn declaring_work_opens_after_a_day_without_gaps_and_nothing_on_a_day_off() {
     day_off.select(date(9, 1));
     assert_eq!(day_off.declare_work(), None);
 }
+
+/// The open day's strip as the window draws it at its opening width.
+const STRIP_WIDTH: f32 = 612.;
+
+/// Where the segment of the open day starting at `time` is centred on the strip, in pixels.
+fn centre_of(state: &WeekState, time: jiff::civil::Time) -> f32 {
+    let day = state.timeline.day(state.focused()).unwrap();
+    let segment = day
+        .segments
+        .iter()
+        .find(|segment| segment.local_start.time() == time)
+        .unwrap();
+    let (x, w) = place(segment.start, segment.length, STRIP_WIDTH);
+    x + w / 2.
+}
+
+/// A short segment standing apart is aimed on 24 px centred on it, taken from its long
+/// neighbours, and a click selects its exact bounds; a second click closes its bubble.
+#[test]
+fn a_short_segment_is_aimed_on_24_pixels_and_keeps_its_bounds() {
+    let (_demo, mut state) = Demo::open(DemoScenario::HistoryWeek);
+    state.select(date(9, 2));
+    let gap = centre_of(&state, time(14, 0, 0, 0));
+    let aimed = state.aim(gap + 11., STRIP_WIDTH).unwrap();
+    assert_eq!(aimed.text, nb("Trou~· 14:00–14:15~· 15~min"));
+    assert_eq!(aimed.hint, None);
+    let neighbour = state.aim(gap + 13., STRIP_WIDTH).unwrap();
+    assert_eq!(neighbour.text, nb("Travail~· 14:15–16:45~· 2~h~30~min"));
+
+    state.click(gap - 11., STRIP_WIDTH);
+    assert_eq!(state.bubble().unwrap().title, "14:00–14:15");
+    state.click(gap, STRIP_WIDTH);
+    assert_eq!(state.selection(), None);
+}
+
+/// Short segments side by side make a cluster: the tooltip counts them, and a click opens the
+/// loupe on them rather than guessing; one picked there selects its exact bounds, however short.
+#[test]
+fn a_cluster_opens_the_loupe_where_each_segment_is_picked() {
+    let (_demo, mut state) = Demo::open(DemoScenario::FragmentedDay);
+    let at = centre_of(&state, time(10, 3, 0, 0));
+    let aimed = state.aim(at, STRIP_WIDTH).unwrap();
+    assert!(matches!(aimed.target, Target::Cluster(_)));
+    assert_eq!(aimed.text, nb("27 périodes courtes~· 09:40–10:45"));
+    assert_eq!(aimed.hint, Some("Cliquez pour agrandir"));
+
+    state.click(at, STRIP_WIDTH);
+    assert_eq!(state.selection(), None);
+    let loupe = state.loupe().unwrap();
+    assert_eq!(loupe.title, nb("Vue agrandie~· 09:40–10:45"));
+    // Every 15 minutes, as 10 would crowd the labels over an hour and a quarter.
+    let ticks: Vec<_> = loupe
+        .ticks
+        .iter()
+        .map(|(_, label)| label.as_str())
+        .collect();
+    assert_eq!(ticks, ["09:45", "10:00", "10:15", "10:30", "10:45"]);
+    // Its first gap, four and a half minutes, is 23 px wide in the loupe against 4 px on the
+    // strip.
+    let gap = &loupe.segments[loupe.first];
+    assert_eq!(gap.kind, SegmentKind::Gap);
+    assert!(
+        (gap.length * LOUPE_STRIP_WIDTH - 22.95).abs() < 0.01,
+        "{}",
+        gap.length
+    );
+    // Nothing is aimed on the strip under the open loupe.
+    assert_eq!(state.aim(at, STRIP_WIDTH), None);
+
+    state.open(gap.id);
+    assert_eq!(state.loupe(), None);
+    let (_, segment) = state.timeline.segment(gap.id).unwrap();
+    assert_eq!(state.selection().unwrap().range, segment.interval);
+}
+
+/// Escape closes the loupe first, then nothing is left open.
+#[test]
+fn escape_closes_the_loupe() {
+    let (_demo, mut state) = Demo::open(DemoScenario::FragmentedDay);
+    let at = centre_of(&state, time(10, 3, 0, 0));
+    state.click(at, STRIP_WIDTH);
+    assert!(state.loupe().is_some());
+    assert!(state.close_bubble());
+    assert_eq!(state.loupe(), None);
+    assert!(!state.close_bubble());
+}

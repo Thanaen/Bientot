@@ -651,6 +651,9 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="TimelineKindSleep" xml:space="preserve"><value>Veille</value></data>
   <data name="TimelineKindReview" xml:space="preserve"><value>À vérifier</value></data>
   <data name="TimelineSegmentNameFormat" xml:space="preserve"><value>{0}, {1} ({2})</value></data>
+  <data name="TimelineAimFormat" xml:space="preserve"><value>{0} · {1} · {2}</value></data>
+  <data name="TimelineClusterFormat" xml:space="preserve"><value>{0} périodes courtes · {1}</value></data>
+  <data name="TimelineClusterHint" xml:space="preserve"><value>Cliquez pour agrandir</value></data>
   <data name="TimelineAppointmentNameFormat" xml:space="preserve"><value>{0}, horaire prévu {1}</value></data>
   <data name="HistoryRefresh.AutomationProperties.Name" xml:space="preserve"><value>Actualiser</value></data>
   <data name="HistoryRefresh.ToolTipService.ToolTip" xml:space="preserve"><value>Actualiser la semaine</value></data>
@@ -717,6 +720,10 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="HistoryRangeBound" xml:space="preserve"><value>Cette plage contient une correction confirmée lors d’une vérification de verrouillage. Réduisez la plage pour ne pas l’inclure.</value></data>
   <data name="HistoryRangeStartHandle" xml:space="preserve"><value>Début de la plage</value></data>
   <data name="HistoryRangeEndHandle" xml:space="preserve"><value>Fin de la plage</value></data>
+  <data name="HistoryBubblePrevious" xml:space="preserve"><value>Période précédente</value></data>
+  <data name="HistoryBubbleNext" xml:space="preserve"><value>Période suivante</value></data>
+  <data name="HistoryLoupeTitleFormat" xml:space="preserve"><value>Vue agrandie · {0}</value></data>
+  <data name="HistoryLoupeClose" xml:space="preserve"><value>Fermer</value></data>
   <data name="HistoryBubbleBoundNote" xml:space="preserve"><value>Correction issue d’une vérification de verrouillage. Elle ne peut pas être retirée.</value></data>
   <data name="HistoryResultWorked" xml:space="preserve"><value>{0} compté comme travail ({1}).</value></data>
   <data name="HistoryResultNotWorked" xml:space="preserve"><value>{0} marqué comme non travaillé.</value></data>

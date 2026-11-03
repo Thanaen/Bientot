@@ -670,6 +670,9 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="TimelineKindSleep" xml:space="preserve"><value>Sleep</value></data>
   <data name="TimelineKindReview" xml:space="preserve"><value>To review</value></data>
   <data name="TimelineSegmentNameFormat" xml:space="preserve"><value>{0}, {1} ({2})</value></data>
+  <data name="TimelineAimFormat" xml:space="preserve"><value>{0} · {1} · {2}</value></data>
+  <data name="TimelineClusterFormat" xml:space="preserve"><value>{0} short periods · {1}</value></data>
+  <data name="TimelineClusterHint" xml:space="preserve"><value>Click to zoom in</value></data>
   <data name="TimelineAppointmentNameFormat" xml:space="preserve"><value>{0}, scheduled {1}</value></data>
   <data name="HistoryRefresh.AutomationProperties.Name" xml:space="preserve"><value>Refresh</value></data>
   <data name="HistoryRefresh.ToolTipService.ToolTip" xml:space="preserve"><value>Refresh the week</value></data>
@@ -736,6 +739,10 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryRangeBound" xml:space="preserve"><value>This range includes a correction confirmed in a lock review. Shorten the range to leave it out.</value></data>
   <data name="HistoryRangeStartHandle" xml:space="preserve"><value>Start of the range</value></data>
   <data name="HistoryRangeEndHandle" xml:space="preserve"><value>End of the range</value></data>
+  <data name="HistoryBubblePrevious" xml:space="preserve"><value>Previous period</value></data>
+  <data name="HistoryBubbleNext" xml:space="preserve"><value>Next period</value></data>
+  <data name="HistoryLoupeTitleFormat" xml:space="preserve"><value>Close-up · {0}</value></data>
+  <data name="HistoryLoupeClose" xml:space="preserve"><value>Close</value></data>
   <data name="HistoryBubbleBoundNote" xml:space="preserve"><value>Correction from a lock review. It can’t be removed.</value></data>
   <data name="HistoryResultWorked" xml:space="preserve"><value>{0} counted as work ({1}).</value></data>
   <data name="HistoryResultNotWorked" xml:space="preserve"><value>{0} marked as not worked.</value></data>

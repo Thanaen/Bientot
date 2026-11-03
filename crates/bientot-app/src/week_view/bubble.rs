@@ -283,12 +283,28 @@ impl WeekView {
                     .child(
                         div()
                             .flex()
-                            .items_baseline()
+                            .items_center()
                             .justify_between()
                             .gap(BASE_08)
                             .font_features(tabular_figures())
                             .child(div().type_style(text::HEADLINE_SM).child(bubble.title))
-                            .child(div().text_color(theme.text_muted).child(bubble.duration)),
+                            .child(
+                                div()
+                                    .flex()
+                                    .items_center()
+                                    .gap(BASE_08)
+                                    .child(
+                                        div().text_color(theme.text_muted).child(bubble.duration),
+                                    )
+                                    // Apart from the duration, so as not to read as its stepper.
+                                    .child(div().w(px(1.)).h(BASE_16).bg(theme.border_variant))
+                                    .child(
+                                        div()
+                                            .flex()
+                                            .child(self.step_button(-1, theme, cx))
+                                            .child(self.step_button(1, theme, cx)),
+                                    ),
+                            ),
                     )
                     .child(breakdown),
             )
@@ -342,6 +358,54 @@ impl WeekView {
                 )
                 .with_priority(1),
             )
+    }
+
+    /// ‹ or › in the bubble's title: the segment before or after, as ← and →; dimmed at the
+    /// day's first or last.
+    fn step_button(&self, delta: isize, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
+        let (id, icon, label, key) = if delta < 0 {
+            (
+                "bubble-previous",
+                "chevron-left",
+                Key::HistoryBubblePrevious,
+                "left",
+            )
+        } else {
+            (
+                "bubble-next",
+                "chevron-right",
+                Key::HistoryBubbleNext,
+                "right",
+            )
+        };
+        let name = flyout::shortcut_name(self.text(label), key, self.language);
+        let enabled = self
+            .state
+            .as_ref()
+            .is_some_and(|state| state.stepped(delta).is_some());
+        if !enabled {
+            return super::disabled(id, name, theme)
+                .size(size::BUTTON_DEFAULT)
+                .px_0()
+                .justify_center()
+                .child(widgets::icon(icon, theme.text_disabled).size(size::ICON_SM))
+                .into_any_element();
+        }
+        let hover = theme.text;
+        button(id, name, theme)
+            .group(id)
+            .size(size::BUTTON_DEFAULT)
+            .px_0()
+            .justify_center()
+            .child(
+                widgets::icon(icon, theme.text_muted)
+                    .size(size::ICON_SM)
+                    .group_hover(id, move |style| style.text_color(hover)),
+            )
+            .on_click(cx.listener(move |view, _, window, cx| {
+                view.change(window, cx, |state| state.step(delta))
+            }))
+            .into_any_element()
     }
 
     /// De or À: hours then minutes, typed or stepped with ↑ and ↓.
