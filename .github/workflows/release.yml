@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # The version names main's commit: 0.2.0-alpha.<commit count>. A version with a release has
-  # nothing new to publish.
+  # The version names main's commit: <major>.<minor>.<commit count>, the Store package's first
+  # three numbers. A version with a release has nothing new to publish.
   plan:
     name: Plan
     runs-on: ubuntu-latest
@@ -43,7 +43,8 @@ jobs:
         run: |
           set -euo pipefail
           base=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "bientot-app") | .version')
-          echo "version=${base}-alpha.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+          IFS=. read -r major minor _ <<< "$base"
+          echo "version=${major}.${minor}.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Look for its release

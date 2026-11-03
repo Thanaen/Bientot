@@ -45,7 +45,7 @@ jobs:
 
       # The Store takes four numbers and needs the last one at 0; each submission needs a higher
       # version than the last, which the commit count gives. The Store build is a release, so the
-      # app shows the workspace version without the direct channel's `-alpha.<count>`: bump it in
+      # app shows the workspace version, not the direct channel's `<major>.<minor>.<count>`: bump it in
       # Cargo.toml before submitting a new release. Windows' jq ends its output with CRLF.
       - name: Compute the version
         id: version

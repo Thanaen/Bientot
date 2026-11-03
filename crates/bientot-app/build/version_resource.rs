@@ -7,7 +7,7 @@ const COMPANY: &str = "Thanaen";
 pub const COPYRIGHT: &str = "Copyright (c) 2026 Thanaen";
 const ORIGINAL_FILENAME: &str = "worktime.exe";
 
-/// The `.rc` source for `version`, `0.2.0` or a release's `0.2.0-alpha.<commit count>`.
+/// The `.rc` source for `version`, `1.0.0` or a release's `1.0.<commit count>`.
 pub fn rc(version: &str) -> Result<String, String> {
     let [major, minor, patch, build] = numbers(version)?;
     let numeric = format!("{major},{minor},{patch},{build}");
@@ -48,8 +48,9 @@ END
     ))
 }
 
-/// The four numbers of `FILEVERSION`: the release's commit count is the fourth, so that two
-/// alpha builds of the same base version still compare in order.
+/// The four numbers of `FILEVERSION`: a release's commit count is the patch, the third. The
+/// fourth is the last number of a pre-release suffix, so that two builds of the same base version
+/// still compare in order, or `0` without one.
 fn numbers(version: &str) -> Result<[u16; 4], String> {
     let invalid = || format!("{version:?} is not a version the resource can carry");
     let (core, pre) = match version.split_once('-') {

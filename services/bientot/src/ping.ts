@@ -10,8 +10,9 @@ export interface Ping {
   firstThisMonth: boolean;
 }
 
-// 1.0.0 or 1.0.0-alpha.3; bounded so nobody can store free text through it.
-const VERSION = /^\d{1,3}\.\d{1,3}\.\d{1,3}(-[0-9A-Za-z.]{1,20})?$/;
+// 1.0.0, 1.0.102 (a direct release: main's commit count) or 1.0.0-alpha.3; bounded so nobody can
+// store free text through it.
+const VERSION = /^\d{1,3}\.\d{1,3}\.\d{1,5}(-[0-9A-Za-z.]{1,20})?$/;
 const KEYS = ["channel", "first_this_month", "version"];
 
 export const MAX_BODY_BYTES = 256;

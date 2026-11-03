@@ -31,8 +31,9 @@ pub struct Build {
 }
 
 impl Build {
-    /// `None` unless `version` matches `^\d{1,3}\.\d{1,3}\.\d{1,3}(-[0-9A-Za-z.]{1,20})?$`, the
-    /// only versions the service records, so the signal never carries free text.
+    /// `None` unless `version` matches `^\d{1,3}\.\d{1,3}\.\d{1,5}(-[0-9A-Za-z.]{1,20})?$`, the
+    /// only versions the service records, so the signal never carries free text. The patch number
+    /// of a direct release is main's commit count, so it gets five digits.
     pub fn new(version: &'static str, channel: Channel) -> Option<Self> {
         let (release, prerelease) = match version.split_once('-') {
             Some((release, prerelease)) => (release, Some(prerelease)),
@@ -40,8 +41,9 @@ impl Build {
         };
         let numbers: Vec<&str> = release.split('.').collect();
         let release_ok = numbers.len() == 3
-            && numbers.iter().all(|number| {
-                (1..=3).contains(&number.len()) && number.bytes().all(|byte| byte.is_ascii_digit())
+            && numbers.iter().zip([3, 3, 5]).all(|(number, digits)| {
+                (1..=digits).contains(&number.len())
+                    && number.bytes().all(|byte| byte.is_ascii_digit())
             });
         let prerelease_ok = prerelease.is_none_or(|prerelease| {
             (1..=20).contains(&prerelease.len())
@@ -181,6 +183,8 @@ mod tests {
             "0.1.0",
             "1.0.0",
             "999.999.999",
+            "1.0.102",
+            "1.0.65535",
             "1.0.0-a",
             "1.0.0-alpha.3",
             "1.0.0-12345678901234567890",
@@ -192,6 +196,8 @@ mod tests {
             "1.0",
             "1.0.0.0",
             "1000.0.0",
+            "1.1000.0",
+            "1.0.123456",
             "1..0",
             "a.0.0",
             "1.0.0-",
