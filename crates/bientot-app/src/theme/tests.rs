@@ -1,6 +1,6 @@
 //! Checks every token against `design/tokens.json`, a copy of the design system's
 //! `project/tokens.json` (https://claude.ai/artifact/BL74JiT44VFwkEk2wpCUnf, version
-//! 1793658955-0bd9). After the design system changes, copy the new file over it: these tests
+//! 1793666166-af96). After the design system changes, copy the new file over it: these tests
 //! then name each token to update.
 
 use std::collections::BTreeSet;
@@ -207,6 +207,20 @@ fn lengths_match_the_design_system() {
             "appointment-tooltip-gap",
             size::APPOINTMENT_TOOLTIP_GAP,
         ),
+        ("size", "aim-width", px(crate::week::AIM_WIDTH)),
+        ("size", "aim-outline-min-width", size::AIM_OUTLINE_MIN_WIDTH),
+        ("size", "aim-outline-outset", size::AIM_OUTLINE_OUTSET),
+        (
+            "size",
+            "loupe-width",
+            px(crate::week::LOUPE_STRIP_WIDTH) + size::LOUPE_PADDING * 2.,
+        ),
+        (
+            "size",
+            "loupe-strip-width",
+            px(crate::week::LOUPE_STRIP_WIDTH),
+        ),
+        ("size", "loupe-padding", size::LOUPE_PADDING),
     ];
     let mut in_file = BTreeSet::new();
     for family in ["spacing", "radius", "size"] {
