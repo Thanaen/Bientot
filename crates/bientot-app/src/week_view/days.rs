@@ -176,16 +176,14 @@ impl WeekView {
         };
         // The segment clicked holds the popover open on its range; once the range moved, the
         // segment it starts in.
-        let holder = bubble.as_ref().and_then(|bubble| {
-            bubble.selection.anchor.or_else(|| {
-                row.segments
-                    .iter()
-                    .rfind(|segment| segment.id.start <= bubble.selection.range.start())
-                    .filter(|segment| segment.role == SegmentRole::Button)
-                    .map(|segment| segment.id)
-            })
-        });
-        // The strip is painted, so each segment gets a node of its own for screen readers.
+        let holder = bubble.as_ref().and_then(|_| state.holder());
+        let aims = row.focused
+            && row
+                .segments
+                .iter()
+                .any(|segment| segment.role == SegmentRole::Button);
+        // The strip is painted, so each segment gets a node of its own for screen readers and
+        // the keyboard. The pointer aims at the strip as a whole, on wider targets than drawn.
         let overlays = row
             .segments
             .iter()
@@ -230,14 +228,9 @@ impl WeekView {
                             .cursor_pointer()
                             .focus_visible(move |style| style.border_color(focused))
                             .on_click(cx.listener(move |view, event: &ClickEvent, window, cx| {
-                                let opening = view
-                                    .state
-                                    .as_ref()
-                                    .is_some_and(|state| state.selection().is_none());
-                                view.change(window, cx, |state| state.open(id));
-                                // Only a click brings the popover in under the pointer.
-                                if opening && !event.is_keyboard() {
-                                    view.bubble_entrance.reset();
+                                // The strip takes the pointer's clicks.
+                                if event.is_keyboard() {
+                                    view.change(window, cx, |state| state.open(id));
                                 }
                             }))
                     }
@@ -288,6 +281,10 @@ impl WeekView {
                 bubble
                     .as_ref()
                     .map(|bubble| (bubble.start, bubble.start + bubble.length)),
+                state
+                    .loupe()
+                    .filter(|loupe| loupe.date == date)
+                    .map(|loupe| (loupe.start, loupe.start + loupe.length)),
                 theme,
             ))
             .children(overlays)
@@ -298,6 +295,30 @@ impl WeekView {
                     .map(|bubble| self.selection(bubble, theme, cx)),
             )
             .children(bubble.map(|bubble| self.bubble(bubble, theme, cx)))
+            .when(aims, |strip| {
+                strip
+                    .cursor_pointer()
+                    .on_mouse_move(cx.listener(|view, event: &gpui::MouseMoveEvent, _, cx| {
+                        view.aim_at(event.position.x, cx)
+                    }))
+                    .on_hover(cx.listener(|view, hovered: &bool, _, cx| {
+                        if !*hovered {
+                            view.stop_aiming(cx);
+                        }
+                    }))
+                    .on_click(cx.listener(|view, event: &ClickEvent, window, cx| {
+                        if !event.is_keyboard() {
+                            view.click_strip(event.position().x, window, cx);
+                        }
+                    }))
+                    .children(self.aim_preview(state, theme))
+                    .children(
+                        state
+                            .loupe()
+                            .filter(|loupe| loupe.date == date)
+                            .map(|loupe| self.loupe(loupe, theme, cx)),
+                    )
+            })
             .when(!row.focused, |strip| {
                 strip
                     .cursor_pointer()
@@ -547,9 +568,9 @@ pub(crate) fn segment_quad(
 }
 
 /// The style of the text painted by hand: the segments' labels and the hour axis.
-const TICK_TEXT: TypeStyle = text::WT_VALUE_SM;
+pub(super) const TICK_TEXT: TypeStyle = text::WT_VALUE_SM;
 
-fn paint_text(
+pub(super) fn paint_text(
     text: &str,
     origin: gpui::Point<Pixels>,
     color: Hsla,
@@ -573,11 +594,13 @@ fn paint_text(
 /// line and the brackets of its appointments above it, painted by hand as the design system's
 /// Frise. `bounds` keeps where it was painted.
 /// While a range is `selected`, only the segments starting in it keep their label: the others
-/// are dimmed, under its handles.
+/// are dimmed, under its handles. While the loupe shows the hours `magnified`, no label meets
+/// the outline that marks them.
 fn strip(
     row: &DayRow,
     bounds: Option<Rc<Cell<Option<Bounds<Pixels>>>>>,
     selected: Option<(f32, f32)>,
+    magnified: Option<(f32, f32)>,
     theme: &Theme,
 ) -> impl IntoElement {
     let segments = row.segments.clone();
@@ -624,7 +647,10 @@ fn strip(
                     window.paint_quad(shape);
                 }
                 let labelled = selected
-                    .is_none_or(|(start, end)| segment.start >= start && segment.start < end);
+                    .is_none_or(|(start, end)| segment.start >= start && segment.start < end)
+                    && magnified.is_none_or(|(start, end)| {
+                        clear_of_outline(segment, (x, w), (start * width, end * width), window)
+                    });
                 if focused && labelled {
                     paint_label(segment, placed, &theme, window, cx);
                 }
@@ -767,7 +793,26 @@ fn marker_tooltip(marker: &MarkerView, theme: &Theme) -> impl IntoElement {
         )
 }
 
-fn paint_label(
+/// Whether the label of `segment`, placed from `x` over `w`, stays clear of the outline drawn
+/// 4 px around the strip's hours from `left` to `right`: wholly inside or outside it.
+fn clear_of_outline(
+    segment: &SegmentView,
+    (x, w): (f32, f32),
+    (left, right): (f32, f32),
+    window: &mut Window,
+) -> bool {
+    let Some(label) = week::segment_label(segment.kind, &segment.start_time, segment.word, w)
+    else {
+        return true;
+    };
+    // The label and the tag behind it, as `paint_label` places them.
+    let from = x + f32::from(BASE_08 - BASE_04);
+    let to = x + f32::from(BASE_08 + BASE_04 + widgets::text_width(label, TICK_TEXT, window));
+    let (outer, inner) = (f32::from(BASE_04) + 2., f32::from(BASE_04) - 2.);
+    to < left - outer || from > right + outer || (from > left + inner && to < right - inner)
+}
+
+pub(super) fn paint_label(
     segment: &SegmentView,
     placed: Bounds<Pixels>,
     theme: &Theme,

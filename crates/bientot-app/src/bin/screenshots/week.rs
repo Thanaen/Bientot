@@ -17,6 +17,12 @@
 //!   frise » of the flyout selects its first gap, with the note that links it to the flyout's
 //!   total;
 //! - `week-range-work-motion-<0|8|17|50|100>.png`, the entrance of the popover a click opens;
+//! - `week-aim-short.png`, the pointer 10 px beside Wednesday's 15-minute gap, which it still
+//!   aims at; `week-aim-cluster.png`, the pointer on the fragmented day's cluster of short
+//!   segments; `week-loupe.png`, the loupe a click there opens, with its entrance in
+//!   `week-loupe-motion-<0|8|17|50|100>.png`; `week-loupe-aim.png`, the pointer 8 px beside
+//!   its first gap, which it still aims at; `week-loupe-picked.png`, the bubble of that gap, its
+//!   exact bounds kept;
 //! - `week-proposal.png`, the result bar of a correction made the third Wednesday in a row,
 //!   which offers to make it an appointment;
 //! - `week-appointments.png`, the brackets of three recurring appointments: Monday's cut at the
@@ -31,7 +37,7 @@ use bientot_app::demo::{self, DemoHost};
 use bientot_app::palette_view;
 use bientot_app::strings::Language;
 use bientot_app::theme::{motion, size as token};
-use bientot_app::week::{Answer, Edge, Recorded, SegmentKind, WeekTimeline};
+use bientot_app::week::{self, Answer, Edge, Recorded, Segment, SegmentKind, WeekTimeline};
 use bientot_app::week_view::WeekView;
 use bientot_app::workday::SourceHint;
 use bientot_core::demo::DemoScenario;
@@ -40,8 +46,8 @@ use bientot_domain::configuration::{
     AppointmentProposal, Occurrence, RecurringAppointment, Settings,
 };
 use gpui::{
-    AppContext as _, HeadlessAppContext, Modifiers, MouseMoveEvent, PlatformInput, WindowHandle,
-    point, px, size,
+    AppContext as _, HeadlessAppContext, Modifiers, MouseButton, MouseDownEvent, MouseMoveEvent,
+    MouseUpEvent, Pixels, PlatformInput, Point, WindowHandle, point, px, size,
 };
 use jiff::civil::{Weekday, time};
 
@@ -137,7 +143,161 @@ pub fn capture_weeks(
     capture_answered_locks(cx, language, output)?;
     capture_proposal(cx, language, output)?;
     capture_appointments(cx, language, output)?;
+    capture_aiming(cx, language, output)?;
     capture_ranges(cx, language, output)
+}
+
+/// Where the pointer aims `offset` pixels right of the middle of the open day's segment that
+/// `matches`.
+fn beside_segment(
+    cx: &mut HeadlessAppContext,
+    window: WindowHandle<WeekView>,
+    offset: f32,
+    matches: impl Fn(&Segment) -> bool,
+) -> anyhow::Result<Point<Pixels>> {
+    let at = cx.update(|cx| {
+        window.update(cx, |view, _, _| {
+            let bounds = view.strip_bounds()?;
+            let state = view.state_mut()?;
+            let day = state.timeline.day(state.focused())?;
+            let segment = day.segments.iter().find(|segment| matches(segment))?;
+            let (x, w) = week::place(segment.start, segment.length, f32::from(bounds.size.width));
+            Some(point(
+                bounds.origin.x + px(x + w / 2. + offset),
+                bounds.origin.y + bounds.size.height / 2.,
+            ))
+        })
+    })?;
+    at.context("the open day draws the segment")
+}
+
+/// The pointer moves to `at`, then clicks there when `click`.
+fn pointer(
+    cx: &mut HeadlessAppContext,
+    window: WindowHandle<WeekView>,
+    at: Point<Pixels>,
+    click: bool,
+) -> anyhow::Result<()> {
+    let mut inputs = vec![PlatformInput::MouseMove(MouseMoveEvent {
+        position: at,
+        pressed_button: None,
+        modifiers: Modifiers::default(),
+    })];
+    if click {
+        inputs.push(PlatformInput::MouseDown(MouseDownEvent {
+            button: MouseButton::Left,
+            position: at,
+            modifiers: Modifiers::default(),
+            click_count: 1,
+            first_mouse: false,
+        }));
+        inputs.push(PlatformInput::MouseUp(MouseUpEvent {
+            button: MouseButton::Left,
+            position: at,
+            modifiers: Modifiers::default(),
+            click_count: 1,
+        }));
+    }
+    for input in inputs {
+        cx.update_window(window.into(), |_, window, cx| {
+            window.dispatch_event(input, cx);
+        })?;
+        cx.run_until_parked();
+    }
+    Ok(())
+}
+
+/// The pointer on short segments: one standing apart, aimed beside it, then a cluster, the loupe
+/// a click on it opens and the bubble of a gap picked there.
+fn capture_aiming(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    let open = |cx: &mut HeadlessAppContext, scenario| -> anyhow::Result<WindowHandle<WeekView>> {
+        let week = read_demo_week(scenario, language, &[])?;
+        let window = cx.open_window(
+            size(token::WEEK_WINDOW_WIDTH, token::WEEK_WINDOW_HEIGHT),
+            |window, cx| cx.new(|cx| WeekView::new(Some(week), language, window, cx)),
+        )?;
+        // A first frame draws the strip the pointer aims at.
+        capture_nothing(cx, window)?;
+        Ok(window)
+    };
+    let window = open(cx, DemoScenario::HistoryWeek)?;
+    cx.update(|cx| {
+        window.update(cx, |view, _, cx| {
+            if let Some(state) = view.state_mut() {
+                state.select(demo_day(2));
+            }
+            cx.notify();
+        })
+    })?;
+    capture_nothing(cx, window)?;
+    let at = beside_segment(cx, window, 10., |segment| {
+        segment.kind == SegmentKind::Gap && segment.start_time() == "14:00"
+    })?;
+    pointer(cx, window, at, false)?;
+    capture(cx, window.into(), &output.join("week-aim-short.png"))?;
+
+    let window = open(cx, DemoScenario::FragmentedDay)?;
+    let at = beside_segment(cx, window, 0., |segment| {
+        segment.kind == SegmentKind::Work && segment.start_time() == "10:03"
+    })?;
+    pointer(cx, window, at, false)?;
+    capture(cx, window.into(), &output.join("week-aim-cluster.png"))?;
+    // The click brings the loupe in.
+    pointer(cx, window, at, true)?;
+    capture_entrance(
+        cx,
+        window.into(),
+        motion::MENU,
+        MENU_FRAMES,
+        output,
+        "week-loupe",
+    )?;
+    capture(cx, window.into(), &output.join("week-loupe.png"))?;
+    let beside_gap = cx.update(|cx| {
+        window.update(cx, |view, _, _| {
+            let bounds = view.loupe_strip_bounds()?;
+            let loupe = view.state_mut()?.loupe()?;
+            let gap = loupe.segments.get(loupe.first)?;
+            let (x, w) = week::place(gap.start, gap.length, f32::from(bounds.size.width));
+            Some(point(
+                bounds.origin.x + px(x + w / 2. + 8.),
+                bounds.origin.y + bounds.size.height / 2.,
+            ))
+        })
+    })?;
+    pointer(
+        cx,
+        window,
+        beside_gap.context("the loupe draws its strip")?,
+        false,
+    )?;
+    capture(cx, window.into(), &output.join("week-loupe-aim.png"))?;
+    let picked = cx.update(|cx| {
+        window.update(cx, |view, window, cx| {
+            let loupe = view.state_mut()?.loupe()?;
+            let gap = loupe.segments.get(loupe.first)?.id;
+            view.pick_in_loupe(gap, window, cx);
+            Some(())
+        })
+    })?;
+    picked.context("the loupe shows the cluster's first gap")?;
+    capture(cx, window.into(), &output.join("week-loupe-picked.png"))
+}
+
+/// Draws a frame, so that the strip's bounds are known.
+fn capture_nothing(
+    cx: &mut HeadlessAppContext,
+    window: WindowHandle<WeekView>,
+) -> anyhow::Result<()> {
+    cx.run_until_parked();
+    cx.update_window(window.into(), |_, window, _| window.refresh())?;
+    cx.run_until_parked();
+    cx.capture_screenshot(window.into())?;
+    Ok(())
 }
 
 /// The history week with a recurring appointment on Monday from 7:00 to 9:00, before the axis,

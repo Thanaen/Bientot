@@ -305,6 +305,9 @@ pub fn segment_label<'a>(
     width: f32,
 ) -> Option<&'a str> {
     let label = if kind.is_filled() { start_time } else { word };
+    if label.is_empty() {
+        return None;
+    }
     let needed = label.chars().count() as f32 * LABEL_CHARACTER_WIDTH + LABEL_PADDING;
     (width >= needed).then_some(label)
 }
@@ -870,6 +873,8 @@ pub struct WeekState {
     /// « Premier des 2 créneaux non renseignés… », while « Voir sur la frise » of the flyout
     /// selects only the first of its gaps: the note of that selection.
     unrecorded_note: Option<UnrecordedNote>,
+    /// The loupe a click on a cluster of short segments opened.
+    loupe: Option<Loupe>,
 }
 
 /// The note of the first unrecorded gap selected, with every gap it counts: it holds while
@@ -914,6 +919,7 @@ impl WeekState {
             awaited: None,
             details_open: false,
             unrecorded_note: None,
+            loupe: None,
         }
     }
 
@@ -955,6 +961,7 @@ impl WeekState {
         }
         self.renormalize_selection();
         self.revalidate_unrecorded_note();
+        self.revalidate_loupe();
         if self.bubble().is_none() {
             self.selection = None;
         }
@@ -971,6 +978,7 @@ impl WeekState {
         if self.timeline.day(date).is_some() && date != self.focused {
             self.focused = date;
             self.selection = None;
+            self.loupe = None;
         }
     }
 
@@ -1166,14 +1174,19 @@ fn offer(proposal: &AppointmentProposal, language: Language) -> ProposalOffer {
 }
 
 mod adjust;
+mod aim;
 mod bubble;
 mod details;
+mod loupe;
 mod offer;
 mod selection;
 mod timeline;
 
+pub use aim::{AIM_WIDTH, Aimed, Target, aim};
 pub use bubble::{Answer, Bubble, BubbleAction, Held, WeekCommand};
 pub use details::{CorrectionRow, CountedCorrection, Credit, Details, DetailsAction};
+use loupe::Loupe;
+pub use loupe::{LOUPE_STRIP_WIDTH, LoupeView};
 pub use offer::Offer;
 pub use selection::{Edge, RANGE_STEP, Selection};
 pub use timeline::{Availability, DayTimeline, Figures, WeekTimeline};

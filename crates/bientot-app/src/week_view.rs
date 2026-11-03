@@ -34,6 +34,7 @@ mod adjust;
 mod bubble;
 mod days;
 mod details;
+mod loupe;
 mod sizing;
 
 actions!(
@@ -232,6 +233,16 @@ pub struct WeekView {
     bubble_entrance: motion::Entrance,
     /// How far into its entrance the popover is in this frame.
     bubble_time: f32,
+    /// What the pointer aims at on the open day's strip, which it was aimed on.
+    aimed: Option<(jiff::civil::Date, week::Aimed)>,
+    /// The loupe comes in under the strip as the popover does.
+    loupe_entrance: motion::Entrance,
+    loupe_time: f32,
+    /// The loupe's segments, which ← and → move the focus between.
+    loupe_focus: Vec<FocusHandle>,
+    /// Where the loupe's strip was drawn, and the segment of the loupe the pointer aims at.
+    loupe_bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
+    loupe_aimed: Option<usize>,
     palette: Option<Opened>,
     days_scroll: ScrollHandle,
     /// The details just opened: the next render scrolls them into view.
@@ -272,6 +283,12 @@ impl WeekView {
             strip_bounds: Rc::new(Cell::new(None)),
             bubble_entrance: motion::Entrance::at_rest(),
             bubble_time: 1.,
+            aimed: None,
+            loupe_entrance: motion::Entrance::at_rest(),
+            loupe_time: 1.,
+            loupe_focus: Vec::new(),
+            loupe_bounds: Rc::new(Cell::new(None)),
+            loupe_aimed: None,
             palette: None,
             days_scroll: ScrollHandle::new(),
             reveal_details: false,
@@ -301,6 +318,12 @@ impl WeekView {
     #[cfg(feature = "screenshots")]
     pub fn strip_bounds(&self) -> Option<Bounds<Pixels>> {
         self.strip_bounds.get()
+    }
+
+    /// Where the loupe's strip was last drawn, for the screenshots.
+    #[cfg(feature = "screenshots")]
+    pub fn loupe_strip_bounds(&self) -> Option<Bounds<Pixels>> {
+        self.loupe_bounds.get()
     }
 
     /// How wide the open day's strip was last drawn.
@@ -384,6 +407,7 @@ impl WeekView {
     ) {
         if let Some(state) = &mut self.state {
             let before = state.selection();
+            let loupe_before = state.loupe().is_some();
             change(state);
             let after = state.selection();
             if after != before {
@@ -429,6 +453,24 @@ impl WeekView {
                     window.focus(&self.focus_handle, cx);
                 }
                 None => {}
+            }
+            // The loupe takes the focus on the first segment of its cluster, and gives it back
+            // to the week when it closes on nothing selected.
+            match state.loupe() {
+                Some(loupe) if !loupe_before => {
+                    self.loupe_aimed = None;
+                    while self.loupe_focus.len() < loupe.segments.len() {
+                        self.loupe_focus.push(cx.focus_handle());
+                    }
+                    self.loupe_entrance = motion::Entrance::at_rest();
+                    if let Some(handle) = self.loupe_focus.get(loupe.first) {
+                        window.focus(handle, cx);
+                    }
+                }
+                None if loupe_before && state.selection().is_none() => {
+                    window.focus(&self.focus_handle, cx);
+                }
+                _ => {}
             }
             cx.notify();
         }
@@ -1124,6 +1166,15 @@ impl Render for WeekView {
             .is_some_and(|state| state.selection().is_some())
         {
             self.bubble_entrance.time(motion::MENU, window, cx)
+        } else {
+            1.
+        };
+        self.loupe_time = if self
+            .state
+            .as_ref()
+            .is_some_and(|state| state.loupe().is_some())
+        {
+            self.loupe_entrance.time(motion::MENU, window, cx)
         } else {
             1.
         };
