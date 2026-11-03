@@ -48,8 +48,9 @@ END
     ))
 }
 
-/// The four numbers of `FILEVERSION`: the release's commit count is the fourth, so that two
-/// alpha builds of the same base version still compare in order.
+/// The four numbers of `FILEVERSION`: a release's commit count is the patch, the third. The
+/// fourth is the last number of a pre-release suffix, so that two builds of the same base version
+/// still compare in order, or `0` without one.
 fn numbers(version: &str) -> Result<[u16; 4], String> {
     let invalid = || format!("{version:?} is not a version the resource can carry");
     let (core, pre) = match version.split_once('-') {
