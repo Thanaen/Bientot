@@ -1511,6 +1511,36 @@ fn a_cluster_opens_the_loupe_where_each_segment_is_picked() {
     assert_eq!(state.selection().unwrap().range, segment.interval);
 }
 
+/// A segment starting at 09:44:30 shows 09:45 in the loupe, on its tooltip and in its bubble:
+/// every clock time of a segment rounds to the nearest minute.
+#[test]
+fn a_segment_shows_one_start_time_in_the_loupe_and_its_bubble() {
+    let (_demo, mut state) = Demo::open(DemoScenario::FragmentedDay);
+    state.click(centre_of(&state, time(10, 3, 0, 0)), STRIP_WIDTH);
+    let day = state.timeline.day(state.focused()).unwrap();
+    let id = day
+        .segments
+        .iter()
+        .find(|segment| segment.local_start.time() == time(9, 44, 30, 0))
+        .unwrap()
+        .id(day.date);
+    let loupe = state.loupe().unwrap();
+    let position = loupe
+        .segments
+        .iter()
+        .position(|segment| segment.id == id)
+        .unwrap();
+    let work = &loupe.segments[position];
+    assert_eq!(work.kind, SegmentKind::Work);
+    assert_eq!(work.start_time, "09:45");
+    assert_eq!(loupe.tips[position], nb("Travail~· 09:45–10:00~· 15~min"));
+
+    state.open(work.id);
+    let bubble = state.bubble().unwrap();
+    assert_eq!(bubble.title, "09:45–10:00");
+    assert_eq!(bubble.from, time(9, 45, 0, 0));
+}
+
 /// A click on the strip beside every segment closes the bubble, and one under the open loupe
 /// closes the loupe, as a click anywhere else in the window does.
 #[test]

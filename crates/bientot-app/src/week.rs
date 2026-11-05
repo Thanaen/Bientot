@@ -13,7 +13,9 @@ use jiff::{SignedDuration, Timestamp};
 use bientot_domain::configuration::AppointmentProposal;
 
 use crate::strings::{Key, Language};
-use crate::time_text::{duration_text, long_date, minute_range, minutes_text, range_text};
+use crate::time_text::{
+    duration_text, long_date, minute_range, minute_time, minutes_text, range_text,
+};
 use crate::tray_model::{ReviewSubject, appointment_name};
 
 pub const DEFAULT_START_HOUR: i8 = 8;
@@ -186,8 +188,9 @@ impl Segment {
         self.interval.duration()
     }
 
+    /// `09:45` for a segment starting at 09:44:30, as its bubble and tooltip write it.
     pub fn start_time(&self) -> String {
-        self.local_start.time().strftime("%H:%M").to_string()
+        minute_time(self.local_start)
     }
 
     /// What the segment counts as, or what a review segment is named after:

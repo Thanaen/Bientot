@@ -1096,16 +1096,17 @@ impl WeekView {
             .into_any_element()
     }
 
+    /// The legend: the kinds of segment, then the marks around them. In a window too narrow for
+    /// one line, the marks go to a line of their own together, rather than leaving « Maintenant »
+    /// alone on a second line.
     fn legend(&self, page: &week::WeekPage, theme: &Theme) -> impl IntoElement {
-        div()
-            .flex()
-            .flex_none()
-            .flex_wrap()
-            .gap_x(BASE_16)
-            .gap_y(BASE_08)
-            .type_style(text::LABEL_SM)
-            .text_color(theme.text_muted)
-            .children(page.legend().into_iter().map(|(mark, key)| {
+        let line = || div().flex().flex_wrap().gap_x(BASE_16).gap_y(BASE_08);
+        let (kinds, marks): (Vec<_>, Vec<_>) = page
+            .legend()
+            .into_iter()
+            .partition(|(mark, _)| matches!(mark, LegendMark::Segment(_)));
+        let items = |items: Vec<(LegendMark, Key)>| {
+            items.into_iter().map(|(mark, key)| {
                 let glyph = match mark {
                     LegendMark::Segment(kind) => swatch(Some(kind), theme).into_any_element(),
                     LegendMark::Future => swatch(None, theme).into_any_element(),
@@ -1118,11 +1119,20 @@ impl WeekView {
                 };
                 div()
                     .flex()
+                    .flex_none()
                     .items_center()
                     .gap(BASE_06)
+                    .whitespace_nowrap()
                     .child(glyph)
                     .child(self.text(key))
-            }))
+            })
+        };
+        line()
+            .flex_none()
+            .type_style(text::LABEL_SM)
+            .text_color(theme.text_muted)
+            .child(line().children(items(kinds)))
+            .child(line().children(items(marks)))
     }
 
     fn status_bar(&self, theme: &Theme) -> impl IntoElement {

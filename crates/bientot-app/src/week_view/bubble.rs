@@ -35,9 +35,9 @@ impl WeekView {
             .editor
             .opacity(0.55 * motion::ease_out()(self.bubble_time));
         let end = bubble.start + bubble.length;
-        let widen = self.strip_width().map_or(0., |width| {
-            (f32::from(size::RANGE_MIN_WIDTH) - bubble.length * width).max(0.) / 2.
-        });
+        let drawn = self.strip_width().map_or(0., |width| bubble.length * width);
+        let widen = (f32::from(size::RANGE_MIN_WIDTH) - drawn).max(0.) / 2.;
+        let clear = handle_clearance(drawn);
         let handle = |edge: Edge| {
             // For the pointer only: the keyboard and screen readers move the edges in De and À.
             let time = match edge {
@@ -64,7 +64,7 @@ impl WeekView {
                 // so that on a short range the two handles and the outline stay three marks
                 // rather than one.
                 .map(|handle| {
-                    let offset = -size::RANGE_HANDLE_HIT;
+                    let offset = -size::RANGE_HANDLE_HIT - px(clear);
                     match edge {
                         Edge::Start => handle.left(offset).justify_end().pr(size::RANGE_HANDLE_GAP),
                         Edge::End => handle
@@ -725,9 +725,31 @@ fn separator(theme: &Theme) -> gpui::Div {
     div().w(px(1.)).h(BASE_16).bg(theme.border_variant)
 }
 
+/// How far past the outline of a range `drawn` pixels wide its handles stand. A range narrower
+/// than a short segment's aimed width keeps them past that width: the neighbours a short
+/// segment takes it from stay in sight, and the handles take no press the strip would aim.
+fn handle_clearance(drawn: f32) -> f32 {
+    (week::AIM_WIDTH - drawn.max(f32::from(size::RANGE_MIN_WIDTH))).max(0.) / 2.
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// From the range's middle to where its handles start catching the pointer.
+    fn handle_reach(drawn: f32) -> f32 {
+        drawn.max(f32::from(size::RANGE_MIN_WIDTH)) / 2. + handle_clearance(drawn)
+    }
+
+    #[test]
+    fn the_handles_of_a_short_range_stand_past_its_24_pixels() {
+        // A four-minute gap 4 px wide, a quarter hour 13 px wide: past 12 px on either side.
+        assert_eq!(handle_reach(4.), 12.);
+        assert_eq!(handle_reach(13.), 12.);
+        assert_eq!(handle_reach(20.), 12.);
+        // A wider range keeps them at its edges.
+        assert_eq!(handle_reach(30.), 15.);
+    }
 
     fn step(edge: Edge, part: TimePart, up: bool, (hours, minutes): (i8, i8)) -> String {
         stepped(TimeField::new(hours, minutes), edge, part, up).text()

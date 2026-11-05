@@ -10,7 +10,7 @@ use jiff::civil::Time;
 
 use super::{Awaited, DayTimeline, Lock, Offer, Segment, SegmentKind, Selection, WeekState};
 use crate::strings::{Key, Language};
-use crate::time_text::{minutes_text, range_text};
+use crate::time_text::{minute_time, minutes_text, range_text};
 
 /// What the user picks in the bubble.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -387,7 +387,7 @@ impl Bubble {
                 [] => {}
                 [one] => notes.push(language.format(
                     Key::HistoryRangeReplacesOne,
-                    &[&clock(one.local_start), &clock(one.local_end)],
+                    &[&minute_time(one.local_start), &minute_time(one.local_end)],
                 )),
                 many => notes.push(language.format(Key::HistoryRangeReplacesMany, &[&many.len()])),
             }
@@ -446,10 +446,6 @@ impl Bubble {
 
 fn minute(duration: SignedDuration) -> SignedDuration {
     duration.round(jiff::Unit::Minute).unwrap_or(duration)
-}
-
-fn clock(local: jiff::civil::DateTime) -> String {
-    local.time().strftime("%H:%M").to_string()
 }
 
 /// The name of `kind` in the bubble: what it counts as, as the user would say it.
