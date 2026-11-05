@@ -17,6 +17,8 @@
 //!   frise » of the flyout selects its first gap, with the note that links it to the flyout's
 //!   total;
 //! - `week-range-work-motion-<0|8|17|50|100>.png`, the entrance of the popover a click opens;
+//! - `week-range-close.png`, the pointer on the bubble's ×, with its tooltip; a click there,
+//!   then a press outside the bubble, each close it;
 //! - `week-aim-short.png`, the pointer 10 px beside Wednesday's 15-minute gap, which it still
 //!   aims at; `week-aim-cluster.png`, the pointer on the fragmented day's cluster of short
 //!   segments; `week-loupe.png`, the loupe a click there opens, with its entrance in
@@ -30,6 +32,8 @@
 //!   `-tooltip` with the pointer on Friday's, `-bubble` with Thursday's absence open;
 //!   `-tooltip-merged` with the pointer on the one bracket of two appointments whose hours
 //!   overlap on Friday.
+
+use std::time::Duration;
 
 use anyhow::Context as _;
 use bientot_app::adjust::window::Opener;
@@ -144,7 +148,8 @@ pub fn capture_weeks(
     capture_proposal(cx, language, output)?;
     capture_appointments(cx, language, output)?;
     capture_aiming(cx, language, output)?;
-    capture_ranges(cx, language, output)
+    capture_ranges(cx, language, output)?;
+    capture_close_button(cx, language, output)
 }
 
 /// Where the pointer aims `offset` pixels right of the middle of the open day's segment that
@@ -285,7 +290,92 @@ fn capture_aiming(
         })
     })?;
     picked.context("the loupe shows the cluster's first gap")?;
-    capture(cx, window.into(), &output.join("week-loupe-picked.png"))
+    capture(cx, window.into(), &output.join("week-loupe-picked.png"))?;
+    press_outside_closes(cx, window)
+}
+
+/// The bubble's × under the pointer, its tooltip naming Échap, then clicked: the bubble closes.
+fn capture_close_button(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    let week = read_demo_week(DemoScenario::HistoryWeek, language, &[])?;
+    let window = cx.open_window(
+        size(token::WEEK_WINDOW_WIDTH, token::WEEK_WINDOW_HEIGHT),
+        |window, cx| cx.new(|cx| WeekView::new(Some(week), language, window, cx)),
+    )?;
+    let wednesday = demo_day(2);
+    open_segment(cx, window, "Wednesday's work at 12:00", |segment| {
+        segment.local_start.date() == wednesday && segment.start_time() == "12:00"
+    })?;
+    capture_nothing(cx, window)?;
+    let close = cx
+        .update(|cx| {
+            window.update(cx, |view, _, _| {
+                let bounds = view.strip_bounds()?;
+                let width = f32::from(bounds.size.width);
+                let start = view.state_mut()?.bubble()?.start * width;
+                let popover = f32::from(token::POPOVER_WIDTH);
+                let left = start.min(width - popover).max(0.);
+                // The last button of the title: the bubble's padding, then half the button.
+                Some(point(
+                    bounds.origin.x + px(left + popover - 16. - 11.),
+                    bounds.bottom() + px(8. + 16. + 12.),
+                ))
+            })
+        })?
+        .context("the open day draws its strip")?;
+    pointer(cx, window, close, false)?;
+    cx.advance_clock(Duration::from_secs(1));
+    capture(cx, window.into(), &output.join("week-range-close.png"))?;
+    pointer(cx, window, close, true)?;
+    let open = cx.update(|cx| {
+        window.update(cx, |view, _, _| {
+            view.state_mut()
+                .is_some_and(|state| state.bubble().is_some())
+        })
+    })?;
+    anyhow::ensure!(!open, "the bubble's × left it open");
+    Ok(())
+}
+
+/// A press inside the open bubble keeps it; one outside it and the strip closes it, as Échap
+/// does.
+fn press_outside_closes(
+    cx: &mut HeadlessAppContext,
+    window: WindowHandle<WeekView>,
+) -> anyhow::Result<()> {
+    let open = |cx: &mut HeadlessAppContext| -> anyhow::Result<bool> {
+        cx.update(|cx| {
+            window.update(cx, |view, _, _| {
+                view.state_mut()
+                    .is_some_and(|state| state.bubble().is_some())
+            })
+        })
+    };
+    anyhow::ensure!(open(cx)?, "no bubble is open to close");
+    let (inside, outside) = cx
+        .update(|cx| {
+            window.update(cx, |view, _, _| {
+                let bounds = view.strip_bounds()?;
+                let width = f32::from(bounds.size.width);
+                let start = view.state_mut()?.bubble()?.start * width;
+                // The bubble's title, under the range but never past the strip's end.
+                let left = start.min(width - f32::from(token::POPOVER_WIDTH)).max(0.);
+                Some((
+                    point(bounds.origin.x + px(left + 24.), bounds.bottom() + px(24.)),
+                    // Under the open day's name.
+                    point(bounds.origin.x - px(40.), bounds.bottom() + px(24.)),
+                ))
+            })
+        })?
+        .context("the open day draws its strip")?;
+    pointer(cx, window, inside, true)?;
+    anyhow::ensure!(open(cx)?, "a press inside the bubble closed it");
+    pointer(cx, window, outside, true)?;
+    anyhow::ensure!(!open(cx)?, "a press outside the bubble left it open");
+    Ok(())
 }
 
 /// Draws a frame, so that the strip's bounds are known.

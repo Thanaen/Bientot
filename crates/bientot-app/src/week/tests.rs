@@ -1511,6 +1511,26 @@ fn a_cluster_opens_the_loupe_where_each_segment_is_picked() {
     assert_eq!(state.selection().unwrap().range, segment.interval);
 }
 
+/// A click on the strip beside every segment closes the bubble, and one under the open loupe
+/// closes the loupe, as a click anywhere else in the window does.
+#[test]
+fn a_click_beside_the_segments_closes_what_is_open() {
+    let (_demo, mut state) = Demo::open(DemoScenario::HistoryWeek);
+    state.select(date(9, 2));
+    state.click(centre_of(&state, time(14, 0, 0, 0)), STRIP_WIDTH);
+    assert!(state.bubble().is_some());
+    state.click(STRIP_WIDTH + 1., STRIP_WIDTH);
+    assert_eq!(state.selection(), None);
+
+    let (_demo, mut state) = Demo::open(DemoScenario::FragmentedDay);
+    let at = centre_of(&state, time(10, 3, 0, 0));
+    state.click(at, STRIP_WIDTH);
+    assert!(state.loupe().is_some());
+    state.click(at, STRIP_WIDTH);
+    assert_eq!(state.loupe(), None);
+    assert_eq!(state.selection(), None);
+}
+
 /// Escape closes the loupe first, then nothing is left open.
 #[test]
 fn escape_closes_the_loupe() {

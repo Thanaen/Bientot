@@ -9,9 +9,9 @@ use bientot_domain::accounting::TrackingState;
 use bientot_domain::intervals::UtcInterval;
 use gpui::{
     AnyElement, App, AppContext as _, Bounds, Context, Entity, FocusHandle, Global, Hsla,
-    KeyBinding, MouseButton, Pixels, Role, ScrollHandle, SharedString, Subscription, Window,
-    WindowBounds, WindowControlArea, WindowHandle, WindowOptions, actions, div, prelude::*,
-    transparent_black,
+    KeyBinding, MouseButton, MouseDownEvent, Pixels, Point, Role, ScrollHandle, SharedString,
+    Subscription, Window, WindowBounds, WindowControlArea, WindowHandle, WindowOptions, actions,
+    div, prelude::*, transparent_black,
 };
 
 use crate::adjust::Closed;
@@ -250,6 +250,8 @@ pub struct WeekView {
     /// The appointment bracket under the pointer, whose tooltip shows until the pointer leaves
     /// it or the open day or the selection changes.
     hovered_marker: Option<MarkerHover>,
+    /// The pointer rests on the bubble's ×, whose tooltip shows under it.
+    close_hovered: bool,
     _keep_focus: Subscription,
 }
 
@@ -293,6 +295,7 @@ impl WeekView {
             days_scroll: ScrollHandle::new(),
             reveal_details: false,
             hovered_marker: None,
+            close_hovered: false,
             _keep_focus: keep_focus,
         }
     }
@@ -450,6 +453,7 @@ impl WeekView {
                 }
                 None if before.is_some() => {
                     self.dragging = None;
+                    self.close_hovered = false;
                     window.focus(&self.focus_handle, cx);
                 }
                 None => {}
@@ -541,6 +545,26 @@ impl WeekView {
         self.change(window, cx, |state| {
             state.close_bubble();
         });
+    }
+
+    /// A press anywhere the bubble or the loupe doesn't cover closes it, as Échap does, and
+    /// what was pressed still takes its click. The open day's strip keeps its own: a click
+    /// there picks another segment, or closes on the one held open. Neither popover hears it:
+    /// they occlude the window, and the handles keep their press for the drag.
+    fn press_outside(&mut self, at: Point<Pixels>, window: &mut Window, cx: &mut Context<Self>) {
+        let on_strip = self
+            .strip_bounds
+            .get()
+            .is_some_and(|bounds| bounds.contains(&at));
+        let open = self
+            .state
+            .as_ref()
+            .is_some_and(|state| state.selection().is_some() || state.loupe().is_some());
+        if open && !on_strip {
+            self.change(window, cx, |state| {
+                state.close_bubble();
+            });
+        }
     }
 
     fn text(&self, key: Key) -> &'static str {
@@ -1256,6 +1280,12 @@ impl Render for WeekView {
                         return;
                     }
                     view.drag_to(event.position.x, window, cx);
+                }),
+            )
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(|view, event: &MouseDownEvent, window, cx| {
+                    view.press_outside(event.position, window, cx)
                 }),
             )
             .on_mouse_up(

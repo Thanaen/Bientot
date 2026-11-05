@@ -130,9 +130,12 @@ impl WeekState {
     }
 
     /// A click at `x` on the open day's strip, `width` pixels wide: the segment aimed at opens
-    /// its bubble, or closes it when it holds it open; a cluster opens the loupe there.
+    /// its bubble, or closes it when it holds it open; a cluster opens the loupe there. Beside
+    /// every segment, or under the open loupe, it closes what is open, as a click anywhere else
+    /// in the window does.
     pub fn click(&mut self, x: f32, width: f32) {
         let Some(aimed) = self.aim(x, width) else {
+            self.close_bubble();
             return;
         };
         match aimed.target {
