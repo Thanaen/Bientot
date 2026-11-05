@@ -201,6 +201,17 @@ export function sitemap(): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 
+// Browsers keep a page five minutes. Past that, Vercel's CDN still answers at once with the copy it
+// has and asks the function for a fresh one behind it, so a visitor never waits for a cold function
+// and GitHub: the site has too few visitors to keep either warm, and that wait was most of the time
+// a first visit took to show anything. A deployment empties the CDN, so only the version note can
+// be late, by one visit.
+const PAGE_HEADERS = {
+  "content-type": "text/html; charset=utf-8",
+  "cache-control": "public, max-age=300",
+  "vercel-cdn-cache-control": `max-age=300, stale-while-revalidate=${30 * DAY}`,
+};
+
 // One GET route per page and per file. `version` gives the latest release's version, or null.
 export function siteRoutes(version: () => Promise<string | null>): Record<string, { GET(request: Request): Response | Promise<Response> }> {
   const routes: Record<string, { GET(request: Request): Response | Promise<Response> }> = {};
@@ -210,9 +221,7 @@ export function siteRoutes(version: () => Promise<string | null>): Record<string
         const redirect = moved(request);
         if (redirect) return redirect;
         const [html, latest] = await Promise.all([render(page), version()]);
-        return new Response(html.replace("<!-- version -->", versionNote(latest, page.language)), {
-          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" },
-        });
+        return new Response(html.replace("<!-- version -->", versionNote(latest, page.language)), { headers: PAGE_HEADERS });
       },
     };
   }
