@@ -242,7 +242,8 @@ Once the user has been away for at least 15 minutes inside the window, and is
 then back at work for 5 minutes in a row before it ends, the lunch counts as
 taken at that return. The projection stops reserving the rest of the window,
 the shown time stops moving, and the lunch line goes away, as after the window
-ends. A lock that the accounting joins to lunch counts in full. Before this
+ends. A lock that the accounting joins to lunch counts in full; unknown time
+counts neither as away nor as work. Before this
 revision, the projection kept reserving the window until its end, so the shown
 time moved one minute earlier for each minute of work and could read late. The
 first 5 minutes keep a glance at the PC during lunch from ending it.

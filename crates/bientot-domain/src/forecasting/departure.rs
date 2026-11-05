@@ -1,7 +1,7 @@
 use jiff::{SignedDuration, Timestamp};
 
 use super::{InvalidForecastInput, check_work_and_target};
-use crate::accounting::{AccountingLabel, AccountingTimeline};
+use crate::accounting::{AccountingLabel, AccountingTimeline, SegmentKind};
 use crate::intervals::UtcInterval;
 
 /// Time away inside the lunch window from which a return to work ends the lunch.
@@ -44,13 +44,17 @@ pub fn project_departure(
 /// The lunch window as the departure should reserve it: ended where the user came back to work
 /// after at least [`MINIMUM_LUNCH_BREAK`] away inside it and stayed [`MINIMUM_RETURN`], so that a
 /// shortened lunch no longer holds the departure back (issue #135). A lock joined to lunch
-/// counts in full, as it does in the accounting.
+/// counts in full, as it does in the accounting; unknown time does not count.
 pub fn lunch_as_taken(lunch: UtcInterval, timeline: &AccountingTimeline) -> UtcInterval {
     let mut away = SignedDuration::ZERO;
     let mut back: Option<(Timestamp, SignedDuration)> = None;
     for segment in timeline.segments() {
         let interval = segment.interval();
-        if !segment.kind().is_credit() {
+        // Unknown time says neither that the user was away nor that they worked.
+        if *segment.kind() == SegmentKind::Unknown {
+            continue;
+        }
+        if *segment.kind() == SegmentKind::Excluded {
             back = None;
             away += if segment.label() == AccountingLabel::LunchLock {
                 interval.duration()
@@ -173,6 +177,7 @@ mod tests {
         Work,
         Away,
         LockedAtLunch,
+        Unknown,
     }
 
     /// A timeline from 08:00 made of `pieces` that each end at the given time.
@@ -198,6 +203,7 @@ mod tests {
                         AccountingLabel::LunchLock,
                         origin.clone(),
                     ),
+                    Piece::Unknown => AccountedSegment::unknown(interval, origin.clone()),
                 }
             })
             .collect();
@@ -311,5 +317,27 @@ mod tests {
             (Piece::Work, at(14, 30)),
         ]);
         assert_eq!(lunch_as_taken(lunch(), &late), lunch());
+    }
+
+    #[test]
+    fn unknown_time_inside_the_window_is_not_lunch() {
+        let gap = timeline(&[
+            (Piece::Work, at(12, 0)),
+            (Piece::Unknown, at(12, 40)),
+            (Piece::Work, at(12, 50)),
+        ]);
+        assert_eq!(lunch_as_taken(lunch(), &gap), lunch());
+    }
+
+    #[test]
+    fn unknown_time_neither_adds_to_the_break_nor_breaks_the_return() {
+        let gap = timeline(&[
+            (Piece::Work, at(12, 0)),
+            (Piece::Away, at(12, 40)),
+            (Piece::Work, at(12, 43)),
+            (Piece::Unknown, at(12, 45)),
+            (Piece::Work, at(12, 47)),
+        ]);
+        assert_eq!(lunch_as_taken(lunch(), &gap), lunch_until(12, 40));
     }
 }
