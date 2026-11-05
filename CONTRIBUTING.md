@@ -164,7 +164,20 @@ its no-break space, or when a text uses a straight apostrophe.
   `ci(repo): …`. A change to several parts takes the scope of the one a user
   notices.
 - The release notes are the ones GitHub generates, without the pull requests
-  scoped `site` or `repo` (`scripts/release-notes.sh`).
+  scoped `site` or `repo` (`scripts/release-notes.sh`). They open with a
+  short summary for users, in French and in English.
+- A pull request titled `feat(app)`, `fix(app)` or `perf(app)` adds a file to
+  `scripts/release-summary/`, named after the change, with one line in each
+  language that says what changes for users:
+
+  ```
+  fr: Dans la semaine, la bulle d’une période sélectionnée se ferme d’un clic en dehors ou avec sa croix.
+  en: In the week view, the bubble of a selected range closes when you click outside it or on its ×.
+  ```
+
+  The `Release summary` check fails without it, and checks the format of every
+  file added there. A release with no such file says that nothing visible
+  changed.
 - To tell users something in the next release only, such as a moved folder,
   add a Markdown file to `scripts/release-announcements/`. The notes of the
   first release whose range holds the commit that adds it start with it.
