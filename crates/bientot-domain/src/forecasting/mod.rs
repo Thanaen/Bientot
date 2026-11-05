@@ -7,7 +7,7 @@ mod indicator;
 pub(crate) mod overtime;
 
 pub use confidence::{AccountingAssessment, AssessmentReason, ForecastAvailability, assess};
-pub use departure::{DepartureProjection, project_departure};
+pub use departure::{DepartureProjection, lunch_as_taken, project_departure};
 pub use indicator::indicator_state;
 pub use overtime::overtime;
 

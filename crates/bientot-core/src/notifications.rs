@@ -12,7 +12,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use bientot_domain::accounting::SegmentKind;
 use bientot_domain::configuration::Settings;
-use bientot_domain::forecasting::{DepartureProjection, ForecastAvailability, project_departure};
+use bientot_domain::forecasting::{
+    DepartureProjection, ForecastAvailability, lunch_as_taken, project_departure,
+};
 use bientot_domain::intervals::UtcInterval;
 use bientot_domain::notifications::{NotificationPolicyInput, NotificationTrigger, eligible};
 use bientot_domain::summaries::DailySummary;
@@ -399,7 +401,10 @@ fn scenarios(
     settings: &Settings,
     calendar: &WorkdayCalendar<&dyn TimeZoneProvider>,
 ) -> Result<Scenarios, CalendarError> {
-    let lunch = calendar.interval(summary.workday(), settings.lunch_start, settings.lunch_end)?;
+    let lunch = lunch_as_taken(
+        calendar.interval(summary.workday(), settings.lunch_start, settings.lunch_end)?,
+        summary.accounting().timeline(),
+    );
     let unknown_work = summary
         .accounting()
         .timeline()
