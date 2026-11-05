@@ -2,8 +2,11 @@
 # Keeps, from the release notes GitHub generates (stdin), the pull requests that change the app:
 # those scoped `app`, and those with no scope that change what the app is built from. The pull
 # requests scoped `site` or `repo` are left out; every other line is kept as GitHub wrote it.
-# The announcements added to scripts/release-announcements/ since the previous release come first:
-# each goes out once, with the first release after the commit that added it.
+# They open with a summary for users, in French then in English, from the files added to
+# scripts/release-summary/ since the previous release (one `fr:` line and one `en:` line each). When
+# there is none, a line says that nothing visible changed, unless an announcement tells users what
+# did. The announcements added to scripts/release-announcements/ since the previous release follow.
+# Each file goes out once, with the first release after the commit that added it.
 #
 #   gh api repos/<owner>/<repo>/releases/generate-notes … --jq .body |
 #       scripts/release-notes.sh <previous-tag or empty> <commit>
@@ -50,12 +53,40 @@ if ((kept == 0)) && [[ -n ${changes:-} ]]; then
     lines=("${lines[@]:0:changes}" "No change to the app." "${lines[@]:changes}")
 fi
 
-# The announcements by file name; one that a later commit removed is left out.
+# The files added in the range, by file name; one that a later commit removed is left out.
+added() {
+    git log --diff-filter=A --name-only --format= "$range" -- ":/$1" | sort -u | while IFS= read -r path; do
+        if git cat-file -e "$target:$path" 2>/dev/null; then
+            printf '%s\n' "$path"
+        fi
+    done
+}
+
+fr=()
+en=()
 while IFS= read -r path; do
-    git cat-file -e "$target:$path" 2>/dev/null || continue
+    while IFS= read -r line; do
+        line=${line%$'\r'}
+        case $line in
+            "fr: "*) fr+=("- ${line#fr: }") ;;
+            "en: "*) en+=("- ${line#en: }") ;;
+        esac
+    done < <(git show "$target:$path")
+done < <(added scripts/release-summary)
+mapfile -t announcements < <(added scripts/release-announcements)
+# An announcement already tells users what changes.
+if ((${#fr[@]} == 0 && ${#announcements[@]} == 0)); then
+    fr=("- Pas de changement visible dans l’application.")
+    en=("- No visible change to the app.")
+fi
+if ((${#fr[@]} > 0)); then
+    printf '%s\n' "## En bref" "" "${fr[@]}" "" "## In short" "" "${en[@]}" ""
+fi
+
+for path in "${announcements[@]}"; do
     git show "$target:$path"
     echo
-done < <(git log --diff-filter=A --name-only --format= "$range" -- :/scripts/release-announcements | sort -u)
+done
 
 # A section whose lines all went, such as "New Contributors", goes too.
 skip=0
