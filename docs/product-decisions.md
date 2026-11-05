@@ -237,6 +237,18 @@ flyout gave a qualitative margin instead, which read as too complex. Active work
 inside the window is still credited, so the shown time can only move earlier
 once lunch is over.
 
+Revised on 2026-11-05 (issue #135): a lunch can end before the window does.
+Once the user has been away for at least 15 minutes inside the window, and is
+then back at work for 5 minutes in a row before it ends, the lunch counts as
+taken at that return. The projection stops reserving the rest of the window,
+the shown time stops moving, and the lunch line goes away, as after the window
+ends. A lock that the accounting joins to lunch counts in full; unknown time
+counts neither as away nor as work. Short breaks separated by 5 minutes of
+work do not add up to a lunch. Before this
+revision, the projection kept reserving the window until its end, so the shown
+time moved one minute earlier for each minute of work and could read late. The
+first 5 minutes keep a glance at the PC during lunch from ending it.
+
 ### D-016 — Distribution and updates
 
 WorkTime targets a public v1 while the source repository stays private during

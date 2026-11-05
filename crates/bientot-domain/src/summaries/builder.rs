@@ -4,7 +4,7 @@ use super::{
     DailyAccountingCalculation, DailySummary, DailySummaryParts, IndicatorState, InvalidSummary,
 };
 use crate::credit::DailyCreditResult;
-use crate::forecasting::{assess, indicator_state, project_departure};
+use crate::forecasting::{assess, indicator_state, lunch_as_taken, project_departure};
 
 /// The summary against the nominal target, without weekly credit.
 pub fn build_nominal(
@@ -40,7 +40,7 @@ fn build(
         calculation.projection_anchor(),
         credited_work,
         effective_target,
-        calculation.lunch(),
+        lunch_as_taken(calculation.lunch(), calculation.accounting().timeline()),
     )
     .expect("accounted work is never negative and targets are positive");
     let indicator_state = if calculation.workday().is_working_day() {

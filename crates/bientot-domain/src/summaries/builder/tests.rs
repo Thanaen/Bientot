@@ -43,8 +43,28 @@ fn calculation(day: Date, credited_work: SignedDuration) -> DailyAccountingCalcu
     let start = utc(day, 8, 0);
     let through = start + SignedDuration::from_hours(7);
     let credited_end = start + credited_work;
+    let activity = [(ActivityState::Active, credited_end)]
+        .into_iter()
+        .chain((credited_end < through).then_some((ActivityState::Afk, through)));
+    observed(day, activity.collect())
+}
+
+/// The day from 08:00 with the given activity, each piece ending at its time, observed at the
+/// end of the last one.
+fn observed(day: Date, activity: Vec<(ActivityState, Timestamp)>) -> DailyAccountingCalculation {
+    let start = utc(day, 8, 0);
+    let through = activity.last().unwrap().1;
     let origin = AutomaticOrigin::new("activitywatch:test").unwrap();
     let lunch = interval(utc(day, 12, 0), utc(day, 14, 0));
+    let mut piece_start = start;
+    let segments: Vec<_> = activity
+        .into_iter()
+        .map(|(state, end)| {
+            let segment = ActivitySegment::new(interval(piece_start, end), state, origin.clone());
+            piece_start = end;
+            segment
+        })
+        .collect();
     let input = AccountingInput::new(
         WorkdayWindow {
             workday: LocalWorkday::new(day, "UTC"),
@@ -53,20 +73,7 @@ fn calculation(day: Date, credited_work: SignedDuration) -> DailyAccountingCalcu
         },
         through,
         AccountingPolicy::new(lunch, minutes(90)).unwrap(),
-        ActivityCoverage::new(
-            interval(start, through),
-            [ActivitySegment::new(
-                interval(start, credited_end),
-                ActivityState::Active,
-                origin.clone(),
-            )]
-            .into_iter()
-            .chain(
-                UtcInterval::new(credited_end, through)
-                    .ok()
-                    .map(|idle| ActivitySegment::new(idle, ActivityState::Afk, origin)),
-            ),
-        ),
+        ActivityCoverage::new(interval(start, through), segments),
         WorkdayEventHistory::default(),
         vec![],
     )
@@ -201,4 +208,23 @@ fn a_weekend_day_shows_blue_once_its_target_is_reached_and_green_before() {
             .indicator_state(),
         IndicatorState::Green
     );
+}
+
+#[test]
+fn a_return_from_a_shortened_lunch_projects_from_the_return() {
+    let back = observed(
+        TUESDAY,
+        vec![
+            (ActivityState::Active, utc(TUESDAY, 12, 0)),
+            (ActivityState::Afk, utc(TUESDAY, 12, 40)),
+            (ActivityState::Active, utc(TUESDAY, 12, 50)),
+        ],
+    );
+
+    let summary = build_nominal(&back).unwrap();
+
+    assert_eq!(summary.credited_work(), minutes(250));
+    let projection = summary.departure_projection().unwrap();
+    assert_eq!(projection.projected_departure, utc(TUESDAY, 15, 40));
+    assert!(projection.lunch_over);
 }
