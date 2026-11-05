@@ -67,14 +67,18 @@ pub fn lunch_as_taken(lunch: UtcInterval, timeline: &AccountingTimeline) -> UtcI
         }
         let (returned, worked) = back.get_or_insert((interval.start(), SignedDuration::ZERO));
         *worked += interval.duration();
+        if *worked < MINIMUM_RETURN {
+            continue;
+        }
         // A return right at the start of the window, possible only after a corrected lock, keeps it.
         if away >= MINIMUM_LUNCH_BREAK
-            && *worked >= MINIMUM_RETURN
             && let Ok(taken) = UtcInterval::new(lunch.start(), *returned)
             && *returned < lunch.end()
         {
             return taken;
         }
+        // Back at work from shorter breaks: the next break starts the count again.
+        away = SignedDuration::ZERO;
     }
     lunch
 }
@@ -339,5 +343,17 @@ mod tests {
             (Piece::Work, at(12, 47)),
         ]);
         assert_eq!(lunch_as_taken(lunch(), &gap), lunch_until(12, 40));
+    }
+
+    #[test]
+    fn two_short_breaks_with_work_between_are_not_lunch() {
+        let coffees = timeline(&[
+            (Piece::Work, at(12, 5)),
+            (Piece::Away, at(12, 13)),
+            (Piece::Work, at(12, 30)),
+            (Piece::Away, at(12, 38)),
+            (Piece::Work, at(12, 50)),
+        ]);
+        assert_eq!(lunch_as_taken(lunch(), &coffees), lunch());
     }
 }
