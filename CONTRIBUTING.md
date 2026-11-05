@@ -176,8 +176,9 @@ its no-break space, or when a text uses a straight apostrophe.
   commit subject on `main`, followed by the pull request number, as in
   `feat(app): … (#119)`. The `Pull request title` check fails when the title
   does not follow the convention above.
-- Include tests in proportion to the behavioral risk, and update the spec when
-  a user-visible rule changes
+- New features and bug fixes come with automated tests in the same pull
+  request, in proportion to the behavioral risk. Update the spec when a
+  user-visible rule changes
   ([constitution](.specify/memory/constitution.md), "Development workflow").
 - When a task in `tasks.md` is done, tick it and add a dated note on what was
   delivered and what remains unverified.
