@@ -36,7 +36,7 @@ jobs:
       - name: Check out the pull request
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          fetch-depth: 2
           persist-credentials: false
 
       # The release notes open with the lines of the files added to scripts/release-summary/
