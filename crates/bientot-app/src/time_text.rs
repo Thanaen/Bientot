@@ -53,6 +53,13 @@ pub fn minute_range(start: DateTime, end: DateTime, language: Language) -> (Stri
     )
 }
 
+/// `09:45` for 09:44:30: a single clock time to the nearest minute, as [`minute_range`] and the
+/// bubble write the ends of a range.
+pub fn minute_time(local: DateTime) -> String {
+    let local = local.round(jiff::Unit::Minute).unwrap_or(local);
+    local.time().strftime("%H:%M").to_string()
+}
+
 /// `interval` in local times of `zone`, to the second: `09:40:12–09:45:42`.
 pub fn local_range_text(interval: UtcInterval, zone: &TimeZone, language: Language) -> String {
     let [start, end] =

@@ -411,6 +411,12 @@ impl WeekView {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let settle = self.text(Key::HistoryPendingSettleContent);
+        // Under the open loupe, the actions keep their room but do not show: the loupe would
+        // leave the end of their row peeking past its edge.
+        let magnifying = self
+            .state
+            .as_ref()
+            .is_some_and(|state| state.loupe().is_some());
         let list = (!focus.pending.is_empty()).then(|| {
             div()
                 .flex()
@@ -512,6 +518,7 @@ impl WeekView {
                             .flex_wrap()
                             .items_center()
                             .gap(BASE_08)
+                            .when(magnifying, |actions| actions.invisible())
                             .child(self.adjust_button(can_adjust, theme))
                             .child(self.declare_button(can_adjust, theme, cx)),
                     )
