@@ -411,12 +411,16 @@ impl WeekView {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let settle = self.text(Key::HistoryPendingSettleContent);
-        // Under the open loupe, the actions keep their room but do not show: the loupe would
-        // leave the end of their row peeking past its edge.
-        let magnifying = self
-            .state
-            .as_ref()
-            .is_some_and(|state| state.loupe().is_some());
+        // Under the open loupe or bubble, what the day lists keeps its room but fades out: the
+        // popover would leave cut-off pieces of it peeking past its edges.
+        let state = self.state.as_ref();
+        let shown = if state.is_some_and(|state| state.loupe().is_some()) {
+            0.
+        } else if state.is_some_and(|state| state.selection().is_some()) {
+            1. - motion::ease_out()(self.bubble_time)
+        } else {
+            1.
+        };
         let list = (!focus.pending.is_empty()).then(|| {
             div()
                 .flex()
@@ -511,6 +515,8 @@ impl WeekView {
                     .flex()
                     .flex_col()
                     .gap(BASE_08)
+                    .opacity(shown)
+                    .when(shown <= 0., |column| column.invisible())
                     .children(list)
                     .child(
                         div()
@@ -518,7 +524,6 @@ impl WeekView {
                             .flex_wrap()
                             .items_center()
                             .gap(BASE_08)
-                            .when(magnifying, |actions| actions.invisible())
                             .child(self.adjust_button(can_adjust, theme))
                             .child(self.declare_button(can_adjust, theme, cx)),
                     )

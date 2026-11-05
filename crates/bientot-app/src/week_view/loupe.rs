@@ -14,7 +14,7 @@ use super::{NextSegment, PreviousSegment, WeekView, button, keystroke};
 use crate::flyout;
 use crate::strings::Key;
 use crate::theme::spacing::*;
-use crate::theme::{Theme, TypeStyled as _, motion, radius, size, text};
+use crate::theme::{Theme, TypeStyle, TypeStyled as _, motion, radius, size, text};
 use crate::week::{self, Aimed, LoupeView, SegmentId, SegmentView, Target, WeekState};
 use crate::widgets;
 
@@ -140,6 +140,7 @@ impl WeekView {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let preview = self.loupe_preview(&loupe, theme);
+        let tip = self.loupe_tip(&loupe);
         let inner = px(week::LOUPE_STRIP_WIDTH);
         let outer = inner + size::LOUPE_PADDING * 2.;
         let left = self.strip_width().map_or(px(0.), |width| {
@@ -238,7 +239,7 @@ impl WeekView {
                     )
                     .child(close),
             )
-            .child(loupe_axis(loupe.ticks, theme))
+            .child(loupe_axis(loupe.ticks, tip, theme))
             .child(
                 div()
                     .id("loupe-strip")
@@ -342,8 +343,8 @@ impl WeekView {
         }
     }
 
-    /// The outline of the loupe's segment under the pointer, and its tooltip over the loupe's axis.
-    fn loupe_preview(&self, loupe: &LoupeView, theme: &Theme) -> Option<gpui::AnyElement> {
+    /// Where the outline of the loupe's segment under the pointer stands, and its tooltip.
+    fn loupe_tip(&self, loupe: &LoupeView) -> Option<LoupeTip> {
         let position = self.loupe_aimed?;
         let segment = loupe.segments.get(position)?;
         let width = week::LOUPE_STRIP_WIDTH;
@@ -352,6 +353,24 @@ impl WeekView {
             + 2. * f32::from(size::AIM_OUTLINE_OUTSET);
         let centre = x + w / 2.;
         let (anchor, at) = tooltip_anchor(centre, outlined, width);
+        Some(LoupeTip {
+            centre,
+            outlined,
+            anchor,
+            at,
+            line: loupe.tips.get(position)?.clone(),
+        })
+    }
+
+    /// The outline of the loupe's segment under the pointer, and its tooltip over the loupe's axis.
+    fn loupe_preview(&self, loupe: &LoupeView, theme: &Theme) -> Option<gpui::AnyElement> {
+        let LoupeTip {
+            centre,
+            outlined,
+            anchor,
+            at,
+            line,
+        } = self.loupe_tip(loupe)?;
         Some(
             div()
                 .absolute()
@@ -373,10 +392,7 @@ impl WeekView {
                             anchored()
                                 .anchor(anchor)
                                 .snap_to_window_with_margin(BASE_08)
-                                .child(
-                                    widgets::tooltip_box(theme)
-                                        .children(loupe.tips.get(position).cloned()),
-                                ),
+                                .child(widgets::tooltip_box(theme).child(line)),
                         )
                         .with_priority(3),
                     ),
@@ -429,6 +445,33 @@ fn tooltip_anchor(centre: f32, outlined: f32, width: f32) -> (Anchor, Pixels) {
     }
 }
 
+/// The tooltip of the loupe's segment under the pointer, over the loupe's axis, and the outline
+/// `outlined` wide about `centre` that marks the segment.
+struct LoupeTip {
+    centre: f32,
+    outlined: f32,
+    anchor: Anchor,
+    at: Pixels,
+    line: String,
+}
+
+/// The tooltip box's text, in the tabular figures it draws.
+const TOOLTIP_TEXT: TypeStyle = TypeStyle {
+    tabular: true,
+    ..text::LABEL_SM
+};
+
+/// Whether an axis label from `left` to `right` stays clear of the tooltip `tip` wide that
+/// `anchor` places at `at`, by a gap that keeps them apart.
+fn clear_of_tip(left: Pixels, right: Pixels, anchor: Anchor, at: Pixels, tip: Pixels) -> bool {
+    let (start, end) = match anchor {
+        Anchor::BottomLeft => (at, at + tip),
+        Anchor::BottomRight => (at - tip, at),
+        _ => (at - tip / 2., at + tip / 2.),
+    };
+    right + BASE_08 <= start || left >= end + BASE_08
+}
+
 /// The loupe's segments, painted as the strip's, with their labels. `painted` keeps where.
 fn loupe_strip(
     segments: Vec<SegmentView>,
@@ -465,18 +508,30 @@ fn loupe_strip(
     .size_full()
 }
 
-/// The loupe's axis: each label centred on its tick, within the loupe.
-fn loupe_axis(ticks: Vec<(f32, String)>, theme: &Theme) -> impl IntoElement {
+/// The loupe's axis: each label centred on its tick, within the loupe, but for the labels the
+/// tooltip `tip` covers or comes near.
+fn loupe_axis(ticks: Vec<(f32, String)>, tip: Option<LoupeTip>, theme: &Theme) -> impl IntoElement {
     let color = theme.text_muted;
     canvas(
         |_, _, _| {},
         move |bounds, _, window, cx| {
             let width = bounds.size.width;
+            // As wide as the tooltip box: its text, padding and border.
+            let tip = tip.as_ref().map(|tip| {
+                let wide =
+                    widgets::text_width(&tip.line, TOOLTIP_TEXT, window) + (BASE_08 + px(1.)) * 2.;
+                (tip.anchor, tip.at, wide)
+            });
             for (at, label) in &ticks {
                 let label_width = widgets::text_width(label, TICK_TEXT, window);
                 let x = (width * *at - label_width / 2.)
                     .max(px(0.))
                     .min(width - label_width);
+                if tip.is_some_and(|(anchor, at, wide)| {
+                    !clear_of_tip(x, x + label_width, anchor, at, wide)
+                }) {
+                    continue;
+                }
                 paint_text(
                     label,
                     point(bounds.origin.x + x, bounds.origin.y),
@@ -489,4 +544,57 @@ fn loupe_axis(ticks: Vec<(f32, String)>, theme: &Theme) -> impl IntoElement {
     )
     .h(TICK_TEXT.line_height)
     .w_full()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_axis_labels_under_the_loupe_tooltip_or_beside_it_give_way() {
+        // A tooltip 200 px wide, centred at 300: from 200 to 400, kept 8 px clear of labels.
+        let tip = |left: f32, right: f32| {
+            clear_of_tip(
+                px(left),
+                px(right),
+                Anchor::BottomCenter,
+                px(300.),
+                px(200.),
+            )
+        };
+        assert!(tip(150., 192.));
+        assert!(!tip(150., 193.));
+        assert!(!tip(280., 320.));
+        assert!(!tip(407., 450.));
+        assert!(tip(408., 450.));
+        // Anchored by its left edge at 0, or by its right edge at 800.
+        assert!(!clear_of_tip(
+            px(150.),
+            px(200.),
+            Anchor::BottomLeft,
+            px(0.),
+            px(200.)
+        ));
+        assert!(clear_of_tip(
+            px(210.),
+            px(250.),
+            Anchor::BottomLeft,
+            px(0.),
+            px(200.)
+        ));
+        assert!(!clear_of_tip(
+            px(600.),
+            px(640.),
+            Anchor::BottomRight,
+            px(800.),
+            px(200.)
+        ));
+        assert!(clear_of_tip(
+            px(540.),
+            px(590.),
+            Anchor::BottomRight,
+            px(800.),
+            px(200.)
+        ));
+    }
 }
