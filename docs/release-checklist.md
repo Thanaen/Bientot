@@ -24,7 +24,7 @@ without other apps, policies or earlier settings.
 | 3. Tray recovery after an Explorer restart | Pass | `explorer.exe` was stopped and Windows restarted it. The Bientôt icon came back in the notification area with a current tooltip, and the process kept running. |
 | 4. English override and complete resources | Pass | `--english`: every name of the flyout is English (« Check activity tracking », « Known work time: 0m of 7h 00m », « Pause tracking, Ctrl+Alt+P »). Automated: `the_table_matches_the_resw_files`. |
 | 5. Portable alpha limitations documented | Pass | README, « Download », and [startup-registration.md](startup-registration.md). The ZIP build greys the update setting and links to GitHub (`the_zip_build_greys_the_updates_and_links_to_github`, seen live). |
-| 6. An update offer needs a user action | Pass (automated), live check pending | `nothing_is_offered_before_a_check_finds_an_update` and the `--demo-update` demo. The live check is the Store update of the installed `0.2.62.0` to 1.0.0, below. |
+| 6. An update offer needs a user action | Pass (automated) | `nothing_is_offered_before_a_check_finds_an_update` and the `--demo-update` demo. The live offer was not seen: the Store updated the installed `0.2.62.0` to 1.0.0 on its own first, below. |
 | 7. Diagnostics hold no secret, app or window title | Pass | [validation-report.md](validation-report.md#diagnostic-export-smoke). |
 | 8. Startup under 3 s, idle CPU under 0.5 %, working set at most 150 MiB | Pass | `scripts/measure-performance.ps1 -Release` on the portable build, 900 s idle after a 5 s settle, sampled every second. |
 
@@ -47,7 +47,7 @@ creation, not from a sign-in.
 | Install from the Store | Pass | `winget install --id 9N4FL1HRF4KL --source msstore` installed `Thanaen.Bientt` `0.2.62.0`, `SignatureKind: Store`, under `C:\Program Files\WindowsApps`. |
 | Data of the portable build found | Pass | The Store build opened `%LOCALAPPDATA%\Bientot` that the portable build had created, with no onboarding, and kept writing there. `%LOCALAPPDATA%\Packages\Thanaen.Bientt_j4qejy376e90w\LocalCache\Local` has no `Bientot` folder, so writes are not virtualized. |
 | Startup task | Pass | Declared disabled; the settings toggle enables it (state 2). After a reinstall, the settings show it off again, which is the real Windows state. |
-| Update through the Store and the in-app offer | Pending | The live check is the update of the installed `0.2.62.0` to the 1.0.0 submission once certified. |
+| Update through the Store | Pass | Once `1.0.97.0` was certified (the Store catalog serves it for product `9N4FL1HRF4KL`), the Store updated the installed `0.2.62.0` in the background, with no action in Bientôt: the anonymous usage ping of that copy reports `0.2.0-alpha.62` on 3 November 2026 and `1.0.0` on 4 November. The in-app offer is covered by step 6 of the release smoke. |
 | Uninstall | Pass | `Remove-AppxPackage` removed the package, its `Packages` folder and the startup task; no notification registration of the package remains. `%LOCALAPPDATA%\Bientot` stays, as [privacy.md](privacy.md#delete-your-data) says. |
 | Reinstall | Pass | The reinstalled package found the same history (« 23 min »). |
 | Privacy policy | Pass | The Store catalog serves `PrivacyUrl` `https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md` for product `9N4FL1HRF4KL`. |
