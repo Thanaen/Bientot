@@ -14,7 +14,7 @@ use super::{NextSegment, PreviousSegment, WeekView, button, keystroke};
 use crate::flyout;
 use crate::strings::Key;
 use crate::theme::spacing::*;
-use crate::theme::{Theme, TypeStyled as _, motion, radius, size, text};
+use crate::theme::{Theme, TypeStyle, TypeStyled as _, motion, radius, size, text};
 use crate::week::{self, Aimed, LoupeView, SegmentId, SegmentView, Target, WeekState};
 use crate::widgets;
 
@@ -455,6 +455,12 @@ struct LoupeTip {
     line: String,
 }
 
+/// The tooltip box's text, in the tabular figures it draws.
+const TOOLTIP_TEXT: TypeStyle = TypeStyle {
+    tabular: true,
+    ..text::LABEL_SM
+};
+
 /// Whether an axis label from `left` to `right` stays clear of the tooltip `tip` wide that
 /// `anchor` places at `at`, by a gap that keeps them apart.
 fn clear_of_tip(left: Pixels, right: Pixels, anchor: Anchor, at: Pixels, tip: Pixels) -> bool {
@@ -512,8 +518,8 @@ fn loupe_axis(ticks: Vec<(f32, String)>, tip: Option<LoupeTip>, theme: &Theme) -
             let width = bounds.size.width;
             // As wide as the tooltip box: its text, padding and border.
             let tip = tip.as_ref().map(|tip| {
-                let wide = widgets::text_width(&tip.line, text::LABEL_SM, window)
-                    + (BASE_08 + px(1.)) * 2.;
+                let wide =
+                    widgets::text_width(&tip.line, TOOLTIP_TEXT, window) + (BASE_08 + px(1.)) * 2.;
                 (tip.anchor, tip.at, wide)
             });
             for (at, label) in &ticks {
