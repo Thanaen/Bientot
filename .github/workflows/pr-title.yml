@@ -24,3 +24,24 @@ jobs:
             echo "::error::\"$TITLE\" is not \"<type>(<scope>): <subject>\", with a scope among app, site and repo. See CONTRIBUTING.md, \"Commits and pull requests\"."
             exit 1
           fi
+
+  summary:
+    name: Release summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      # The release notes open with the lines of the files added to scripts/release-summary/
+      # (scripts/release-notes.sh), so a change users notice brings one, in French and in English.
+      - name: Check the summary for users
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: scripts/check-release-summary.sh "$TITLE" HEAD^1 HEAD
