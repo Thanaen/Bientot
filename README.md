@@ -1,6 +1,7 @@
 # Bientôt
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Thanaen/Bientot/badge)](https://scorecard.dev/viewer/?uri=github.com/Thanaen/Bientot)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16358/badge)](https://www.bestpractices.dev/projects/16358)
 
 Bientôt is a small Windows app that lives in the notification area and
 answers one question:
