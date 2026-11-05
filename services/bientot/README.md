@@ -48,6 +48,12 @@ Cloudflare) still answers for pages cached before the switch.
 (Open Graph, `summary_large_image`), icons, theme colours and the two analytics scripts, and adds the page to
 `/sitemap.xml`. A new page or file must be listed there.
 
+Browsers keep a page five minutes (`Cache-Control: public, max-age=300`). Vercel's CDN keeps it as
+long, then for 30 more days serves the copy it has at once while it asks the function for a fresh one
+(`Vercel-CDN-Cache-Control: max-age=300, stale-while-revalidate=2592000`). The site has too few
+visitors to keep the function warm, so without that a first visit waited for a cold start and
+GitHub's answer before anything showed. Only the version note can be one visit late.
+
 For search engines and AI assistants, the homepage also carries schema.org structured data (a
 `SoftwareApplication` and its `SoftwareSourceCode`, in `site/index.html`), and `site/llms.txt`
 summarises the app in English and French at `/llms.txt` ([llmstxt.org](https://llmstxt.org/)). Keep

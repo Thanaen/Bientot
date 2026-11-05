@@ -102,6 +102,14 @@ describe("the site", () => {
     expect(page).not.toContain("<!-- head -->");
   });
 
+  test("the CDN answers with the page it has while it fetches a fresh one", async () => {
+    for (const path of ["/", "/en"]) {
+      const response = (await get(path))!;
+      expect(response.headers.get("cache-control")).toBe("public, max-age=300");
+      expect(response.headers.get("vercel-cdn-cache-control")).toBe("max-age=300, stale-while-revalidate=2592000");
+    }
+  });
+
   test("the page names the latest release's version", async () => {
     const page = await html();
     expect(page).toContain('<p class="btn-note">Le programme d’installation (version <span class="nb">0.2.0-alpha.53</span>) met l’application à jour automatiquement.');
