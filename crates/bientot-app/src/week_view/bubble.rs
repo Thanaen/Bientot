@@ -2,8 +2,8 @@
 //! answers, and the outline with its drag handles over the strip.
 
 use gpui::{
-    Context, IntoElement, KeyDownEvent, MouseButton, Role, SharedString, anchored, deferred, div,
-    prelude::*, px, relative,
+    Anchor, Context, IntoElement, KeyDownEvent, MouseButton, Role, SharedString, anchored,
+    deferred, div, prelude::*, px, relative,
 };
 
 use super::{WeekView, button, keystroke, tinted};
@@ -297,13 +297,17 @@ impl WeekView {
                                         div().text_color(theme.text_muted).child(bubble.duration),
                                     )
                                     // Apart from the duration, so as not to read as its stepper.
-                                    .child(div().w(px(1.)).h(BASE_16).bg(theme.border_variant))
+                                    .child(separator(theme))
                                     .child(
                                         div()
                                             .flex()
+                                            .gap(BASE_02)
                                             .child(self.step_button(-1, theme, cx))
                                             .child(self.step_button(1, theme, cx)),
-                                    ),
+                                    )
+                                    // Apart from ‹ ›, so that a slip off › doesn't close.
+                                    .child(separator(theme))
+                                    .child(self.close_button(theme, cx)),
                             ),
                     )
                     .child(breakdown),
@@ -406,6 +410,59 @@ impl WeekView {
                 view.change(window, cx, |state| state.step(delta))
             }))
             .into_any_element()
+    }
+
+    /// × at the end of the bubble's title: closes it, as Échap and a press outside it do. Its
+    /// tooltip names Échap, which nothing else shows, under it and aligned on its right edge so
+    /// that it covers neither the button nor the day's figures beside the bubble. The glyph is a
+    /// size under the chevrons', which it would outweigh at the same size.
+    fn close_button(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
+        let id = "bubble-close";
+        let label = self.text(Key::HistoryLoupeClose);
+        let name = flyout::shortcut_name(label, keystroke::CLOSE, self.language);
+        let hover = theme.text;
+        let control = button(id, name, theme)
+            .group(id)
+            .size(size::BUTTON_DEFAULT)
+            .px_0()
+            .justify_center()
+            .child(
+                widgets::icon("x", theme.text_muted)
+                    .size(size::ICON_XS)
+                    .group_hover(id, move |style| style.text_color(hover)),
+            )
+            .on_hover(cx.listener(|view, hovered: &bool, _, cx| {
+                if view.close_hovered != *hovered {
+                    view.close_hovered = *hovered;
+                    cx.notify();
+                }
+            }))
+            .on_click(cx.listener(|view, _, window, cx| {
+                view.change(window, cx, |state| {
+                    state.close_bubble();
+                })
+            }));
+        div()
+            .relative()
+            .child(control)
+            .children(self.close_hovered.then(|| {
+                div().absolute().top_full().right_0().mt(BASE_04).child(
+                    deferred(
+                        anchored()
+                            .anchor(Anchor::TopRight)
+                            .snap_to_window_with_margin(BASE_08)
+                            .child(widgets::tooltip_box(theme).child(
+                                div().flex().items_center().gap(BASE_06).child(label).child(
+                                    flyout::keys(
+                                        flyout::key_caps(keystroke::CLOSE, self.language),
+                                        theme,
+                                    ),
+                                ),
+                            )),
+                    )
+                    .with_priority(2),
+                )
+            }))
     }
 
     /// De or À: hours then minutes, typed or stepped with ↑ and ↓.
@@ -661,6 +718,11 @@ fn stepped(field: TimeField, edge: Edge, part: TimePart, up: bool) -> TimeField 
         i16::from(field.value(TimePart::Hours)) * 60 + i16::from(field.value(TimePart::Minutes));
     let minutes = (minutes + if up { step } else { -step }).clamp(0, last);
     TimeField::new((minutes / 60) as i8, (minutes % 60) as i8)
+}
+
+/// The 1 × 16 rule between the parts of the bubble's title.
+fn separator(theme: &Theme) -> gpui::Div {
+    div().w(px(1.)).h(BASE_16).bg(theme.border_variant)
 }
 
 #[cfg(test)]
