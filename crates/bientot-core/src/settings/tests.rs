@@ -349,7 +349,7 @@ fn a_startup_change_saves_once_windows_applied_it_and_keeps_a_refusal_to_retry()
         .submit(SettingsEdit::StartWithWindows(false))
         .unwrap();
     assert_eq!(pending.startup(), Some(false));
-    workspace.finish_startup(pending, false, &mut port);
+    workspace.finish_startup(pending, None, &mut port);
 
     assert!(port.saved.is_empty());
     assert_eq!(
@@ -367,7 +367,7 @@ fn a_startup_change_saves_once_windows_applied_it_and_keeps_a_refusal_to_retry()
 
     let retry = workspace.retry(EditGroup::Startup).unwrap();
     assert_eq!(retry.startup(), Some(false));
-    workspace.finish_startup(retry, true, &mut port);
+    workspace.finish_startup(retry, Some(false), &mut port);
 
     assert_eq!(port.saved.len(), 1);
     assert!(!port.saved[0].start_with_windows);

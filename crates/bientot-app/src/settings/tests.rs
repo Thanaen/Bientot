@@ -433,6 +433,40 @@ fn a_startup_change_windows_refused_shows_a_callout_and_retries() {
     }
 }
 
+#[test]
+fn a_startup_change_only_windows_can_allow_leaves_nothing_to_retry() {
+    for (settled, requested) in [
+        (StartupRegistrationState::DisabledByUser, true),
+        (StartupRegistrationState::DisabledByPolicy, true),
+        (StartupRegistrationState::EnabledByPolicy, false),
+    ] {
+        let mut form = form(Language::French);
+        let mut port = Port::default();
+        form.show_startup(if requested {
+            StartupRegistrationState::Disabled
+        } else {
+            StartupRegistrationState::Enabled
+        });
+        let pending = form.toggle(Switch::Startup).expect("the switch can change");
+        form.finish_startup(pending, settled, &mut port);
+
+        let view = form.view();
+        assert_eq!(view.sections[0].callouts, [], "{settled:?}");
+        assert_eq!(form.retry(EditGroup::Startup), None);
+        assert!(form.may_close());
+        assert_eq!(form.current().start_with_windows, !requested);
+        assert_eq!(
+            row(&view, Setting::Startup).control,
+            Control::Switch {
+                switch: Switch::Startup,
+                name: Switch::Startup.name(Language::French),
+                on: !requested,
+                enabled: false,
+            }
+        );
+    }
+}
+
 fn startup_apps(form: &SettingsForm) -> Option<StartupAppsView> {
     row(&form.view(), Setting::Startup).startup_apps
 }

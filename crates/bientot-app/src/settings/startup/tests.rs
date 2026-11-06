@@ -149,6 +149,18 @@ fn a_refusal_by_windows_is_not_applied() {
 }
 
 #[test]
+fn a_refusal_only_startup_apps_or_a_policy_can_lift_settles_the_change() {
+    assert_eq!(settled(Enabled, true), Some(true));
+    assert_eq!(settled(Disabled, false), Some(false));
+    assert_eq!(settled(DisabledByUser, true), Some(false));
+    assert_eq!(settled(DisabledByPolicy, true), Some(false));
+    assert_eq!(settled(EnabledByPolicy, false), Some(true));
+    for state in [Disabled, RegistrationMismatch, Unavailable] {
+        assert_eq!(settled(state, true), None);
+    }
+}
+
+#[test]
 fn what_the_user_or_a_policy_holds_is_never_changed() {
     for state in [DisabledByUser, DisabledByPolicy, Unavailable] {
         let registration = Registration::new(state, Enabled);
