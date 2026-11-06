@@ -165,22 +165,8 @@ impl OnboardingView {
         cx: &mut Context<Self>,
     ) -> Self {
         let startup = cx.try_global::<Startup>().map(|startup| startup.0.clone());
-        match startup.clone() {
-            Some(port) => {
-                cx.spawn(async move |view, cx| {
-                    let state = cx
-                        .background_executor()
-                        .spawn(async move { port.state() })
-                        .await;
-                    view.update(cx, |view, cx| {
-                        view.onboarding.show_startup(state);
-                        cx.notify();
-                    })
-                    .ok();
-                })
-                .detach();
-            }
-            None => onboarding.show_startup(StartupRegistrationState::Unavailable),
+        if startup.is_none() {
+            onboarding.show_startup(StartupRegistrationState::Unavailable);
         }
         let language = onboarding.language();
         let focus_handle = cx.focus_handle();
@@ -190,10 +176,16 @@ impl OnboardingView {
             input.set_text(onboarding.target(), cx);
             input
         });
-        let mut subscriptions =
-            vec![cx.on_blur(&target.focus_handle(cx), window, |view, _, cx| {
+        let mut subscriptions = vec![
+            cx.on_blur(&target.focus_handle(cx), window, |view, _, cx| {
                 view.commit_target(cx)
-            })];
+            }),
+            cx.observe_window_activation(window, |view, window, cx| {
+                if window.is_window_active() {
+                    view.read_startup(cx);
+                }
+            }),
+        ];
         let clocks = [
             ClockFocus::new(cx),
             ClockFocus::new(cx),
@@ -221,7 +213,7 @@ impl OnboardingView {
             view.update(cx, |view, cx| view.should_close(cx))
                 .unwrap_or(true)
         });
-        Self {
+        let mut view = Self {
             onboarding,
             language,
             focus_handle,
@@ -238,7 +230,29 @@ impl OnboardingView {
             save,
             on_complete: Some(on_complete),
             _subscriptions: subscriptions,
-        }
+        };
+        view.read_startup(cx);
+        view
+    }
+
+    /// Reads the registration off the window's thread: on opening, and whenever the window
+    /// comes back, as from Startup apps.
+    fn read_startup(&mut self, cx: &mut Context<Self>) {
+        let Some(port) = self.startup.clone() else {
+            return;
+        };
+        cx.spawn(async move |view, cx| {
+            let state = cx
+                .background_executor()
+                .spawn(async move { port.state() })
+                .await;
+            view.update(cx, |view, cx| {
+                view.onboarding.show_startup(state);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
     }
 
     /// The model, for the screenshots.
