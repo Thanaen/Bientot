@@ -834,7 +834,7 @@ fn the_first_of_several_unrecorded_gaps_says_where_the_next_one_starts() {
     assert_eq!(
         state.bubble().unwrap().notes,
         [nb(
-            "Premier des 2 créneaux non renseignés, 26~min au total\u{202f}; le suivant à~14:00."
+            "Premier des 2 créneaux non renseignés, 26~min au total\u{202f}; le~suivant~à~14:00."
         )]
     );
 

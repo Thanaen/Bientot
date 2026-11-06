@@ -712,7 +712,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="HistoryRangeReplacesOne" xml:space="preserve"><value>Remplace votre correction de {0} à {1}.</value></data>
   <data name="HistoryRangeReplacesMany" xml:space="preserve"><value>Remplace {0} de vos corrections.</value></data>
   <data name="HistoryRangeCorrectionNote" xml:space="preserve"><value>Si vous la retirez, ce temps revient à la détection automatique.</value></data>
-  <data name="HistoryRangeUnrecordedFirstFormat" xml:space="preserve"><value>Premier des {0} créneaux non renseignés, {1} au total ; le suivant à {2}.</value></data>
+  <data name="HistoryRangeUnrecordedFirstFormat" xml:space="preserve"><value>Premier des {0} créneaux non renseignés, {1} au total ; le suivant à {2}.</value></data>
   <data name="HistoryRangeOpenLockNote" xml:space="preserve"><value>La session est encore verrouillée. Vous pourrez régler cette plage après le déverrouillage.</value></data>
   <data name="HistoryRangeCountNoChange" xml:space="preserve"><value>Si vous comptez, le total du jour ne change pas.</value></data>
   <data name="HistoryRangeExcludeNoChange" xml:space="preserve"><value>Si vous excluez, le total du jour ne change pas.</value></data>

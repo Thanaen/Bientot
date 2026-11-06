@@ -1041,7 +1041,7 @@ pub(super) static ENTRIES: [Entry; 813] = [
     Entry { name: "HistoryRangeReplacesMany", fr: "Remplace {0} de vos corrections.", en: "Replaces {0} of your corrections." },
     Entry { name: "HistoryRangeReplacesOne", fr: "Remplace votre correction de {0} à {1}.", en: "Replaces your correction from {0} to {1}." },
     Entry { name: "HistoryRangeStartHandle", fr: "Début de la plage", en: "Start of the range" },
-    Entry { name: "HistoryRangeUnrecordedFirstFormat", fr: "Premier des {0} créneaux non renseignés, {1} au total\u{202f}; le suivant à\u{a0}{2}.", en: "First of {0} unrecorded slots, {1} in total; the next at\u{a0}{2}." },
+    Entry { name: "HistoryRangeUnrecordedFirstFormat", fr: "Premier des {0} créneaux non renseignés, {1} au total\u{202f}; le\u{a0}suivant\u{a0}à\u{a0}{2}.", en: "First of {0} unrecorded slots, {1} in total; the\u{a0}next\u{a0}at\u{a0}{2}." },
     Entry { name: "HistoryRefresh.AutomationProperties.Name", fr: "Actualiser", en: "Refresh" },
     Entry { name: "HistoryRefresh.ToolTipService.ToolTip", fr: "Actualiser la semaine", en: "Refresh the week" },
     Entry { name: "HistoryResultConfirmed", fr: "{0} confirmé comme travail.", en: "{0} confirmed as work." },
