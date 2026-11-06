@@ -382,6 +382,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                         enabled: true,
                     },
                     details: None,
+                    other_copy: None,
                 },
                 RowView {
                     setting: Setting::Updates,
@@ -398,6 +399,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                         enabled: true,
                     },
                     details: None,
+                    other_copy: None,
                 },
                 RowView {
                     setting: Setting::UsagePing,
@@ -419,6 +421,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                         label: "Voir ce qui est envoyé",
                         shown: None,
                     }),
+                    other_copy: None,
                 },
             ],
             footnote: Some("Vos heures et votre activité restent sur ce PC."),
@@ -823,6 +826,10 @@ impl StartupPort for Registration {
     fn set_enabled(&self, enabled: bool) -> StartupRegistrationState {
         self.changes.lock().unwrap().push(enabled);
         self.settled
+    }
+
+    fn other_copy_starts(&self) -> bool {
+        false
     }
 }
 

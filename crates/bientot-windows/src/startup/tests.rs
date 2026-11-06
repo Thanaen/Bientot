@@ -28,6 +28,24 @@ impl FakeRunKey {
 }
 
 impl RunKey for &FakeRunKey {
+    fn read_run_value(&self, name: &str) -> io::Result<Option<String>> {
+        (**self).read_run_value(name)
+    }
+
+    fn set_run_value(&self, name: &str, command: &str) -> io::Result<()> {
+        (**self).set_run_value(name, command)
+    }
+
+    fn delete_run_value(&self, name: &str) -> io::Result<()> {
+        (**self).delete_run_value(name)
+    }
+
+    fn read_approval(&self, name: &str) -> io::Result<StartupApproval> {
+        (**self).read_approval(name)
+    }
+}
+
+impl RunKey for FakeRunKey {
     fn read_run_value(&self, _name: &str) -> io::Result<Option<String>> {
         Ok(self.run_value())
     }
@@ -506,7 +524,7 @@ fn every_startup_task_state_maps_to_a_registration_state() {
     ] {
         let fake = FakeStartupTask::new(task, StartupTaskState::Enabled);
         assert_eq!(
-            PackagedStartupRegistration::new(&fake).state(),
+            PackagedStartupRegistration::new(&fake, FakeRunKey::default()).state(),
             expected,
             "{task:?}"
         );
@@ -516,7 +534,7 @@ fn every_startup_task_state_maps_to_a_registration_state() {
 #[test]
 fn enabling_asks_windows_only_for_an_ordinary_disabled_task() {
     let task = FakeStartupTask::new(StartupTaskState::Disabled, StartupTaskState::Enabled);
-    let registration = PackagedStartupRegistration::new(&task);
+    let registration = PackagedStartupRegistration::new(&task, FakeRunKey::default());
 
     assert_eq!(
         registration.set_enabled(true),
@@ -535,7 +553,7 @@ fn enabling_keeps_the_denial_windows_returns() {
     let task = FakeStartupTask::new(StartupTaskState::Disabled, StartupTaskState::DisabledByUser);
 
     assert_eq!(
-        PackagedStartupRegistration::new(&task).set_enabled(true),
+        PackagedStartupRegistration::new(&task, FakeRunKey::default()).set_enabled(true),
         StartupRegistrationState::DisabledByUser
     );
     assert_eq!(task.enable_count.get(), 1);
@@ -558,7 +576,7 @@ fn policy_and_user_controlled_states_are_not_overridden() {
         ),
     ] {
         let task = FakeStartupTask::new(state, StartupTaskState::Enabled);
-        let registration = PackagedStartupRegistration::new(&task);
+        let registration = PackagedStartupRegistration::new(&task, FakeRunKey::default());
 
         assert_eq!(registration.set_enabled(true), expected, "{state:?}");
         assert_eq!(registration.set_enabled(false), expected, "{state:?}");
@@ -570,7 +588,7 @@ fn policy_and_user_controlled_states_are_not_overridden() {
 #[test]
 fn disabling_converges() {
     let task = FakeStartupTask::new(StartupTaskState::Enabled, StartupTaskState::Enabled);
-    let registration = PackagedStartupRegistration::new(&task);
+    let registration = PackagedStartupRegistration::new(&task, FakeRunKey::default());
 
     assert_eq!(
         registration.set_enabled(false),
@@ -586,13 +604,88 @@ fn disabling_converges() {
 
 #[test]
 fn an_unreachable_startup_task_reads_as_unavailable() {
-    let registration = PackagedStartupRegistration::new(MissingStartupTask);
+    let registration = PackagedStartupRegistration::new(MissingStartupTask, FakeRunKey::default());
 
     assert_eq!(registration.state(), StartupRegistrationState::Unavailable);
     assert_eq!(
         registration.set_enabled(true),
         StartupRegistrationState::Unavailable
     );
+}
+
+/// The `Run` value an installer or portable copy wrote, which starts its own executable.
+const OTHER_COPY: &str =
+    r#""C:\Users\Ada\AppData\Local\Programs\Bientot\worktime.exe" --worktime-windows-startup"#;
+
+fn packaged<'a>(
+    task: &'a FakeStartupTask,
+    key: &'a FakeRunKey,
+) -> StartupRegistration<&'a FakeRunKey, &'a FakeStartupTask> {
+    StartupRegistration::Packaged(PackagedStartupRegistration::new(task, key))
+}
+
+#[test]
+fn the_packaged_build_finds_another_copy_only_while_its_task_is_on() {
+    let found = [
+        StartupTaskState::Enabled,
+        StartupTaskState::EnabledByPolicy,
+        StartupTaskState::Disabled,
+        StartupTaskState::DisabledByUser,
+        StartupTaskState::DisabledByPolicy,
+        StartupTaskState::Unrecognized,
+    ]
+    .map(|state| {
+        let task = FakeStartupTask::new(state, StartupTaskState::Enabled);
+        let key = FakeRunKey::with(OTHER_COPY, StartupApproval::None);
+        packaged(&task, &key).other_copy_starts()
+    });
+
+    assert_eq!(found, [true, true, false, false, false, false]);
+}
+
+#[test]
+fn the_packaged_build_finds_no_other_copy_without_a_run_value_that_starts() {
+    let task = FakeStartupTask::new(StartupTaskState::Enabled, StartupTaskState::Enabled);
+    let missing = FakeRunKey::default();
+    let disabled_in_windows = FakeRunKey::with(OTHER_COPY, StartupApproval::DisabledByUser);
+    let enabled_in_windows = FakeRunKey::with(OTHER_COPY, StartupApproval::Enabled);
+
+    assert!(!packaged(&task, &missing).other_copy_starts());
+    assert!(!packaged(&task, &disabled_in_windows).other_copy_starts());
+    assert!(packaged(&task, &enabled_in_windows).other_copy_starts());
+    assert!(
+        !StartupRegistration::Packaged(PackagedStartupRegistration::new(&task, DeniedRunKey))
+            .other_copy_starts()
+    );
+}
+
+#[test]
+fn looking_for_another_copy_never_writes_the_run_key() {
+    for state in [StartupTaskState::Enabled, StartupTaskState::Disabled] {
+        let task = FakeStartupTask::new(state, StartupTaskState::Enabled);
+        let key = FakeRunKey::with(OTHER_COPY, StartupApproval::None);
+        let registration = packaged(&task, &key);
+
+        registration.other_copy_starts();
+        registration.set_enabled(state == StartupTaskState::Disabled);
+
+        assert_eq!(key.run_value().as_deref(), Some(OTHER_COPY), "{state:?}");
+        assert_eq!((key.delete_count.get(), key.set_count.get()), (0, 0));
+    }
+}
+
+#[test]
+fn the_portable_build_never_reports_another_copy() {
+    let executable = Executable::new();
+    for registered in [OTHER_COPY.to_owned(), executable.canonical()] {
+        let key = FakeRunKey::with(&registered, StartupApproval::None);
+        let registration: StartupRegistration<_, MissingStartupTask> =
+            StartupRegistration::Portable(executable.registration(&key));
+
+        assert!(!registration.other_copy_starts());
+        assert_eq!(key.run_value(), Some(registered));
+        assert_eq!((key.delete_count.get(), key.set_count.get()), (0, 0));
+    }
 }
 
 #[cfg(windows)]

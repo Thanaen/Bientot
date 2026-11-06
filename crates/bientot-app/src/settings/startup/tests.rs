@@ -38,6 +38,10 @@ impl StartupPort for Registration {
         self.changes.lock().unwrap().push(enabled);
         self.windows.lock().unwrap().1
     }
+
+    fn other_copy_starts(&self) -> bool {
+        false
+    }
 }
 
 #[test]

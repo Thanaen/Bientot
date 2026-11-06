@@ -85,7 +85,9 @@ mod tests {
     //! The real WinRT calls in a test process, which has no package identity.
 
     use super::*;
-    use crate::startup::{PACKAGED_TASK_ID, PackagedStartupRegistration, StartupRegistrationState};
+    use crate::startup::{
+        PACKAGED_TASK_ID, PackagedStartupRegistration, RegistryRunKey, StartupRegistrationState,
+    };
 
     #[test]
     fn a_process_without_package_identity_was_launched() {
@@ -95,13 +97,17 @@ mod tests {
 
     #[test]
     fn the_startup_task_is_unavailable_without_package_identity() {
-        let registration =
-            PackagedStartupRegistration::new(WindowsStartupTask::new(PACKAGED_TASK_ID));
+        let registration = PackagedStartupRegistration::new(
+            WindowsStartupTask::new(PACKAGED_TASK_ID),
+            RegistryRunKey,
+        );
 
         assert_eq!(registration.state(), StartupRegistrationState::Unavailable);
         assert_eq!(
             registration.set_enabled(true),
             StartupRegistrationState::Unavailable
         );
+        // The task is read first, so the signed-in user's `Run` key is never read here.
+        assert!(!registration.other_copy_starts());
     }
 }

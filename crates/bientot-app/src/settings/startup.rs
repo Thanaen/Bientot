@@ -14,6 +14,10 @@ pub trait StartupPort: Send + Sync {
 
     /// The state Windows settled on.
     fn set_enabled(&self, enabled: bool) -> StartupRegistrationState;
+
+    /// The Store build starts at sign-in, and so does an installer or portable copy through
+    /// its `Run` value. Always `false` for those copies themselves.
+    fn other_copy_starts(&self) -> bool;
 }
 
 impl<K, T> StartupPort for StartupRegistration<K, T>
@@ -27,6 +31,10 @@ where
 
     fn set_enabled(&self, enabled: bool) -> StartupRegistrationState {
         StartupRegistration::set_enabled(self, enabled)
+    }
+
+    fn other_copy_starts(&self) -> bool {
+        StartupRegistration::other_copy_starts(self)
     }
 }
 

@@ -613,6 +613,8 @@ pub enum Key {
     SettingsStartupInputAutomationPropertiesName,
     SettingsStartupInputOffContent,
     SettingsStartupInputOnContent,
+    SettingsStartupOtherCopyAction,
+    SettingsStartupOtherCopyMessage,
     SettingsStorage,
     SettingsTarget,
     SettingsTargetCardDescription,
@@ -821,7 +823,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 813] = [
+pub(super) static ENTRIES: [Entry; 815] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1429,6 +1431,8 @@ pub(super) static ENTRIES: [Entry; 813] = [
     Entry { name: "SettingsStartupInput.AutomationProperties.Name", fr: "Démarrer Bientôt avec Windows", en: "Start Bientôt with Windows" },
     Entry { name: "SettingsStartupInput.OffContent", fr: "Désactivé", en: "Off" },
     Entry { name: "SettingsStartupInput.OnContent", fr: "Activé", en: "On" },
+    Entry { name: "SettingsStartupOtherCopyAction", fr: "Applications de démarrage", en: "Open Startup apps" },
+    Entry { name: "SettingsStartupOtherCopyMessage", fr: "Une autre copie de Bientôt démarre aussi avec Windows. Désactivez-la\u{a0}: elle peut s’appeler WorkTime ou Bientôt.", en: "Another copy of Bientôt also starts with Windows. Turn it off. It may be listed as WorkTime or Bientôt." },
     Entry { name: "SettingsStorage", fr: "Les paramètres de stockage sont invalides.", en: "The storage settings are invalid." },
     Entry { name: "SettingsTarget", fr: "L’objectif quotidien doit être compris entre 1 et 1440 minutes.", en: "The daily target must be between 1 and 1440 minutes." },
     Entry { name: "SettingsTargetCard.Description", fr: "Heures et minutes d’une journée standard, par exemple 7:24.", en: "Hours and minutes per standard workday, for example 7:24." },

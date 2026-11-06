@@ -56,6 +56,7 @@ pub fn capture_pages(
         SettingsState::Startup(StartupRegistrationState::RegistrationMismatch),
         SettingsState::Startup(StartupRegistrationState::Unavailable),
         SettingsState::StartupRefused,
+        SettingsState::StartupOtherCopy,
         SettingsState::Zip,
         SettingsState::ZipDetailsOpen,
         SettingsState::End,
