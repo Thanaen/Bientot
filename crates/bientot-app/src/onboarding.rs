@@ -19,8 +19,8 @@ use crate::adjust::TimeField;
 use crate::settings::data::{DataPage, ImportDialog, Row};
 use crate::settings::startup::{self, StartupPort};
 use crate::settings::{
-    Clock, Control, Details, Field, LanguageChoice, PingDetails, RowView, Setting, Switch,
-    UsagePingFacts, error_text, ping_body,
+    Clock, Control, Details, Field, LanguageChoice, PingDetails, RowView, Setting, StartupAppsView,
+    Switch, UsagePingFacts, error_text, ping_body,
 };
 use crate::strings::{Key, Language};
 
@@ -499,7 +499,13 @@ impl Onboarding {
         let (startup_on, status) = self.startup_row();
         let mut startup = Setting::Startup.row(language, switch(Switch::Startup, startup_on));
         startup.description = language.text(Key::OnboardingStartupIntroText);
-        startup.status = status.map(|key| language.text(key));
+        match status {
+            Some(Key::StartupDisabledByUser) => {
+                startup.startup_apps =
+                    Some(StartupAppsView::new(Key::StartupDisabledByUser, language));
+            }
+            status => startup.status = status.map(|key| language.text(key)),
+        }
         let updates = self.usage_ping.checks_updates().then(|| {
             let mut updates = Setting::Updates.row(
                 language,

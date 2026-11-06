@@ -21,8 +21,8 @@ use crate::settings::data::{Action, Chosen, DataPage, ImportDialog, Refusal};
 use crate::settings::startup::StartupPort;
 use crate::settings::{Clock, Control, Field, LanguageChoice, RowView, Switch, UsagePingFacts};
 use crate::settings_view::{
-    self, Startup, TimeKey, field_error, filled, outlined, ping_details, row_frame, switch_control,
-    time_field, time_key, warning,
+    self, Startup, TimeKey, field_error, filled, outlined, ping_details, row_frame,
+    startup_apps_callout, switch_control, time_field, time_key, warning,
 };
 use crate::strings::{Key, Language};
 use crate::text_input::TextInput;
@@ -739,7 +739,11 @@ impl OnboardingView {
             let details = row
                 .details
                 .clone()
-                .map(|details| ping_details(details, theme, cx, Self::toggle_details));
+                .map(|details| ping_details(details, theme, cx, Self::toggle_details))
+                .or_else(|| {
+                    row.startup_apps
+                        .map(|view| startup_apps_callout(view, theme))
+                });
             row_frame((&row).into(), control, details, index + 1 == count, theme)
         });
         settings_view::card(theme).children(rows)

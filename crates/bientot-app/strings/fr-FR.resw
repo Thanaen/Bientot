@@ -297,14 +297,14 @@
   <data name="WorkdayKnownWorkedLabel" xml:space="preserve"><value>Temps connu</value></data>
   <data name="StartupEnabled" xml:space="preserve"><value>Bientôt démarrera à la prochaine ouverture de session.</value></data>
   <data name="StartupDisabled" xml:space="preserve"><value>Bientôt ne démarrera pas à l’ouverture de session.</value></data>
-  <data name="StartupDisabledByUser" xml:space="preserve"><value>Les applications de démarrage Windows ont désactivé Bientôt. Réactivez-le dans Paramètres &gt; Applications &gt; Démarrage.</value></data>
+  <data name="StartupDisabledByUser" xml:space="preserve"><value>Bientôt est désactivé dans les applications de démarrage. Réactivez-le dans Windows.</value></data>
   <data name="StartupDisabledByPolicy" xml:space="preserve"><value>Votre organisation empêche Bientôt de démarrer à l’ouverture de session.</value></data>
   <data name="StartupEnabledByPolicy" xml:space="preserve"><value>Votre organisation impose le démarrage de Bientôt à l’ouverture de session.</value></data>
   <data name="StartupRegistrationMismatch" xml:space="preserve"><value>Une autre copie utilise l’entrée de démarrage de Bientôt. Activez ce réglage pour utiliser cette copie.</value></data>
   <data name="StartupUnavailable" xml:space="preserve"><value>Le démarrage automatique n’est pas disponible pour cette copie de Bientôt.</value></data>
   <data name="SettingsStartupChangeFailed" xml:space="preserve"><value>Windows n’a pas modifié le démarrage. Vérifiez l’état ci-dessus et réessayez.</value></data>
   <data name="SettingsStartupOtherCopyMessage" xml:space="preserve"><value>Une autre copie de Bientôt démarre aussi avec Windows. Désactivez-la : elle peut s’appeler WorkTime ou Bientôt.</value></data>
-  <data name="SettingsStartupOtherCopyAction" xml:space="preserve"><value>Applications de démarrage</value></data>
+  <data name="SettingsStartupAppsAction" xml:space="preserve"><value>Applications de démarrage</value></data>
   <data name="NotificationTitle" xml:space="preserve"><value>Bientôt</value></data>
   <data name="NotificationCompletionBody" xml:space="preserve"><value>Il reste {0} minutes avant votre objectif. Départ prévu : {1}.</value></data>
   <data name="NotificationDepartureBody" xml:space="preserve"><value>Votre heure limite de départ approche. Il reste {0} minutes. Départ prévu : {1}.</value></data>

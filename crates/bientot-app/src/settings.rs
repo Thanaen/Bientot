@@ -191,7 +191,7 @@ impl Setting {
             error: None,
             control,
             details: None,
-            other_copy: None,
+            startup_apps: None,
         }
     }
 
@@ -739,18 +739,33 @@ pub struct RowView {
     pub error: Option<&'static str>,
     pub control: Control,
     pub details: Option<Details>,
-    /// Under « Démarrage Windows » in the Store build.
-    pub other_copy: Option<OtherCopyView>,
+    /// Under « Démarrage Windows », in place of `status` when it names Startup apps.
+    pub startup_apps: Option<StartupAppsView>,
 }
 
-/// An installer or portable copy also starts at sign-in, beside the Store build's task.
+/// What only Windows Settings > Apps > Startup can change: another copy that also starts at
+/// sign-in, or this one turned off there.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct OtherCopyView {
+pub struct StartupAppsView {
     pub message: &'static str,
     /// « Applications de démarrage », which opens `url`.
     pub action: &'static str,
     pub url: &'static str,
 }
+
+impl StartupAppsView {
+    pub fn new(message: Key, language: Language) -> Self {
+        Self {
+            message: language.text(message),
+            action: language.text(Key::SettingsStartupAppsAction),
+            url: STARTUP_APPS_URL,
+        }
+    }
+}
+
+/// A read of the registration, begun while the switch was settled.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StartupRead(u64);
 
 /// Windows Settings > Apps > Startup, where the user turns the other copy off. The Store build
 /// cannot delete its `Run` value: the package's writes under `HKEY_CURRENT_USER` go to a
@@ -860,6 +875,8 @@ pub struct SettingsForm {
     startup_requested: Option<bool>,
     /// Another copy also starts at sign-in, as last read.
     other_copy: bool,
+    /// Counts the switch's changes, so that a read begun before one is not shown after it.
+    startup_changes: u64,
 }
 
 impl SettingsForm {
@@ -876,6 +893,7 @@ impl SettingsForm {
             startup: None,
             startup_requested: None,
             other_copy: false,
+            startup_changes: 0,
         }
     }
 
@@ -894,10 +912,45 @@ impl SettingsForm {
         self.other_copy = starts;
     }
 
+    /// What a read of the registration begun now is checked against when it ends, or `None`
+    /// while the switch waits for Windows.
+    pub fn startup_read(&self) -> Option<StartupRead> {
+        self.startup_requested
+            .is_none()
+            .then_some(StartupRead(self.startup_changes))
+    }
+
+    /// The registration as read again, as when the window comes back from Windows Settings.
+    /// Dropped when the switch changed since the read began.
+    pub fn refresh_startup(
+        &mut self,
+        read: StartupRead,
+        state: StartupRegistrationState,
+        other_copy: bool,
+    ) {
+        if self.startup_read() == Some(read) {
+            self.show_startup(state);
+            self.show_other_copy(other_copy);
+        }
+    }
+
     /// Only while this copy starts at sign-in too: once the switch is turned off, nothing
     /// starts twice.
     fn shows_other_copy(&self) -> bool {
         self.other_copy && self.is_on(Switch::Startup)
+    }
+
+    /// What sends the user to Startup apps: this copy turned off there, or another copy that
+    /// starts beside this one.
+    fn startup_apps(&self) -> Option<Key> {
+        if self.startup_requested.is_none()
+            && self.startup == Some(StartupRegistrationState::DisabledByUser)
+        {
+            Some(Key::StartupDisabledByUser)
+        } else {
+            self.shows_other_copy()
+                .then_some(Key::SettingsStartupOtherCopyMessage)
+        }
     }
 
     /// Shows what Windows settled on for `pending`, then saves it if Windows took the change.
@@ -1036,6 +1089,7 @@ impl SettingsForm {
         let on = match switch {
             Switch::Startup => {
                 self.startup_requested = Some(!self.is_on(switch));
+                self.startup_changes += 1;
                 return self.commit(switch.group());
             }
             Switch::Credit => &mut self.drafts.credit,
@@ -1423,17 +1477,17 @@ impl SettingsForm {
             },
             status: self
                 .startup
-                .filter(|_| setting == Setting::Startup)
+                .filter(|_| {
+                    setting == Setting::Startup
+                        && self.startup_apps() != Some(Key::StartupDisabledByUser)
+                })
                 .map(|state| language.text(startup::status(state))),
             error: error.map(|error| error_text(error, language)),
             details: (setting == Setting::UsagePing).then(|| self.details()),
-            other_copy: (setting == Setting::Startup && self.shows_other_copy()).then(|| {
-                OtherCopyView {
-                    message: language.text(Key::SettingsStartupOtherCopyMessage),
-                    action: language.text(Key::SettingsStartupOtherCopyAction),
-                    url: STARTUP_APPS_URL,
-                }
-            }),
+            startup_apps: self
+                .startup_apps()
+                .filter(|_| setting == Setting::Startup)
+                .map(|message| StartupAppsView::new(message, language)),
             ..setting.row(language, control)
         };
         if setting == Setting::Updates && !self.usage_ping.checks_updates() {

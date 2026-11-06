@@ -80,8 +80,8 @@ fn each_state_shows_the_switch_and_the_dotnet_status() {
             (
                 false,
                 false,
-                "Les applications de démarrage Windows ont désactivé Bientôt. Réactivez-le dans \
-                 Paramètres > Applications > Démarrage."
+                "Bientôt est désactivé dans les applications de démarrage. \
+                 Réactivez-le\u{a0}dans\u{a0}Windows."
             ),
             (
                 false,
@@ -111,7 +111,7 @@ fn each_state_shows_the_switch_and_the_dotnet_status() {
         [
             "Bientôt will start the next time you sign in.",
             "Bientôt will not start when you sign in.",
-            "Windows Startup Apps has disabled Bientôt. Re-enable it in Settings > Apps > Startup.",
+            "Bientôt is turned off in Startup apps. Turn it back on in Windows.",
             "Your organization prevents Bientôt from starting when you sign in.",
             "Your organization starts Bientôt when you sign in.",
             "Another copy uses the Bientôt startup entry. Turn this setting on to use this copy.",

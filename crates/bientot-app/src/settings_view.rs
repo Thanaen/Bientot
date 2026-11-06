@@ -33,8 +33,8 @@ use crate::host::{self, Today};
 use crate::settings::data::DataPage;
 use crate::settings::startup::{self, StartupPort};
 use crate::settings::{
-    CalloutView, Clock, Control, Details, Field, LanguageChoice, Leaving, Link, OtherCopyView,
-    Page, PingDetails, RowTone, RowView, SectionView, SettingsForm, SourceCallout, Switch, Tone,
+    CalloutView, Clock, Control, Details, Field, LanguageChoice, Leaving, Link, Page, PingDetails,
+    RowTone, RowView, SectionView, SettingsForm, SourceCallout, StartupAppsView, Switch, Tone,
     UsagePingFacts,
 };
 use crate::shell;
@@ -345,23 +345,8 @@ impl SettingsView {
         cx: &mut Context<Self>,
     ) -> Self {
         let startup = cx.try_global::<Startup>().map(|startup| startup.0.clone());
-        match startup.clone() {
-            Some(port) => {
-                cx.spawn(async move |view, cx| {
-                    let (state, other_copy) = cx
-                        .background_executor()
-                        .spawn(async move { (port.state(), port.other_copy_starts()) })
-                        .await;
-                    view.update(cx, |view, cx| {
-                        view.form.show_startup(state);
-                        view.form.show_other_copy(other_copy);
-                        cx.notify();
-                    })
-                    .ok();
-                })
-                .detach();
-            }
-            None => form.show_startup(StartupRegistrationState::Unavailable),
+        if startup.is_none() {
+            form.show_startup(StartupRegistrationState::Unavailable);
         }
         let language = cx.try_global::<Language>().copied().unwrap_or_default();
         let focus_handle = cx.focus_handle();
@@ -380,6 +365,11 @@ impl SettingsView {
             })
             .collect();
         let mut subscriptions = Vec::new();
+        subscriptions.push(cx.observe_window_activation(window, |view, window, cx| {
+            if window.is_window_active() {
+                view.read_startup(cx);
+            }
+        }));
         for (field, input) in Field::ALL.into_iter().zip(&inputs) {
             let handle = input.focus_handle(cx);
             subscriptions.push(cx.on_blur(&handle, window, move |view, window, cx| {
@@ -408,7 +398,7 @@ impl SettingsView {
             view.update(cx, |view, cx| view.should_close(window, cx))
                 .unwrap_or(true)
         });
-        Self {
+        let mut view = Self {
             form,
             language,
             focus_handle,
@@ -443,7 +433,29 @@ impl SettingsView {
             content_scroll: ScrollHandle::new(),
             startup,
             _subscriptions: subscriptions,
-        }
+        };
+        view.read_startup(cx);
+        view
+    }
+
+    /// Reads the registration off the window's thread: on opening, and whenever the window
+    /// comes back, as from Startup apps.
+    fn read_startup(&mut self, cx: &mut Context<Self>) {
+        let (Some(port), Some(read)) = (self.startup.clone(), self.form.startup_read()) else {
+            return;
+        };
+        cx.spawn(async move |view, cx| {
+            let (state, other_copy) = cx
+                .background_executor()
+                .spawn(async move { (port.state(), port.other_copy_starts()) })
+                .await;
+            view.update(cx, |view, cx| {
+                view.form.refresh_startup(read, state, other_copy);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
     }
 
     /// Shows the end of the page, for the screenshots.
@@ -967,36 +979,31 @@ impl SettingsView {
             })
         });
         let details = details.or_else(|| {
-            row.other_copy
-                .map(|other_copy| other_copy_callout(other_copy, theme))
+            row.startup_apps
+                .map(|view| startup_apps_callout(view, theme))
         });
         row_frame((&row).into(), control, details, last, theme)
     }
 }
 
-/// Another copy also starts at sign-in, and the button that opens Startup apps.
-fn other_copy_callout(other_copy: OtherCopyView, theme: &Theme) -> gpui::Div {
-    let url = other_copy.url;
+/// What only Startup apps can change, and the button that opens it.
+pub(crate) fn startup_apps_callout(view: StartupAppsView, theme: &Theme) -> gpui::Div {
+    let url = view.url;
     div().pt(BASE_08).child(
         widgets::inline_callout_box(Hue::Info, theme)
-            .id("other-copy")
+            .id("startup-apps-callout")
             .role(Role::Status)
-            .aria_label(other_copy.message)
+            .aria_label(view.message)
             .child(
                 div()
                     .flex_1()
                     .min_w_0()
                     .type_style(text::LABEL_SM)
-                    .child(other_copy.message),
+                    .child(view.message),
             )
             .child(
-                outlined_on_tint(
-                    "startup-apps",
-                    other_copy.action,
-                    token::BUTTON_MEDIUM,
-                    theme,
-                )
-                .on_click(move |_, _, cx| cx.open_url(url)),
+                outlined_on_tint("startup-apps", view.action, token::BUTTON_MEDIUM, theme)
+                    .on_click(move |_, _, cx| cx.open_url(url)),
             ),
     )
 }

@@ -53,7 +53,9 @@ opens the window once and updates the owned command for the next sign-in.
 The MSIX declares `WorkTimeStartupTask` with `Enabled="false"`. Explicit enable
 uses the Windows `StartupTask` API. Settings distinguish user disablement,
 policy disablement, and policy enablement. Bientôt does not override those
-states. At launch, Bientôt hides the initial window only when Windows reports
+states. When you turned Bientôt off in Startup apps, **Windows startup** says so
+and offers an **Open Startup apps** button, since only that page can turn
+it back on. At launch, Bientôt hides the initial window only when Windows reports
 the exact `WorkTimeStartupTask` activation.
 
 Demo mode disables startup registration so an isolated demo cannot register
@@ -72,8 +74,8 @@ When the Store build's startup task is on (enabled, or enabled by policy), a
 that another copy of Bientôt also starts with Windows. Its **Open Startup
 apps** button opens Windows Settings > Apps > Startup
 (`ms-settings:startupapps`), where you turn the other copy off. The line is read
-when the settings window opens and after the toggle changes, so it goes away
-the next time you open the settings.
+when the settings window opens, after the toggle changes and whenever the window
+becomes active again, so it goes away once you come back from Startup apps.
 
 The Store build cannot remove that Run value itself. Windows keeps the
 packaged app's writes under `HKEY_CURRENT_USER` in a private per-app copy, and

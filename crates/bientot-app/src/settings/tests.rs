@@ -327,15 +327,15 @@ fn the_startup_switch_waits_for_the_registration() {
     assert_eq!(form.toggle(Switch::Startup), None);
 
     form.show_startup(StartupRegistrationState::DisabledByUser);
+    assert_eq!(startup_switch(&form), (startup_control(false, false), None));
     assert_eq!(
-        startup_switch(&form),
-        (
-            startup_control(false, false),
-            Some(
-                "Les applications de démarrage Windows ont désactivé Bientôt. Réactivez-le \
-                 dans Paramètres > Applications > Démarrage."
-            )
-        )
+        startup_apps(&form),
+        Some(StartupAppsView {
+            message: "Bientôt est désactivé dans les applications de démarrage. \
+                      Réactivez-le\u{a0}dans\u{a0}Windows.",
+            action: "Applications de démarrage",
+            url: "ms-settings:startupapps",
+        })
     );
     assert_eq!(form.toggle(Switch::Startup), None);
 }
@@ -433,8 +433,8 @@ fn a_startup_change_windows_refused_shows_a_callout_and_retries() {
     }
 }
 
-fn other_copy(form: &SettingsForm) -> Option<OtherCopyView> {
-    row(&form.view(), Setting::Startup).other_copy
+fn startup_apps(form: &SettingsForm) -> Option<StartupAppsView> {
+    row(&form.view(), Setting::Startup).startup_apps
 }
 
 #[test]
@@ -454,7 +454,7 @@ fn another_copy_that_also_starts_shows_under_the_startup_switch() {
         ),
     ] {
         let mut form = form(language);
-        assert_eq!(other_copy(&form), None);
+        assert_eq!(startup_apps(&form), None);
 
         for state in [
             StartupRegistrationState::Enabled,
@@ -463,8 +463,8 @@ fn another_copy_that_also_starts_shows_under_the_startup_switch() {
             form.show_startup(state);
             form.show_other_copy(true);
             assert_eq!(
-                other_copy(&form),
-                Some(OtherCopyView {
+                startup_apps(&form),
+                Some(StartupAppsView {
                     message,
                     action,
                     url: "ms-settings:startupapps",
@@ -473,8 +473,45 @@ fn another_copy_that_also_starts_shows_under_the_startup_switch() {
         }
 
         form.show_other_copy(false);
-        assert_eq!(other_copy(&form), None);
+        assert_eq!(startup_apps(&form), None);
     }
+}
+
+#[test]
+fn reading_the_registration_again_shows_what_windows_now_does() {
+    let mut form = form(Language::French);
+    form.show_startup(StartupRegistrationState::DisabledByUser);
+
+    let read = form.startup_read().expect("the switch is settled");
+    form.refresh_startup(read, StartupRegistrationState::Enabled, true);
+    assert_eq!(
+        startup_switch(&form),
+        (
+            startup_control(true, true),
+            Some("Bientôt démarrera à la prochaine ouverture de session.")
+        )
+    );
+    assert_eq!(
+        startup_apps(&form).map(|view| view.action),
+        Some("Applications de démarrage")
+    );
+}
+
+#[test]
+fn a_read_begun_before_the_switch_changed_is_dropped() {
+    let mut form = form(Language::English);
+    let mut port = Port::default();
+    form.show_startup(StartupRegistrationState::Enabled);
+    let stale = form.startup_read().expect("the switch is settled");
+
+    let pending = form.toggle(Switch::Startup).expect("the switch can change");
+    assert_eq!(form.startup_read(), None, "the switch waits for Windows");
+    form.refresh_startup(stale, StartupRegistrationState::Enabled, true);
+    form.finish_startup(pending, StartupRegistrationState::Disabled, &mut port);
+
+    form.refresh_startup(stale, StartupRegistrationState::Enabled, true);
+    assert_eq!(form.startup(), Some(StartupRegistrationState::Disabled));
+    assert_eq!(startup_apps(&form), None);
 }
 
 #[test]
@@ -485,11 +522,11 @@ fn turning_startup_off_hides_the_other_copy() {
     form.show_other_copy(true);
 
     let pending = form.toggle(Switch::Startup).expect("the switch can change");
-    assert_eq!(other_copy(&form), None);
+    assert_eq!(startup_apps(&form), None);
 
     form.show_other_copy(false);
     form.finish_startup(pending, StartupRegistrationState::Disabled, &mut port);
-    assert_eq!(other_copy(&form), None);
+    assert_eq!(startup_apps(&form), None);
 }
 
 #[test]
@@ -572,7 +609,7 @@ fn the_zip_build_greys_the_updates_and_links_to_github() {
                 enabled: false,
             },
             details: None,
-            other_copy: None,
+            startup_apps: None,
         }
     );
     assert!(form.current().updates.check_for_updates);
