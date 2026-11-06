@@ -382,7 +382,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                         enabled: true,
                     },
                     details: None,
-                    other_copy: None,
+                    startup_apps: None,
                 },
                 RowView {
                     setting: Setting::Updates,
@@ -399,7 +399,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                         enabled: true,
                     },
                     details: None,
-                    other_copy: None,
+                    startup_apps: None,
                 },
                 RowView {
                     setting: Setting::UsagePing,
@@ -421,7 +421,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                         label: "Voir ce qui est envoyé",
                         shown: None,
                     }),
-                    other_copy: None,
+                    startup_apps: None,
                 },
             ],
             footnote: Some("Vos heures et votre activité restent sur ce PC."),
@@ -879,5 +879,23 @@ fn complete_reports_a_failed_save() {
     assert!(
         matches!(&result, Err(SaveSettingsError::Io(error)) if error.to_string() == "disk unavailable"),
         "{result:?}"
+    );
+}
+
+#[test]
+fn startup_turned_off_in_windows_offers_startup_apps() {
+    let startup = row(
+        &on_connections(Some(StartupRegistrationState::DisabledByUser)),
+        Setting::Startup,
+    );
+    assert_eq!(startup.status, None);
+    assert_eq!(
+        startup.startup_apps,
+        Some(StartupAppsView {
+            message: "Bientôt est désactivé dans les applications de démarrage. \
+                      Réactivez-le\u{a0}dans\u{a0}Windows.",
+            action: "Applications de démarrage",
+            url: "ms-settings:startupapps",
+        })
     );
 }

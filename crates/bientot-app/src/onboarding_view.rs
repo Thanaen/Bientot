@@ -21,8 +21,8 @@ use crate::settings::data::{Action, Chosen, DataPage, ImportDialog, Refusal};
 use crate::settings::startup::StartupPort;
 use crate::settings::{Clock, Control, Field, LanguageChoice, RowView, Switch, UsagePingFacts};
 use crate::settings_view::{
-    self, Startup, TimeKey, field_error, filled, outlined, ping_details, row_frame, switch_control,
-    time_field, time_key, warning,
+    self, Startup, TimeKey, field_error, filled, outlined, ping_details, row_frame,
+    startup_apps_callout, switch_control, time_field, time_key, warning,
 };
 use crate::strings::{Key, Language};
 use crate::text_input::TextInput;
@@ -165,22 +165,8 @@ impl OnboardingView {
         cx: &mut Context<Self>,
     ) -> Self {
         let startup = cx.try_global::<Startup>().map(|startup| startup.0.clone());
-        match startup.clone() {
-            Some(port) => {
-                cx.spawn(async move |view, cx| {
-                    let state = cx
-                        .background_executor()
-                        .spawn(async move { port.state() })
-                        .await;
-                    view.update(cx, |view, cx| {
-                        view.onboarding.show_startup(state);
-                        cx.notify();
-                    })
-                    .ok();
-                })
-                .detach();
-            }
-            None => onboarding.show_startup(StartupRegistrationState::Unavailable),
+        if startup.is_none() {
+            onboarding.show_startup(StartupRegistrationState::Unavailable);
         }
         let language = onboarding.language();
         let focus_handle = cx.focus_handle();
@@ -190,10 +176,16 @@ impl OnboardingView {
             input.set_text(onboarding.target(), cx);
             input
         });
-        let mut subscriptions =
-            vec![cx.on_blur(&target.focus_handle(cx), window, |view, _, cx| {
+        let mut subscriptions = vec![
+            cx.on_blur(&target.focus_handle(cx), window, |view, _, cx| {
                 view.commit_target(cx)
-            })];
+            }),
+            cx.observe_window_activation(window, |view, window, cx| {
+                if window.is_window_active() {
+                    view.read_startup(cx);
+                }
+            }),
+        ];
         let clocks = [
             ClockFocus::new(cx),
             ClockFocus::new(cx),
@@ -221,7 +213,7 @@ impl OnboardingView {
             view.update(cx, |view, cx| view.should_close(cx))
                 .unwrap_or(true)
         });
-        Self {
+        let mut view = Self {
             onboarding,
             language,
             focus_handle,
@@ -238,7 +230,29 @@ impl OnboardingView {
             save,
             on_complete: Some(on_complete),
             _subscriptions: subscriptions,
-        }
+        };
+        view.read_startup(cx);
+        view
+    }
+
+    /// Reads the registration off the window's thread: on opening, and whenever the window
+    /// comes back, as from Startup apps.
+    fn read_startup(&mut self, cx: &mut Context<Self>) {
+        let Some(port) = self.startup.clone() else {
+            return;
+        };
+        cx.spawn(async move |view, cx| {
+            let state = cx
+                .background_executor()
+                .spawn(async move { port.state() })
+                .await;
+            view.update(cx, |view, cx| {
+                view.onboarding.show_startup(state);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
     }
 
     /// The model, for the screenshots.
@@ -739,7 +753,11 @@ impl OnboardingView {
             let details = row
                 .details
                 .clone()
-                .map(|details| ping_details(details, theme, cx, Self::toggle_details));
+                .map(|details| ping_details(details, theme, cx, Self::toggle_details))
+                .or_else(|| {
+                    row.startup_apps
+                        .map(|view| startup_apps_callout(view, theme))
+                });
             row_frame((&row).into(), control, details, index + 1 == count, theme)
         });
         settings_view::card(theme).children(rows)
