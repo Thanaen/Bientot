@@ -246,7 +246,7 @@
   <data name="DemoCredit" xml:space="preserve"><value>Credit applied · Tuesday 16:00</value></data>
   <data name="DemoHistoryWeek" xml:space="preserve"><value>Stored current week · Friday 18:00</value></data>
   <data name="SourceTitle" xml:space="preserve"><value>Activity</value></data>
-  <data name="SourceUnavailable" xml:space="preserve"><value>ActivityWatch is not responding, and Bientôt no longer supports it. Switch to built-in detection so your time keeps being counted.</value></data>
+  <data name="SourceUnavailable" xml:space="preserve"><value>ActivityWatch is not responding, and Bientôt no longer supports it. Switch to built-in detection so your time keeps being counted.</value></data>
   <data name="SourceUnauthorized" xml:space="preserve"><value>ActivityWatch refused the connection. Bientôt no longer supports ActivityWatch: switch to built-in detection.</value></data>
   <data name="SourceAmbiguous" xml:space="preserve"><value>ActivityWatch has several activity histories. Bientôt no longer supports ActivityWatch: switch to built-in detection.</value></data>
   <data name="SourceMalformed" xml:space="preserve"><value>Bientôt cannot read the ActivityWatch data. Bientôt no longer supports ActivityWatch: switch to built-in detection.</value></data>
@@ -367,7 +367,7 @@
   <data name="SettingsUsagePingLastSentDateFormat" xml:space="preserve"><value>{0:MMMM d}</value></data>
   <data name="SettingsUsagePingOffText" xml:space="preserve"><value>Off: Bientôt sends no signal.</value></data>
   <data name="SettingsActivityWatchCalloutTitle" xml:space="preserve"><value>ActivityWatch is no longer supported</value></data>
-  <data name="SettingsActivityWatchCalloutMessage" xml:space="preserve"><value>Bientôt now detects activity itself. Switch to built-in detection so your time keeps being counted.</value></data>
+  <data name="SettingsActivityWatchCalloutMessage" xml:space="preserve"><value>Bientôt now detects activity itself. Switch to built-in detection so your time keeps being counted.</value></data>
   <data name="SettingsActivityWatchCalloutAction" xml:space="preserve"><value>Use built-in detection</value></data>
   <data name="SettingsJsonNav.Content" xml:space="preserve"><value>settings.json</value></data>
   <data name="SettingsDataNav.Content" xml:space="preserve"><value>Data</value></data>
@@ -782,7 +782,7 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="SettingsSourceConnectedTitle" xml:space="preserve"><value>Connected</value></data>
   <data name="SettingsSourceConnectedMessage" xml:space="preserve"><value>Bientôt is reading your activity from ActivityWatch.</value></data>
   <data name="SettingsSourceUnavailableTitle" xml:space="preserve"><value>ActivityWatch is not reachable</value></data>
-  <data name="SettingsSourceUnavailableMessage" xml:space="preserve"><value>ActivityWatch is not responding, and Bientôt no longer supports it. Switch to built-in detection so your time keeps being counted.</value></data>
+  <data name="SettingsSourceUnavailableMessage" xml:space="preserve"><value>ActivityWatch is not responding, and Bientôt no longer supports it. Switch to built-in detection so your time keeps being counted.</value></data>
   <data name="SettingsSourceKeyRefusedTitle" xml:space="preserve"><value>API key refused</value></data>
   <data name="SettingsSourceKeyRefusedMessage" xml:space="preserve"><value>ActivityWatch refused the connection. Enter its API key in Connection settings.</value></data>
   <data name="SettingsSourceHistoryToChooseTitle" xml:space="preserve"><value>Activity history to choose</value></data>

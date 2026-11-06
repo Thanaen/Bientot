@@ -103,7 +103,7 @@ fn counting_the_unrecorded_time_from_the_keyboard_then_undoing_it() {
         shown(&mut cx, window),
         (
             Some((
-                nb("Compté comme travail~:~26~min."),
+                nb("Compté comme travail~: 26~min."),
                 NoticeKind::Success,
                 true
             )),

@@ -1089,7 +1089,7 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
     <value>Voir sur la frise</value>
   </data>
   <data name="FlyoutUnrecordedCountedFormat" xml:space="preserve">
-    <value>Compté comme travail : {0}.</value>
+    <value>Compté comme travail : {0}.</value>
   </data>
   <data name="RebuiltReviewName" xml:space="preserve">
     <value>Avant Bientôt</value>
