@@ -91,8 +91,19 @@ pub fn apply(port: &dyn StartupPort, requested: bool) -> StartupRegistrationStat
 }
 
 /// Windows took the change: the settings may record it.
-pub fn applied(settled: StartupRegistrationState, requested: bool) -> bool {
+fn applied(settled: StartupRegistrationState, requested: bool) -> bool {
     enabled(settled) == Some(requested)
+}
+
+/// What Windows does with start with Windows once it `settled` on a state for `requested`, or
+/// `None` when it refused a change it may still take on a retry. Startup apps and policies
+/// leave nothing to retry.
+pub fn settled(settled: StartupRegistrationState, requested: bool) -> Option<bool> {
+    if can_change(settled) && !applied(settled, requested) {
+        None
+    } else {
+        enabled(settled)
+    }
 }
 
 /// What the settings record once Windows `settled` on a state for `requested`: what Windows

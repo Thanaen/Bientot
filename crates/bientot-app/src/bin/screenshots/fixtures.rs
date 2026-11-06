@@ -131,7 +131,7 @@ pub(super) enum SettingsState {
     NeverSent,
     /// Start with Windows in this state; every other state shows it enabled.
     Startup(StartupRegistrationState),
-    /// Windows left start with Windows disabled by the user when asked to enable it.
+    /// Windows left start with Windows off when asked to turn it on, a change a retry may get.
     StartupRefused,
     /// The Store build's task is on and an installer or portable copy also starts at sign-in.
     StartupOtherCopy,
@@ -356,7 +356,7 @@ impl SettingsState {
                 let pending = pending.expect("a disabled registration can change");
                 form.finish_startup(
                     pending,
-                    StartupRegistrationState::DisabledByUser,
+                    StartupRegistrationState::Disabled,
                     &mut FailingDisk,
                 );
             }

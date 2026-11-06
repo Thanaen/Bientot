@@ -964,7 +964,7 @@ impl SettingsForm {
         self.startup = Some(settled);
         self.startup_requested = None;
         self.workspace
-            .finish_startup(pending, startup::applied(settled, requested), port);
+            .finish_startup(pending, startup::settled(settled, requested), port);
     }
 
     /// The saved settings name ActivityWatch, which v1 no longer reads.

@@ -382,18 +382,24 @@ impl SettingsWorkspace {
         }
     }
 
-    /// Saves a start-with-Windows change once Windows has `applied` it, as .NET's
-    /// `SettingsWindow.OnStartupChanged` does; else fails it, to retry.
+    /// Saves what Windows now does with start with Windows once it answered a change, as .NET's
+    /// `SettingsWindow.OnStartupChanged` does; `None` when it refused one it may still take,
+    /// which fails the change, to retry.
     pub fn finish_startup(
         &mut self,
         pending: Pending,
-        applied: bool,
+        settled: Option<bool>,
         port: &mut impl SettingsPort,
     ) {
-        if applied {
-            self.run(pending, port);
-        } else {
-            self.fail(pending, EditError::StartupChangeFailed);
+        match settled {
+            Some(enabled) => self.run(
+                Pending {
+                    operation: Operation::Save(SettingsEdit::StartWithWindows(enabled)),
+                    ..pending
+                },
+                port,
+            ),
+            None => self.fail(pending, EditError::StartupChangeFailed),
         }
     }
 
