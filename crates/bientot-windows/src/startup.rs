@@ -342,13 +342,18 @@ pub trait PackagedStartupTask {
 
 /// The startup task of the MSIX build. Every failure to reach it reads as
 /// [`StartupRegistrationState::Unavailable`], as in the .NET `WindowsStartupService`.
-pub struct PackagedStartupRegistration<T> {
+///
+/// It also reads the [`REGISTRATION_NAME`] value of the `Run` key, which only an installer or
+/// portable copy writes. It never writes it: the package's writes under `HKEY_CURRENT_USER` go
+/// to a private copy, so a delete would only hide the value from this build.
+pub struct PackagedStartupRegistration<T, K> {
     task: T,
+    run_key: K,
 }
 
-impl<T: PackagedStartupTask> PackagedStartupRegistration<T> {
-    pub fn new(task: T) -> Self {
-        Self { task }
+impl<T: PackagedStartupTask, K: RunKey> PackagedStartupRegistration<T, K> {
+    pub fn new(task: T, run_key: K) -> Self {
+        Self { task, run_key }
     }
 
     pub fn state(&self) -> StartupRegistrationState {
@@ -372,13 +377,30 @@ impl<T: PackagedStartupTask> PackagedStartupRegistration<T> {
             (_, state) => Ok(state),
         }
     }
+
+    /// The task is on and another copy's `Run` value starts it at sign-in too, unless the user
+    /// disabled that value in Windows. A failure to read either reads as `false`.
+    pub fn other_copy_starts(&self) -> bool {
+        self.try_other_copy_starts().unwrap_or(false)
+    }
+
+    fn try_other_copy_starts(&self) -> io::Result<bool> {
+        if !matches!(
+            self.task.state()?,
+            StartupTaskState::Enabled | StartupTaskState::EnabledByPolicy
+        ) || self.run_key.read_run_value(REGISTRATION_NAME)?.is_none()
+        {
+            return Ok(false);
+        }
+        Ok(self.run_key.read_approval(REGISTRATION_NAME)? != StartupApproval::DisabledByUser)
+    }
 }
 
 /// Start with Windows for whichever build is running: the startup task with package identity,
 /// the `Run` key without.
 pub enum StartupRegistration<K, T> {
     Portable(PortableStartupRegistration<K>),
-    Packaged(PackagedStartupRegistration<T>),
+    Packaged(PackagedStartupRegistration<T, K>),
 }
 
 impl<K: RunKey, T: PackagedStartupTask> StartupRegistration<K, T> {
@@ -396,6 +418,15 @@ impl<K: RunKey, T: PackagedStartupTask> StartupRegistration<K, T> {
         }
     }
 
+    /// Only the packaged build looks for another copy: the portable build's own `Run` value is
+    /// the one it would find.
+    pub fn other_copy_starts(&self) -> bool {
+        match self {
+            Self::Portable(_) => false,
+            Self::Packaged(registration) => registration.other_copy_starts(),
+        }
+    }
+
     /// Only the portable build ever registered a legacy command.
     pub fn migrate_owned_legacy_registration(&self) {
         if let Self::Portable(registration) = self {
@@ -407,12 +438,13 @@ impl<K: RunKey, T: PackagedStartupTask> StartupRegistration<K, T> {
 #[cfg(windows)]
 impl StartupRegistration<RegistryRunKey, WindowsStartupTask> {
     /// The registration of the running executable. With package identity, reading and changing
-    /// the state wait for WinRT, so call them off the UI thread.
+    /// the state, and looking for another copy, wait for WinRT, so call them off the UI thread.
     pub fn for_current_process() -> Self {
         if crate::has_package_identity() {
-            Self::Packaged(PackagedStartupRegistration::new(WindowsStartupTask::new(
-                PACKAGED_TASK_ID,
-            )))
+            Self::Packaged(PackagedStartupRegistration::new(
+                WindowsStartupTask::new(PACKAGED_TASK_ID),
+                RegistryRunKey,
+            ))
         } else {
             Self::Portable(PortableStartupRegistration::for_current_process())
         }

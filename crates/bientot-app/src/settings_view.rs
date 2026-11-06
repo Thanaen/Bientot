@@ -33,8 +33,9 @@ use crate::host::{self, Today};
 use crate::settings::data::DataPage;
 use crate::settings::startup::{self, StartupPort};
 use crate::settings::{
-    CalloutView, Clock, Control, Details, Field, LanguageChoice, Leaving, Link, Page, PingDetails,
-    RowTone, RowView, SectionView, SettingsForm, SourceCallout, Switch, Tone, UsagePingFacts,
+    CalloutView, Clock, Control, Details, Field, LanguageChoice, Leaving, Link, OtherCopyView,
+    Page, PingDetails, RowTone, RowView, SectionView, SettingsForm, SourceCallout, Switch, Tone,
+    UsagePingFacts,
 };
 use crate::shell;
 use crate::strings::{Key, Language};
@@ -347,12 +348,13 @@ impl SettingsView {
         match startup.clone() {
             Some(port) => {
                 cx.spawn(async move |view, cx| {
-                    let state = cx
+                    let (state, other_copy) = cx
                         .background_executor()
-                        .spawn(async move { port.state() })
+                        .spawn(async move { (port.state(), port.other_copy_starts()) })
                         .await;
                     view.update(cx, |view, cx| {
                         view.form.show_startup(state);
+                        view.form.show_other_copy(other_copy);
                         cx.notify();
                     })
                     .ok();
@@ -530,15 +532,18 @@ impl SettingsView {
     ) {
         let port = self.startup.clone();
         cx.spawn_in(window, async move |view, cx| {
-            let settled = match port {
+            let (settled, other_copy) = match port {
                 Some(port) => {
                     cx.background_executor()
-                        .spawn(async move { startup::apply(&*port, requested) })
+                        .spawn(async move {
+                            (startup::apply(&*port, requested), port.other_copy_starts())
+                        })
                         .await
                 }
-                None => StartupRegistrationState::Unavailable,
+                None => (StartupRegistrationState::Unavailable, false),
             };
             view.update_in(cx, |view, window, cx| {
+                view.form.show_other_copy(other_copy);
                 view.form
                     .finish_startup(pending, settled, &mut HostPort(cx));
                 view.saved(window, cx);
@@ -961,8 +966,39 @@ impl SettingsView {
                 view.form.toggle_details()
             })
         });
+        let details = details.or_else(|| {
+            row.other_copy
+                .map(|other_copy| other_copy_callout(other_copy, theme))
+        });
         row_frame((&row).into(), control, details, last, theme)
     }
+}
+
+/// Another copy also starts at sign-in, and the button that opens Startup apps.
+fn other_copy_callout(other_copy: OtherCopyView, theme: &Theme) -> gpui::Div {
+    let url = other_copy.url;
+    div().pt(BASE_08).child(
+        widgets::inline_callout_box(Hue::Info, theme)
+            .id("other-copy")
+            .role(Role::Status)
+            .aria_label(other_copy.message)
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .type_style(text::LABEL_SM)
+                    .child(other_copy.message),
+            )
+            .child(
+                outlined_on_tint(
+                    "startup-apps",
+                    other_copy.action,
+                    token::BUTTON_MEDIUM,
+                    theme,
+                )
+                .on_click(move |_, _, cx| cx.open_url(url)),
+            ),
+    )
 }
 
 /// What a row of a settings group says beside its control.

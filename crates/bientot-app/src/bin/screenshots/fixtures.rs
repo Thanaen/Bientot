@@ -133,6 +133,8 @@ pub(super) enum SettingsState {
     Startup(StartupRegistrationState),
     /// Windows left start with Windows disabled by the user when asked to enable it.
     StartupRefused,
+    /// The Store build's task is on and an installer or portable copy also starts at sign-in.
+    StartupOtherCopy,
     /// The ZIP build, which has no updates to ask for, scrolled to the end.
     Zip,
     /// `DetailsOpen` on the ZIP build.
@@ -182,6 +184,7 @@ impl SettingsState {
                 StartupRegistrationState::Enabled => "startup-enabled",
             }),
             Self::StartupRefused => Some("startup-change-failed"),
+            Self::StartupOtherCopy => Some("startup-other-copy"),
             Self::Zip => Some("zip"),
             Self::ZipDetailsOpen => Some("zip-details-open"),
             Self::DirectDetailsOpen => Some("direct-details-open"),
@@ -347,6 +350,7 @@ impl SettingsState {
             Self::AppointmentDeleteConfirm => {
                 form.delete_appointment();
             }
+            Self::StartupOtherCopy => form.show_other_copy(true),
             Self::StartupRefused => {
                 let pending = form.toggle(Switch::Startup);
                 let pending = pending.expect("a disabled registration can change");

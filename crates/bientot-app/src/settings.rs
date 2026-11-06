@@ -191,6 +191,7 @@ impl Setting {
             error: None,
             control,
             details: None,
+            other_copy: None,
         }
     }
 
@@ -738,7 +739,23 @@ pub struct RowView {
     pub error: Option<&'static str>,
     pub control: Control,
     pub details: Option<Details>,
+    /// Under « Démarrage Windows » in the Store build.
+    pub other_copy: Option<OtherCopyView>,
 }
+
+/// An installer or portable copy also starts at sign-in, beside the Store build's task.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OtherCopyView {
+    pub message: &'static str,
+    /// « Applications de démarrage », which opens `url`.
+    pub action: &'static str,
+    pub url: &'static str,
+}
+
+/// Windows Settings > Apps > Startup, where the user turns the other copy off. The Store build
+/// cannot delete its `Run` value: the package's writes under `HKEY_CURRENT_USER` go to a
+/// private copy.
+pub const STARTUP_APPS_URL: &str = "ms-settings:startupapps";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RowTone {
@@ -841,6 +858,8 @@ pub struct SettingsForm {
     startup: Option<StartupRegistrationState>,
     /// What the switch was turned to, until Windows answers.
     startup_requested: Option<bool>,
+    /// Another copy also starts at sign-in, as last read.
+    other_copy: bool,
 }
 
 impl SettingsForm {
@@ -856,6 +875,7 @@ impl SettingsForm {
             details_open: false,
             startup: None,
             startup_requested: None,
+            other_copy: false,
         }
     }
 
@@ -867,6 +887,17 @@ impl SettingsForm {
     /// The registration, once read.
     pub fn startup(&self) -> Option<StartupRegistrationState> {
         self.startup
+    }
+
+    /// Whether another copy also starts at sign-in, as read with the registration.
+    pub fn show_other_copy(&mut self, starts: bool) {
+        self.other_copy = starts;
+    }
+
+    /// Only while this copy starts at sign-in too: once the switch is turned off, nothing
+    /// starts twice.
+    fn shows_other_copy(&self) -> bool {
+        self.other_copy && self.is_on(Switch::Startup)
     }
 
     /// Shows what Windows settled on for `pending`, then saves it if Windows took the change.
@@ -1396,6 +1427,13 @@ impl SettingsForm {
                 .map(|state| language.text(startup::status(state))),
             error: error.map(|error| error_text(error, language)),
             details: (setting == Setting::UsagePing).then(|| self.details()),
+            other_copy: (setting == Setting::Startup && self.shows_other_copy()).then(|| {
+                OtherCopyView {
+                    message: language.text(Key::SettingsStartupOtherCopyMessage),
+                    action: language.text(Key::SettingsStartupOtherCopyAction),
+                    url: STARTUP_APPS_URL,
+                }
+            }),
             ..setting.row(language, control)
         };
         if setting == Setting::Updates && !self.usage_ping.checks_updates() {

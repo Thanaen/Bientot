@@ -433,6 +433,65 @@ fn a_startup_change_windows_refused_shows_a_callout_and_retries() {
     }
 }
 
+fn other_copy(form: &SettingsForm) -> Option<OtherCopyView> {
+    row(&form.view(), Setting::Startup).other_copy
+}
+
+#[test]
+fn another_copy_that_also_starts_shows_under_the_startup_switch() {
+    for (language, message, action) in [
+        (
+            Language::French,
+            "Une autre copie de Bientôt démarre aussi avec Windows. Désactivez-la\u{a0}: elle peut \
+             s’appeler WorkTime ou Bientôt.",
+            "Applications de démarrage",
+        ),
+        (
+            Language::English,
+            "Another copy of Bientôt also starts with Windows. Turn it off. It may be listed as \
+             WorkTime or Bientôt.",
+            "Open Startup apps",
+        ),
+    ] {
+        let mut form = form(language);
+        assert_eq!(other_copy(&form), None);
+
+        for state in [
+            StartupRegistrationState::Enabled,
+            StartupRegistrationState::EnabledByPolicy,
+        ] {
+            form.show_startup(state);
+            form.show_other_copy(true);
+            assert_eq!(
+                other_copy(&form),
+                Some(OtherCopyView {
+                    message,
+                    action,
+                    url: "ms-settings:startupapps",
+                })
+            );
+        }
+
+        form.show_other_copy(false);
+        assert_eq!(other_copy(&form), None);
+    }
+}
+
+#[test]
+fn turning_startup_off_hides_the_other_copy() {
+    let mut form = form(Language::English);
+    let mut port = Port::default();
+    form.show_startup(StartupRegistrationState::Enabled);
+    form.show_other_copy(true);
+
+    let pending = form.toggle(Switch::Startup).expect("the switch can change");
+    assert_eq!(other_copy(&form), None);
+
+    form.show_other_copy(false);
+    form.finish_startup(pending, StartupRegistrationState::Disabled, &mut port);
+    assert_eq!(other_copy(&form), None);
+}
+
 #[test]
 fn the_idle_threshold_is_saved_in_seconds_within_30_seconds_and_30_minutes() {
     let mut form = form(Language::French);
@@ -513,6 +572,7 @@ fn the_zip_build_greys_the_updates_and_links_to_github() {
                 enabled: false,
             },
             details: None,
+            other_copy: None,
         }
     );
     assert!(form.current().updates.check_for_updates);

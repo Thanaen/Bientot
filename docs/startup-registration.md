@@ -61,15 +61,29 @@ its test executable as the real Bientôt startup entry.
 
 ## Moving to the Store build
 
-The Store build manages only its own startup task. It does not remove the Run
-value of an installer or portable copy, which starts another executable. After
-moving to the Store build, uninstall the installer copy, which removes its
-Run value. Otherwise both start at sign-in. Only one runs, because a second
-copy hands over to the one that already holds the data folder, but it may be
-the older copy. For a portable copy, quit the Store build first, start the
-portable copy, and turn off **Windows startup** in its settings: while the
-Store build runs, starting the portable copy only brings up the Store build,
-whose toggle controls its own startup task. #124 tracks a fix in the app.
+An installer or portable copy keeps its `WorkTime` Run value when you move to
+the Store build. Both would then start at sign-in. Only one runs, because a
+second copy hands over to the one that already holds the data folder, but it
+may be the older copy.
+
+When the Store build's startup task is on (enabled, or enabled by policy), a
+`WorkTime` Run value exists, and Windows has not recorded it as disabled in
+`StartupApproved\Run`, **Windows startup** in the Store build's settings says
+that another copy of Bientôt also starts with Windows. Its **Open Startup
+apps** button opens Windows Settings > Apps > Startup
+(`ms-settings:startupapps`), where you turn the other copy off. The line is read
+when the settings window opens and after the toggle changes, so it goes away
+the next time you open the settings.
+
+The Store build cannot remove that Run value itself. Windows keeps the
+packaged app's writes under `HKEY_CURRENT_USER` in a private per-app copy, and
+reads merge that copy with the real registry. A delete would only hide the
+value from the Store build, and the other copy would still start. The Store
+build therefore only reads the Run value and its approval, and never writes
+either. The installer and portable copies never show this line, and they
+manage their own Run value as described above.
+
+Uninstalling the installer copy also removes its Run value.
 
 ## Verification
 

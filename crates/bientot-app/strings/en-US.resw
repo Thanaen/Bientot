@@ -303,6 +303,8 @@
   <data name="StartupRegistrationMismatch" xml:space="preserve"><value>Another copy uses the Bientôt startup entry. Turn this setting on to use this copy.</value></data>
   <data name="StartupUnavailable" xml:space="preserve"><value>Startup registration is unavailable for this copy of Bientôt.</value></data>
   <data name="SettingsStartupChangeFailed" xml:space="preserve"><value>Windows did not apply the startup change. Check the status above and try again.</value></data>
+  <data name="SettingsStartupOtherCopyMessage" xml:space="preserve"><value>Another copy of Bientôt also starts with Windows. Turn it off. It may be listed as WorkTime or Bientôt.</value></data>
+  <data name="SettingsStartupOtherCopyAction" xml:space="preserve"><value>Open Startup apps</value></data>
   <data name="NotificationTitle" xml:space="preserve"><value>Bientôt</value></data>
   <data name="NotificationCompletionBody" xml:space="preserve"><value>{0} minutes remain toward your daily target. Projected departure: {1}.</value></data>
   <data name="NotificationDepartureBody" xml:space="preserve"><value>Your preferred latest departure time is approaching. {0} minutes remain. Projected departure: {1}.</value></data>

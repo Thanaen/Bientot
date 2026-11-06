@@ -171,11 +171,14 @@ fn no_value_is_empty() {
 }
 
 /// The app is Bientôt: the old name may appear only as the `.worktime` extension of the files
-/// it still imports.
+/// it still imports, and where Windows still lists a copy from before the rename under it.
 #[test]
 fn no_value_names_the_app_worktime() {
     let mut faults = Vec::new();
-    for entry in &table::ENTRIES {
+    for entry in table::ENTRIES
+        .iter()
+        .filter(|entry| entry.name != "SettingsStartupOtherCopyMessage")
+    {
         for (tag, value) in [("fr-FR", entry.fr), ("en-US", entry.en)] {
             if value
                 .to_lowercase()
