@@ -731,7 +731,7 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="HistoryRangeReplacesOne" xml:space="preserve"><value>Replaces your correction from {0} to {1}.</value></data>
   <data name="HistoryRangeReplacesMany" xml:space="preserve"><value>Replaces {0} of your corrections.</value></data>
   <data name="HistoryRangeCorrectionNote" xml:space="preserve"><value>If you remove it, this time goes back to automatic detection.</value></data>
-  <data name="HistoryRangeUnrecordedFirstFormat" xml:space="preserve"><value>First of {0} unrecorded slots, {1} in total; the next at {2}.</value></data>
+  <data name="HistoryRangeUnrecordedFirstFormat" xml:space="preserve"><value>First of {0} unrecorded slots, {1} in total; the next at {2}.</value></data>
   <data name="HistoryRangeOpenLockNote" xml:space="preserve"><value>The session is still locked. You can settle this range once it’s unlocked.</value></data>
   <data name="HistoryRangeCountNoChange" xml:space="preserve"><value>If you count it, the day total doesn’t change.</value></data>
   <data name="HistoryRangeExcludeNoChange" xml:space="preserve"><value>If you exclude it, the day total doesn’t change.</value></data>
