@@ -20,7 +20,12 @@ fn sample() -> Value {
     })
 }
 
-const BUILTIN: &[&str] = &["Open settings", "Ouvrir les réglages"];
+const BUILTIN: &[&str] = &[
+    "Open settings",
+    "Ouvrir les réglages",
+    "Week: open",
+    "Semaine\u{a0}: ouvrir",
+];
 
 fn parse(value: &Value) -> Result<Manifest, ManifestError> {
     Manifest::parse(value.to_string().as_bytes(), BUILTIN)
@@ -229,6 +234,38 @@ fn commands_are_checked() {
         ))
         .1,
         Problem::BuiltinTitle
+    );
+    // The palette shows « <plugin>: <title> », which may not look like a built-in either.
+    let named = |name: Value, title: Value| {
+        let mut manifest = command(json!({ "name": "go", "title": title }));
+        manifest["name"] = name;
+        manifest
+    };
+    assert_eq!(
+        refusal(&named(json!({ "en": "Week" }), json!({ "en": "Open" }))).1,
+        Problem::BuiltinTitle
+    );
+    assert_eq!(
+        refusal(&named(
+            json!({ "en": "Semaine" }),
+            json!({ "en": "ouvrir " })
+        ))
+        .1,
+        Problem::BuiltinTitle
+    );
+    assert_eq!(
+        refusal(&command(
+            json!({ "name": "go", "title": { "en": "semaine : Ouvrir" } })
+        ))
+        .1,
+        Problem::BuiltinTitle
+    );
+    assert!(
+        parse(&named(
+            json!({ "en": "Week" }),
+            json!({ "en": "Open the next one" })
+        ))
+        .is_ok()
     );
     assert_eq!(
         refusal(&command(

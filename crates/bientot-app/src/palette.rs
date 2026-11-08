@@ -113,7 +113,7 @@ impl Command {
 }
 
 /// The palette labels of Bientôt's own commands in every language and tracking state, which a
-/// plugin's command title may not take (FR-050).
+/// plugin's command may not take (FR-043).
 pub fn reserved_titles() -> Vec<String> {
     let mut titles = Vec::new();
     for language in Language::ALL {

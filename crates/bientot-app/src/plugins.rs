@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
-use bientot_plugin_api::{Capability, EventKind, PluginId, PreparedCard};
+use bientot_plugin_api::{Capability, PluginId, PreparedCard};
 use bientot_plugins::files::PluginsDir;
 use bientot_plugins::log::LogFiles;
 use bientot_plugins::manager;
@@ -35,8 +35,8 @@ struct Plugins {
     thread: PluginThread,
     dir: PluginsDir,
     state: StateFile,
-    /// Some loaded plugin reads the day and listens to `day.refreshed`.
-    listens_day: bool,
+    /// Some loaded plugin reads the day, through `bt:day@1 current` or `day.refreshed`.
+    reads_day: bool,
     /// The app's language, which changes only with a restart.
     language: Language,
 }
@@ -85,10 +85,9 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
     if specs.is_empty() {
         return;
     }
-    let listens_day = specs.iter().any(|spec| {
-        spec.granted.contains(&Capability::ReadDay)
-            && spec.manifest.events.contains(&EventKind::DayRefreshed)
-    });
+    let reads_day = specs
+        .iter()
+        .any(|spec| spec.granted.contains(&Capability::ReadDay));
     let clock: bientot_plugins::host::Clock = Arc::new(Timestamp::now);
     let log = Arc::new(LogFiles::new(
         directory.log_directory().join("plugins"),
@@ -124,7 +123,7 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
         thread,
         dir,
         state,
-        listens_day,
+        reads_day,
         language,
     });
     cx.spawn(async move |cx| {
@@ -136,13 +135,14 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
     day_changed(cx);
 }
 
-/// Sends the published day to the plugins that read it. The thread keeps only the latest and
-/// sends `day.refreshed` on a structural change, at most every 30 s (FR-032).
+/// Sends the published day to the plugins that read it. The thread keeps only the latest, which
+/// `bt:day@1 current` answers, and sends `day.refreshed` to the plugins that listen to it on a
+/// structural change, at most every 30 s (FR-032).
 pub fn day_changed(cx: &mut App) {
     let Some(plugins) = cx.try_global::<Plugins>() else {
         return;
     };
-    if !plugins.listens_day {
+    if !plugins.reads_day {
         return;
     }
     let language = plugin_language(plugins.language);

@@ -28,6 +28,8 @@ struct Script {
     pool_full_on: Option<String>,
     /// Every card is refused.
     refuse_cards: bool,
+    /// The day each event could read through `bt:day@1 current`, in order.
+    days: Vec<Option<Arc<str>>>,
 }
 
 #[derive(Clone, Default)]
@@ -90,6 +92,7 @@ impl Sandboxed for FakeInstance {
         script
             .seen
             .push((self.id.as_str().to_owned(), name.clone(), detail));
+        script.days.push(self.context.day.clone());
         if script.trap_on.contains(&name) {
             return Err(CallError::Trap("unreachable".into()));
         }
@@ -300,6 +303,26 @@ fn a_plugin_that_does_not_listen_gets_no_day() {
     h.send(Request::Load(Box::new(spec("bientot.a", &[], None))), 0.0);
     h.send(Request::Day(day(0)), 1.0);
     assert!(h.seen().is_empty());
+}
+
+#[test]
+fn a_plugin_that_does_not_listen_still_reads_the_day() {
+    let mut h = Harness::new();
+    h.send(Request::Load(Box::new(spec("bientot.a", &[], None))), 0.0);
+    h.send(Request::Day(day(0)), 1.0);
+    h.send(command("bientot.a"), 2.0);
+    h.send(Request::Day(day(5)), 3.0);
+    h.send(command("bientot.a"), 4.0);
+    assert_eq!(
+        h.seen(),
+        seen(&[
+            ("bientot.a", "activate", "first"),
+            ("bientot.a", "command.invoked", "go"),
+            ("bientot.a", "command.invoked", "go"),
+        ])
+    );
+    let json = |day: Arc<DaySnapshot>| Some(Arc::from(serde_json::to_string(&*day).unwrap()));
+    assert_eq!(h.script().days, [json(day(0)), json(day(0)), json(day(5))]);
 }
 
 #[test]

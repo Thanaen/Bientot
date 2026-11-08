@@ -115,8 +115,9 @@ pub struct Manifest {
 }
 
 impl Manifest {
-    /// Reads and checks a manifest. `reserved_titles` are the built-in command titles in every
-    /// language; a plugin command may not take one of them.
+    /// Reads and checks a manifest. `reserved_titles` are the palette labels of the built-in
+    /// commands in every language; a plugin command may not take one, by its title alone or as
+    /// the « <plugin>: <title> » the palette shows.
     pub fn parse(bytes: &[u8], reserved_titles: &[&str]) -> Result<Manifest, ManifestError> {
         if bytes.len() > MAX_MANIFEST_BYTES {
             return Err(ManifestError::at("", Problem::FileTooLarge));
@@ -477,7 +478,7 @@ impl Reader<'_> {
         {
             return Err(ManifestError::at("events", Problem::NeedsReadDay));
         }
-        let commands = self.commands(fallback, reserved_titles)?;
+        let commands = self.commands(fallback, &name, reserved_titles)?;
 
         Ok(Manifest {
             id,
@@ -531,6 +532,7 @@ impl Reader<'_> {
     fn commands(
         &self,
         fallback: &str,
+        plugin: &Localized,
         reserved_titles: &[&str],
     ) -> Result<Vec<CommandDecl>, ManifestError> {
         let list = match self.object.get("commands") {
@@ -587,7 +589,16 @@ impl Reader<'_> {
                 MAX_TITLE_CHARS,
                 true,
             )?;
-            if title.values().any(|t| reserved.contains(&fold(t))) {
+            let shown = title.values().flat_map(|title| {
+                plugin
+                    .values()
+                    .map(move |plugin| format!("{plugin}: {title}"))
+                    .chain([title.to_owned()])
+            });
+            if shown
+                .map(|label| fold(&label))
+                .any(|label| reserved.contains(&label))
+            {
                 return Err(ManifestError::at(at("title"), Problem::BuiltinTitle));
             }
             let windows = match object.get("windows") {
@@ -770,8 +781,14 @@ fn is_command_name(name: &str) -> bool {
         && bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
+/// A title as compared with the built-in ones: lower case, spaces collapsed, including the
+/// no-break spaces of French typography, and none before a colon.
 fn fold(text: &str) -> String {
-    text.trim().to_lowercase()
+    text.to_lowercase()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .replace(" :", ":")
 }
 
 #[cfg(test)]

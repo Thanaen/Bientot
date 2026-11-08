@@ -61,8 +61,9 @@ A command's `name` matches `^[a-z][a-z0-9-]{0,31}$` and is unique; its
 - `installed`, `upgraded`, `activate` and `command.invoked` are always
   delivered and are not listed in `events`.
 - `day.refreshed` requires `read:day`.
-- A command `title` may not equal a built-in command title in either
-  language, ignoring case and surrounding spaces.
+- A command `title` may not equal the palette label of a built-in command
+  in either language, alone or as the « <plugin>: <title> » the palette
+  shows, ignoring case and spaces.
 - A `shortcut` key in a command is refused: plugins do not set keyboard
   shortcuts.
 - The file is at most 64 KiB.
