@@ -108,7 +108,7 @@ impl PaletteView {
         window.focus(&query.focus_handle(cx), cx);
         let query_changed = cx.observe(&query, |view, query, cx| {
             view.state.set_query(query.read(cx).text());
-            view.scroll_to_selected();
+            view.scroll_to_selected(true);
             cx.notify();
         });
         let state = Palette::new(situation, language);
@@ -141,29 +141,29 @@ impl PaletteView {
         cx.notify();
     }
 
-    /// Types `text` in the query field, for the screenshots.
     /// Selects the last row and scrolls to it, as the screenshots show the commands of plugins.
     pub fn select_last(&mut self, cx: &mut Context<Self>) {
         for _ in 0..self.state.rows().len() {
             self.state.select_next();
         }
-        self.scroll_to_selected();
+        self.scroll_to_selected(false);
         cx.notify();
     }
 
+    /// Types `text` in the query field, for the screenshots.
     pub fn type_query(&mut self, text: &str, cx: &mut Context<Self>) {
         self.query.update(cx, |query, cx| query.set_text(text, cx));
     }
 
     fn select_previous(&mut self, _: &SelectPrevious, _: &mut Window, cx: &mut Context<Self>) {
         self.state.select_previous();
-        self.scroll_to_selected();
+        self.scroll_to_selected(true);
         cx.notify();
     }
 
     fn select_next(&mut self, _: &SelectNext, _: &mut Window, cx: &mut Context<Self>) {
         self.state.select_next();
-        self.scroll_to_selected();
+        self.scroll_to_selected(false);
         cx.notify();
     }
 
@@ -178,8 +178,9 @@ impl PaletteView {
     }
 
     /// The list's children are a spacer, the rows with their headings above them, and a spacer:
-    /// the first and last rows scroll to the spacers, so that the list keeps its padding.
-    fn scroll_to_selected(&self) {
+    /// the first and last rows scroll to the spacers, so that the list keeps its padding. Going
+    /// `up` onto the first row under a heading scrolls to the heading, which shows them both.
+    fn scroll_to_selected(&self, up: bool) {
         let selected = self.state.selected();
         let rows = self.state.rows().len();
         let headings = self.state.headings();
@@ -188,7 +189,9 @@ impl PaletteView {
         } else if selected + 1 == rows {
             rows + headings.len() + 1
         } else {
-            1 + selected + headings.iter().filter(|(at, _)| *at <= selected).count()
+            let item = 1 + selected + headings.iter().filter(|(at, _)| *at <= selected).count();
+            let under_heading = headings.iter().any(|(at, _)| *at == selected);
+            item - usize::from(up && under_heading)
         };
         self.scroll.scroll_to_item(item);
     }
