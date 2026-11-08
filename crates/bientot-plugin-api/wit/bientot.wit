@@ -1,0 +1,109 @@
+// The plugin contract of api 1.0 (specs/003-plugin-runtime/contracts/host-abi.md).
+//
+// Plugins are core WebAssembly modules, not components: `wasmi` does not run the component
+// model. ABI 1 carries each call below as JSON through `bt_alloc`, `bt_free` and `bt_handle`,
+// and each import takes `(ptr, len)` of a JSON request and returns `(ptr << 32) | len`.
+// The interface and type names here are the module names and JSON fields of that mapping.
+
+package bientot:plugin@1.0.0;
+
+interface types {
+  type instant = string; // RFC 3339, UTC
+  type seconds = s64;
+
+  enum language { en, fr }
+
+  enum tracking { running, paused, finished, non-working-day }
+  enum forecast { firm, estimated, unavailable }
+  enum segment-kind { work, %break, lunch, away, manual, appointment, other }
+  enum source { ok, degraded }
+
+  record segment { start: instant, end: instant, kind: segment-kind }
+  record open-tail { start: instant, kind: segment-kind }
+  record week { counted: seconds, target: seconds, credit: seconds }
+
+  record day-snapshot {
+    schema: u32,
+    computed-at: instant,
+    time-zone: string,
+    date: string, // YYYY-MM-DD, local
+    language: language,
+    tracking: tracking,
+    target: seconds,
+    minimum: seconds,
+    counted: seconds,
+    departure-at-target: option<instant>,
+    departure-at-minimum: option<instant>,
+    forecast: forecast,
+    segments: list<segment>,
+    open-tail: option<open-tail>,
+    week: week,
+    source: source,
+  }
+
+  enum role { title, body, muted, value, mono }
+  enum tone { info, success, warning, error, muted }
+
+  record text { key: string, args: list<tuple<string, string>>, role: role }
+
+  // A view node. The JSON form is `{ "type": "<case>", ... }`.
+  variant view-node {
+    stack(list<view-node>),
+    row(list<view-node>),
+    text(text),
+    duration(tuple<seconds, option<instant>>),
+    countdown(instant),
+    time(instant),
+    badge(tuple<text, tone>),
+    progress(tuple<f64, f64, text>),
+    button(tuple<string, option<string>, text>),
+  }
+
+  record card { lines: list<view-node>, actions: list<view-node> }
+
+  enum activate-reason { first, evicted, recreated, restart }
+  enum command-source { palette, card }
+
+  variant event {
+    installed(string),
+    upgraded(tuple<string, string>),
+    activate(tuple<language, activate-reason>),
+    day-refreshed(day-snapshot),
+    command-invoked(tuple<string, option<string>, command-source>),
+    language-changed(language),
+  }
+}
+
+// bt:log@1
+interface log {
+  enum level { info, warn, error }
+  write: func(level: level, text: string);
+}
+
+// bt:time@1
+interface time {
+  use types.{instant};
+  now: func() -> instant;
+}
+
+// bt:day@1, capability read:day
+interface day {
+  use types.{day-snapshot};
+  current: func() -> result<day-snapshot, string>;
+}
+
+// bt:ui@1, capability ui:flyout; the only slot of this step is `flyout.card`
+interface ui {
+  use types.{card};
+  set: func(slot: string, tree: card) -> result<_, string>;
+  clear: func(slot: string);
+}
+
+world plugin {
+  import log;
+  import time;
+  import day;
+  import ui;
+  use types.{event};
+  export handle: func(event: event) -> option<string>;
+}

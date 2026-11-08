@@ -8,18 +8,19 @@ break older plugins.
 ## PluginId
 
 A string matching `^[a-z0-9]+(\.[a-z0-9-]+){1,4}$`, at most 64 characters,
-for example `dev.bientot.focus`. The prefix `dev.` is reserved for the later
+for example `bientot.focus`. The prefix `dev.` is reserved for the later
 developer mode. It becomes a folder name, a settings key and a log file
 name, so nothing else is accepted.
 
 ## Manifest
 
-Parsed from `plugin.toml` (contract `manifest.md`).
+Parsed from `plugin.json` (contract `manifest.md`).
 
 | Field | Type | Rule |
 | --- | --- | --- |
 | `id` | PluginId | |
 | `name` | localized text | at most 40 characters per locale |
+| `description` | localized text | optional, at most 120 characters per locale |
 | `version` | semver | |
 | `api` | semver requirement | this host supports `1.x` |
 | `memory` | size | default 8 MiB, at most 32 MiB |
@@ -54,7 +55,7 @@ Stored in `plugins/state.json` (host-private, not part of the API crate).
 | `id`, `version` | from the manifest |
 | `trust` | `Signed { key_fingerprint, announced_keys }` or `Unsigned { package_hash }` |
 | `files` | path → SHA-256, from the signed list or computed at install |
-| `manifest_hash` | SHA-256 of `plugin.toml` |
+| `manifest_hash` | SHA-256 of `plugin.json` |
 | `granted` | capabilities the user accepted, with the `manifest_hash` they were accepted for |
 | `enabled` | the user's switch |
 | `status` | `Active`, `Off`, `FailedUntilRestart { reason }`, `Revoked { reason }`, `FilesChanged`, `UnsupportedApi` |

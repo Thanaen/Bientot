@@ -7,7 +7,7 @@ package.
 
 | Entry | Required | Rule |
 | --- | --- | --- |
-| `plugin.toml` | yes | manifest, at most 64 KiB |
+| `plugin.json` | yes | manifest, at most 64 KiB |
 | `plugin.wasm` | for a WebAssembly plugin | at most 4 MiB |
 | `locales/<tag>.json` | one per declared locale | `<tag>` is a BCP 47 tag in lower case (`fr`, `en`, `en-gb`); flat object of string keys to strings, at most 64 KiB |
 | `assets/<name>.svg` | no | `<name>` matches `[a-z0-9-]{1,32}`; at most 64 KiB; rendered by `resvg` with external `href` resolution off |

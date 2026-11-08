@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "computed_at": "2026-11-08T14:05:00Z",
+  "time_zone": "Europe/Paris",
+  "date": "2026-11-08",
+  "language": "fr",
+  "tracking": "running",
+  "target": 27000,
+  "minimum": 21600,
+  "counted": 16200,
+  "departure_at_target": "2026-11-08T17:05:00Z",
+  "departure_at_minimum": "2026-11-08T15:35:00Z",
+  "forecast": "firm",
+  "segments": [
+    { "start": "2026-11-08T07:30:00Z", "end": "2026-11-08T09:00:00Z", "kind": "work" },
+    { "start": "2026-11-08T09:00:00Z", "end": "2026-11-08T11:00:00Z", "kind": "work" },
+    { "start": "2026-11-08T11:00:00Z", "end": "2026-11-08T11:45:00Z", "kind": "lunch" }
+  ],
+  "open_tail": { "start": "2026-11-08T11:45:00Z", "kind": "work" },
+  "week": { "counted": 113400, "target": 135000, "credit": -1800 },
+  "source": "ok"
+}

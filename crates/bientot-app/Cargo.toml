@@ -24,9 +24,12 @@ screenshots = ["gpui/test-support", "gpui_platform/test-support", "dep:gpui_wgpu
 usage-ping = ["dep:ureq"]
 # Updates the build installed by Velopack's Setup.exe from its feed (`updates::direct`).
 updates = ["dep:ureq", "dep:velopack"]
+# Runs WebAssembly plugins (specs/003-plugin-runtime). Without it, nothing of the plugin host is
+# compiled in.
+plugins = ["dep:bientot-plugins"]
 # The features of the Store package and the portable ZIP, whose updates do not go through
 # Velopack. The notices generator reads the same feature.
-release = ["usage-ping"]
+release = ["usage-ping", "plugins"]
 # The features of the Velopack Setup.exe (scripts/release-direct.sh).
 direct = ["release", "updates"]
 
@@ -47,6 +50,7 @@ serde_json = "1.0.154"
 ureq = { version = "3.4.2", default-features = false, features = ["native-tls"], optional = true }
 bientot-core = { path = "../bientot-core" }
 bientot-domain = { path = "../bientot-domain" }
+bientot-plugins = { path = "../bientot-plugins", optional = true }
 bientot-store = { path = "../bientot-store" }
 bientot-windows = { path = "../bientot-windows" }
 

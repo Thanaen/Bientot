@@ -1,0 +1,8 @@
+[
+  { "event": "installed", "version": "0.1.0" },
+  { "event": "upgraded", "from": "0.1.0", "version": "0.2.0" },
+  { "event": "activate", "language": "en", "reason": "first" },
+  { "event": "command.invoked", "command": "toggle-range", "arg": "week", "source": "card" },
+  { "event": "command.invoked", "command": "toggle-range", "arg": null, "source": "palette" },
+  { "event": "language.changed", "language": "fr" }
+]

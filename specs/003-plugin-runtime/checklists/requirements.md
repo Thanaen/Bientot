@@ -8,5 +8,5 @@
 - [x] Accounting: plugins only read the published day; `bientot-domain` is untouched.
 - [x] Scope boundaries are explicit, and the later steps that need a product decision are named.
 - [x] Edge cases cover hostile packages, hostile plugins, slow PCs, memory pressure, sleep and language changes.
-- [ ] The manifest format (TOML or JSON) is settled by measuring the `toml` size cost (task T003).
-- [ ] The Windows timings of `research.md` are confirmed on a real Windows machine (task T060).
+- [x] The manifest format is settled by measuring the `toml` size cost: JSON (task T003, `research.md` R10).
+- [x] The Windows timings of `research.md` are confirmed on a real Windows machine (task T060).
