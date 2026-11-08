@@ -7,8 +7,8 @@
 
 use bientot_plugin_api::PluginId;
 use gpui::{
-    Anchor, AnyElement, App, Context, FocusHandle, Role, SharedString, Window, actions, anchored,
-    deferred, div, prelude::*, px,
+    Anchor, AnyElement, App, ClickEvent, Context, FocusHandle, Role, SharedString, Window, actions,
+    anchored, deferred, div, prelude::*, px,
 };
 
 use super::{Closing, Flyout, body::Part, control, control_icon};
@@ -52,6 +52,9 @@ pub(super) struct Menu {
     /// One for each item, « Masquer pour aujourd’hui » first, which takes the focus when the
     /// menu opens.
     items: Vec<FocusHandle>,
+    /// Whether the menu was open when the mouse went down on « … »: that press already closed
+    /// it, through the click outside the menu, so the click that follows must not open it again.
+    pressed_open: bool,
 }
 
 impl Menu {
@@ -61,8 +64,19 @@ impl Menu {
             entrance: motion::Entrance::default(),
             button: cx.focus_handle(),
             items: vec![cx.focus_handle()],
+            pressed_open: false,
         }
     }
+}
+
+/// What [`Flyout::plugin_menu_state`] reads.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PluginMenuState {
+    pub open: bool,
+    /// The focus is on « … ».
+    pub button_focused: bool,
+    /// The focus is on one of the menu's items.
+    pub item_focused: bool,
 }
 
 /// Where the open menu stands at `time`, a share of its entrance: it rises 4 px from its
@@ -109,7 +123,14 @@ impl Flyout {
         .justify_center()
         .when(open, |button| button.bg(theme.element_active))
         .child(control_icon(MENU_ID, "ellipsis", theme))
-        .on_click(cx.listener(|flyout, _, window, cx| flyout.toggle_plugin_menu(window, cx)));
+        .capture_any_mouse_down(cx.listener(|flyout, _, _, _| {
+            flyout.plugin_menu.pressed_open = flyout.plugin_menu.open;
+        }))
+        .on_click(cx.listener(|flyout, click: &ClickEvent, window, cx| {
+            if click.is_keyboard() || !std::mem::take(&mut flyout.plugin_menu.pressed_open) {
+                flyout.toggle_plugin_menu(window, cx);
+            }
+        }));
         let time = if open {
             self.plugin_menu.entrance.time(motion::MENU, window, cx)
         } else {
@@ -289,8 +310,14 @@ impl Flyout {
             .bg(theme.elevated_surface)
             .shadow(theme.shadow_elevated())
             .type_style(text::LABEL_MD)
-            .on_mouse_down_out(cx.listener(|flyout, _, _, cx| {
-                flyout.plugin_menu.open = false;
+            .on_mouse_down_out(cx.listener(|flyout, _, window, cx| {
+                // A press on something that takes the focus keeps it; otherwise the focus would
+                // stay on an item no longer drawn.
+                let menu = &mut flyout.plugin_menu;
+                menu.open = false;
+                if menu.items.iter().any(|item| item.is_focused(window)) {
+                    window.focus(&menu.button, cx);
+                }
                 cx.notify();
             }))
             .child(hide)
@@ -323,6 +350,16 @@ impl Flyout {
     pub fn open_plugin_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if !self.plugin_menu.open {
             self.toggle_plugin_menu(window, cx);
+        }
+    }
+
+    /// Whether the card's « … » menu is open, and where the focus is in it: for the tests.
+    pub fn plugin_menu_state(&self, window: &Window) -> PluginMenuState {
+        let menu = &self.plugin_menu;
+        PluginMenuState {
+            open: menu.open,
+            button_focused: menu.button.is_focused(window),
+            item_focused: menu.items.iter().any(|item| item.is_focused(window)),
         }
     }
 

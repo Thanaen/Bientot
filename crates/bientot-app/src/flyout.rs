@@ -32,6 +32,8 @@ mod callout;
 mod plugin_card;
 
 pub use body::Alerts;
+#[cfg(feature = "plugins")]
+pub use plugin_card::PluginMenuState;
 
 actions!(
     worktime,
