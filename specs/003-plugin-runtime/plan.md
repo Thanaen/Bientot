@@ -161,10 +161,11 @@ is not touched.
 
 ### Safe mode
 
-`launch.rs` writes a `plugins/starting` marker before reading plugins and
-deletes it after the first successful refresh with plugins. Two runs that
-leave the marker in a row set safe mode for the next run, which starts
-without plugins and shows a flyout notice with **Turn plugins back on**.
+A start with a plugin on writes a `plugins/starting` marker (`launch::StartMarker`) before it
+loads them, holding the number of starts in a row that left it. `plugins.rs` removes it 30 s after
+the plugins loaded, or at a quit. Two runs that leave the marker in a row set safe mode for the
+next run, which starts without plugins and shows a flyout notice with **Turn plugins back on**.
+Turning a plugin on or installing one also ends it.
 
 ### Threads and channels
 

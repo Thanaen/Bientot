@@ -21,6 +21,21 @@ Selects ActivityWatch at this server instead of the stub, for example http://loc
 .PARAMETER Release
 Release VM run for SC-006 and SC-007: a 15-minute idle window, failing at the spec budgets. Run it once
 with the built-in source and once with -ActivityWatch.
+
+.PARAMETER PluginPackage
+A .bientot-plugin installed and turned on before the start, with -PluginTool, for SC-003 of
+specs/003-plugin-runtime. The executable must be built with the plugins feature. The run fails when the
+plugin never handled its first event.
+
+.PARAMETER PluginTool
+The bientot-plugin.exe that installs -PluginPackage.
+
+.PARAMETER ResultPath
+Writes the measures to this JSON file, for a later run's -Baseline.
+
+.PARAMETER Baseline
+The -ResultPath of a run without the plugin: the summary adds SC-003, the growth of the idle working
+set (at most 2 MiB) and the idle CPU (under 0.5 %) with the plugin.
 #>
 [CmdletBinding()]
 param(
@@ -47,7 +62,15 @@ param(
     [ValidatePattern('^https?://[^/?#@]+/?$')]
     [string] $ActivityWatchUrl,
 
-    [switch] $Release
+    [switch] $Release,
+
+    [string] $PluginPackage,
+
+    [string] $PluginTool,
+
+    [string] $ResultPath,
+
+    [string] $Baseline
 )
 
 $ErrorActionPreference = 'Stop'
@@ -55,6 +78,12 @@ $ErrorActionPreference = 'Stop'
 $CpuBudgetPercent = 0.5
 $WorkingSetBudgetMiB = 150
 $StartupBudgetSeconds = 3
+# SC-003 of specs/003-plugin-runtime: what the sample plugin may add to the idle working set.
+$PluginWorkingSetBudgetMiB = 2
+
+if ($PluginPackage -and -not $PluginTool) {
+    throw '-PluginPackage needs -PluginTool to install it.'
+}
 
 function Measure-IdleSamples([object[]] $Samples, [int] $ProcessorCount) {
     $first = $Samples[0]
@@ -178,6 +207,10 @@ try {
         $settings = @{ schemaVersion = 1; activitySource = 'activitywatch'; activityWatch = @{ baseUrl = $sourceUrl } }
     }
     $settings | ConvertTo-Json -Compress | Set-Content -Path (Join-Path $dataDirectory 'settings.json') -Encoding ascii
+    if ($PluginPackage) {
+        & (Resolve-Path -LiteralPath $PluginTool).Path install (Resolve-Path -LiteralPath $PluginPackage).Path --data-dir $dataDirectory
+        if ($LASTEXITCODE -ne 0) { throw "bientot-plugin could not install $PluginPackage." }
+    }
 
     $process = Start-Process `
         -FilePath $executablePath `
@@ -238,6 +271,20 @@ try {
         })
     }
     $lifetimePeakMiB = $process.PeakWorkingSet64 / 1MB
+    if ($PluginPackage) {
+        # Bientôt clears `pending` once the plugin handled `installed`: it ran, inside the window.
+        $state = Get-Content -Raw -LiteralPath (Join-Path $dataDirectory 'plugins\state.json') | ConvertFrom-Json
+        $plugin = @($state.plugins.PSObject.Properties)[0]
+        if ($null -eq $plugin) {
+            throw "No plugin is installed. Evidence: $dataDirectory"
+        }
+        if ($plugin.Value.status.state -ne 'active' -or $null -ne $plugin.Value.pending) {
+            throw ("The plugin $($plugin.Name) did not run: state $($plugin.Value.status.state), " +
+                "pending $($plugin.Value.pending | ConvertTo-Json -Compress). Is the exe built with the plugins feature? " +
+                "Evidence: $dataDirectory")
+        }
+        $pluginName = "$($plugin.Name) $($plugin.Value.version)"
+    }
 }
 finally {
     if ($null -ne $process -and -not $process.HasExited) {
@@ -255,12 +302,26 @@ $results = @(
     [pscustomobject]@{ Name = 'Average idle CPU'; Value = $idle.CpuPercent; Budget = $CpuBudgetPercent; Limit = $CpuLimitPercent; Unit = '%'; Format = '{0:N3}' }
     [pscustomobject]@{ Name = 'Peak idle working set'; Value = $idle.PeakWorkingSetMiB; Budget = $WorkingSetBudgetMiB; Limit = $WorkingSetLimitMiB; Unit = 'MiB'; Format = '{0:N1}' }
 )
+if ($Baseline) {
+    $before = Get-Content -Raw -LiteralPath $Baseline | ConvertFrom-Json
+    $growth = $idle.PeakWorkingSetMiB - $before.PeakWorkingSetMiB
+    $results += [pscustomobject]@{ Name = 'SC-003 idle working set growth'; Value = $growth; Budget = $PluginWorkingSetBudgetMiB; Limit = $WorkingSetLimitMiB; Unit = 'MiB'; Format = '{0:N1}' }
+}
 foreach ($result in $results) {
     $result | Add-Member Status (Get-BudgetStatus $result.Value $result.Budget $result.Limit)
 }
+if ($ResultPath) {
+    [pscustomobject]@{
+        StartupSeconds = $startupSeconds
+        CpuPercent = $idle.CpuPercent
+        PeakWorkingSetMiB = $idle.PeakWorkingSetMiB
+        LastWorkingSetMiB = $idle.LastWorkingSetMiB
+        Plugin = $pluginName
+    } | ConvertTo-Json | Set-Content -LiteralPath $ResultPath -Encoding utf8
+}
 
 $summary = @(
-    "### WorkTime performance ($(if ($Release) { 'release VM' } else { 'CI smoke' }), $(if ($settings.activitySource -eq 'built-in') { 'built-in source' } else { 'ActivityWatch' }))"
+    "### WorkTime performance ($(if ($Release) { 'release VM' } else { 'CI smoke' }), $(if ($settings.activitySource -eq 'built-in') { 'built-in source' } else { 'ActivityWatch' })$(if ($PluginPackage) { ", plugin $pluginName on" } elseif ($Baseline -eq '' -and $ResultPath) { ', no plugin' }))"
     ''
     '| Measure | Result | Spec budget | Fail above | Status |'
     '| --- | --- | --- | --- | --- |'
@@ -285,6 +346,10 @@ $summary += @(
     }
     else {
         'WorkTime used the built-in activity source.'
+    })
+    $(if ($Baseline) {
+        ('Without the plugin: peak idle working set {0:N1} MiB, idle CPU {1:N3} %, startup {2:N2} s (SC-002).' -f
+            $before.PeakWorkingSetMiB, $before.CpuPercent, $before.StartupSeconds)
     })
     ''
     '| Since process start | Source | Event |'
