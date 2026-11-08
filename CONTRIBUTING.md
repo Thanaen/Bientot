@@ -207,6 +207,8 @@ The project follows [GitHub Spec Kit](https://github.com/github/spec-kit).
   `tasks.md`.
   - `001-core-workday-indicator` is the core product.
   - `002-daily-workflow-ux` holds the daily workflow improvements.
+  - `003-plugin-runtime` holds the first step of the plugin system: the
+    WebAssembly runtime, one flyout card and palette commands.
 - `.specify/feature.json` names the active feature folder.
 - `.specify/templates/` and `.specify/scripts/` are the Spec Kit templates and
   PowerShell scripts.

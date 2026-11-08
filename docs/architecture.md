@@ -121,5 +121,6 @@ screenshots of each pull request. See [CONTRIBUTING.md](../CONTRIBUTING.md).
 - [Windows power history recovery](power-history-recovery.md)
 - [Start with Windows](startup-registration.md)
 - [Product decisions](product-decisions.md)
+- [Plugin runtime specification](../specs/003-plugin-runtime/spec.md)
 - [Privacy](privacy.md)
 - [CI quality gates](ci-quality-gates.md)
