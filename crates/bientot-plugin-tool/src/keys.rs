@@ -109,8 +109,22 @@ fn public_path(path: &Path) -> std::path::PathBuf {
     name.into()
 }
 
+/// Writes a new key file, and the folder it goes in when that is missing (`~/.bientot/` on a
+/// first key), readable by its owner only.
 fn write_secret(path: &Path, text: &str) -> Result<(), String> {
     use std::io::Write as _;
+    if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+        let mut folder = std::fs::DirBuilder::new();
+        folder.recursive(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt as _;
+            folder.mode(0o700);
+        }
+        folder
+            .create(parent)
+            .map_err(|e| format!("{}: {e}", parent.display()))?;
+    }
     let mut options = std::fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
@@ -175,6 +189,15 @@ mod tests {
             decide(Some(&bound), &handed),
             Ok(Decision::Update(_))
         ));
+    }
+
+    #[test]
+    fn a_first_key_creates_its_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(".bientot").join("plugin.key");
+        keygen(&args(&[&path], &[])).unwrap();
+        load(&path).unwrap();
+        assert!(public_path(&path).exists());
     }
 
     #[test]

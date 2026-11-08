@@ -250,10 +250,10 @@ The day, `DaySnapshot`:
 | `week.credit: i64` | seconds, positive when ahead |
 
 `SegmentKind` is `Work`, `Break`, `Lunch`, `Away`, `Manual`, `Appointment`, `Other` or
-`Unknown`. `kind.is_work()` is true for `Work`, `Manual` and `Appointment`. A day starts with an
-`Away` segment from midnight to the arrival, and a lunch can come as `Away`. So skip what comes
-before the first work when you look for breaks. When Bientôt cannot see activity, the open tail
-is `Other` and starts at midnight.
+`Unknown`. `kind.is_work()` is true for `Work`, `Manual` and `Appointment`. A day with activity
+starts with an `Away` segment from midnight to the arrival, and a lunch can come as `Away`. So
+skip what comes before the first work when you look for breaks. When Bientôt cannot see
+activity, `segments` is empty and the open tail is `Other`, from midnight.
 
 ### 4. Test it without Windows
 

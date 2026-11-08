@@ -89,6 +89,7 @@ tool="$target/debug/bientot-plugin"
 )
 package="$work/my-plugin.bientot-plugin"
 "$tool" pack "$plugin" "$target/wasm32-unknown-unknown/release/my_plugin.wasm" --out "$package"
-"$tool" keygen "$work/plugin.key"
-"$tool" sign "$package" --key "$work/plugin.key"
+# The key goes in a folder that does not exist yet, as ~/.bientot/ on a first key.
+"$tool" keygen "$work/keys/plugin.key"
+"$tool" sign "$package" --key "$work/keys/plugin.key"
 "$tool" check "$package" --expect "$plugin/expected"
