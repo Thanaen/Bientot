@@ -5,9 +5,11 @@
 
 pub mod card;
 
+use std::cell::OnceCell;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
 use bientot_plugin_api::Capability;
@@ -31,6 +33,7 @@ use jiff::civil::Date;
 use jiff::tz::TimeZone;
 
 use crate::host::Today;
+use crate::launch::StartMarker;
 use crate::palette;
 use crate::strings::Language;
 
@@ -51,6 +54,9 @@ pub struct PluginCards {
     /// The clock and the zone the cards' durations, countdowns and times are drawn with.
     pub clock: Clock,
     pub zone: TimeZone,
+    /// The plugins stayed off after two starts in a row that crashed: where a card goes, the
+    /// flyout says so, with « Réactiver les plugins » (FR-052).
+    pub paused: bool,
 }
 
 impl Default for PluginCards {
@@ -61,6 +67,7 @@ impl Default for PluginCards {
             more: Vec::new(),
             clock: Arc::new(Timestamp::now),
             zone: TimeZone::system(),
+            paused: false,
         }
     }
 }
@@ -144,11 +151,16 @@ struct Plugins {
     /// The app's language, which changes only with a restart.
     language: Language,
     /// What « Paramètres › Plugins » lists, read again after each change of the state.
-    installed: Arc<Vec<Installed>>,
+    installed: OnceCell<Arc<Vec<Installed>>>,
     running: Option<Running>,
     /// The date the cards were last ordered for.
     today: Option<Date>,
+    /// Counts the starts that crashed.
+    marker: StartMarker,
 }
+
+/// A start that crashes later than this after the plugins loaded is not blamed on them.
+const STARTUP: Duration = Duration::from_secs(30);
 
 /// The `plugins` thread and the plugins it holds.
 struct Running {
@@ -184,7 +196,8 @@ pub fn folder(directory: &DataDirectory) -> PluginsDir {
 }
 
 /// Reads the installed plugins and starts those that are on, after the tray is ready (plan,
-/// Lifecycle 2 and 3). With none on, nothing more than the read happens.
+/// Lifecycle 2 and 3). With none on, nothing more than the read happens. After two starts in a
+/// row that crashed, they stay off until the user turns them back on (FR-052).
 pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
     cx.set_global(PluginCards::default());
     let dir = folder(directory);
@@ -207,20 +220,75 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
     } else {
         StateFile::default()
     };
-    let mut plugins = Plugins {
+    let marker = StartMarker::in_folder(dir.root());
+    let any_on = state.any_active();
+    let plugins = Plugins {
         dir,
         log_directory: directory.log_directory().join("plugins"),
         state,
         language,
-        installed: Arc::default(),
+        installed: OnceCell::new(),
         running: None,
         today: None,
+        marker,
     };
+    let paused = any_on && !plugins.marker.begin();
+    cx.set_global(plugins);
+    cx.global_mut::<PluginCards>().paused = paused;
+    cx.on_app_quit(|cx| {
+        // A quit is no crash; a safe mode lasts until the user ends it.
+        if !self::paused(cx)
+            && let Some(plugins) = cx.try_global::<Plugins>()
+        {
+            plugins.marker.passed();
+        }
+        async {}
+    })
+    .detach();
+    if paused {
+        diagnose(cx, "plugins.safe_mode", &[]);
+        return;
+    }
+    if any_on {
+        load_active(cx);
+    } else {
+        day_changed(cx);
+    }
+}
+
+/// Whether the `plugins` thread runs: never before a plugin that is on loads (FR-018).
+pub fn running(cx: &App) -> bool {
+    cx.try_global::<Plugins>()
+        .is_some_and(|plugins| plugins.running.is_some())
+}
+
+/// Plugins off after crashed starts: the flyout says so, with « Réactiver les plugins ».
+pub fn paused(cx: &App) -> bool {
+    cx.try_global::<PluginCards>()
+        .is_some_and(|cards| cards.paused)
+}
+
+/// « Réactiver les plugins »: the plugins that are on start, as at a start that counts again.
+pub fn resume(cx: &mut App) {
+    if !paused(cx) {
+        return;
+    }
+    cx.global_mut::<PluginCards>().paused = false;
+    let plugins = cx.global_mut::<Plugins>();
+    plugins.marker.passed();
+    plugins.marker.begin();
+    diagnose(cx, "plugins.resumed", &[]);
+    load_active(cx);
+    cx.refresh_windows();
+}
+
+/// Loads the plugins that are on, and counts the start as passed once they have run a while.
+fn load_active(cx: &mut App) {
     let reserved = palette::reserved_titles();
     let reserved: Vec<&str> = reserved.iter().map(String::as_str).collect();
+    let plugins = cx.global_mut::<Plugins>();
     let (specs, problems) = manager::load_active(&plugins.dir, &mut plugins.state, &reserved);
-    plugins.list();
-    cx.set_global(plugins);
+    plugins.relist();
     for (id, problem) in problems {
         stays_off(&id, &problem, cx);
     }
@@ -228,13 +296,28 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
         load(spec, cx);
     }
     day_changed(cx);
+    cx.spawn(async move |cx| {
+        cx.background_executor().timer(STARTUP).await;
+        cx.update(|cx| {
+            if let Some(plugins) = cx.try_global::<Plugins>() {
+                plugins.marker.passed();
+            }
+        });
+    })
+    .detach();
 }
 
 impl Plugins {
-    /// Reads again what the settings page lists.
-    fn list(&mut self) {
+    /// What the settings page lists is read again when it next asks.
+    fn relist(&mut self) {
+        self.installed = OnceCell::new();
+    }
+
+    /// What the settings page lists: the names come from the manifests, read only then, so a
+    /// start with no plugin on reads none (FR-018, FR-019).
+    fn listed(&self) -> Arc<Vec<Installed>> {
         let language = plugin_language(self.language);
-        self.installed = Arc::new(
+        Arc::new(
             self.state
                 .plugins
                 .iter()
@@ -258,7 +341,7 @@ impl Plugins {
                     }
                 })
                 .collect(),
-        );
+        )
     }
 
     fn reads_day(&self) -> bool {
@@ -352,7 +435,7 @@ fn stays_off(id: &PluginId, problem: &manager::LoadProblem, cx: &mut App) {
 
 /// The state changed: the settings page lists it again.
 fn changed(cx: &mut App) {
-    cx.global_mut::<Plugins>().list();
+    cx.global_mut::<Plugins>().relist();
     cx.refresh_windows();
 }
 
@@ -483,13 +566,17 @@ pub fn show(plugin: &PluginId, cx: &mut App) {
 /// `state.json` cannot be read.
 pub fn installed(cx: &App) -> Option<Arc<Vec<Installed>>> {
     cx.try_global::<Plugins>()
-        .map(|plugins| plugins.installed.clone())
+        .map(|plugins| plugins.installed.get_or_init(|| plugins.listed()).clone())
 }
 
 /// Turns `id` on, which loads it, or off, which takes its card and commands away at once.
 pub fn turn(id: &PluginId, on: bool, cx: &mut App) {
     if !cx.has_global::<Plugins>() {
         return;
+    }
+    // Turning a plugin on ends a safe mode: the user asks for plugins again.
+    if on {
+        resume(cx);
     }
     let plugins = cx.global_mut::<Plugins>();
     if !manager::turn(&plugins.dir, &mut plugins.state, id, on) {
@@ -643,6 +730,8 @@ pub fn install(offered: Offered, cx: &mut App) -> std::io::Result<PluginId> {
         return Err(std::io::Error::other("nothing to install"));
     };
     let id = offer.package.manifest.id.clone();
+    // An install ends a safe mode, as turning a plugin on does.
+    resume(cx);
     // An unsigned replacement starts over, and a plugin that changed must load anew.
     unload(&id, cx);
     let plugins = cx.global_mut::<Plugins>();
@@ -671,6 +760,9 @@ pub fn open_folder(cx: &mut App) {
 /// Writes `event` to the app's diagnostic log. Only what Bientôt says of a plugin goes there,
 /// never the plugin's own log lines (FR-034).
 fn diagnose(cx: &mut App, event: &str, properties: &[(&str, DiagnosticValue)]) {
+    if !cx.has_global::<Today>() {
+        return;
+    }
     if let Some(host) = cx.global_mut::<Today>().live() {
         host.log(DiagnosticLogLevel::Warning, event, properties);
     }

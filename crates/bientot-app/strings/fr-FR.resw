@@ -1238,6 +1238,12 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="PluginConsentUpdate" xml:space="preserve">
     <value>Mettre à jour</value>
   </data>
+  <data name="PluginsPausedText" xml:space="preserve">
+    <value>Plugins désactivés : Bientôt s’est fermé de façon inattendue deux fois de suite en démarrant avec eux.</value>
+  </data>
+  <data name="PluginsResume" xml:space="preserve">
+    <value>Réactiver les plugins</value>
+  </data>
   <data name="PluginCardManage" xml:space="preserve">
     <value>Gérer les plugins</value>
   </data>

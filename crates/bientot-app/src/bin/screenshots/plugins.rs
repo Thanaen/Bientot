@@ -3,7 +3,8 @@
 //! - `flyout-plugin-focus.png`, « Concentration » after the counted time;
 //! - `flyout-plugin-menu.png`, its « … » menu open, the other cards under it;
 //! - `flyout-plugin-tomato.png`, a countdown and two buttons;
-//! - `flyout-plugin-battery.png`, a progress bar, a badge and a time.
+//! - `flyout-plugin-battery.png`, a progress bar, a badge and a time;
+//! - `flyout-plugins-paused.png`, the plugins off after two crashed starts.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -221,16 +222,24 @@ pub fn capture_cards(
     output: &std::path::Path,
 ) -> anyhow::Result<()> {
     for (slug, shown, menu) in [
-        ("focus", "bientot.focus", false),
-        ("menu", "bientot.focus", true),
-        ("tomato", "bientot.tomato", false),
-        ("battery", "bientot.battery", false),
+        ("plugin-focus", Some("bientot.focus"), false),
+        ("plugin-menu", Some("bientot.focus"), true),
+        ("plugin-tomato", Some("bientot.tomato"), false),
+        ("plugin-battery", Some("bientot.battery"), false),
+        ("plugins-paused", None, false),
     ] {
         let directory = demo::throwaway_directory();
         let day = DemoHost::open(DemoScenario::OnTrack, &directory)?.refresh(language);
         std::fs::remove_dir_all(&directory).ok();
         let day = day?;
-        cx.update(|cx| cx.set_global(cards(language, shown)));
+        let shown = match shown {
+            Some(shown) => cards(language, shown),
+            None => PluginCards {
+                paused: true,
+                ..PluginCards::default()
+            },
+        };
+        cx.update(|cx| cx.set_global(shown));
         let window = open_flyout(cx, day, working(TrackingState::Running), None)?;
         if menu {
             cx.update(|cx| {
@@ -241,7 +250,7 @@ pub fn capture_cards(
         capture(
             cx,
             window.into(),
-            &output.join(format!("flyout-plugin-{slug}.png")),
+            &output.join(format!("flyout-{slug}.png")),
         )?;
     }
     cx.update(|cx| cx.set_global(PluginCards::default()));

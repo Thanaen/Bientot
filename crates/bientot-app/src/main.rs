@@ -345,6 +345,9 @@ fn run_on(
 struct Started {
     today: Today,
     language: Language,
+    /// `false` with `--no-plugins`.
+    #[cfg(feature = "plugins")]
+    plugins: bool,
     #[cfg(windows)]
     lifecycle: Option<native::Lifecycle>,
     #[cfg(windows)]
@@ -428,6 +431,8 @@ fn start(
     Ok(Started {
         today: Today::open(source, language)?,
         language,
+        #[cfg(feature = "plugins")]
+        plugins: !launch.no_plugins,
         #[cfg(windows)]
         lifecycle,
         #[cfg(windows)]
@@ -465,6 +470,7 @@ fn show(
     if let Some(directory) = cx
         .global_mut::<Today>()
         .live()
+        .filter(|_| started.plugins)
         .map(|host| host.data_directory().clone())
     {
         let language = *cx.global::<Language>();
