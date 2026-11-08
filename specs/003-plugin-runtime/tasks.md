@@ -82,7 +82,7 @@ texts, and the design-system artifacts updated with any UI change.
 
 **Independent test**: spec US4.
 
-- [ ] T053 [US4] Implement the revocation list (verification with the built-in key, version and expiry checks, application to `state.json`, last good list) in `crates/bientot-plugins/src/revocation.rs`; tests per rule of `contracts/revocations.md`.
+- [x] T053 [US4] Implement the revocation list (verification with the built-in key, version and expiry checks, application to `state.json`, last good list) in `crates/bientot-plugins/src/revocation.rs`; tests per rule of `contracts/revocations.md`.
 - [ ] T054 [US4] Fetch the list with the update check and before an install or a turn-on, on a background thread, in `crates/bientot-app/src/plugins.rs`; skip in debug and demo runs; tell the user when the last list was used.
 - [ ] T055 [P] [US4] Serve `/plugins/revocations.json` as a static file from `services/bientot` (`site` scope pull request), with the first empty list signed by the maintainer's offline key.
 - [x] T056 [US4] Check file hashes at every load and show `FilesChanged` with **Remove** in **Settings › Plugins**; test by editing a file of an installed plugin.
