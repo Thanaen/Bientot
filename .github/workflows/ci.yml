@@ -261,6 +261,11 @@ jobs:
       - name: Test the Windows integration
         run: cargo test --locked -p bientot-windows
 
+      # Every hostile plugin of crates/bientot-plugins/tests/hostile on the plugin host built for
+      # release (FR-072, SC-004): no abort, the UI never waits, memory comes back.
+      - name: Run the hostile plugins
+        run: cargo run --release --locked -p bientot-plugins --example hostile-corpus
+
       # The executable as it ships, with the usage signal (spec signal-utilisation §4).
       # Kept aside for the upload: the Velopack build below writes the same path.
       - name: Build release executable

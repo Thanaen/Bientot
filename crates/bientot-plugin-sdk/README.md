@@ -154,7 +154,7 @@ instants in UTC, and the local date as it is (`day.date`).
 Each event may use 20 M fuel plus 250 per byte of the event (at most 100 M, 400 M for a command)
 and 500 ms of CPU (2 s for a command). Over a minute, a plugin gets 20 ms of background CPU,
 after a reserve of 500 ms. A plugin that traps three times in ten minutes stays off until
-Bientôt restarts. The samples use about 1.5 M fuel per event.
+Bientôt restarts. The samples use at most 1.7 M fuel per event.
 
 ## Testing
 

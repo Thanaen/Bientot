@@ -565,3 +565,31 @@ fn the_thread_runs_requests_and_stops_on_drop() {
         HostUpdate::Card { card: Some(_), .. }
     ));
 }
+
+#[test]
+fn after_a_failure_background_events_wait_but_commands_do_not() {
+    let mut h = Harness::new();
+    h.script().trap_on = vec!["activate".into()];
+    h.send(Request::Day(day(0)), 0.0);
+    h.send(
+        Request::Load(Box::new(spec("bientot.a", &["day.refreshed"], None))),
+        0.0,
+    );
+    let failures = |h: &Harness| {
+        h.updates
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|u| matches!(u, HostUpdate::Failed { .. }))
+            .count()
+    };
+    for t in [0.001, 0.01, 1.0, 29.0] {
+        h.host.step(h.at(t));
+    }
+    assert_eq!(failures(&h), 1, "the day is not retried at once");
+    assert_eq!(h.host.next_wakeup(h.at(1.0)), h.at(30.0));
+    h.send(command("bientot.a"), 2.0);
+    assert_eq!(failures(&h), 2, "a command still runs");
+    h.host.step(h.at(32.1));
+    assert_eq!(failures(&h), 3);
+}

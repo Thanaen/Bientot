@@ -9,7 +9,7 @@ use bientot_plugin_api::{ActivateReason, CommandSource, Event, Language, PluginI
 use bientot_plugin_sdk::testing::{
     NO_CARD, REPORT_PRESS_STEP, REPORT_PRESSES, demo_days, render_card,
 };
-use bientot_plugins::host::{LogLevel, LogSink, PluginContext, UiChange};
+use bientot_plugins::host::{LimitedLog, LogLevel, LogSink, PluginContext, UiChange};
 use bientot_plugins::manager;
 use bientot_plugins::package::MODULE;
 use bientot_plugins::runtime::{CallKind, Limits, PluginInstance, Runtime};
@@ -164,7 +164,8 @@ impl<'a> Run<'a> {
             locales: Arc::new(package.locales.clone()),
             language,
             day: None,
-            log: Arc::new(Log { print: print_log }),
+            // As in Bientôt: 60 lines a minute, the rest counted.
+            log: Arc::new(LimitedLog::new(Arc::new(Log { print: print_log }))),
             clock: Arc::new(move || *now.lock().unwrap()),
         };
         let instance = runtime
