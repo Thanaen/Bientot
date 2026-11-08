@@ -1,5 +1,5 @@
 //! `install`: installs a package in a Bientôt data folder as the consent dialog's « Installer »
-//! does, turned on with what it asks for. It is for measurements and tests: users install from
+//! does, turned on with what it asks for; an update keeps a plugin that is off as it is. It is for measurements and tests: users install from
 //! Settings › Plugins, which shows them what the plugin asks for first.
 
 use std::path::Path;
@@ -7,7 +7,7 @@ use std::path::Path;
 use bientot_plugins::files::PluginsDir;
 use bientot_plugins::manager;
 use bientot_plugins::runtime::Runtime;
-use bientot_plugins::state::StateFile;
+use bientot_plugins::state::{StateFile, Status};
 
 use crate::{Args, read};
 
@@ -27,8 +27,13 @@ pub fn run(args: &Args) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     let version = offer.package.manifest.version.to_string();
     let id = manager::install(&dir, &mut state, offer).map_err(|e| e.to_string())?;
+    // An update keeps a plugin that is off, revoked or stopped as it is, as in Bientôt.
+    let status = match &state.plugins[&id].status {
+        Status::Active => "on".to_owned(),
+        other => format!("kept {other:?}"),
+    };
     println!(
-        "installed {} {version} in {}, turned on",
+        "installed {} {version} in {}, {status}",
         id.as_str(),
         dir.root().display()
     );
@@ -37,8 +42,6 @@ pub fn run(args: &Args) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use bientot_plugins::state::Status;
-
     use super::*;
     use crate::pack::tests::{MODULE_WAT, folder};
 

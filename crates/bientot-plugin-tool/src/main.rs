@@ -25,7 +25,8 @@ sign     signs the package with the key; --announce adds a key that may sign lat
 check    installs the package as Bientôt would, runs it on every demo day and prints its cards;
          with --expect, compares them with the <language>.txt files of the folder.
 install  installs the package in the data folder, turned on with what it asks for, as after
-         the consent dialog: for measurements and tests, with Bientôt closed.";
+         the consent dialog; an update keeps a plugin that is off as it is. For measurements
+         and tests, with Bientôt closed.";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();

@@ -206,7 +206,7 @@ cards with your reference files.
 To try the plugin in Bientôt without going through **Settings › Plugins**, close Bientôt and run
 `cargo run -p bientot-plugin-tool -- install hello.bientot-plugin --data-dir <folder>`, then start
 Bientôt with `--data-dir <folder>`. It installs the plugin turned on with everything it asks for,
-as if you had accepted the consent dialog.
+as if you had accepted the consent dialog. An update keeps a plugin you turned off as it is.
 
 ## With Claude Code
 

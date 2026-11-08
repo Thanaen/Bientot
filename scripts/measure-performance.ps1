@@ -78,8 +78,10 @@ $ErrorActionPreference = 'Stop'
 $CpuBudgetPercent = 0.5
 $WorkingSetBudgetMiB = 150
 $StartupBudgetSeconds = 3
-# SC-003 of specs/003-plugin-runtime: what the sample plugin may add to the idle working set.
+# SC-003 of specs/003-plugin-runtime: what the sample plugin may add to the idle working set. Two
+# processes' peaks vary by about as much between runs, so CI fails only well above it.
 $PluginWorkingSetBudgetMiB = 2
+$PluginWorkingSetLimitMiB = 10
 
 if ($PluginPackage -and -not $PluginTool) {
     throw '-PluginPackage needs -PluginTool to install it.'
@@ -172,6 +174,7 @@ if ($Release) {
     $CpuLimitPercent = $CpuBudgetPercent
     $WorkingSetLimitMiB = $WorkingSetBudgetMiB
     $StartupLimitSeconds = $StartupBudgetSeconds
+    $PluginWorkingSetLimitMiB = $PluginWorkingSetBudgetMiB
 }
 
 $executablePath = (Resolve-Path -LiteralPath $ExecutablePath).Path
@@ -305,7 +308,7 @@ $results = @(
 if ($Baseline) {
     $before = Get-Content -Raw -LiteralPath $Baseline | ConvertFrom-Json
     $growth = $idle.PeakWorkingSetMiB - $before.PeakWorkingSetMiB
-    $results += [pscustomobject]@{ Name = 'SC-003 idle working set growth'; Value = $growth; Budget = $PluginWorkingSetBudgetMiB; Limit = $WorkingSetLimitMiB; Unit = 'MiB'; Format = '{0:N1}' }
+    $results += [pscustomobject]@{ Name = 'SC-003 idle working set growth'; Value = $growth; Budget = $PluginWorkingSetBudgetMiB; Limit = $PluginWorkingSetLimitMiB; Unit = 'MiB'; Format = '{0:N1}' }
 }
 foreach ($result in $results) {
     $result | Add-Member Status (Get-BudgetStatus $result.Value $result.Budget $result.Limit)
