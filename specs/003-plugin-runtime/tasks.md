@@ -20,7 +20,7 @@ texts, and the design-system artifacts updated with any UI change.
 - [x] T001 Add `crates/bientot-plugin-api`, `crates/bientot-plugins` and `crates/bientot-plugin-sdk` to the workspace with empty `lib.rs` files and `publish = false`.
 - [x] T002 Add the `plugins` feature to `crates/bientot-app/Cargo.toml`, on in `release` and `direct`, pulling `bientot-plugins`; check that a build without it is byte-identical in behaviour (`cargo test -p bientot-app` with and without).
 - [x] T003 Measure the size cost of `toml` in the `release` executable; keep TOML if it is at most 100 KB, otherwise switch the manifest contract to JSON (`contracts/manifest.md`, `plan.md`, `quickstart.md`). Done: 195 KiB, the manifest is `plugin.json`.
-- [ ] T004 [P] Add a size gate for the `direct` build to the `Rust on Windows` job in `.github/workflows/ci.yml`, beside the existing `release` gate, and record both sizes in the job summary.
+- [x] T004 [P] Add a size gate for the `direct` build to the `Rust on Windows` job in `.github/workflows/ci.yml`, beside the existing `release` gate, and record both sizes in the job summary.
 - [x] T005 [P] Pin `wasmi` with `default-features = false, features = ["std", "validate", "portable-dispatch"]` in `crates/bientot-plugins/Cargo.toml`; add it to `osv-scanner.toml` tracking and to the allowed licenses check of `bientot-notices`.
 
 ## Phase 2: Foundational (blocks every story)
