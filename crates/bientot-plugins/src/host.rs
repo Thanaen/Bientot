@@ -139,6 +139,9 @@ impl HostState {
     pub(crate) fn begin_event(&mut self) {
         self.ui_sets = 0;
         self.changes = Changes::default();
+        // A refusal of an earlier event, which the plugin may have handled, says nothing of a
+        // trap in this one.
+        self.limiter.denied_by_pool = false;
     }
 
     pub(crate) fn begin_slice(&mut self, allowance: u64, used: u64, slice: u64) {

@@ -343,7 +343,6 @@ impl Runtime {
         store
             .set_fuel(BACKGROUND_CAP)
             .map_err(|e| CallError::Trap(e.to_string()))?;
-        let started = Instant::now();
         let instance = self
             .linker
             .instantiate_and_start(&mut store, module)
@@ -375,7 +374,6 @@ impl Runtime {
             alloc,
             free,
             handle,
-            busy: started.elapsed(),
         };
         plugin.store.data_mut().take_changes();
         Ok(plugin)
@@ -389,8 +387,6 @@ pub struct PluginInstance {
     alloc: Func,
     free: Func,
     handle: Func,
-    /// Time spent in this instance since the last [`PluginInstance::take_busy`].
-    busy: Duration,
 }
 
 /// What one event produced.
@@ -424,11 +420,6 @@ impl PluginInstance {
         self.memory.data_size(&self.store)
     }
 
-    /// Time spent in this instance since the last call, including its start.
-    pub fn take_busy(&mut self) -> Duration {
-        std::mem::take(&mut self.busy)
-    }
-
     /// Delivers one event. `between` runs between two slices; the thread serves user actions of
     /// other plugins there. After an error the instance must be dropped.
     pub fn deliver(
@@ -445,7 +436,6 @@ impl PluginInstance {
         };
         self.store.data_mut().begin_event();
         let result = self.deliver_metered(event, &mut meter, between);
-        self.busy += meter.busy;
         let changes = self.store.data_mut().take_changes();
         result.map(|()| Outcome {
             ui: changes.ui,

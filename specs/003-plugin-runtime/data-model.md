@@ -74,9 +74,12 @@ State transitions:
                        FailedUntilRestart
  Active/Off ── revocation list names it ──► Revoked ── list clears it ──► Off
  Active/Off ── file hash differs at load ──► FilesChanged ── reinstall ──► Active
- Active/Off ── host no longer supports api ──► UnsupportedApi
+ Active/Off ── host no longer supports api ──► UnsupportedApi ── reinstall ──► Active
  any ── remove ──► (none, folder deleted)
 ```
+
+An update by the same author keeps `Off`, `Revoked` and `FailedUntilRestart` as they are;
+from any other state it leaves the plugin `Active`.
 
 ## RevocationList
 

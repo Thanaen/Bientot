@@ -150,6 +150,21 @@ fn an_update_by_the_same_author_skips_consent_and_says_upgraded() {
 }
 
 #[test]
+fn an_update_keeps_a_plugin_turned_off_off_and_mends_changed_files() {
+    let mut s = setup();
+    let first = offer(&package(Some(1), "0.1.0"), &[], &s.runtime, &s.state).unwrap();
+    install(&s.plugins, &mut s.state, first).unwrap();
+    s.state.plugins.get_mut(&id()).unwrap().turn_off();
+    let update = offer(&package(Some(1), "0.2.0"), &[], &s.runtime, &s.state).unwrap();
+    install(&s.plugins, &mut s.state, update).unwrap();
+    assert_eq!(s.state.plugins[&id()].status, Status::Off);
+    s.state.plugins.get_mut(&id()).unwrap().status = Status::FilesChanged;
+    let update = offer(&package(Some(1), "0.3.0"), &[], &s.runtime, &s.state).unwrap();
+    install(&s.plugins, &mut s.state, update).unwrap();
+    assert!(s.state.plugins[&id()].is_active());
+}
+
+#[test]
 fn a_module_the_manifest_does_not_allow_is_refused() {
     let s = setup();
     let mut manifest = manifest_json();

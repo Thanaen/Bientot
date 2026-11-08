@@ -101,7 +101,8 @@ pub fn offer(
 }
 
 /// Writes the accepted package and its state entry. An unsigned replacement starts over: its old
-/// state goes with it.
+/// state goes with it. An update keeps the state of a plugin that is off, revoked or failed until
+/// the next start; any other plugin comes on.
 pub fn install(dir: &PluginsDir, state: &mut StateFile, offer: Offer) -> io::Result<PluginId> {
     let Offer {
         package,
@@ -137,7 +138,15 @@ pub fn install(dir: &PluginsDir, state: &mut StateFile, offer: Offer) -> io::Res
             capabilities: package.manifest.capabilities.clone(),
             manifest_hash,
         },
-        status: Status::Active,
+        status: match previous.as_ref().map(|p| &p.status) {
+            // An update keeps what the user or Bientôt decided: off stays off, revoked stays
+            // revoked until the list says otherwise, failed waits for the next start. New files
+            // mend changed files and an api this host did not read.
+            Some(
+                status @ (Status::Off | Status::Revoked { .. } | Status::FailedUntilRestart { .. }),
+            ) => status.clone(),
+            _ => Status::Active,
+        },
         failures: Vec::new(),
         card_preference: previous.as_ref().is_some_and(|p| p.card_preference),
         hidden_on: previous.and_then(|p| p.hidden_on),

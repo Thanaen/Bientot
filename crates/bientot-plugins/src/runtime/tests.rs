@@ -379,6 +379,28 @@ fn memory_is_held_to_the_declaration_and_the_pool() {
 }
 
 #[test]
+fn a_handled_pool_refusal_does_not_hide_a_later_trap() {
+    // `{}` asks for 40 pages and ignores the refusal; anything longer traps.
+    let wasm = module(
+        "",
+        &[],
+        "(if (i32.eq (local.get 1) (i32.const 2)) \
+            (then (drop (memory.grow (i32.const 40)))) (else unreachable)) i64.const 0",
+        "",
+    );
+    let pool = Pool::new(3 << 20);
+    let runtime = Runtime::new(pool);
+    let module = runtime.compile(&wasm, &granted()).unwrap();
+    let make = || runtime.instantiate(&module, context(manifest("8MiB", "1MiB"), Arc::default()));
+    let (mut a, _b, _c) = (make().unwrap(), make().unwrap(), make().unwrap());
+    let limits = Limits::for_event(CallKind::Background, 2);
+    assert!(a.deliver(b"{}", limits, &mut || {}).is_ok());
+    let error = a.deliver(b"{ }", limits, &mut || {}).unwrap_err();
+    assert!(matches!(error, CallError::Trap(_)), "{error:?}");
+    assert!(error.is_failure());
+}
+
+#[test]
 fn modules_are_checked() {
     let runtime = Runtime::default();
     let check =

@@ -113,7 +113,8 @@ impl PluginsDir {
         }
     }
 
-    /// Removes the leftovers of an install that stopped half way.
+    /// Removes the leftovers of an install that stopped half way. An install that stopped between
+    /// its two renames left the plugin only in `.old-<id>-…`: that folder goes back in place.
     pub fn sweep(&self) {
         let Ok(entries) = fs::read_dir(&self.root) else {
             return;
@@ -121,6 +122,16 @@ impl PluginsDir {
         for entry in entries.flatten() {
             let name = entry.file_name();
             let name = name.to_string_lossy();
+            let orphan = name
+                .strip_prefix(".old-")
+                .and_then(|rest| rest.rsplit_once('-'))
+                .and_then(|(id, _)| PluginId::parse(id))
+                .filter(|id| !self.plugin(id).exists());
+            if let Some(id) = orphan
+                && fs::rename(entry.path(), self.plugin(&id)).is_ok()
+            {
+                continue;
+            }
             if name.starts_with(".new-") || name.starts_with(".old-") {
                 let _ = fs::remove_dir_all(entry.path());
             } else if name.ends_with(".tmp") {
@@ -187,6 +198,33 @@ mod tests {
             .iter()
             .map(|(p, h)| (p.clone(), package::hex(h)))
             .collect()
+    }
+
+    #[test]
+    fn an_install_stopped_between_its_renames_is_undone_at_the_next_start() {
+        let dir = tempfile::tempdir().unwrap();
+        let plugins = PluginsDir::new(dir.path().join("plugins"));
+        let first = package(b"one");
+        let id = first.manifest.id.clone();
+        plugins.install(&first).unwrap();
+        // The old folder was moved aside, the new one never came in.
+        let aside = dir
+            .path()
+            .join(format!("plugins/.old-{}-0123abcd", id.as_str()));
+        fs::rename(plugins.plugin(&id), &aside).unwrap();
+        fs::create_dir(
+            dir.path()
+                .join(format!("plugins/.new-{}-4567", id.as_str())),
+        )
+        .unwrap();
+        plugins.sweep();
+        assert!(plugins.load(&id, &expected(&first)).unwrap().is_some());
+        assert_eq!(fs::read_dir(dir.path().join("plugins")).unwrap().count(), 1);
+        // With the plugin in place, a leftover old folder goes.
+        fs::create_dir(&aside).unwrap();
+        plugins.sweep();
+        assert!(!aside.exists());
+        assert!(plugins.load(&id, &expected(&first)).unwrap().is_some());
     }
 
     #[test]

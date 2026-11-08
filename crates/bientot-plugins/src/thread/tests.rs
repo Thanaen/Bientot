@@ -19,6 +19,11 @@ struct Script {
     memory: usize,
     /// Set a card on `activate`.
     card_on_activate: bool,
+    /// Requests that reach `inbox` while `bientot.a` runs, before it calls `between`.
+    arrive: Vec<Request>,
+    inbox: Option<Arc<Mutex<VecDeque<Request>>>>,
+    /// Time an activation takes.
+    activation: Duration,
 }
 
 #[derive(Clone, Default)]
@@ -38,7 +43,12 @@ impl Sandbox for Fake {
         spec: &PluginSpec,
         context: PluginContext,
     ) -> Result<FakeInstance, CallError> {
-        self.0.lock().unwrap().activations += 1;
+        let activation = {
+            let mut script = self.0.lock().unwrap();
+            script.activations += 1;
+            script.activation
+        };
+        std::thread::sleep(activation);
         Ok(FakeInstance {
             id: spec.manifest.id.clone(),
             script: self.0.clone(),
@@ -56,6 +66,14 @@ impl Sandboxed for FakeInstance {
         _: Limits,
         between: &mut dyn FnMut(),
     ) -> Result<Outcome, CallError> {
+        {
+            let mut script = self.script.lock().unwrap();
+            if self.id.as_str() == "bientot.a"
+                && let Some(inbox) = script.inbox.clone()
+            {
+                inbox.lock().unwrap().extend(script.arrive.drain(..));
+            }
+        }
         between();
         let event: Value = serde_json::from_slice(event).unwrap();
         let name = event["event"].as_str().unwrap().to_owned();
@@ -313,6 +331,95 @@ fn a_long_call_lets_other_plugins_commands_through() {
         .map(|(p, e, _)| format!("{p} {e}"))
         .collect();
     assert_eq!(order[0], "bientot.b activate", "{order:?}");
+}
+
+#[test]
+fn a_command_that_arrives_during_a_long_call_runs_between_slices() {
+    let mut h = Harness::new();
+    h.send(
+        Request::Load(Box::new(spec("bientot.a", &["day.refreshed"], None))),
+        0.0,
+    );
+    h.send(Request::Load(Box::new(spec("bientot.b", &[], None))), 0.0);
+    h.seen();
+    let inbox: Arc<Mutex<VecDeque<Request>>> = Arc::default();
+    let reader = inbox.clone();
+    h.host
+        .set_inbox(Box::new(move || reader.lock().unwrap().pop_front()));
+    {
+        let mut script = h.script();
+        script.inbox = Some(inbox);
+        let a = PluginId::parse("bientot.a").unwrap();
+        // b's command and a's own command and unload arrive while a's day call runs.
+        script.arrive = vec![
+            command("bientot.b"),
+            command("bientot.a"),
+            Request::Unload(a),
+        ];
+    }
+    h.host.accept(Request::Day(day(0)), h.at(1.0));
+    h.host.step(h.at(1.0));
+    let order: Vec<String> = h
+        .seen()
+        .into_iter()
+        .map(|(p, e, _)| format!("{p} {e}"))
+        .collect();
+    assert_eq!(
+        order,
+        [
+            "bientot.b activate",
+            "bientot.b command.invoked",
+            "bientot.a activate",
+            "bientot.a day.refreshed",
+            "bientot.a command.invoked",
+        ],
+        "b ran between a's slices; a's own command and its unload waited for the call to end"
+    );
+    assert!(!h.host.is_live(&PluginId::parse("bientot.a").unwrap()));
+}
+
+#[test]
+fn an_activation_is_charged_to_the_budget() {
+    let mut h = Harness::new();
+    h.script().activation = crate::budget::PLUGIN_RESERVE + Duration::from_millis(20);
+    h.host.accept(Request::Day(day(0)), h.at(0.0));
+    h.send(
+        Request::Load(Box::new(spec("bientot.a", &["day.refreshed"], None))),
+        0.0,
+    );
+    let a = PluginId::parse("bientot.a").unwrap();
+    assert!(h.host.budgets.background_ready_at(&a, h.at(0.0)) > h.at(0.0));
+}
+
+#[test]
+fn the_thread_stops_on_drop_even_with_a_full_queue() {
+    let thread = spawn(
+        || {
+            // The thread starts late, so the queue is full when the handle drops.
+            std::thread::sleep(Duration::from_millis(200));
+            Fake::default()
+        },
+        Language::En,
+        Arc::new(Lines::default()),
+        Arc::new(|| "2026-11-08T12:00:00Z".parse().unwrap()),
+        Box::new(|_| {}),
+    )
+    .unwrap();
+    for n in 0..(2 * QUEUE) {
+        thread.send(Request::Load(Box::new(spec(
+            &format!("bientot.p{n}"),
+            &[],
+            None,
+        ))));
+    }
+    let (done, finished) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        drop(thread);
+        let _ = done.send(());
+    });
+    finished
+        .recv_timeout(Duration::from_secs(10))
+        .expect("the handle stops the thread");
 }
 
 #[test]

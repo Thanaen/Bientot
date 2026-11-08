@@ -148,6 +148,14 @@ pub struct Host<S: Sandbox> {
     clock: Clock,
     notify: Box<dyn FnMut(HostUpdate) + Send>,
     next_activation: Instant,
+    /// Where requests that arrive during a call come from, read between two slices.
+    inbox: Option<Box<dyn FnMut() -> Option<Request>>>,
+    /// Requests read during a call that wait for it to end: anything but another plugin's
+    /// command, which runs at once.
+    later: VecDeque<Request>,
+    /// The plugins whose instance is out of its slot for a call, outermost first.
+    calling: Vec<PluginId>,
+    stopped: bool,
 }
 
 impl<S: Sandbox> Host<S> {
@@ -174,7 +182,22 @@ impl<S: Sandbox> Host<S> {
             clock,
             notify,
             next_activation: now,
+            inbox: None,
+            later: VecDeque::new(),
+            calling: Vec::new(),
+            stopped: false,
         }
+    }
+
+    /// Lets the host read new requests between two slices of a long call, so that a user
+    /// command for another plugin does not wait for it (FR-012).
+    pub fn set_inbox(&mut self, inbox: Box<dyn FnMut() -> Option<Request>>) {
+        self.inbox = Some(inbox);
+    }
+
+    /// Whether a [`Request::Stop`] was accepted.
+    pub fn stopped(&self) -> bool {
+        self.stopped
     }
 
     pub fn is_empty(&self) -> bool {
@@ -194,7 +217,7 @@ impl<S: Sandbox> Host<S> {
             Request::Day(day) => self.day(day),
             Request::Language(language) => self.language(language),
             command @ Request::Command { .. } => self.user.push_back(command),
-            Request::Stop => {}
+            Request::Stop => self.stopped = true,
         }
     }
 
@@ -294,6 +317,7 @@ impl<S: Sandbox> Host<S> {
     /// Runs everything due at `now`: user commands first, then each plugin's background events
     /// when its budget and the 30 s day rule allow, then evictions.
     pub fn step(&mut self, now: Instant) {
+        self.accept_later(now);
         while let Some(request) = self.user.pop_front() {
             self.command(request, now);
         }
@@ -303,8 +327,15 @@ impl<S: Sandbox> Host<S> {
             while let Some(request) = self.user.pop_front() {
                 self.command(request, now);
             }
+            self.accept_later(now);
         }
         self.evict_idle(now);
+    }
+
+    fn accept_later(&mut self, now: Instant) {
+        while let Some(request) = self.later.pop_front() {
+            self.accept(request, now);
+        }
     }
 
     /// When [`Host::step`] has something to do again, if nothing new arrives.
@@ -432,10 +463,12 @@ impl<S: Sandbox> Host<S> {
         };
         let started = Instant::now();
         let limits = Limits::for_event(kind, bytes.len());
+        self.calling.push(id.clone());
         let result = {
-            let mut between = || self.serve_others(id, now);
+            let mut between = || self.serve_others(now);
             instance.deliver(bytes, limits, &mut between)
         };
+        self.calling.pop();
         let busy = result
             .as_ref()
             .map_or_else(|_| started.elapsed(), |o| o.busy);
@@ -460,12 +493,29 @@ impl<S: Sandbox> Host<S> {
         }
     }
 
-    /// Between two slices of a long call: run user commands of the other plugins.
-    fn serve_others(&mut self, running: &PluginId, now: Instant) {
+    /// Between two slices of a long call: read what arrived and run user commands of the other
+    /// plugins. The rest waits for the call to end: an `Unload` of the running plugin cannot
+    /// take its slot away under it.
+    fn serve_others(&mut self, now: Instant) {
+        if let Some(inbox) = self.inbox.as_mut() {
+            let mut arrived = Vec::new();
+            while let Some(request) = inbox() {
+                arrived.push(request);
+            }
+            for request in arrived {
+                match request {
+                    command @ Request::Command { .. } => self.user.push_back(command),
+                    other => self.later.push_back(other),
+                }
+            }
+        }
         let mut kept = VecDeque::new();
         while let Some(request) = self.user.pop_front() {
             match &request {
-                Request::Command { plugin, .. } if plugin != running => self.command(request, now),
+                // A plugin in a call, this one or one that called into a command, waits.
+                Request::Command { plugin, .. } if !self.calling.contains(plugin) => {
+                    self.command(request, now)
+                }
                 _ => kept.push_back(request),
             }
         }
@@ -488,6 +538,7 @@ impl<S: Sandbox> Host<S> {
             log: self.log.clone(),
             clock: self.clock.clone(),
         };
+        let started = Instant::now();
         let mut activated = self.sandbox.activate(&slot.spec, context);
         if activated.as_ref().err() == Some(&CallError::PoolFull) {
             self.evict_others(id);
@@ -503,6 +554,8 @@ impl<S: Sandbox> Host<S> {
             };
             activated = self.sandbox.activate(&slot.spec, context);
         }
+        // The start function is the plugin's code too: its time counts, failed or not.
+        self.budgets.charge(id, started.elapsed(), now);
         let instance = match activated {
             Ok(instance) => instance,
             Err(error) => {
@@ -623,16 +676,19 @@ fn prepare(card: &Card, spec: &PluginSpec, language: Language) -> Option<Prepare
 
 /// The handle the app keeps. Dropping it stops the thread.
 pub struct PluginThread {
-    sender: SyncSender<Request>,
+    /// `None` once dropping: the thread then sees the channel close even if `Stop` did not fit.
+    sender: Option<SyncSender<Request>>,
     handle: Option<JoinHandle<()>>,
     shared_full: Arc<Mutex<u64>>,
 }
 
 impl PluginThread {
-    /// Sends a request. A full queue drops it, except a day snapshot, which the next one
-    /// replaces anyway; the count of drops is kept for diagnostics.
+    /// Sends a request. A full queue drops it, whatever it is, and counts the drop for
+    /// diagnostics: 64 requests waiting means the thread is stuck, and a dropped day snapshot is
+    /// replaced by the next one.
     pub fn send(&self, request: Request) {
-        if let Err(TrySendError::Full(_)) = self.sender.try_send(request) {
+        let Some(sender) = &self.sender else { return };
+        if let Err(TrySendError::Full(_)) = sender.try_send(request) {
             *self.shared_full.lock().unwrap_or_else(|e| e.into_inner()) += 1;
         }
     }
@@ -644,7 +700,9 @@ impl PluginThread {
 
 impl Drop for PluginThread {
     fn drop(&mut self) {
-        let _ = self.sender.try_send(Request::Stop);
+        if let Some(sender) = self.sender.take() {
+            let _ = sender.try_send(Request::Stop);
+        }
         if let Some(handle) = self.handle.take() {
             let _ = handle.join();
         }
@@ -670,7 +728,7 @@ where
         .stack_size(8 << 20)
         .spawn(move || run(make(), receiver, language, log, clock, notify))?;
     Ok(PluginThread {
-        sender,
+        sender: Some(sender),
         handle: Some(handle),
         shared_full: Arc::default(),
     })
@@ -684,7 +742,10 @@ fn run<S: Sandbox>(
     clock: Clock,
     notify: Box<dyn FnMut(HostUpdate) + Send>,
 ) {
+    let receiver = std::rc::Rc::new(receiver);
     let mut host = Host::new(sandbox, language, log, clock, notify, Instant::now());
+    let inbox = receiver.clone();
+    host.set_inbox(Box::new(move || inbox.try_recv().ok()));
     loop {
         let now = Instant::now();
         let wait = host.next_wakeup(now).saturating_duration_since(now);
@@ -701,6 +762,9 @@ fn run<S: Sandbox>(
             host.accept(request, Instant::now());
         }
         host.step(Instant::now());
+        if host.stopped() {
+            return;
+        }
     }
 }
 
