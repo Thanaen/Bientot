@@ -72,7 +72,7 @@ State transitions:
           3 traps in 10 min       │  │  next start
                                   ▼  │
                        FailedUntilRestart
- Active/Off ── revocation list names it ──► Revoked ── list clears it ──► Off
+ any status ── revocation list names it ──► Revoked ── list clears it ──► Off
  Active/Off ── file hash differs at load ──► FilesChanged ── reinstall ──► Active
  Active/Off ── host no longer supports api ──► UnsupportedApi ── reinstall ──► Active
  any ── remove ──► (none, folder deleted)

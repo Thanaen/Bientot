@@ -237,6 +237,52 @@ fn a_revoked_id_or_key_turns_plugins_revoked_and_a_later_list_turns_them_off() {
 }
 
 #[test]
+fn a_plugin_is_revoked_whatever_its_status_and_takes_a_new_reason() {
+    let failing = Status::FailedUntilRestart {
+        reason: "fuel".into(),
+    };
+    let mut state = StateFile {
+        schema: SCHEMA,
+        plugins: [failing, Status::FilesChanged, Status::UnsupportedApi]
+            .into_iter()
+            .enumerate()
+            .map(|(at, status)| {
+                (
+                    id(&format!("com.example.p{at}")),
+                    plugin(unsigned(), status),
+                )
+            })
+            .collect(),
+    };
+    let key = maintainer();
+    let names = |reason: &str| {
+        let entries: Vec<Value> = (0..3)
+            .map(|at| json!({ "id": format!("com.example.p{at}"), "reason": { "en": reason } }))
+            .collect();
+        verify(
+            &signed(list(1, Value::Array(entries)), &key),
+            &key.verifying_key(),
+            None,
+            now(),
+        )
+        .unwrap()
+    };
+    assert_eq!(apply(&mut state, &names("Malware")).len(), 3);
+    // A restart no longer turns the failed one back on.
+    state.on_start();
+    assert!(!state.any_active());
+    assert_eq!(apply(&mut state, &names("Malware")).len(), 0);
+    assert_eq!(apply(&mut state, &names("Steals data")).len(), 3);
+    assert_eq!(
+        state.plugins[&id("com.example.p0")].status,
+        Status::Revoked {
+            reason_en: "Steals data".into(),
+            reason_fr: "Steals data".into()
+        }
+    );
+}
+
+#[test]
 fn the_last_good_list_is_kept_and_a_bad_one_leaves_it_in_force() {
     let dir = tempfile::tempdir().unwrap();
     let plugins = PluginsDir::new(dir.path().join("plugins"));

@@ -119,12 +119,14 @@ impl InstalledPlugin {
             )
     }
 
+    /// From any status, so that no later transition (a restart, an update) brings it back; a
+    /// new reason replaces the old one.
     pub fn revoke(&mut self, reason_en: &str, reason_fr: &str) -> bool {
         let revoked = Status::Revoked {
             reason_en: reason_en.to_owned(),
             reason_fr: reason_fr.to_owned(),
         };
-        self.set_if(matches!(self.status, Status::Active | Status::Off), revoked)
+        self.set_if(self.status != revoked, revoked)
     }
 
     pub fn unrevoke(&mut self) -> bool {
