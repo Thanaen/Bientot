@@ -452,8 +452,12 @@ impl<S: Sandbox> Host<S> {
         let mut result = self.call(id, &bytes, kind, now);
         if result == Err(CallError::PoolFull) {
             self.evict_others(id);
-            if self.ensure_instance(id, now) {
-                result = self.call(id, &bytes, kind, now);
+            if !self.ensure_instance(id, now) {
+                return false;
+            }
+            result = self.call(id, &bytes, kind, now);
+            if result == Err(CallError::PoolFull) {
+                self.failed(id, &CallError::PoolFull, now);
             }
         }
         if matches!(event, Event::Installed { .. } | Event::Upgraded { .. }) && result.is_ok() {
@@ -486,7 +490,7 @@ impl<S: Sandbox> Host<S> {
         self.budgets.charge(id, busy, now);
         match result {
             Ok(outcome) => {
-                self.apply(id, outcome);
+                self.apply(id, outcome, now);
                 let slot = self.slots.get_mut(id).expect("the slot outlives its call");
                 slot.last_event = now;
                 let size = instance.memory_bytes();
@@ -496,6 +500,14 @@ impl<S: Sandbox> Host<S> {
                     slot.instance = Some(instance);
                 }
                 Ok(())
+            }
+            // The caller evicts the others and tries again; it reports the failure only if that
+            // does not help, so that a recovered pool costs the plugin no wait.
+            Err(CallError::PoolFull) => {
+                if let Some(slot) = self.slots.get_mut(id) {
+                    slot.reason = ActivateReason::Restart;
+                }
+                Err(CallError::PoolFull)
             }
             Err(error) => {
                 self.failed(id, &error, now);
@@ -603,10 +615,14 @@ impl<S: Sandbox> Host<S> {
 
     fn deliver_now(&mut self, id: &PluginId, event: &Event, now: Instant) -> bool {
         let bytes = serde_json::to_vec(event).expect("an event serializes");
-        self.call(id, &bytes, CallKind::Background, now).is_ok()
+        let result = self.call(id, &bytes, CallKind::Background, now);
+        if result == Err(CallError::PoolFull) {
+            self.failed(id, &CallError::PoolFull, now);
+        }
+        result.is_ok()
     }
 
-    fn apply(&mut self, id: &PluginId, outcome: Outcome) {
+    fn apply(&mut self, id: &PluginId, outcome: Outcome, now: Instant) {
         let language = self.shared.language;
         let slot = self.slots.get_mut(id).expect("applied to a live slot");
         for rejected in &outcome.rejected {
@@ -627,6 +643,8 @@ impl<S: Sandbox> Host<S> {
             });
         }
         if !outcome.rejected.is_empty() {
+            // A refused card is a failure too: the background events wait, the instance stays.
+            slot.not_before = slot.not_before.max(now + RETRY_AFTER_FAILURE);
             (self.notify)(HostUpdate::Failed {
                 plugin: id.clone(),
                 error: outcome.rejected.join("; "),
