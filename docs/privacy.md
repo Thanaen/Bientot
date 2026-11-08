@@ -54,6 +54,29 @@ exported before the rename, holds a copy of the database and of
 `settings.json`. It stays where you save it; Bientôt never sends it
 anywhere.
 
+## Plugins
+
+No release build includes plugins yet. This section describes the builds
+that do.
+
+A plugin runs inside Bientôt with no access to the network, to your files or
+to the database. It sees only what you granted when you installed it, which
+the consent dialog lists: the current day as Bientôt shows it (the time
+counted, the targets, the departure times, the day's segments and this week's
+totals, never the database itself), the time, and its own card. Its log lines
+stay on the machine.
+
+| File | Content |
+| --- | --- |
+| `plugins\<id>\` | The files of each installed plugin, as its package held them. |
+| `plugins\state.json` | For each plugin: its version, the signing key or package hash it is bound to, the hash of each of its files, what you granted, whether it is on, the times of its last failures, whether its card shows, the day you hid it, and its place among the cards. |
+| `plugins\starting` | A counter of the starts that crashed, for the safe mode. |
+| `plugins\revocations.json` | The last revocation list Bientôt accepted, as the server sent it. |
+| `logs\plugins\<id>.jsonl` | What each plugin wrote to its log, and why Bientôt stopped it, at most 1 MiB per file, each deleted after 14 days. The diagnostic export never reads these files. |
+
+A `.bientot` file exported with plugins installed also names them, with their
+id and version only: no plugin file, grant or log goes into it.
+
 ## Network requests
 
 Bientôt makes two kinds of request.
@@ -149,9 +172,10 @@ after the new archive is complete.
 1. If **Start with Windows** is on, turn it off in the Bientôt
    settings. Otherwise Bientôt starts again at the next sign-in.
 2. Quit Bientôt from the tray menu.
-3. Delete the `%LOCALAPPDATA%\Bientot` folder, and `%LOCALAPPDATA%\WorkTime`
-   if it is still there, or the folder you passed with `--data-dir` if you
-   start Bientôt that way.
+3. Delete the `%LOCALAPPDATA%\Bientot` folder, which holds the installed
+   plugins and their logs too, and `%LOCALAPPDATA%\WorkTime` if it is still
+   there, or the folder you passed with `--data-dir` if you start Bientôt
+   that way.
 4. Delete any `.bientot` or `.worktime` file you exported.
 
 The next start from the same data folder shows onboarding again and creates a
