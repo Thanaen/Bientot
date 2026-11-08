@@ -647,9 +647,8 @@ pub fn install(offered: Offered, cx: &mut App) -> std::io::Result<PluginId> {
     unload(&id, cx);
     let plugins = cx.global_mut::<Plugins>();
     let installed = manager::install(&plugins.dir, &mut plugins.state, offer);
-    if installed.is_ok() {
-        load_installed(&id, cx);
-    }
+    // After a failed update, the version still installed loads again.
+    load_installed(&id, cx);
     changed(cx);
     installed
 }

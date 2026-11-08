@@ -154,6 +154,9 @@ fn write(
     })?;
     ledger.execute("VACUUM INTO ?1;", [path])?;
     let copy = Connection::open(temporary)?;
+    // A ledger imported by a build before plugins kept the table of its file: its rows name
+    // another PC's plugins.
+    copy.execute_batch("DROP TABLE IF EXISTS TransferPlugin;")?;
     copy.execute_batch(CREATE_TABLE)?;
     copy.execute(
         "INSERT INTO WorkTimeTransfer (Format, ExportedAtUtc, Settings) VALUES (?1, ?2, ?3);",

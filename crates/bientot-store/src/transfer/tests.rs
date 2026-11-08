@@ -139,6 +139,24 @@ fn an_export_names_the_installed_plugins_and_carries_none_of_their_files_or_stat
 }
 
 #[test]
+fn a_ledger_that_kept_the_plugins_of_an_older_import_still_exports_without_them() {
+    let (_temporary, directory) = folder(&["2026-10-21"], 450);
+    // An import by a build before plugins dropped only `WorkTimeTransfer`.
+    open(&directory.database_file())
+        .unwrap()
+        .execute_batch(
+            "CREATE TABLE TransferPlugin (Id TEXT NOT NULL, Version TEXT NOT NULL);
+             INSERT INTO TransferPlugin VALUES ('someone.elses', '9.9.9');",
+        )
+        .unwrap();
+    let destination = directory.path().join("export.bientot");
+
+    export(&directory, &destination, now()).unwrap();
+
+    assert_eq!(exported_plugins(&destination).unwrap(), []);
+}
+
+#[test]
 fn a_file_exported_before_plugins_names_none() {
     let (_temporary, directory) = folder(&[], 420);
     let destination = directory.path().join("export.worktime");
