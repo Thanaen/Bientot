@@ -165,6 +165,41 @@ fn an_update_keeps_a_plugin_turned_off_off_and_mends_changed_files() {
 }
 
 #[test]
+fn cards_keep_their_install_order_and_the_users_choices() {
+    let mut s = setup();
+    let first = offer(&package(Some(1), "0.1.0"), &[], &s.runtime, &s.state).unwrap();
+    install(&s.plugins, &mut s.state, first).unwrap();
+    let mut manifest = manifest_json();
+    manifest["id"] = "bientot.other".into();
+    let other = build(&entries(&manifest, &card_plugin()), Some(&key(1)), &[]);
+    let other = offer(&other, &[], &s.runtime, &s.state).unwrap();
+    let other = install(&s.plugins, &mut s.state, other).unwrap();
+    let update = offer(&package(Some(1), "0.2.0"), &[], &s.runtime, &s.state).unwrap();
+    install(&s.plugins, &mut s.state, update).unwrap();
+    assert_eq!(
+        (s.state.plugins[&id()].rank, s.state.plugins[&other].rank),
+        (0, 1)
+    );
+
+    let today = jiff::civil::date(2026, 11, 9);
+    let focus = id();
+    let both = [&focus, &other];
+    assert_eq!(s.state.cards(today, both).shown, Some(&focus));
+    show_card(&s.plugins, &mut s.state, &other);
+    assert_eq!(s.state.cards(today, both).shown, Some(&other));
+    hide_card(&s.plugins, &mut s.state, &other, today);
+    let saved = StateFile::load(&s.plugins.state_path()).unwrap();
+    assert_eq!(saved, s.state);
+    assert_eq!(saved.cards(today, both).shown, Some(&focus));
+    show_card(&s.plugins, &mut s.state, &other);
+    assert_eq!(
+        s.state.cards(today, both).shown,
+        Some(&other),
+        "picked again the same day"
+    );
+}
+
+#[test]
 fn a_module_the_manifest_does_not_allow_is_refused() {
     let s = setup();
     let mut manifest = manifest_json();

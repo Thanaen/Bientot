@@ -638,6 +638,8 @@ fn publish(cx: &mut App) {
     let refresh_failure = today.refresh_failure();
     shell::show_day(view, tracking, recalculated, refresh_failure, cx);
     week_view::reload(cx);
+    #[cfg(feature = "plugins")]
+    crate::plugins::day_changed(cx);
 }
 
 /// Runs a command of the tray menu. The greyed ones never reach here.

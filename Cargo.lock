@@ -439,6 +439,7 @@ dependencies = [
  "anyhow",
  "bientot-core",
  "bientot-domain",
+ "bientot-plugin-api",
  "bientot-plugins",
  "bientot-store",
  "bientot-windows",

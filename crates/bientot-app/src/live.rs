@@ -884,6 +884,33 @@ impl<'a> LiveHost<'a> {
         self.refresh_failed
     }
 
+    /// The published day as plugins read it (FR-031), `None` before the first publication.
+    #[cfg(feature = "plugins")]
+    pub fn plugin_day(
+        &self,
+        language: bientot_plugin_api::Language,
+    ) -> Option<bientot_plugin_api::DaySnapshot> {
+        let summary = self.published_summary()?;
+        let calendar = WorkdayCalendar::new(self.zones);
+        let lunch = calendar
+            .interval(
+                summary.workday(),
+                self.settings.lunch_start,
+                self.settings.lunch_end,
+            )
+            .ok()?;
+        Some(bientot_plugins::snapshot::build(
+            &bientot_plugins::snapshot::DayInput {
+                summary,
+                tracking: self.tracking,
+                working_day: summary.workday().is_working_day(),
+                lunch,
+                minimum: self.settings.minimum_effective_target,
+                language,
+            },
+        ))
+    }
+
     /// The summary last published, kept beside a source failure or not.
     fn published_summary(&self) -> Option<&DailySummary> {
         self.coordinator

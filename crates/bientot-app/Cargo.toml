@@ -18,7 +18,7 @@ required-features = ["screenshots"]
 
 [features]
 # Renders the flyout off screen to PNG files (software Vulkan on Linux CI).
-screenshots = ["gpui/test-support", "gpui_platform/test-support", "dep:gpui_wgpu"]
+screenshots = ["gpui/test-support", "gpui_platform/test-support", "dep:gpui_wgpu", "plugins"]
 # Sends the anonymous daily usage signal over HTTPS from a release build. A debug build never
 # sends, even with this feature on, and CI only measures the release build with `--data-dir`.
 usage-ping = ["dep:ureq"]
@@ -26,7 +26,7 @@ usage-ping = ["dep:ureq"]
 updates = ["dep:ureq", "dep:velopack"]
 # Runs WebAssembly plugins (specs/003-plugin-runtime). Without it, nothing of the plugin host is
 # compiled in.
-plugins = ["dep:bientot-plugins"]
+plugins = ["dep:bientot-plugin-api", "dep:bientot-plugins"]
 # The features of the Store package and the portable ZIP, whose updates do not go through
 # Velopack. The notices generator reads the same feature.
 release = ["usage-ping", "plugins"]
@@ -35,6 +35,8 @@ direct = ["release", "updates"]
 
 [dependencies]
 anyhow = "1"
+# Channels from the plugins thread; gpui builds it anyway.
+futures = "0.3"
 gpui = { version = "=0.3.9", package = "gpui-pre" }
 gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform" }
 image = { version = "0.25", default-features = false, features = ["png"] }
@@ -50,6 +52,7 @@ serde_json = "1.0.154"
 ureq = { version = "3.4.2", default-features = false, features = ["native-tls"], optional = true }
 bientot-core = { path = "../bientot-core" }
 bientot-domain = { path = "../bientot-domain" }
+bientot-plugin-api = { path = "../bientot-plugin-api", optional = true }
 bientot-plugins = { path = "../bientot-plugins", optional = true }
 bientot-store = { path = "../bientot-store" }
 bientot-windows = { path = "../bientot-windows" }
@@ -59,7 +62,6 @@ bientot-windows = { path = "../bientot-windows" }
 gpui_wgpu = { version = "=0.3.9", package = "gpui-pre-wgpu", optional = true }
 
 [target.'cfg(windows)'.dependencies]
-futures = "0.3"
 raw-window-handle = "0.6"
 tray-icon = { version = "0.26", default-features = false }
 # `public-utils` names the manifest an update source receives.

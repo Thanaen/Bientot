@@ -28,8 +28,12 @@ use crate::workday::{self, DayView, TrackingStatus};
 
 mod body;
 mod callout;
+#[cfg(feature = "plugins")]
+mod plugin_card;
 
 pub use body::Alerts;
+#[cfg(feature = "plugins")]
+pub use plugin_card::PluginMenuState;
 
 actions!(
     worktime,
@@ -139,6 +143,8 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("shift-tab", FocusPrevious, Some(KEY_CONTEXT)),
         KeyBinding::new(keystroke::QUIT, Quit, Some(KEY_CONTEXT)),
     ]);
+    #[cfg(feature = "plugins")]
+    plugin_card::bind_keys(cx);
 }
 
 /// The cap of one key of a keystroke in `language`: `shift` is « Maj », `h` is « H ».
@@ -225,6 +231,8 @@ pub struct Flyout {
     /// The part of the body whose callout the user closed with the focus in it, see
     /// [`Self::closing_callout`]; forgotten once Tab moves the focus.
     closing: Option<Closing>,
+    #[cfg(feature = "plugins")]
+    plugin_menu: plugin_card::Menu,
     _close_on_deactivate: Subscription,
     _show_updates: Subscription,
     _keep_focus: Subscription,
@@ -276,6 +284,8 @@ impl Flyout {
             shown_parts: Vec::new(),
             reveal_focus: false,
             closing: None,
+            #[cfg(feature = "plugins")]
+            plugin_menu: plugin_card::Menu::new(cx),
             _close_on_deactivate: close_on_deactivate,
             _show_updates: show_updates,
             _keep_focus: keep_focus,
@@ -435,6 +445,10 @@ impl Flyout {
     }
 
     fn close(&mut self, _: &CloseFlyout, window: &mut Window, cx: &mut Context<Self>) {
+        #[cfg(feature = "plugins")]
+        if self.close_plugin_menu(window, cx) {
+            return;
+        }
         shell::flyout_closed(cx);
         window.remove_window();
     }

@@ -460,6 +460,16 @@ fn show(
         // scripts/measure-performance.ps1 times the startup to this event.
         host.log(DiagnosticLogLevel::Information, "startup.tray_ready", &[]);
     }
+    // After the tray is ready, and only for the user's own day (plan, Lifecycle 2).
+    #[cfg(feature = "plugins")]
+    if let Some(directory) = cx
+        .global_mut::<Today>()
+        .live()
+        .map(|host| host.data_directory().clone())
+    {
+        let language = *cx.global::<Language>();
+        bientot_app::plugins::start(&directory, language, cx);
+    }
     // The CI startup measurement waits for this file: the shell is ready to be clicked.
     if let Some(path) = std::env::var_os("BIENTOT_READY_FILE") {
         std::fs::write(path, b"").ok();

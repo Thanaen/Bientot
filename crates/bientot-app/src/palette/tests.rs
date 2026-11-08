@@ -214,3 +214,49 @@ fn the_pause_row_follows_the_day() {
     palette.set_situation(situation(Host::Flyout, TrackingState::Paused));
     assert_eq!(labels(&palette), ["Tracking: resume"]);
 }
+
+#[test]
+fn plugin_commands_cannot_take_the_labels_of_bientots_own() {
+    let titles = reserved_titles();
+    for title in [
+        "Suivi\u{a0}: mettre en pause",
+        "Suivi\u{a0}: reprendre",
+        "Bientôt\u{a0}: quitter",
+    ] {
+        assert!(titles.iter().any(|t| t == title), "{title} in {titles:?}");
+    }
+    assert!(
+        titles
+            .iter()
+            .any(|t| t.ends_with(": quit") || t.ends_with(": Quit")),
+        "{titles:?}"
+    );
+}
+
+#[cfg(feature = "plugins")]
+#[test]
+fn a_plugin_named_like_a_domain_cannot_show_a_builtin_label() {
+    use bientot_plugin_api::manifest::{Manifest, ManifestError, Problem};
+    let titles = reserved_titles();
+    let titles: Vec<&str> = titles.iter().map(String::as_str).collect();
+    let manifest = |name: &str, title: &str| {
+        serde_json::json!({
+            "id": "someone.tracking",
+            "name": { "fr": name },
+            "version": "1.0.0",
+            "api": "1.0",
+            "locales": ["fr"],
+            "commands": [{ "name": "go", "title": { "fr": title } }]
+        })
+        .to_string()
+    };
+    let parsed = |name, title| Manifest::parse(manifest(name, title).as_bytes(), &titles);
+    assert!(matches!(
+        parsed("Suivi", "Mettre en pause"),
+        Err(ManifestError {
+            problem: Problem::BuiltinTitle,
+            ..
+        })
+    ));
+    assert!(parsed("Suivi", "Mettre en pause le minuteur").is_ok());
+}

@@ -112,6 +112,26 @@ impl Command {
     }
 }
 
+/// The palette labels of Bientôt's own commands in every language and tracking state, which a
+/// plugin's command may not take (FR-043).
+pub fn reserved_titles() -> Vec<String> {
+    let mut titles = Vec::new();
+    for language in Language::ALL {
+        for command in Command::ALL {
+            for tracking in [TrackingState::Running, TrackingState::Paused] {
+                let (domain, verb) = (
+                    language.text(command.domain()),
+                    language.text(command.verb(tracking)),
+                );
+                titles.push(language.format(Key::PaletteCommandFormat, &[&domain, &verb]));
+            }
+        }
+    }
+    titles.sort();
+    titles.dedup();
+    titles
+}
+
 /// The window the palette opens over.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Host {
