@@ -1,0 +1,54 @@
+# start
+(no card)
+# OnTrack
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# Warning
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# Late
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# Complete
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# Morning
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# Unavailable
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# Credit
+Vivement le week-end
+  Encore 3 jours avant vendredi
+  Semaine à l’équilibre
+# HistoryWeek
+Vivement le week-end
+  (success: Objectif atteint : bon week-end !)
+  Semaine à l’équilibre
+# MorningWarning
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# MorningLate
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# ProblemPeriods
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# FragmentedDay
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre
+# ActivityWatchUnavailable
+Vivement le week-end
+  Encore 4 jours avant vendredi
+  Semaine à l’équilibre

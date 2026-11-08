@@ -9,3 +9,35 @@ license.workspace = true
 
 [dependencies]
 bientot-plugin-api = { path = "../bientot-plugin-api" }
+jiff = { version = "0.2.38", default-features = false, features = ["std", "serde"] }
+serde_json = "1.0.154"
+
+# No dev-dependencies: the sample plugins are examples, and cargo builds an example's
+# dev-dependencies for wasm32 too.
+
+# The sample plugins. Each builds as a WebAssembly module with
+# `cargo build -p bientot-plugin-sdk --example <name> --release --target wasm32-unknown-unknown`,
+# and runs its tests natively with `cargo test -p bientot-plugin-sdk --example <name>`.
+[[example]]
+name = "focus"
+path = "examples/focus/plugin.rs"
+crate-type = ["cdylib"]
+test = true
+
+[[example]]
+name = "tomato"
+path = "examples/tomato/plugin.rs"
+crate-type = ["cdylib"]
+test = true
+
+[[example]]
+name = "weekend"
+path = "examples/weekend/plugin.rs"
+crate-type = ["cdylib"]
+test = true
+
+[[example]]
+name = "battery"
+path = "examples/battery/plugin.rs"
+crate-type = ["cdylib"]
+test = true

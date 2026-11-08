@@ -1,0 +1,21 @@
+{
+  "$schema": "https://bientot.dev/plugins/manifest-1.json",
+  "id": "bientot.focus",
+  "name": { "en": "Focus", "fr": "Concentration" },
+  "description": {
+    "en": "Your longest stretch of work today, and the one under way",
+    "fr": "Votre plus longue plage de travail du jour, et celle en cours"
+  },
+  "version": "0.1.0",
+  "api": "1.0",
+  "memory": "2MiB",
+  "locales": ["en", "fr"],
+  "capabilities": ["read:day", "ui:flyout"],
+  "events": ["day.refreshed"],
+  "commands": [
+    {
+      "name": "toggle-detail",
+      "title": { "en": "Show or hide the detail", "fr": "Afficher ou masquer le détail" }
+    }
+  ]
+}

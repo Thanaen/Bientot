@@ -1,0 +1,18 @@
+{
+  "$schema": "https://bientot.dev/plugins/manifest-1.json",
+  "id": "bientot.battery",
+  "name": { "en": "Battery", "fr": "Batterie" },
+  "description": {
+    "en": "Your day as a battery that runs down as you work",
+    "fr": "Votre journée comme une batterie qui se vide à mesure que vous travaillez"
+  },
+  "version": "0.1.0",
+  "api": "1.0",
+  "memory": "2MiB",
+  "locales": ["en", "fr"],
+  "capabilities": ["read:day", "ui:flyout"],
+  "events": ["day.refreshed", "language.changed"],
+  "commands": [
+    { "name": "coffee", "title": { "en": "Have a coffee", "fr": "Prendre un café" } }
+  ]
+}

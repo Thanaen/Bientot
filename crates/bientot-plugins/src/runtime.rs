@@ -8,8 +8,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
 use bientot_plugin_api::{ABI_VERSION, Capability};
+/// A validated module, as [`Runtime::compile`] gives it.
+pub use wasmi::Module;
 use wasmi::{
-    Config, Engine, Error, ExternType, Func, FuncType, Linker, Memory, Module, ResourceLimiter,
+    Config, Engine, Error, ExternType, Func, FuncType, Linker, Memory, ResourceLimiter,
     ResumableCall, Store, TrapCode, Val, ValType,
 };
 use wasmi_core::LimiterError;

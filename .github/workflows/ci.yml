@@ -150,6 +150,11 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-features --locked
 
+      # Each sample plugin built for WebAssembly must give, in Bientôt's own runtime, the cards
+      # its native tests check (crates/bientot-plugin-sdk/examples/*/expected/).
+      - name: Check the sample plugins
+        run: scripts/check-sample-plugins.sh
+
   # The flyout of every demo scenario and the other windows, rendered off screen by Mesa's
   # software Vulkan driver in French and English, light and dark. Apart from the Rust job, so
   # that the Windows job does not wait for it.

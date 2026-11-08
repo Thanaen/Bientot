@@ -114,7 +114,9 @@ crates/
 │   ├── src/revocation.rs        #   check, apply, persist
 │   └── tests/hostile/           #   hostile corpus sources and runner
 ├── bientot-plugin-sdk/          # NEW: guest side, wasm32 and native test host
-│   └── examples/focus/          #   the sample plugin
+│   ├── demo-days.json           #   demo snapshots, kept in step by a host test
+│   └── examples/                #   focus, tomato, weekend, battery
+├── bientot-plugin-tool/         # NEW: `bientot-plugin` pack, keygen, sign, check
 ├── bientot-core/                # unchanged API; diagnostics export test
 ├── bientot-store/               # transfer: carry plugin ids and versions only
 ├── bientot-app/
@@ -128,11 +130,11 @@ crates/
 │   └── src/strings/table.rs     #   FR/EN texts
 ├── bientot-windows/             # real path of the plugins folder
 fuzz/                            # targets manifest, package, host-call, view-tree
-scripts/                         # pack-plugin, sign-plugin, measure gates
+scripts/                         # pack-plugin, sign-plugin, check-sample-plugins, measure gates
 services/bientot/                # serve /plugins/revocations.json
 ```
 
-**Structure Decision**: two new library crates and one SDK crate. The host
+**Structure Decision**: two new library crates, one SDK crate and the authors' tool. The host
 lives outside `bientot-app` so that it builds and tests on Linux like the
 store and the core; `bientot-app` only bridges it to GPUI. `bientot-domain`
 is not touched.

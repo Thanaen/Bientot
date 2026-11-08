@@ -1,0 +1,11 @@
+{
+  "longest": "Longest focus",
+  "current": "Under way for",
+  "none": "No focus under way",
+  "waiting": "Your first focus is on its way",
+  "sessions": "{count} of 25 min or more",
+  "sessions-one": "1 of 25 min or more",
+  "sessions-none": "None of 25 min yet",
+  "more": "Detail",
+  "less": "Less"
+}

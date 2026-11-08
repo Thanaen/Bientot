@@ -91,9 +91,9 @@ texts, and the design-system artifacts updated with any UI change.
 
 **Independent test**: spec US5 and `quickstart.md`.
 
-- [ ] T057 [P] [US5] Implement the SDK in `crates/bientot-plugin-sdk`: exports, buffer handling, generated types, view builders, a panic hook that logs the message before the trap, the 64 KiB stack link setting, and a native test host that runs handlers on demo snapshots with an injected clock.
-- [ ] T058 [US5] Write the sample « Focus » plugin in `crates/bientot-plugin-sdk/examples/focus/` with its manifest, FR/EN locales, icon and reference cards.
-- [ ] T059 [US5] Write `scripts/pack-plugin.sh` and `scripts/sign-plugin.sh` (validation, import check naming the missing capability, canonical list, key creation).
+- [x] T057 [P] [US5] Implement the SDK in `crates/bientot-plugin-sdk`: exports, buffer handling, generated types, view builders, a panic hook that logs the message before the trap, the 64 KiB stack link setting, and a native test host that runs handlers on demo snapshots with an injected clock.
+- [x] T058 [US5] Write the sample « Focus » plugin in `crates/bientot-plugin-sdk/examples/focus/` with its manifest, FR/EN locales and reference cards (the manifest contract has no icon). Three more samples: `tomato`, `weekend`, `battery`.
+- [x] T059 [US5] Write `scripts/pack-plugin.sh` and `scripts/sign-plugin.sh` (validation, import check naming the missing capability, canonical list, key creation).
 
 ## Phase 8: Polish and cross-cutting
 

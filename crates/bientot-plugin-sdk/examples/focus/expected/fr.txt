@@ -1,0 +1,63 @@
+# start
+(no card)
+# OnTrack
+Concentration
+  Plus longue concentration 3:00
+  En cours depuis 3:00
+  [Détail](toggle-detail)
+# Warning
+Concentration
+  Plus longue concentration 3:00
+  En cours depuis 3:00
+  [Détail](toggle-detail)
+# Late
+Concentration
+  Plus longue concentration 3:00
+  En cours depuis 3:00
+  [Détail](toggle-detail)
+# Complete
+Concentration
+  Plus longue concentration 5:00
+  En cours depuis 5:00
+  [Détail](toggle-detail)
+# Morning
+Concentration
+  Plus longue concentration 2:00
+  En cours depuis 2:00
+  [Détail](toggle-detail)
+# Unavailable
+Concentration
+  Votre première concentration arrive
+# Credit
+Concentration
+  Plus longue concentration 0:12
+  Pas de concentration en cours
+  [Détail](toggle-detail)
+# HistoryWeek
+Concentration
+  Plus longue concentration 7:00
+  Pas de concentration en cours
+  [Détail](toggle-detail)
+# MorningWarning
+Concentration
+  Plus longue concentration 1:40
+  En cours depuis 1:40
+  [Détail](toggle-detail)
+# MorningLate
+Concentration
+  Plus longue concentration 1:20
+  En cours depuis 1:20
+  [Détail](toggle-detail)
+# ProblemPeriods
+Concentration
+  Plus longue concentration 2:14
+  En cours depuis 1:40
+  [Détail](toggle-detail)
+# FragmentedDay
+Concentration
+  Plus longue concentration 3:00
+  En cours depuis 3:00
+  [Détail](toggle-detail)
+# ActivityWatchUnavailable
+Concentration
+  Votre première concentration arrive

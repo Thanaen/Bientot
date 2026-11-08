@@ -170,3 +170,36 @@ fn only_structural_changes_count() {
     paused.tracking = Tracking::Paused;
     assert!(is_structural(&day, &paused));
 }
+
+/// The SDK's test host reads the demo days from `bientot-plugin-sdk/demo-days.json`, which this
+/// test writes with `BIENTOT_BLESS=1` and checks otherwise, so the file follows the accounting.
+#[test]
+fn the_sdk_demo_days_are_those_of_the_host() {
+    let days: Vec<serde_json::Value> = DemoScenario::ALL
+        .into_iter()
+        .map(|scenario| {
+            serde_json::json!({
+                "scenario": format!("{scenario:?}"),
+                "day": demo(scenario, TrackingState::Running, true),
+            })
+        })
+        .collect();
+    let mut actual = serde_json::to_string_pretty(&days).unwrap();
+    actual.push('\n');
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../bientot-plugin-sdk/demo-days.json");
+    if std::env::var_os("BIENTOT_BLESS").is_some() {
+        std::fs::write(&path, &actual).unwrap();
+        return;
+    }
+    // Values, not text: a crate of the workspace turns on serde_json's `preserve_order`, which
+    // changes the order of the keys but not the days.
+    let expected: Option<Vec<serde_json::Value>> = std::fs::read(&path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok());
+    assert!(
+        expected.as_ref() == Some(&days),
+        "{} is out of date: run `BIENTOT_BLESS=1 cargo test -p bientot-plugins sdk_demo_days`",
+        path.display()
+    );
+}

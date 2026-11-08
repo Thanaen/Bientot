@@ -1,0 +1,15 @@
+{
+  "$schema": "https://bientot.dev/plugins/manifest-1.json",
+  "id": "bientot.weekend",
+  "name": { "en": "Weekend", "fr": "Vivement le week-end" },
+  "description": {
+    "en": "How far the weekend is, and where your week stands",
+    "fr": "À quelle distance est le week-end, et où en est votre semaine"
+  },
+  "version": "0.1.0",
+  "api": "1.0",
+  "memory": "2MiB",
+  "locales": ["en", "fr"],
+  "capabilities": ["read:day", "ui:flyout"],
+  "events": ["day.refreshed"]
+}

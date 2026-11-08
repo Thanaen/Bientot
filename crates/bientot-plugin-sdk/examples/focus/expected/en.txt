@@ -1,0 +1,63 @@
+# start
+(no card)
+# OnTrack
+Focus
+  Longest focus 3:00
+  Under way for 3:00
+  [Detail](toggle-detail)
+# Warning
+Focus
+  Longest focus 3:00
+  Under way for 3:00
+  [Detail](toggle-detail)
+# Late
+Focus
+  Longest focus 3:00
+  Under way for 3:00
+  [Detail](toggle-detail)
+# Complete
+Focus
+  Longest focus 5:00
+  Under way for 5:00
+  [Detail](toggle-detail)
+# Morning
+Focus
+  Longest focus 2:00
+  Under way for 2:00
+  [Detail](toggle-detail)
+# Unavailable
+Focus
+  Your first focus is on its way
+# Credit
+Focus
+  Longest focus 0:12
+  No focus under way
+  [Detail](toggle-detail)
+# HistoryWeek
+Focus
+  Longest focus 7:00
+  No focus under way
+  [Detail](toggle-detail)
+# MorningWarning
+Focus
+  Longest focus 1:40
+  Under way for 1:40
+  [Detail](toggle-detail)
+# MorningLate
+Focus
+  Longest focus 1:20
+  Under way for 1:20
+  [Detail](toggle-detail)
+# ProblemPeriods
+Focus
+  Longest focus 2:14
+  Under way for 1:40
+  [Detail](toggle-detail)
+# FragmentedDay
+Focus
+  Longest focus 3:00
+  Under way for 3:00
+  [Detail](toggle-detail)
+# ActivityWatchUnavailable
+Focus
+  Your first focus is on its way

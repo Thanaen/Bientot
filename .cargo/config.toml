@@ -1,0 +1,5 @@
+# Plugins (the SDK's sample plugins and the hostile corpus) link with a 64 KiB WebAssembly stack
+# instead of 1 MiB, so that an instance starts at two or three pages
+# (specs/003-plugin-runtime/research.md, R4). A plugin in its own crate sets the same flag.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=-zstack-size=65536"]

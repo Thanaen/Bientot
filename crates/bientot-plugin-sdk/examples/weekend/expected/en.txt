@@ -1,0 +1,54 @@
+# start
+(no card)
+# OnTrack
+Weekend
+  4 more days to Friday
+  Week on track
+# Warning
+Weekend
+  4 more days to Friday
+  Week on track
+# Late
+Weekend
+  4 more days to Friday
+  Week on track
+# Complete
+Weekend
+  4 more days to Friday
+  Week on track
+# Morning
+Weekend
+  4 more days to Friday
+  Week on track
+# Unavailable
+Weekend
+  4 more days to Friday
+  Week on track
+# Credit
+Weekend
+  3 more days to Friday
+  Week on track
+# HistoryWeek
+Weekend
+  (success: Target reached: have a good weekend!)
+  Week on track
+# MorningWarning
+Weekend
+  4 more days to Friday
+  Week on track
+# MorningLate
+Weekend
+  4 more days to Friday
+  Week on track
+# ProblemPeriods
+Weekend
+  4 more days to Friday
+  Week on track
+# FragmentedDay
+Weekend
+  4 more days to Friday
+  Week on track
+# ActivityWatchUnavailable
+Weekend
+  4 more days to Friday
+  Week on track

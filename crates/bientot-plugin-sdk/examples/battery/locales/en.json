@@ -1,0 +1,12 @@
+{
+  "charge": "Battery {percent}%",
+  "full": "Fully charged",
+  "cruising": "Cruising along",
+  "low": "Running low, coffee?",
+  "saver": "Power saving mode",
+  "flat": "Day done, recharge tonight",
+  "recharge": "Recharge at",
+  "rest": "Day off: charging",
+  "coffees": "Coffees: {cups}",
+  "coffee": "Coffee"
+}
