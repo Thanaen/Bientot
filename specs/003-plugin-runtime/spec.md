@@ -353,7 +353,9 @@ signed `.bientot-plugin`, install it in a `--demo` run.
 **Build and CI**
 
 - **FR-070**: Everything in this step MUST be behind a `plugins` Cargo
-  feature of `bientot-app`, on in `release` and `direct`.
+  feature of `bientot-app`, on in `release` and `direct` once the step is
+  done, revocation list included (T066). Until then, only CI and the
+  screenshots build it.
 - **FR-071**: CI MUST measure the executable size of both `release` and
   `direct` builds against the 20 MB gate.
 - **FR-072**: CI MUST run a corpus of hostile plugins against the Windows
