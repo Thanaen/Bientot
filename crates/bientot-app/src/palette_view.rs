@@ -12,7 +12,7 @@ use gpui::{
 };
 
 use crate::flyout::{self, key_caps, keys};
-use crate::palette::{Command, Palette, Row, Situation};
+use crate::palette::{Choice, Command, Palette, Row, Situation};
 use crate::strings::{Key, Language};
 use crate::text_input::TextInput;
 use crate::theme::spacing::*;
@@ -41,17 +41,23 @@ const LIST_PADDING: Pixels = BASE_04;
 
 /// The height of the list, in a palette that ends a gutter above the bottom of the `room` it
 /// opens over: all of it when it fits, otherwise the rows that fit and half of the next, so
-/// that it shows it scrolls.
-fn list_height(room: Pixels, heading: bool, rows: usize) -> Pixels {
+/// that it shows it scrolls. `headings` holds the index of the row each heading goes above.
+fn list_height(room: Pixels, headings: &[usize], rows: usize) -> Pixels {
     let chrome = QUERY_HEIGHT + size::STATUSBAR_HEIGHT + px(2.);
     let space = room * (1. - TOP) - BASE_16 - chrome;
-    let above = LIST_PADDING + if heading { HEADING_HEIGHT } else { px(0.) };
-    let all = above + ROW_HEIGHT * rows.max(1) as f32 + LIST_PADDING;
+    let above =
+        |row: usize| HEADING_HEIGHT * headings.iter().filter(|&&at| at <= row).count() as f32;
+    // The top of each row: the padding, the rows before it and the headings up to its own.
+    let top = |row: usize| LIST_PADDING + above(row) + ROW_HEIGHT * row as f32;
+    let all = top(rows.max(1) - 1) + ROW_HEIGHT + LIST_PADDING;
     if all <= space {
         return all;
     }
-    let whole = ((space - above) / ROW_HEIGHT - 0.5).floor().max(0.);
-    above + ROW_HEIGHT * (whole + 0.5)
+    (0..rows)
+        .map(|row| top(row) + ROW_HEIGHT * 0.5)
+        .take_while(|&height| height <= space)
+        .last()
+        .unwrap_or(top(0) + ROW_HEIGHT * 0.5)
 }
 
 pub fn bind_keys(cx: &mut App) {
@@ -65,7 +71,7 @@ pub fn bind_keys(cx: &mut App) {
 }
 
 pub enum Event {
-    Run(Command),
+    Run(Choice),
     Dismissed,
 }
 
@@ -105,8 +111,12 @@ impl PaletteView {
             view.scroll_to_selected();
             cx.notify();
         });
+        let state = Palette::new(situation, language);
+        // The commands of the plugins that are on, as they are when the palette opens.
+        #[cfg(feature = "plugins")]
+        let state = state.with_plugin_commands(crate::plugins::commands(cx));
         Self {
-            state: Palette::new(situation, language),
+            state,
             language,
             query,
             scroll: ScrollHandle::new(),
@@ -120,7 +130,27 @@ impl PaletteView {
         cx.notify();
     }
 
+    /// Lists `commands` after Bientôt's own, for the screenshots.
+    #[cfg(feature = "plugins")]
+    pub fn show_plugin_commands(
+        &mut self,
+        commands: Vec<crate::palette::PluginCommand>,
+        cx: &mut Context<Self>,
+    ) {
+        self.state.set_plugin_commands(commands);
+        cx.notify();
+    }
+
     /// Types `text` in the query field, for the screenshots.
+    /// Selects the last row and scrolls to it, as the screenshots show the commands of plugins.
+    pub fn select_last(&mut self, cx: &mut Context<Self>) {
+        for _ in 0..self.state.rows().len() {
+            self.state.select_next();
+        }
+        self.scroll_to_selected();
+        cx.notify();
+    }
+
     pub fn type_query(&mut self, text: &str, cx: &mut Context<Self>) {
         self.query.update(cx, |query, cx| query.set_text(text, cx));
     }
@@ -138,8 +168,8 @@ impl PaletteView {
     }
 
     fn run_selected(&mut self, _: &RunSelected, _: &mut Window, cx: &mut Context<Self>) {
-        if let Some(command) = self.state.chosen() {
-            cx.emit(Event::Run(command));
+        if let Some(choice) = self.state.chosen() {
+            cx.emit(Event::Run(choice));
         }
     }
 
@@ -147,10 +177,20 @@ impl PaletteView {
         cx.emit(Event::Dismissed);
     }
 
-    /// The heading is the list's first child while it shows.
+    /// The list's children are a spacer, the rows with their headings above them, and a spacer:
+    /// the first and last rows scroll to the spacers, so that the list keeps its padding.
     fn scroll_to_selected(&self) {
-        let heading = usize::from(self.state.heading().is_some());
-        self.scroll.scroll_to_item(self.state.selected() + heading);
+        let selected = self.state.selected();
+        let rows = self.state.rows().len();
+        let headings = self.state.headings();
+        let item = if selected == 0 {
+            0
+        } else if selected + 1 == rows {
+            rows + headings.len() + 1
+        } else {
+            1 + selected + headings.iter().filter(|(at, _)| *at <= selected).count()
+        };
+        self.scroll.scroll_to_item(item);
     }
 
     fn row(
@@ -162,7 +202,7 @@ impl PaletteView {
     ) -> impl IntoElement {
         let selected = index == self.state.selected();
         let (hover, active) = (theme.element_hover, theme.element_active);
-        let command = row.command;
+        let (choice, keystroke) = (row.choice.clone(), row.keystroke);
         let label =
             StyledText::new(row.label.clone()).with_highlights(highlights(&row, selected, theme));
         div()
@@ -189,12 +229,8 @@ impl PaletteView {
                     .text_ellipsis()
                     .child(label),
             )
-            .children(
-                command
-                    .keystroke()
-                    .map(|keystroke| keys(key_caps(keystroke, self.language), theme)),
-            )
-            .on_click(cx.listener(move |_, _, _, cx| cx.emit(Event::Run(command))))
+            .children(keystroke.map(|keystroke| keys(key_caps(keystroke, self.language), theme)))
+            .on_click(cx.listener(move |_, _, _, cx| cx.emit(Event::Run(choice.clone()))))
     }
 
     /// Choosing and running need a row: with none, only « Fermer » is left.
@@ -289,14 +325,25 @@ impl Render for PaletteView {
         let commands = self.language.text(Key::PaletteCommands);
         let rows = self.state.rows();
         let room = self.room.get();
-        let list_height =
-            room.map(|room| list_height(room, self.state.heading().is_some(), rows.len()));
-        let rows: Vec<_> = rows
-            .into_iter()
-            .enumerate()
-            .map(|(index, row)| self.row(index, row, &theme, cx).into_any_element())
-            .collect();
+        let headings = self.state.headings();
+        let starts: Vec<usize> = headings.iter().map(|(at, _)| *at).collect();
+        let list_height = room.map(|room| list_height(room, &starts, rows.len()));
         let any_row = !rows.is_empty();
+        let mut items = Vec::new();
+        for (index, row) in rows.into_iter().enumerate() {
+            for (_, heading) in headings.iter().filter(|(at, _)| *at == index) {
+                items.push(list_heading(heading, &theme).into_any_element());
+            }
+            items.push(self.row(index, row, &theme, cx).into_any_element());
+        }
+        // Over the « no match » message, should a heading show without rows.
+        if !any_row {
+            items.extend(
+                headings
+                    .iter()
+                    .map(|(_, heading)| list_heading(heading, &theme).into_any_element()),
+            );
+        }
         let empty = (!any_row).then(|| {
             let message = self.language.text(Key::PaletteNoMatch);
             div()
@@ -309,19 +356,6 @@ impl Render for PaletteView {
                 .items_center()
                 .text_color(theme.text_muted)
                 .child(message)
-        });
-        let heading = self.state.heading().map(|heading| {
-            div()
-                .h(HEADING_HEIGHT)
-                .flex_none()
-                .px(BASE_08)
-                .pb(BASE_02)
-                .flex()
-                .items_end()
-                .type_style(text::LABEL_SM)
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(theme.text_muted)
-                .child(heading)
         });
         div()
             .id("palette")
@@ -369,15 +403,31 @@ impl Render for PaletteView {
                     .flex_none()
                     .overflow_y_scroll()
                     .track_scroll(&self.scroll)
-                    .p(LIST_PADDING)
+                    .px(LIST_PADDING)
                     .flex()
                     .flex_col()
-                    .children(heading)
-                    .children(rows)
-                    .children(empty),
+                    .child(div().h(LIST_PADDING).flex_none())
+                    .children(items)
+                    .children(empty)
+                    .child(div().h(LIST_PADDING).flex_none()),
             )
             .child(self.footer(any_row, &theme))
     }
+}
+
+/// « Commandes », « Plugins »: a muted label over the rows it groups.
+fn list_heading(heading: &'static str, theme: &Theme) -> gpui::Div {
+    div()
+        .h(HEADING_HEIGHT)
+        .flex_none()
+        .px(BASE_08)
+        .pb(BASE_02)
+        .flex()
+        .items_end()
+        .type_style(text::LABEL_SM)
+        .font_weight(FontWeight::MEDIUM)
+        .text_color(theme.text_muted)
+        .child(heading)
 }
 
 /// The palette open over a window, until it runs a command or closes.
@@ -403,8 +453,14 @@ impl Opened {
         let events = cx.subscribe_in(&view, window, move |owner, _, event, window, cx| {
             slot(owner).take();
             window.focus(&host, cx);
-            if let Event::Run(command) = event {
-                window.dispatch_action(action(*command), cx);
+            match event {
+                Event::Run(Choice::Builtin(command)) => {
+                    window.dispatch_action(action(*command), cx)
+                }
+                // Through the plugin thread, with the user's priority (FR-033).
+                #[cfg(feature = "plugins")]
+                Event::Run(Choice::Plugin(command)) => crate::plugins::run_command(command, cx),
+                Event::Dismissed => {}
             }
             cx.notify();
         });
@@ -496,12 +552,14 @@ mod tests {
     #[test]
     fn a_list_that_fits_shows_whole_and_one_that_does_not_shows_half_a_row_more() {
         // The heading and nine rows: 4 + 24 + 9 × 28 + 4 = 284 px.
-        assert_eq!(list_height(px(800.), true, 9), px(284.));
+        assert_eq!(list_height(px(800.), &[0], 9), px(284.));
         // Over 500 px, 500 × 0.85 − 16 − 48 − 28 − 2 = 331 px fit the whole list, cut to 10.5 rows.
-        assert_eq!(list_height(px(500.), true, 13), px(4. + 24. + 28. * 10.5));
+        assert_eq!(list_height(px(500.), &[0], 13), px(4. + 24. + 28. * 10.5));
         // Over 400 px, 246 px: 7.5 rows.
-        assert_eq!(list_height(px(400.), true, 9), px(4. + 24. + 28. * 7.5));
+        assert_eq!(list_height(px(400.), &[0], 9), px(4. + 24. + 28. * 7.5));
         // No match still keeps the room of one row for the message.
-        assert_eq!(list_height(px(400.), false, 0), px(36.));
+        assert_eq!(list_height(px(400.), &[], 0), px(36.));
+        // A second heading above the eighth row pushes that row's half below the fold.
+        assert_eq!(list_height(px(400.), &[0, 7], 9), px(4. + 24. + 28. * 6.5));
     }
 }

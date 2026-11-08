@@ -386,6 +386,7 @@ pub enum Key {
     PaletteOpenSettingsJson,
     PalettePause,
     PalettePlaceholder,
+    PalettePlugins,
     PalettePreviousDay,
     PaletteQuit,
     PaletteRefresh,
@@ -876,7 +877,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 868] = [
+pub(super) static ENTRIES: [Entry; 869] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1257,6 +1258,7 @@ pub(super) static ENTRIES: [Entry; 868] = [
     Entry { name: "PaletteOpenSettingsJson", fr: "ouvrir settings.json", en: "open settings.json" },
     Entry { name: "PalettePause", fr: "mettre en pause", en: "pause" },
     Entry { name: "PalettePlaceholder", fr: "Rechercher une commande…", en: "Search commands…" },
+    Entry { name: "PalettePlugins", fr: "Plugins", en: "Plugins" },
     Entry { name: "PalettePreviousDay", fr: "jour précédent", en: "previous day" },
     Entry { name: "PaletteQuit", fr: "quitter", en: "quit" },
     Entry { name: "PaletteRefresh", fr: "actualiser", en: "refresh" },

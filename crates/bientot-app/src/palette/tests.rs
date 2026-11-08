@@ -35,7 +35,7 @@ fn the_flyout_lists_its_commands_under_one_heading() {
         situation(Host::Flyout, TrackingState::Running),
         Language::French,
     );
-    assert_eq!(palette.heading(), Some("Commandes"));
+    assert_eq!(palette.headings(), [(0, "Commandes")]);
     assert_eq!(
         labels(&palette),
         [
@@ -58,7 +58,7 @@ fn the_week_adds_its_own_commands_after_the_correction_and_drops_its_opening() {
         situation(Host::Week, TrackingState::Paused),
         Language::English,
     );
-    assert_eq!(palette.heading(), Some("Commands"));
+    assert_eq!(palette.headings(), [(0, "Commands")]);
     assert_eq!(
         labels(&palette),
         [
@@ -148,7 +148,7 @@ fn a_query_ranks_the_matches_at_the_start_of_a_domain_or_verb_first() {
         Language::French,
     );
     palette.set_query("OU");
-    assert_eq!(palette.heading(), None);
+    assert_eq!(palette.headings(), []);
     assert_eq!(
         hits(&palette),
         [
@@ -187,17 +187,26 @@ fn the_selection_moves_within_the_rows_and_a_new_query_resets_it() {
         Language::English,
     );
     palette.set_query("set");
-    assert_eq!(palette.chosen(), Some(Command::OpenSettings));
+    assert_eq!(
+        palette.chosen(),
+        Some(Choice::Builtin(Command::OpenSettings))
+    );
     palette.select_next();
     palette.select_next();
     assert_eq!(palette.selected(), 1);
-    assert_eq!(palette.chosen(), Some(Command::OpenSettingsJson));
+    assert_eq!(
+        palette.chosen(),
+        Some(Choice::Builtin(Command::OpenSettingsJson))
+    );
     palette.select_previous();
     palette.select_previous();
-    assert_eq!(palette.chosen(), Some(Command::OpenSettings));
+    assert_eq!(
+        palette.chosen(),
+        Some(Choice::Builtin(Command::OpenSettings))
+    );
     palette.select_next();
     palette.set_query("quit");
-    assert_eq!(palette.chosen(), Some(Command::Quit));
+    assert_eq!(palette.chosen(), Some(Choice::Builtin(Command::Quit)));
     palette.set_query("zzz");
     assert_eq!(labels(&palette), Vec::<String>::new());
     assert_eq!(palette.chosen(), None);
@@ -259,4 +268,67 @@ fn a_plugin_named_like_a_domain_cannot_show_a_builtin_label() {
         })
     ));
     assert!(parsed("Suivi", "Mettre en pause le minuteur").is_ok());
+}
+
+#[cfg(feature = "plugins")]
+fn tomato(command: &str, title: &str, in_week: bool) -> PluginCommand {
+    PluginCommand {
+        plugin: bientot_plugin_api::PluginId::parse("bientot.tomato").unwrap(),
+        plugin_name: "Tomate".to_owned(),
+        command: command.to_owned(),
+        title: title.to_owned(),
+        in_flyout: true,
+        in_week,
+    }
+}
+
+#[cfg(feature = "plugins")]
+#[test]
+fn a_plugin_command_follows_the_builtin_ones_under_its_plugin_name() {
+    let palette = Palette::new(
+        situation(Host::Flyout, TrackingState::Running),
+        Language::French,
+    )
+    .with_plugin_commands(vec![
+        tomato("start", "lancer le minuteur", true),
+        tomato("stop", "arrêter le minuteur", false),
+    ]);
+    let rows = palette.rows();
+    let first = rows.len() - 2;
+    assert_eq!(palette.headings(), [(0, "Commandes"), (first, "Plugins")]);
+    let last = &rows[first..];
+    assert_eq!(last[0].label, "Tomate\u{a0}: lancer le minuteur");
+    assert_eq!(last[1].label, "Tomate\u{a0}: arrêter le minuteur");
+    assert_eq!(last[0].keystroke, None);
+    assert_eq!(last[0].name, "Tomate\u{a0}: lancer le minuteur");
+    // Only the commands it declares for the week show over the week.
+    let week = Palette::new(
+        situation(Host::Week, TrackingState::Running),
+        Language::French,
+    )
+    .with_plugin_commands(vec![
+        tomato("start", "lancer le minuteur", true),
+        tomato("stop", "arrêter le minuteur", false),
+    ]);
+    let labels = labels(&week);
+    assert!(labels.contains(&"Tomate\u{a0}: lancer le minuteur".to_owned()));
+    assert!(!labels.contains(&"Tomate\u{a0}: arrêter le minuteur".to_owned()));
+}
+
+#[cfg(feature = "plugins")]
+#[test]
+fn a_query_finds_a_plugin_command_by_its_title_or_its_plugin_and_runs_it() {
+    let mut palette = Palette::new(
+        situation(Host::Flyout, TrackingState::Running),
+        Language::French,
+    )
+    .with_plugin_commands(vec![tomato("start", "lancer le minuteur", true)]);
+    palette.set_query("lancer");
+    assert_eq!(hits(&palette), ["Tomate\u{a0}: [lancer] le minuteur"]);
+    assert_eq!(
+        palette.chosen(),
+        Some(Choice::Plugin(tomato("start", "lancer le minuteur", true)))
+    );
+    palette.set_query("tom");
+    assert_eq!(hits(&palette), ["[Tom]ate\u{a0}: lancer le minuteur"]);
 }

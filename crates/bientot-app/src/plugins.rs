@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
 use bientot_plugin_api::Capability;
-use bientot_plugin_api::manifest::DEFAULT_MEMORY;
+use bientot_plugin_api::manifest::{DEFAULT_MEMORY, Window};
 use bientot_plugin_api::view::PreparedButton;
 use bientot_plugin_api::{CommandSource, PluginId, PreparedCard};
 use bientot_plugins::files::PluginsDir;
@@ -34,7 +34,7 @@ use jiff::tz::TimeZone;
 
 use crate::host::Today;
 use crate::launch::StartMarker;
-use crate::palette;
+use crate::palette::{self, PluginCommand};
 use crate::strings::Language;
 
 /// A plugin's card and the name its header shows, in the app language.
@@ -171,6 +171,8 @@ struct Running {
 struct Loaded {
     /// The plugin's name in the app's language, for its card's header.
     name: SharedString,
+    /// Its commands, titled in the app's language, for the palette.
+    commands: Vec<PluginCommand>,
     /// It reads the day, through `bt:day@1 current` or `day.refreshed`.
     reads_day: bool,
 }
@@ -361,8 +363,22 @@ fn load(spec: PluginSpec, cx: &mut App) {
     let name = manifest
         .name
         .get(plugin_language(plugins.language), &manifest.locales[0]);
+    let language = plugin_language(plugins.language);
+    let commands = manifest
+        .commands
+        .iter()
+        .map(|command| PluginCommand {
+            plugin: manifest.id.clone(),
+            plugin_name: name.to_owned(),
+            command: command.name.clone(),
+            title: command.title.get(language, &manifest.locales[0]).to_owned(),
+            in_flyout: command.windows.contains(&Window::Flyout),
+            in_week: command.windows.contains(&Window::Week),
+        })
+        .collect();
     let loaded = Loaded {
         name: SharedString::from(name.to_owned()),
+        commands,
         reads_day: spec.granted.contains(&Capability::ReadDay),
     };
     let running = plugins.running.as_mut().expect("the thread runs");
@@ -539,6 +555,38 @@ pub fn press(plugin: &PluginId, button: &PreparedButton, cx: &mut App) {
             command: button.command.clone(),
             arg: button.arg.clone(),
             source: CommandSource::Card,
+        });
+    }
+}
+
+/// The commands of the plugins that are on, for the palette, in the order they were installed.
+pub fn commands(cx: &App) -> Vec<PluginCommand> {
+    let Some(plugins) = cx.try_global::<Plugins>() else {
+        return Vec::new();
+    };
+    let Some(running) = &plugins.running else {
+        return Vec::new();
+    };
+    let mut loaded: Vec<(&PluginId, &Loaded)> = running.loaded.iter().collect();
+    loaded.sort_by_key(|(id, _)| plugins.state.plugins.get(*id).map(|plugin| plugin.rank));
+    loaded
+        .into_iter()
+        .flat_map(|(_, plugin)| plugin.commands.iter().cloned())
+        .collect()
+}
+
+/// A plugin's command chosen in the palette: the plugin gets `command.invoked` (FR-033).
+pub fn run_command(command: &PluginCommand, cx: &mut App) {
+    if let Some(running) = cx
+        .try_global::<Plugins>()
+        .and_then(|plugins| plugins.running.as_ref())
+        .filter(|running| running.loaded.contains_key(&command.plugin))
+    {
+        running.thread.send(Request::Command {
+            plugin: command.plugin.clone(),
+            command: command.command.clone(),
+            arg: None,
+            source: CommandSource::Palette,
         });
     }
 }

@@ -148,10 +148,46 @@ pub struct Situation {
     pub can_correct_time: bool,
 }
 
+/// What a row runs: one of Bientôt's commands, or one a plugin declares.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Choice {
+    Builtin(Command),
+    #[cfg(feature = "plugins")]
+    Plugin(PluginCommand),
+}
+
+/// A command a plugin that is on declares, as the palette lists it: « <plugin> : <title> »
+/// (FR-043).
+#[cfg(feature = "plugins")]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PluginCommand {
+    pub plugin: bientot_plugin_api::PluginId,
+    /// The plugin's name in the app's language, where a built-in command shows its domain.
+    pub plugin_name: String,
+    /// The `name` the plugin receives with `command.invoked`.
+    pub command: String,
+    /// In the app's language.
+    pub title: String,
+    pub in_flyout: bool,
+    pub in_week: bool,
+}
+
+#[cfg(feature = "plugins")]
+impl PluginCommand {
+    fn runs_in(&self, situation: &Situation) -> bool {
+        match situation.host {
+            Host::Flyout => self.in_flyout,
+            Host::Week => self.in_week,
+        }
+    }
+}
+
 /// One command as the palette lists it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Row {
-    pub command: Command,
+    pub choice: Choice,
+    /// The keystroke that runs it outside the palette.
+    pub keystroke: Option<&'static str>,
     /// « Suivi : mettre en pause ».
     pub label: String,
     /// Where the verb starts in `label`; the domain before it is muted.
@@ -167,6 +203,9 @@ pub struct Palette {
     language: Language,
     query: String,
     selected: usize,
+    /// After Bientôt's own commands, in the order the plugins were installed.
+    #[cfg(feature = "plugins")]
+    plugin_commands: Vec<PluginCommand>,
 }
 
 impl Palette {
@@ -176,7 +215,22 @@ impl Palette {
             language,
             query: String::new(),
             selected: 0,
+            #[cfg(feature = "plugins")]
+            plugin_commands: Vec::new(),
         }
+    }
+
+    /// Lists `commands` after Bientôt's own.
+    #[cfg(feature = "plugins")]
+    pub fn with_plugin_commands(mut self, commands: Vec<PluginCommand>) -> Self {
+        self.set_plugin_commands(commands);
+        self
+    }
+
+    #[cfg(feature = "plugins")]
+    pub fn set_plugin_commands(&mut self, commands: Vec<PluginCommand>) {
+        self.plugin_commands = commands;
+        self.clamp();
     }
 
     /// The day changed while the palette is open: « Suivi : mettre en pause » may now resume.
@@ -193,22 +247,41 @@ impl Palette {
         }
     }
 
-    /// The heading above the rows: « Commandes » until a query filters them.
-    pub fn heading(&self) -> Option<&'static str> {
-        self.folded_query()
-            .is_empty()
-            .then(|| self.language.text(Key::PaletteCommands))
+    /// The headings between the rows until a query filters them, each with the index of the row
+    /// it goes above: « Commandes » over Bientôt's own, « Plugins » over those plugins add.
+    pub fn headings(&self) -> Vec<(usize, &'static str)> {
+        if !self.folded_query().is_empty() {
+            return Vec::new();
+        }
+        let commands = (0, self.language.text(Key::PaletteCommands));
+        #[cfg(feature = "plugins")]
+        if let Some(first) = self
+            .rows()
+            .iter()
+            .position(|row| matches!(row.choice, Choice::Plugin(_)))
+        {
+            return vec![commands, (first, self.language.text(Key::PalettePlugins))];
+        }
+        vec![commands]
     }
 
     /// The commands that run here, matching the query: those it matches at the start of their
     /// domain or verb first, each group in the palette's order.
     pub fn rows(&self) -> Vec<Row> {
         let query = self.folded_query();
-        let mut ranked: Vec<(bool, Row)> = Command::ALL
+        let builtin = Command::ALL
             .into_iter()
             .filter(|command| command.runs_in(&self.situation))
-            .filter_map(|command| {
-                let mut row = self.row(command);
+            .map(|command| self.builtin_row(command));
+        #[cfg(feature = "plugins")]
+        let builtin = builtin.chain(
+            self.plugin_commands
+                .iter()
+                .filter(|command| command.runs_in(&self.situation))
+                .map(|command| self.plugin_row(command)),
+        );
+        let mut ranked: Vec<(bool, Row)> = builtin
+            .filter_map(|mut row| {
                 if query.is_empty() {
                     return Some((true, row));
                 }
@@ -235,8 +308,11 @@ impl Palette {
     }
 
     /// The command Enter runs, if any row is left.
-    pub fn chosen(&self) -> Option<Command> {
-        self.rows().get(self.selected).map(|row| row.command)
+    pub fn chosen(&self) -> Option<Choice> {
+        self.rows()
+            .into_iter()
+            .nth(self.selected)
+            .map(|row| row.choice)
     }
 
     fn clamp(&mut self) {
@@ -247,20 +323,43 @@ impl Palette {
         self.query.trim().chars().map(fold).collect()
     }
 
-    fn row(&self, command: Command) -> Row {
+    fn builtin_row(&self, command: Command) -> Row {
         let language = self.language;
         let (domain, verb) = (
             language.text(command.domain()),
             language.text(command.verb(self.situation.tracking.state())),
         );
+        self.labelled(Choice::Builtin(command), domain, verb, command.keystroke())
+    }
+
+    #[cfg(feature = "plugins")]
+    fn plugin_row(&self, command: &PluginCommand) -> Row {
+        self.labelled(
+            Choice::Plugin(command.clone()),
+            &command.plugin_name,
+            &command.title,
+            None,
+        )
+    }
+
+    /// « <domain> : <verb> », the verb where the query looks first.
+    fn labelled(
+        &self,
+        choice: Choice,
+        domain: &str,
+        verb: &str,
+        keystroke: Option<&'static str>,
+    ) -> Row {
+        let language = self.language;
         let label = language.format(Key::PaletteCommandFormat, &[&domain, &verb]);
         let verb_start = label.len() - verb.len();
-        let name = match command.keystroke() {
+        let name = match keystroke {
             Some(keystroke) => flyout::shortcut_name(&label, keystroke, language),
             None => label.clone().into(),
         };
         Row {
-            command,
+            choice,
+            keystroke,
             label,
             verb_start,
             hit: None,

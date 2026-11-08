@@ -914,6 +914,9 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="PaletteCommands" xml:space="preserve">
     <value>Commandes</value>
   </data>
+  <data name="PalettePlugins" xml:space="preserve">
+    <value>Plugins</value>
+  </data>
   <data name="PaletteDialogName" xml:space="preserve">
     <value>Palette de commandes</value>
   </data>

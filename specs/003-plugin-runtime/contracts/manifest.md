@@ -64,6 +64,14 @@ A command's `name` matches `^[a-z][a-z0-9-]{0,31}$` and is unique; its
 - A command `title` may not equal the palette label of a built-in command
   in either language, alone or as the « <plugin>: <title> » the palette
   shows, ignoring case and spaces.
+- A command `title` is a verb phrase that starts in lower case, unless its
+  first word is a proper noun or an acronym, and does not repeat the plugin's
+  name, which the palette shows dimmed before it: « Tomate : lancer le
+  minuteur » under a « Plugins » heading, as it shows « Suivi : mettre en
+  pause ». In French use the infinitive (« lancer le minuteur », not « lancez
+  le minuteur »); in English use the bare verb ("start the timer"). No final
+  period; « … » only when the command opens a window or asks for something
+  before it acts. This is guidance; the host does not check it.
 - A `shortcut` key in a command is refused: plugins do not set keyboard
   shortcuts.
 - The file is at most 64 KiB.

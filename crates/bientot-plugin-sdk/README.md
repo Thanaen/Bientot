@@ -64,9 +64,17 @@ rustflags = ["-C", "link-arg=-zstack-size=65536"]
   "locales": ["en", "fr"],
   "capabilities": ["read:day", "ui:flyout"],
   "events": ["day.refreshed"],
-  "commands": [{ "name": "wave", "title": { "en": "Wave", "fr": "Saluer" } }]
+  "commands": [{ "name": "wave", "title": { "en": "wave", "fr": "saluer" } }]
 }
 ```
+
+A command's `title` is a verb phrase in lower case, unless it starts with a proper noun or an
+acronym, and it does not repeat the plugin's name: the palette lists it as "Hello: wave" in
+English and « Bonjour : saluer » in French, like Bientôt's own « Suivi : mettre en pause ». The
+name is dimmed, so the title alone must tell the commands apart. In French use the infinitive
+(« lancer le minuteur », not « lancez le minuteur »); in English use the bare verb ("start the
+timer"). Don't end a title with a period; end it with « … » only when the command opens a window
+or asks for something before it acts.
 
 `locales/<tag>.json` holds the texts of the card, as a flat object. `{name}` is replaced by an
 argument of the same name:
