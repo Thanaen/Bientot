@@ -1,6 +1,7 @@
 //! The plugin card of the flyout, after the counted time (FR-040): a header the app draws, with
 //! the plugin's name and a « … » menu, the plugin's lines and at most two buttons. The other
-//! cards are under « Autres cartes » in that menu.
+//! cards are under « Afficher plutôt » in that menu, after « Masquer pour aujourd’hui », « Gérer
+//! les plugins » and « Désactiver ».
 //!
 //! A card that changes is not announced: no live region, only the user's navigation reads it
 //! (FR-042).
@@ -13,6 +14,7 @@ use gpui::{
 
 use super::{Closing, Flyout, body::Part, control, control_icon};
 use crate::plugins::{self, PluginCards, card};
+use crate::settings::Page;
 use crate::settings_view;
 use crate::strings::Key;
 use crate::theme::spacing::*;
@@ -27,6 +29,9 @@ const MENU_WIDTH: gpui::Pixels = px(200.);
 const ITEM_HEIGHT: gpui::Pixels = px(26.);
 /// The keys of the open menu.
 const MENU_CONTEXT: &str = "PluginMenu";
+/// « Masquer pour aujourd’hui », « Gérer les plugins » and « Désactiver », before the other
+/// cards.
+const OWN_ITEMS: usize = 3;
 
 actions!(worktime, [MenuNext, MenuPrevious, MenuFirst, MenuLast]);
 
@@ -50,7 +55,7 @@ pub(super) struct Menu {
     /// The « … » button, which takes the focus back when the menu closes.
     button: FocusHandle,
     /// One for each item, « Masquer pour aujourd’hui » first, which takes the focus when the
-    /// menu opens.
+    /// menu opens, then the other cards after the [`OWN_ITEMS`].
     items: Vec<FocusHandle>,
     /// Whether the menu was open when the mouse went down on « … »: that press already closed
     /// it, through the click outside the menu, so the click that follows must not open it again.
@@ -63,7 +68,7 @@ impl Menu {
             open: false,
             entrance: motion::Entrance::default(),
             button: cx.focus_handle(),
-            items: vec![cx.focus_handle()],
+            items: (0..OWN_ITEMS).map(|_| cx.focus_handle()).collect(),
             pressed_open: false,
         }
     }
@@ -137,10 +142,11 @@ impl Flyout {
             self.plugin_menu.entrance.reset();
             1.
         };
-        while self.plugin_menu.items.len() < others.len() + 1 {
+        while self.plugin_menu.items.len() < others.len() + OWN_ITEMS {
             self.plugin_menu.items.push(cx.focus_handle());
         }
-        let menu = open.then(|| self.plugin_menu(&id, menu_label, &others, time, theme, cx));
+        let menu =
+            open.then(|| self.plugin_menu(&id, &shown.name, menu_label, &others, time, theme, cx));
         let header =
             div()
                 .flex()
@@ -213,9 +219,11 @@ impl Flyout {
         Some((Part::PluginCard, element))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn plugin_menu(
         &self,
         plugin: &PluginId,
+        name: &SharedString,
         label: SharedString,
         others: &[(PluginId, SharedString)],
         time: f32,
@@ -247,8 +255,30 @@ impl Flyout {
         let hide = item("plugin-hide".into(), hide_label.clone(), hide_label)
             .track_focus(&self.plugin_menu.items[0])
             .on_click(cx.listener(move |flyout, _, window, cx| {
-                flyout.hide_plugin_card(&hidden, window, cx)
+                flyout.take_plugin_card(&hidden, false, window, cx)
             }));
+        let manage_label: SharedString = self.text(Key::PluginCardManage).into();
+        let manage = item("plugin-manage".into(), manage_label.clone(), manage_label)
+            .track_focus(&self.plugin_menu.items[1])
+            .on_click(cx.listener(|flyout, _, _, cx| {
+                flyout.plugin_menu.open = false;
+                settings_view::open_on(Page::Plugins, cx);
+                cx.notify();
+            }));
+        let turned_off = plugin.clone();
+        let turn_off_label: SharedString = self
+            .language
+            .format(Key::PluginCardTurnOffFormat, &[name])
+            .into();
+        let turn_off = item(
+            "plugin-turn-off".into(),
+            turn_off_label.clone(),
+            turn_off_label,
+        )
+        .track_focus(&self.plugin_menu.items[2])
+        .on_click(cx.listener(move |flyout, _, window, cx| {
+            flyout.take_plugin_card(&turned_off, true, window, cx)
+        }));
         let others = (!others.is_empty()).then(|| {
             div()
                 .flex()
@@ -272,7 +302,7 @@ impl Flyout {
                         .format(Key::PluginCardShowFormat, &[name])
                         .into();
                     item(("plugin-other", index).into(), name.clone(), spoken)
-                        .track_focus(&self.plugin_menu.items[index + 1])
+                        .track_focus(&self.plugin_menu.items[index + OWN_ITEMS])
                         .on_click(cx.listener(move |flyout, _, window, cx| {
                             flyout.show_plugin_card(&other, window, cx)
                         }))
@@ -321,6 +351,8 @@ impl Flyout {
                 cx.notify();
             }))
             .child(hide)
+            .child(manage)
+            .child(turn_off)
             .children(others);
         // From the button, out to the card's top right corner: the card's border and padding
         // to the right, and above, the padding and the half of the button past the name's line.
@@ -331,7 +363,15 @@ impl Flyout {
             .bottom_full()
             .right(-to_corner)
             .mb(above + BASE_04)
-            .child(deferred(anchored().anchor(Anchor::BottomRight).child(menu)).with_priority(1))
+            .child(
+                deferred(
+                    anchored()
+                        .anchor(Anchor::BottomRight)
+                        .snap_to_window_with_margin(BASE_08)
+                        .child(menu),
+                )
+                .with_priority(1),
+            )
             .into_any_element()
     }
 
@@ -339,7 +379,8 @@ impl Flyout {
     fn move_in_plugin_menu(&mut self, step: Step, window: &mut Window, cx: &mut Context<Self>) {
         let shown = cx
             .try_global::<PluginCards>()
-            .map_or(1, |cards| cards.more().count() + 1);
+            .map_or(0, |cards| cards.more().count())
+            + OWN_ITEMS;
         let items = &self.plugin_menu.items[..shown.min(self.plugin_menu.items.len())];
         let current = items.iter().position(|item| item.is_focused(window));
         let next = step.from(current, items.len());
@@ -388,15 +429,26 @@ impl Flyout {
         was_open
     }
 
-    /// « Masquer pour aujourd’hui »: the next card takes the place, its « … » the focus; with
-    /// none, the focus goes to the part after the card, as after a closed callout.
-    fn hide_plugin_card(&mut self, plugin: &PluginId, window: &mut Window, cx: &mut Context<Self>) {
+    /// « Masquer pour aujourd’hui », or « Désactiver » when `turn_off`: the next card takes
+    /// the place, its « … » the focus; with none, the focus goes to the part after the card, as
+    /// after a closed callout.
+    fn take_plugin_card(
+        &mut self,
+        plugin: &PluginId,
+        turn_off: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.plugin_menu.open = false;
         let part = self
             .shown_parts
             .iter()
             .position(|part| *part == Part::PluginCard);
-        plugins::hide_for_today(plugin, cx);
+        if turn_off {
+            plugins::turn(plugin, false, cx);
+        } else {
+            plugins::hide_for_today(plugin, cx);
+        }
         let replaced = cx
             .try_global::<PluginCards>()
             .is_some_and(|cards| cards.shown().is_some());
@@ -412,7 +464,7 @@ impl Flyout {
         cx.notify();
     }
 
-    /// A card picked under « Autres cartes » takes the place, the focus on its « … ».
+    /// A card picked under « Afficher plutôt » takes the place, the focus on its « … ».
     fn show_plugin_card(&mut self, plugin: &PluginId, window: &mut Window, cx: &mut Context<Self>) {
         self.plugin_menu.open = false;
         plugins::show(plugin, cx);

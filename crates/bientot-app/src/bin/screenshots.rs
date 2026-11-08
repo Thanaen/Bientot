@@ -104,6 +104,7 @@ fn main() -> anyhow::Result<()> {
     midnight::capture_midnight(&mut cx, language, &output)?;
     adjust::capture_edits(&mut cx, language, &output)?;
     settings::capture_pages(&mut cx, language, &output)?;
+    settings::capture_plugin_pages(&mut cx, language, &output)?;
     onboarding::capture_steps(&mut cx, language, &output)?;
     startup_failure::capture_failures(&mut cx, language, &output)?;
     Ok(())

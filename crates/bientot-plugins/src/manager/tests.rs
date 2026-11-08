@@ -113,6 +113,41 @@ fn install_load_run_and_remove() {
 }
 
 #[test]
+fn a_plugin_turned_off_does_not_load_until_turned_on_again() {
+    let mut s = setup();
+    let offer = offer(&package(None, "0.1.0"), &[], &s.runtime, &s.state).unwrap();
+    install(&s.plugins, &mut s.state, offer).unwrap();
+    assert!(turn(&s.plugins, &mut s.state, &id(), false));
+    assert!(!turn(&s.plugins, &mut s.state, &id(), false), "already off");
+    assert_eq!(
+        StateFile::load(&s.plugins.state_path()).unwrap().plugins[&id()].status,
+        Status::Off
+    );
+    assert!(load(&s.plugins, &mut s.state, &id(), &[]).is_none());
+    assert!(turn(&s.plugins, &mut s.state, &id(), true));
+    assert!(matches!(
+        load(&s.plugins, &mut s.state, &id(), &[]),
+        Some(Ok(_))
+    ));
+    assert_eq!(
+        installed_manifest(&s.plugins, &id()).map(|m| m.version.to_string()),
+        Some("0.1.0".to_owned())
+    );
+
+    // Its files changed: it cannot be turned off or on any more, only removed.
+    std::fs::write(s.plugins.plugin(&id()).join("locales/fr.json"), b"{}").unwrap();
+    assert!(matches!(
+        load(&s.plugins, &mut s.state, &id(), &[]),
+        Some(Err(LoadProblem::FilesChanged))
+    ));
+    assert_eq!(
+        StateFile::load(&s.plugins.state_path()).unwrap().plugins[&id()].status,
+        Status::FilesChanged
+    );
+    assert!(!turn(&s.plugins, &mut s.state, &id(), false));
+}
+
+#[test]
 fn changed_files_keep_the_plugin_off() {
     let mut s = setup();
     let offer = offer(&package(None, "0.1.0"), &[], &s.runtime, &s.state).unwrap();

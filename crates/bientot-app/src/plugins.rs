@@ -6,19 +6,23 @@
 pub mod card;
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
 use bientot_plugin_api::Capability;
+use bientot_plugin_api::manifest::DEFAULT_MEMORY;
 use bientot_plugin_api::view::PreparedButton;
 use bientot_plugin_api::{CommandSource, PluginId, PreparedCard};
 use bientot_plugins::files::PluginsDir;
 use bientot_plugins::host::Clock;
 use bientot_plugins::log::LogFiles;
-use bientot_plugins::manager;
+use bientot_plugins::manager::{self, InstallError, Offer};
+use bientot_plugins::package;
 use bientot_plugins::runtime::{POOL_BYTES, Pool, Runtime, WasmSandbox};
-use bientot_plugins::state::StateFile;
-use bientot_plugins::thread::{self, HostUpdate, PluginThread, Request};
+use bientot_plugins::state::{StateFile, Status};
+use bientot_plugins::thread::{self, HostUpdate, PluginSpec, PluginThread, Request};
+use bientot_plugins::trust::{self, Trust};
 use bientot_store::data_directory::DataDirectory;
 use futures::StreamExt as _;
 use gpui::{App, BorrowAppContext as _, Global, SharedString};
@@ -131,83 +135,163 @@ impl PluginCards {
     }
 }
 
-/// The running plugins.
+/// The plugins of the user's data folder: what is installed, and the `plugins` thread once a
+/// plugin is on.
 struct Plugins {
-    thread: PluginThread,
     dir: PluginsDir,
+    log_directory: PathBuf,
     state: StateFile,
-    /// Some loaded plugin reads the day, through `bt:day@1 current` or `day.refreshed`.
-    reads_day: bool,
     /// The app's language, which changes only with a restart.
     language: Language,
-    /// Each loaded plugin's name in that language, for its card's header.
-    names: BTreeMap<PluginId, SharedString>,
+    /// What « Paramètres › Plugins » lists, read again after each change of the state.
+    installed: Arc<Vec<Installed>>,
+    running: Option<Running>,
     /// The date the cards were last ordered for.
     today: Option<Date>,
 }
 
+/// The `plugins` thread and the plugins it holds.
+struct Running {
+    thread: PluginThread,
+    loaded: BTreeMap<PluginId, Loaded>,
+}
+
+struct Loaded {
+    /// The plugin's name in the app's language, for its card's header.
+    name: SharedString,
+    /// It reads the day, through `bt:day@1 current` or `day.refreshed`.
+    reads_day: bool,
+}
+
 impl Global for Plugins {}
+
+/// An installed plugin, as « Paramètres › Plugins » shows it (FR-044).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Installed {
+    pub id: PluginId,
+    /// In the app's language; the id when the manifest cannot be read.
+    pub name: String,
+    pub version: String,
+    /// The author's key fingerprint, `None` for an unsigned plugin.
+    pub fingerprint: Option<String>,
+    pub capabilities: Vec<Capability>,
+    pub status: Status,
+}
 
 /// The folder of the plugins in `directory`.
 pub fn folder(directory: &DataDirectory) -> PluginsDir {
     PluginsDir::new(directory.path().join("plugins"))
 }
 
-/// Starts the plugins that are on, after the tray is ready (plan, Lifecycle 2 and 3).
+/// Reads the installed plugins and starts those that are on, after the tray is ready (plan,
+/// Lifecycle 2 and 3). With none on, nothing more than the read happens.
 pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
     cx.set_global(PluginCards::default());
     let dir = folder(directory);
-    if !dir.state_path().exists() {
-        return;
-    }
-    let mut state = match StateFile::load(&dir.state_path()) {
-        Ok(state) => state,
-        Err(error) => {
-            diagnose(
-                cx,
-                "plugins.state_unreadable",
-                &[("error", error.to_string().as_str().into())],
-            );
-            return;
+    let state = if dir.state_path().exists() {
+        match StateFile::load(&dir.state_path()) {
+            Ok(mut state) => {
+                state.on_start();
+                dir.sweep();
+                state
+            }
+            Err(error) => {
+                diagnose(
+                    cx,
+                    "plugins.state_unreadable",
+                    &[("error", error.to_string().as_str().into())],
+                );
+                return;
+            }
         }
+    } else {
+        StateFile::default()
     };
-    state.on_start();
-    dir.sweep();
+    let mut plugins = Plugins {
+        dir,
+        log_directory: directory.log_directory().join("plugins"),
+        state,
+        language,
+        installed: Arc::default(),
+        running: None,
+        today: None,
+    };
     let reserved = palette::reserved_titles();
     let reserved: Vec<&str> = reserved.iter().map(String::as_str).collect();
-    let (specs, problems) = manager::load_active(&dir, &mut state, &reserved);
+    let (specs, problems) = manager::load_active(&plugins.dir, &mut plugins.state, &reserved);
+    plugins.list();
+    cx.set_global(plugins);
     for (id, problem) in problems {
-        let problem = format!("{problem:?}");
-        diagnose(
-            cx,
-            "plugins.stays_off",
-            &[
-                ("plugin", id.as_str().into()),
-                ("problem", problem.as_str().into()),
-            ],
+        stays_off(&id, &problem, cx);
+    }
+    for spec in specs {
+        load(spec, cx);
+    }
+    day_changed(cx);
+}
+
+impl Plugins {
+    /// Reads again what the settings page lists.
+    fn list(&mut self) {
+        let language = plugin_language(self.language);
+        self.installed = Arc::new(
+            self.state
+                .plugins
+                .iter()
+                .map(|(id, plugin)| {
+                    let manifest = manager::installed_manifest(&self.dir, id);
+                    Installed {
+                        id: id.clone(),
+                        name: manifest.as_ref().map_or_else(
+                            || id.as_str().to_owned(),
+                            |m| m.name.get(language, &m.locales[0]).to_owned(),
+                        ),
+                        version: plugin.version.clone(),
+                        fingerprint: match &plugin.trust {
+                            Trust::Signed { key, .. } => {
+                                package::parse_key(key).map(|key| package::fingerprint(&key))
+                            }
+                            Trust::Unsigned { .. } => None,
+                        },
+                        capabilities: plugin.granted.capabilities.iter().copied().collect(),
+                        status: plugin.status.clone(),
+                    }
+                })
+                .collect(),
         );
     }
-    if specs.is_empty() {
+
+    fn reads_day(&self) -> bool {
+        self.running
+            .as_ref()
+            .is_some_and(|running| running.loaded.values().any(|plugin| plugin.reads_day))
+    }
+}
+
+/// Hands `spec` to the `plugins` thread, started with the first plugin that loads.
+fn load(spec: PluginSpec, cx: &mut App) {
+    if cx.global::<Plugins>().running.is_none() && !run(cx) {
         return;
     }
-    let names = specs
-        .iter()
-        .map(|spec| {
-            let manifest = &spec.manifest;
-            let name = manifest
-                .name
-                .get(plugin_language(language), &manifest.locales[0]);
-            (manifest.id.clone(), SharedString::from(name.to_owned()))
-        })
-        .collect();
-    let reads_day = specs
-        .iter()
-        .any(|spec| spec.granted.contains(&Capability::ReadDay));
-    let clock: bientot_plugins::host::Clock = Arc::new(Timestamp::now);
-    let log = Arc::new(LogFiles::new(
-        directory.log_directory().join("plugins"),
-        clock.clone(),
-    ));
+    let plugins = cx.global_mut::<Plugins>();
+    let manifest = &spec.manifest;
+    let name = manifest
+        .name
+        .get(plugin_language(plugins.language), &manifest.locales[0]);
+    let loaded = Loaded {
+        name: SharedString::from(name.to_owned()),
+        reads_day: spec.granted.contains(&Capability::ReadDay),
+    };
+    let running = plugins.running.as_mut().expect("the thread runs");
+    running.loaded.insert(manifest.id.clone(), loaded);
+    running.thread.send(Request::Load(Box::new(spec)));
+}
+
+/// Starts the `plugins` thread and drains its updates. Returns whether it runs.
+fn run(cx: &mut App) -> bool {
+    let plugins = cx.global::<Plugins>();
+    let clock: Clock = Arc::new(Timestamp::now);
+    let log = Arc::new(LogFiles::new(plugins.log_directory.clone(), clock.clone()));
     log.prune();
     let (updates, mut received) = futures::channel::mpsc::unbounded();
     let notify = Box::new(move |update: HostUpdate| {
@@ -215,7 +299,7 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
     });
     let spawned = thread::spawn(
         || WasmSandbox::new(Runtime::new(Pool::new(POOL_BYTES))),
-        plugin_language(language),
+        plugin_language(plugins.language),
         log,
         clock,
         notify,
@@ -228,20 +312,12 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
                 "plugins.no_thread",
                 &[("error", error.to_string().as_str().into())],
             );
-            return;
+            return false;
         }
     };
-    for spec in specs {
-        thread.send(Request::Load(Box::new(spec)));
-    }
-    cx.set_global(Plugins {
+    cx.global_mut::<Plugins>().running = Some(Running {
         thread,
-        dir,
-        state,
-        reads_day,
-        language,
-        names,
-        today: None,
+        loaded: BTreeMap::new(),
     });
     cx.spawn(async move |cx| {
         while let Some(update) = received.next().await {
@@ -249,7 +325,35 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
         }
     })
     .detach();
-    day_changed(cx);
+    true
+}
+
+/// Takes `id` out of the thread and its card out of the flyout.
+fn unload(id: &PluginId, cx: &mut App) {
+    if let Some(running) = cx.global_mut::<Plugins>().running.as_mut()
+        && running.loaded.remove(id).is_some()
+    {
+        running.thread.send(Request::Unload(id.clone()));
+    }
+    set_card(id.clone(), None, cx);
+}
+
+fn stays_off(id: &PluginId, problem: &manager::LoadProblem, cx: &mut App) {
+    let problem = format!("{problem:?}");
+    diagnose(
+        cx,
+        "plugins.stays_off",
+        &[
+            ("plugin", id.as_str().into()),
+            ("problem", problem.as_str().into()),
+        ],
+    );
+}
+
+/// The state changed: the settings page lists it again.
+fn changed(cx: &mut App) {
+    cx.global_mut::<Plugins>().list();
+    cx.refresh_windows();
 }
 
 /// Sends the published day to the plugins that read it. The thread keeps only the latest, which
@@ -266,7 +370,7 @@ pub fn day_changed(cx: &mut App) {
         rearrange(cx);
     }
     let plugins = cx.global::<Plugins>();
-    if !plugins.reads_day {
+    if !plugins.reads_day() {
         return;
     }
     let language = plugin_language(plugins.language);
@@ -274,16 +378,24 @@ pub fn day_changed(cx: &mut App) {
         .global_mut::<Today>()
         .live()
         .and_then(|host| host.plugin_day(language));
-    if let Some(day) = day {
-        cx.global::<Plugins>()
-            .thread
-            .send(Request::Day(Arc::new(day)));
+    if let (Some(day), Some(running)) = (day, &cx.global::<Plugins>().running) {
+        running.thread.send(Request::Day(Arc::new(day)));
     }
 }
 
 fn apply(update: HostUpdate, cx: &mut App) {
     match update {
-        HostUpdate::Card { plugin, card } => set_card(plugin, card, cx),
+        HostUpdate::Card { plugin, card } => {
+            // A card on its way when the plugin was turned off stays out.
+            let loaded = cx
+                .global::<Plugins>()
+                .running
+                .as_ref()
+                .is_some_and(|running| running.loaded.contains_key(&plugin));
+            if loaded || card.is_none() {
+                set_card(plugin, card, cx);
+            }
+        }
         HostUpdate::Failed { plugin, error, at } => {
             diagnose(
                 cx,
@@ -295,8 +407,8 @@ fn apply(update: HostUpdate, cx: &mut App) {
             );
             let plugins = cx.global_mut::<Plugins>();
             if manager::record_failure(&plugins.dir, &mut plugins.state, &plugin, at, &error) {
-                plugins.thread.send(Request::Unload(plugin.clone()));
-                set_card(plugin, None, cx);
+                unload(&plugin, cx);
+                changed(cx);
             }
         }
         HostUpdate::Delivered { plugin } => {
@@ -309,7 +421,12 @@ fn apply(update: HostUpdate, cx: &mut App) {
 fn set_card(plugin: PluginId, card: Option<PreparedCard>, cx: &mut App) {
     let plugins = cx.global::<Plugins>();
     let card = card.map(|card| PluginCard {
-        name: plugins.names.get(&plugin).cloned().unwrap_or_default(),
+        name: plugins
+            .running
+            .as_ref()
+            .and_then(|running| running.loaded.get(&plugin))
+            .map(|loaded| loaded.name.clone())
+            .unwrap_or_default(),
         card,
     });
     let changed = cx.update_global::<PluginCards, _>(|cards, cx| {
@@ -330,8 +447,11 @@ fn rearrange(cx: &mut App) {
 
 /// A button of `plugin`'s card: the plugin gets `command.invoked` (FR-033).
 pub fn press(plugin: &PluginId, button: &PreparedButton, cx: &mut App) {
-    if let Some(plugins) = cx.try_global::<Plugins>() {
-        plugins.thread.send(Request::Command {
+    if let Some(running) = cx
+        .try_global::<Plugins>()
+        .and_then(|plugins| plugins.running.as_ref())
+    {
+        running.thread.send(Request::Command {
             plugin: plugin.clone(),
             command: button.command.clone(),
             arg: button.arg.clone(),
@@ -359,6 +479,195 @@ pub fn show(plugin: &PluginId, cx: &mut App) {
     }
 }
 
+/// What « Paramètres › Plugins » lists; `None` without plugins: in a demo, or when
+/// `state.json` cannot be read.
+pub fn installed(cx: &App) -> Option<Arc<Vec<Installed>>> {
+    cx.try_global::<Plugins>()
+        .map(|plugins| plugins.installed.clone())
+}
+
+/// Turns `id` on, which loads it, or off, which takes its card and commands away at once.
+pub fn turn(id: &PluginId, on: bool, cx: &mut App) {
+    if !cx.has_global::<Plugins>() {
+        return;
+    }
+    let plugins = cx.global_mut::<Plugins>();
+    if !manager::turn(&plugins.dir, &mut plugins.state, id, on) {
+        return;
+    }
+    if on {
+        load_installed(id, cx);
+    } else {
+        unload(id, cx);
+    }
+    changed(cx);
+}
+
+/// Removes `id`: its folder and its state go, and nothing it showed remains.
+pub fn remove(id: &PluginId, cx: &mut App) -> std::io::Result<()> {
+    if !cx.has_global::<Plugins>() {
+        return Ok(());
+    }
+    unload(id, cx);
+    let plugins = cx.global_mut::<Plugins>();
+    let removed = manager::remove(&plugins.dir, &mut plugins.state, id);
+    changed(cx);
+    removed
+}
+
+/// Checks and loads `id`, installed or turned on just now.
+fn load_installed(id: &PluginId, cx: &mut App) {
+    let reserved = palette::reserved_titles();
+    let reserved: Vec<&str> = reserved.iter().map(String::as_str).collect();
+    let plugins = cx.global_mut::<Plugins>();
+    match manager::load(&plugins.dir, &mut plugins.state, id, &reserved) {
+        Some(Ok(spec)) => {
+            load(spec, cx);
+            day_changed(cx);
+        }
+        Some(Err(problem)) => stays_off(id, &problem, cx),
+        None => {}
+    }
+}
+
+/// Why a package was not offered for install.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Refused {
+    /// The file cannot be read.
+    Unreadable,
+    /// What is wrong with the package, in the app's language.
+    Package(String),
+    /// The module is not one this Bientôt runs.
+    Module,
+    /// The installed plugin is signed by `bound`, this package by `offered`.
+    OtherAuthor { bound: String, offered: String },
+    /// The installed plugin is signed by `bound` and this package is not.
+    NowUnsigned { bound: String },
+}
+
+/// A package that passed every check.
+pub struct Offered {
+    /// `None` in a [`Offered::preview`].
+    offer: Option<Offer>,
+    pub consent: Consent,
+}
+
+impl Offered {
+    /// What the consent dialog shows of a package that is not there, for the screenshots and
+    /// the tests: installing it fails.
+    pub fn preview(consent: Consent) -> Self {
+        Self {
+            offer: None,
+            consent,
+        }
+    }
+}
+
+/// What the consent dialog says of a package (FR-007), in the app's language.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Consent {
+    pub name: String,
+    pub version: String,
+    /// The version it replaces.
+    pub replaces: Option<String>,
+    pub fingerprint: Option<String>,
+    pub capabilities: Vec<Capability>,
+    /// The memory it declares, in MiB, when above the default.
+    pub memory_mib: Option<u32>,
+    /// The same author ships a manifest that asks for nothing more: no dialog (FR-006).
+    pub needs_consent: bool,
+}
+
+impl std::fmt::Debug for Offered {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Offered")
+            .field("consent", &self.consent)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Reads and checks the package `file` off the main thread, then hands `done` the offer or why
+/// there is none. `None` without plugins.
+pub fn read_package(
+    file: PathBuf,
+    done: impl FnOnce(Result<Offered, Refused>, &mut App) + 'static,
+    cx: &mut App,
+) {
+    let Some(plugins) = cx.try_global::<Plugins>() else {
+        return;
+    };
+    let state = plugins.state.clone();
+    let language = plugin_language(plugins.language);
+    let read = cx.background_executor().spawn(async move {
+        let bytes = std::fs::read(&file).map_err(|_| Refused::Unreadable)?;
+        let reserved = palette::reserved_titles();
+        let reserved: Vec<&str> = reserved.iter().map(String::as_str).collect();
+        let offer =
+            manager::offer(&bytes, &reserved, &Runtime::default(), &state).map_err(|error| {
+                match error {
+                    InstallError::Package(error) => Refused::Package(error.message(language)),
+                    InstallError::Module(_) => Refused::Module,
+                    InstallError::Trust(trust::Refusal::OtherAuthor { bound, offered }) => {
+                        Refused::OtherAuthor { bound, offered }
+                    }
+                    InstallError::Trust(trust::Refusal::NowUnsigned { bound }) => {
+                        Refused::NowUnsigned { bound }
+                    }
+                }
+            })?;
+        let manifest = &offer.package.manifest;
+        let consent = Consent {
+            name: manifest.name.get(language, &manifest.locales[0]).to_owned(),
+            version: manifest.version.to_string(),
+            replaces: offer.replaces.clone(),
+            fingerprint: offer.fingerprint(),
+            capabilities: offer.capabilities().iter().copied().collect(),
+            memory_mib: (manifest.memory > DEFAULT_MEMORY).then_some(manifest.memory >> 20),
+            needs_consent: offer.needs_consent(&state),
+        };
+        Ok(Offered {
+            offer: Some(offer),
+            consent,
+        })
+    });
+    cx.spawn(async move |cx| {
+        let read = read.await;
+        cx.update(|cx| done(read, cx));
+    })
+    .detach();
+}
+
+/// Installs the package the user accepted and loads it. Returns its id.
+pub fn install(offered: Offered, cx: &mut App) -> std::io::Result<PluginId> {
+    let (true, Some(offer)) = (cx.has_global::<Plugins>(), offered.offer) else {
+        return Err(std::io::Error::other("nothing to install"));
+    };
+    let id = offer.package.manifest.id.clone();
+    // An unsigned replacement starts over, and a plugin that changed must load anew.
+    unload(&id, cx);
+    let plugins = cx.global_mut::<Plugins>();
+    let installed = manager::install(&plugins.dir, &mut plugins.state, offer);
+    // After a failed update, the version still installed loads again.
+    load_installed(&id, cx);
+    changed(cx);
+    installed
+}
+
+/// The plugins folder, where File Explorer shows it: under MSIX the files Bientôt wrote sit
+/// in the package's `LocalCache`, which only the folder's final path leads to.
+pub fn open_folder(cx: &mut App) {
+    let Some(plugins) = cx.try_global::<Plugins>() else {
+        return;
+    };
+    let root = plugins.dir.root().to_path_buf();
+    if std::fs::create_dir_all(&root).is_err() {
+        return;
+    }
+    #[cfg(windows)]
+    let root = bientot_windows::diagnostics::final_directory(&root).unwrap_or(root);
+    cx.open_with_system(&root);
+}
+
 /// Writes `event` to the app's diagnostic log. Only what Bientôt says of a plugin goes there,
 /// never the plugin's own log lines (FR-034).
 fn diagnose(cx: &mut App, event: &str, properties: &[(&str, DiagnosticValue)]) {
@@ -367,7 +676,7 @@ fn diagnose(cx: &mut App, event: &str, properties: &[(&str, DiagnosticValue)]) {
     }
 }
 
-fn plugin_language(language: Language) -> bientot_plugin_api::Language {
+pub(crate) fn plugin_language(language: Language) -> bientot_plugin_api::Language {
     match language {
         Language::French => bientot_plugin_api::Language::Fr,
         Language::English => bientot_plugin_api::Language::En,

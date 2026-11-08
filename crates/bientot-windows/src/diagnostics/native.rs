@@ -51,6 +51,34 @@ pub fn directory_is_final(directory: &Path) -> bool {
         .is_some_and(|path| names_directory(&path, &directory.to_string_lossy()))
 }
 
+/// Where `directory` really is: under MSIX, a folder Bientôt created under `%LOCALAPPDATA%`
+/// lies in the package's `LocalCache`, which File Explorer shows only at its final path.
+pub fn final_directory(directory: &Path) -> Option<std::path::PathBuf> {
+    let name: Vec<u16> = directory
+        .as_os_str()
+        .encode_wide()
+        .chain(iter::once(0))
+        .collect();
+    // SAFETY: as in `directory_is_final`.
+    let handle = unsafe {
+        CreateFileW(
+            name.as_ptr(),
+            0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            ptr::null(),
+            OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS,
+            ptr::null_mut(),
+        )
+    };
+    if handle == INVALID_HANDLE_VALUE {
+        return None;
+    }
+    // SAFETY: a valid handle this function owns, closed when dropped.
+    let handle = unsafe { OwnedHandle::from_raw_handle(handle) };
+    final_path(handle.as_raw_handle()).map(Into::into)
+}
+
 /// Whether the opened `file` really lies directly inside `directory`.
 pub fn file_is_in(file: &File, directory: &Path) -> bool {
     final_path(file.as_raw_handle())

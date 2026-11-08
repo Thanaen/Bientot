@@ -1,5 +1,6 @@
-//! The transfer file that moves a data folder to another computer: a copy of the ledger with one
-//! more table, `WorkTimeTransfer`, holding `settings.json` and when the copy was made. SQLite
+//! The transfer file that moves a data folder to another computer: a copy of the ledger with two
+//! more tables, `WorkTimeTransfer`, holding `settings.json` and when the copy was made, and
+//! `TransferPlugin`, naming the installed plugins (none in a file exported before). SQLite
 //! checks the file as it opens it, and an older ledger in it migrates like any other.
 //!
 //! An import replaces the folder's ledger and settings: a ledger cannot be merged with another
@@ -35,7 +36,19 @@ const CREATE_TABLE: &str = "CREATE TABLE WorkTimeTransfer (
     Format INTEGER NOT NULL,
     ExportedAtUtc TEXT NOT NULL,
     Settings BLOB NULL
+);
+CREATE TABLE TransferPlugin (
+    Id TEXT NOT NULL,
+    Version TEXT NOT NULL
 );";
+
+/// A plugin installed where the file was exported. The transfer names it and nothing more:
+/// never its files, its state or what it was granted (`specs/003-plugin-runtime`, FR-061).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExportedPlugin {
+    pub id: String,
+    pub version: String,
+}
 
 /// What a transfer file holds, as the import asks to confirm it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -113,8 +126,9 @@ pub fn export(
         directory.database_file(),
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )?;
+    let plugins = installed_plugins(directory);
     let temporary = file::sibling(destination, &format!(".{}.tmp", file::random_hex()));
-    let written = write(&ledger, settings.as_deref(), &temporary, now)
+    let written = write(&ledger, settings.as_deref(), &plugins, &temporary, now)
         .and_then(|()| Ok(fs::rename(&temporary, destination)?));
     if written.is_err() {
         let _ = fs::remove_file(&temporary);
@@ -128,6 +142,7 @@ pub fn export(
 fn write(
     ledger: &Connection,
     settings: Option<&[u8]>,
+    plugins: &[ExportedPlugin],
     temporary: &Path,
     now: Timestamp,
 ) -> Result<(), TransferError> {
@@ -139,13 +154,76 @@ fn write(
     })?;
     ledger.execute("VACUUM INTO ?1;", [path])?;
     let copy = Connection::open(temporary)?;
+    // A ledger imported by a build before plugins kept the table of its file: its rows name
+    // another PC's plugins.
+    copy.execute_batch("DROP TABLE IF EXISTS TransferPlugin;")?;
     copy.execute_batch(CREATE_TABLE)?;
     copy.execute(
         "INSERT INTO WorkTimeTransfer (Format, ExportedAtUtc, Settings) VALUES (?1, ?2, ?3);",
         (FORMAT, format_instant(now), settings),
     )?;
+    for plugin in plugins {
+        copy.execute(
+            "INSERT INTO TransferPlugin (Id, Version) VALUES (?1, ?2);",
+            (&plugin.id, &plugin.version),
+        )?;
+    }
     copy.close().map_err(|(_, error)| error)?;
     Ok(())
+}
+
+/// The ids and versions of the plugins `plugins/state.json` lists in `directory`. A state that
+/// does not read names none: the export goes on without them.
+fn installed_plugins(directory: &DataDirectory) -> Vec<ExportedPlugin> {
+    let Ok(bytes) = fs::read(directory.path().join("plugins").join("state.json")) else {
+        return Vec::new();
+    };
+    let Ok(state) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+        return Vec::new();
+    };
+    let Some(plugins) = state.get("plugins").and_then(serde_json::Value::as_object) else {
+        return Vec::new();
+    };
+    plugins
+        .iter()
+        .filter_map(|(id, plugin)| {
+            Some(ExportedPlugin {
+                id: id.clone(),
+                version: plugin.get("version")?.as_str()?.to_owned(),
+            })
+        })
+        .collect()
+}
+
+/// The plugins installed where `file` was exported; none in a file exported before they were.
+pub fn exported_plugins(file: &Path) -> Result<Vec<ExportedPlugin>, TransferError> {
+    let connection = Connection::open_with_flags(
+        file,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(not_a_transfer)?;
+    let has_table: bool = connection.query_row(
+        "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'TransferPlugin');",
+        [],
+        |row| row.get(0),
+    ).map_err(not_a_transfer)?;
+    if !has_table {
+        return Ok(Vec::new());
+    }
+    let mut statement = connection
+        .prepare("SELECT Id, Version FROM TransferPlugin ORDER BY Id;")
+        .map_err(not_a_transfer)?;
+    let plugins = statement
+        .query_map([], |row| {
+            Ok(ExportedPlugin {
+                id: row.get(0)?,
+                version: row.get(1)?,
+            })
+        })
+        .map_err(not_a_transfer)?
+        .collect::<Result<_, _>>()
+        .map_err(not_a_transfer)?;
+    Ok(plugins)
 }
 
 /// What `file` holds, once it read as a transfer this build can import.
@@ -353,11 +431,12 @@ fn settle(path: &Path) -> Result<(), TransferError> {
     Ok(())
 }
 
-/// The ledger of the transfer at `pending`, without its transfer table, at `temporary`.
+/// The ledger of the transfer at `pending`, without its transfer tables, at `temporary`.
 fn prepare(pending: &Path, temporary: &Path) -> Result<(), TransferError> {
     fs::copy(pending, temporary)?;
     let connection = Connection::open(temporary)?;
-    connection.execute_batch("DROP TABLE WorkTimeTransfer;")?;
+    connection
+        .execute_batch("DROP TABLE WorkTimeTransfer; DROP TABLE IF EXISTS TransferPlugin;")?;
     connection.close().map_err(|(_, error)| error)?;
     file::sync(temporary)?;
     Ok(())

@@ -1109,4 +1109,145 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="PluginCardShowFormat" xml:space="preserve">
     <value>Afficher plutôt la carte {0}</value>
   </data>
+  <data name="SettingsPluginsNav.Content" xml:space="preserve">
+    <value>Plugins</value>
+  </data>
+  <data name="SettingsPluginsTitle" xml:space="preserve">
+    <value>Plugins</value>
+  </data>
+  <data name="SettingsPluginsInstalledGroup" xml:space="preserve">
+    <value>Installés</value>
+  </data>
+  <data name="SettingsPluginsEmpty" xml:space="preserve">
+    <value>Aucun plugin installé.</value>
+  </data>
+  <data name="SettingsPluginsUnavailable" xml:space="preserve">
+    <value>Les plugins ne sont pas disponibles.</value>
+  </data>
+  <data name="SettingsPluginsVersionFormat" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="SettingsPluginsFingerprintFormat" xml:space="preserve">
+    <value>Empreinte de l’auteur : {0}</value>
+  </data>
+  <data name="SettingsPluginsUnsigned" xml:space="preserve">
+    <value>Non signé : l’auteur n’est pas vérifié</value>
+  </data>
+  <data name="SettingsPluginsTurnOnFormat" xml:space="preserve">
+    <value>Activer {0}</value>
+  </data>
+  <data name="SettingsPluginsRemove" xml:space="preserve">
+    <value>Retirer</value>
+  </data>
+  <data name="SettingsPluginsRemoveFormat" xml:space="preserve">
+    <value>Retirer {0}</value>
+  </data>
+  <data name="SettingsPluginsFailed" xml:space="preserve">
+    <value>Arrêté après trois erreurs. Il reprendra au prochain démarrage de Bientôt.</value>
+  </data>
+  <data name="SettingsPluginsRevokedFormat" xml:space="preserve">
+    <value>Bloqué par Bientôt. {0}</value>
+  </data>
+  <data name="SettingsPluginsFilesChanged" xml:space="preserve">
+    <value>Ses fichiers ont changé depuis l’installation. Retirez-le, puis installez-le à nouveau.</value>
+  </data>
+  <data name="SettingsPluginsUnsupportedApi" xml:space="preserve">
+    <value>Prévu pour une autre version de Bientôt. Mettez à jour Bientôt ou ce plugin.</value>
+  </data>
+  <data name="SettingsPluginsAddGroup" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="SettingsPluginsInstallTitle" xml:space="preserve">
+    <value>Installer un plugin</value>
+  </data>
+  <data name="SettingsPluginsInstallDescription" xml:space="preserve">
+    <value>Choisissez un fichier .bientot-plugin, ou déposez-le sur cette page.</value>
+  </data>
+  <data name="SettingsPluginsInstallButton" xml:space="preserve">
+    <value>Installer depuis un fichier…</value>
+  </data>
+  <data name="SettingsPluginsFolderTitle" xml:space="preserve">
+    <value>Dossier des plugins</value>
+  </data>
+  <data name="SettingsPluginsFolderDescription" xml:space="preserve">
+    <value>Les fichiers des plugins installés sur ce PC.</value>
+  </data>
+  <data name="SettingsPluginsFolderButton" xml:space="preserve">
+    <value>Ouvrir le dossier</value>
+  </data>
+  <data name="SettingsPluginsReading" xml:space="preserve">
+    <value>Lecture du plugin…</value>
+  </data>
+  <data name="SettingsPluginsInstalledFormat" xml:space="preserve">
+    <value>{0} est installé.</value>
+  </data>
+  <data name="SettingsPluginsUpdatedFormat" xml:space="preserve">
+    <value>{0} est passé en version {1}.</value>
+  </data>
+  <data name="SettingsPluginsRemovedFormat" xml:space="preserve">
+    <value>{0} est retiré.</value>
+  </data>
+  <data name="SettingsPluginsInstallFailed" xml:space="preserve">
+    <value>L’installation a échoué. Réessayez.</value>
+  </data>
+  <data name="SettingsPluginsRemoveFailedFormat" xml:space="preserve">
+    <value>{0} n’a pas pu être retiré. Réessayez.</value>
+  </data>
+  <data name="SettingsPluginsUnreadable" xml:space="preserve">
+    <value>Ce fichier ne peut pas être lu.</value>
+  </data>
+  <data name="SettingsPluginsModuleRefused" xml:space="preserve">
+    <value>Ce plugin ne peut pas être installé : son code ne correspond pas à ce qu’il annonce.</value>
+  </data>
+  <data name="SettingsPluginsOtherAuthorFormat" xml:space="preserve">
+    <value>Refusé : seul l’auteur du plugin installé peut le mettre à jour. Empreinte de l’auteur : {0}. Empreinte de ce fichier : {1}.</value>
+  </data>
+  <data name="SettingsPluginsNowUnsignedFormat" xml:space="preserve">
+    <value>Refusé : seul l’auteur du plugin installé peut le mettre à jour, et ce fichier n’est pas signé. Empreinte de l’auteur : {0}.</value>
+  </data>
+  <data name="PluginConsentTitleFormat" xml:space="preserve">
+    <value>Installer {0} ?</value>
+  </data>
+  <data name="PluginConsentUpdateTitleFormat" xml:space="preserve">
+    <value>Mettre à jour {0} ?</value>
+  </data>
+  <data name="PluginConsentVersionFormat" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="PluginConsentReplacesFormat" xml:space="preserve">
+    <value>Version {0} (actuellement {1})</value>
+  </data>
+  <data name="PluginConsentIntro" xml:space="preserve">
+    <value>Ce plugin pourra :</value>
+  </data>
+  <data name="PluginConsentMemoryFormat" xml:space="preserve">
+    <value>Utiliser jusqu’à {0} Mo de mémoire</value>
+  </data>
+  <data name="PluginConsentUnsigned" xml:space="preserve">
+    <value>L’auteur ne peut pas être vérifié, et ce plugin ne pourra jamais être mis à jour.</value>
+  </data>
+  <data name="PluginConsentNothingElse" xml:space="preserve">
+    <value>Il ne pourra rien faire d’autre.</value>
+  </data>
+  <data name="PluginConsentCancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="PluginConsentInstall" xml:space="preserve">
+    <value>Installer</value>
+  </data>
+  <data name="PluginConsentUpdate" xml:space="preserve">
+    <value>Mettre à jour</value>
+  </data>
+  <data name="PluginCardManage" xml:space="preserve">
+    <value>Gérer les plugins</value>
+  </data>
+  <data name="PluginCardTurnOffFormat" xml:space="preserve">
+    <value>Désactiver {0}</value>
+  </data>
+  <data name="SettingsPluginsFileType" xml:space="preserve">
+    <value>Plugin Bientôt</value>
+  </data>
+  <data name="PluginConsentAuthor" xml:space="preserve">
+    <value>Empreinte de l’auteur :</value>
+  </data>
 </root>

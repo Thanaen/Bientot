@@ -93,6 +93,84 @@ fn an_export_holds_the_ledger_its_period_and_when_it_was_made() {
 }
 
 #[test]
+fn an_export_names_the_installed_plugins_and_carries_none_of_their_files_or_state() {
+    let (_temporary, directory) = folder(&["2026-10-21"], 450);
+    let plugins = directory.path().join("plugins");
+    fs::create_dir_all(plugins.join("bientot.focus")).unwrap();
+    fs::write(
+        plugins.join("bientot.focus/plugin.json"),
+        "{\"secret-marker-file\": true}",
+    )
+    .unwrap();
+    fs::write(
+        plugins.join("state.json"),
+        r#"{"plugins": {
+            "bientot.focus": {"version": "0.2.0", "granted": "secret-marker-grant"},
+            "bientot.tomato": {"version": "0.1.0", "status": "off"}
+        }}"#,
+    )
+    .unwrap();
+    let destination = directory.path().join("export.bientot");
+
+    export(&directory, &destination, now()).unwrap();
+
+    assert_eq!(
+        exported_plugins(&destination).unwrap(),
+        [
+            ExportedPlugin {
+                id: "bientot.focus".into(),
+                version: "0.2.0".into(),
+            },
+            ExportedPlugin {
+                id: "bientot.tomato".into(),
+                version: "0.1.0".into(),
+            },
+        ]
+    );
+    let bytes = fs::read(&destination).unwrap();
+    for marker in ["secret-marker-file", "secret-marker-grant", "status"] {
+        assert!(
+            !bytes
+                .windows(marker.len())
+                .any(|window| window == marker.as_bytes()),
+            "{marker} left the plugins folder"
+        );
+    }
+}
+
+#[test]
+fn a_ledger_that_kept_the_plugins_of_an_older_import_still_exports_without_them() {
+    let (_temporary, directory) = folder(&["2026-10-21"], 450);
+    // An import by a build before plugins dropped only `WorkTimeTransfer`.
+    open(&directory.database_file())
+        .unwrap()
+        .execute_batch(
+            "CREATE TABLE TransferPlugin (Id TEXT NOT NULL, Version TEXT NOT NULL);
+             INSERT INTO TransferPlugin VALUES ('someone.elses', '9.9.9');",
+        )
+        .unwrap();
+    let destination = directory.path().join("export.bientot");
+
+    export(&directory, &destination, now()).unwrap();
+
+    assert_eq!(exported_plugins(&destination).unwrap(), []);
+}
+
+#[test]
+fn a_file_exported_before_plugins_names_none() {
+    let (_temporary, directory) = folder(&[], 420);
+    let destination = directory.path().join("export.worktime");
+    export(&directory, &destination, now()).unwrap();
+    Connection::open(&destination)
+        .unwrap()
+        .execute_batch("DROP TABLE TransferPlugin;")
+        .unwrap();
+
+    assert_eq!(exported_plugins(&destination).unwrap(), []);
+    assert!(inspect(&destination).is_ok());
+}
+
+#[test]
 fn an_export_reads_what_the_app_wrote_and_has_not_checkpointed() {
     let (_temporary, directory) = folder(&[], 420);
     // The app's connection stays open: its writes are still in the write-ahead log.

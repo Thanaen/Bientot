@@ -8,7 +8,9 @@ mod native;
 use bientot_store::data_directory::upper_invariant;
 
 #[cfg(windows)]
-pub use native::{directory_is_final, file_is_in, native_machine, operating_system_version};
+pub use native::{
+    directory_is_final, file_is_in, final_directory, native_machine, operating_system_version,
+};
 
 const SEPARATORS: [char; 2] = ['\\', '/'];
 
