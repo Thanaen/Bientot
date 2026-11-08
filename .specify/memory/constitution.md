@@ -43,6 +43,19 @@ Time, timezone, and source events MUST be injectable in tests. Prefer the
 Windows and .NET platform libraries over extra dependencies; every dependency
 requires a concrete maintenance or reliability benefit.
 
+### VI. Contained extensions
+
+Third-party code MUST never run on the UI thread, inside the accounting
+refresh, or with ambient authority. Extensions run in a sandbox with bounded
+fuel, memory and time, and reach the app only through host functions tied to
+capabilities the user granted. The host draws every extension surface with its
+own components and design-system tokens. An extension MAY bring evidence or
+proposals; only the calculation core counts time, and everything an extension
+caused stays attributed, visible and reversible. No extension may abort the
+process. With no extension installed, the app MUST pay no runtime cost. An
+extension capability that sends data off the machine requires its own product
+decision (Principle I).
+
 ## Product and quality constraints
 
 - Initial platform support is limited to currently supported Windows desktop
@@ -76,9 +89,14 @@ require a documented rationale and an update to affected specifications. The
 initial constitution becomes ratified when the first product specification is
 approved.
 
-**Version**: 1.1.0 | **Ratified**: 2026-07-27 | **Last Amended**: 2026-10-11
+**Version**: 1.2.0 | **Ratified**: 2026-07-27 | **Last Amended**: 2026-11-08
 
 Amendment 1.1.0 (2026-10-11): ActivityWatch is no longer a prerequisite. The
 owner chose a built-in idle detection source as the default (decision D-021 in
 `docs/product-decisions.md`), so Principles I and IV now name activity sources
 in general. Affected specifications: `specs/001-core-workday-indicator/`.
+
+Amendment 1.2.0 (2026-11-08): the owner chose to open Bientôt to extensions
+(decision D-024 in `docs/product-decisions.md`). Principle VI states the
+rules every extension plan is checked against. Affected specifications:
+`specs/003-plugin-runtime/`.

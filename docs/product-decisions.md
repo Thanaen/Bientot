@@ -453,11 +453,48 @@ extensions, domains).
 
 The rename is tracked in GitHub issue #56.
 
+## Ratified on 2026-11-08
+
+### D-024 — Extensions run in a WebAssembly sandbox
+
+Decided on 2026-11-08 by the owner, after a design reviewed by five
+reviewers (runtime performance, security and privacy, plugin authors,
+Microsoft Store, product) until they agreed. Bientôt accepts extensions on
+three levels:
+
+- **Declarative packs**, with no code: themes, tray icon sets, schedule
+  templates and "when X, then Y" automations that the host evaluates itself.
+- **WebAssembly plugins**, run by the `wasmi` interpreter with the
+  `portable-dispatch` feature, with no file, network, process or Win32
+  access, and only the capabilities the user granted. `wasmtime` was
+  rejected because it adds 6.5 MB to the executable and would break the
+  20 MB gate; `wasmi`'s default `auto-dispatch` was rejected because a
+  plugin loop could abort the whole process through a native stack
+  overflow.
+- **Bridges**, programs the user installs separately, that Bientôt only
+  connects to. Bientôt never downloads or launches an executable.
+
+The host draws every extension surface. Plugins never run on the UI thread
+or inside the 30 s refresh, and they never count time: they bring evidence
+or proposals that the calculation core filters.
+
+The first step, specified in `specs/003-plugin-runtime/`, proves the runtime
+with a read-only flyout card and a palette command. It adds one network
+request made by Bientôt itself: a signed revocation list read from
+`bientot.dev`, which sends no identifier. Each of the following needs its
+own decision before it is built:
+
+- a capability that sends data off the machine (it changes SC-005);
+- dated appointment occurrences supplied by a plugin;
+- activity sources supplied by a plugin;
+- plugins that reclassify time;
+- public holidays and closures (D-006 leaves them out);
+- a public plugin registry.
+
 ## Later decisions
 
 - whether and under which license to open-source the repository;
 - Windows on ARM64;
 - localization beyond French and English;
 - optional calendar-aware projections;
-- multiple ActivityWatch hosts/devices;
-- public extension/plugin model;
+- multiple ActivityWatch hosts/devices.
