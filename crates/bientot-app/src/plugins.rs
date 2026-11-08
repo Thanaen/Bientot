@@ -37,6 +37,7 @@ struct Plugins {
     state: StateFile,
     /// Some loaded plugin reads the day and listens to `day.refreshed`.
     listens_day: bool,
+    /// The app's language, which changes only with a restart.
     language: Language,
 }
 
@@ -153,19 +154,6 @@ pub fn day_changed(cx: &mut App) {
         cx.global::<Plugins>()
             .thread
             .send(Request::Day(Arc::new(day)));
-    }
-}
-
-/// Tells the plugins the app's language changed.
-pub fn language_changed(language: Language, cx: &mut App) {
-    if cx.has_global::<Plugins>() {
-        let plugins = cx.global_mut::<Plugins>();
-        if plugins.language != language {
-            plugins.language = language;
-            plugins
-                .thread
-                .send(Request::Language(plugin_language(language)));
-        }
     }
 }
 
