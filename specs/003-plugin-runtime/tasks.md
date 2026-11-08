@@ -46,9 +46,9 @@ texts, and the design-system artifacts updated with any UI change.
 **Independent test**: spec US1.
 
 - [x] T030 [US1] Implement `bt:ui@1 set` and `clear` for the slot `flyout.card` in `crates/bientot-plugins/src/host.rs`, producing validated trees in the contribution updates.
-- [ ] T031 [US1] Add the `PluginContributions` global and the GPUI bridge (channels, `cx.spawn`, `Arc` swap, notify) in `crates/bientot-app/src/plugins.rs`.
-- [ ] T032 [US1] Convert validated trees into prepared cards with the app's widgets and tokens in `crates/bientot-app/src/plugins/card.rs`; `duration` and `countdown` read the clock at render.
-- [ ] T033 [US1] Add `Part::PluginCard` after `Part::Worked` in `crates/bientot-app/src/flyout/body.rs`: one visible card, others under **More**, header with icon, name and « … » menu (**Hide for today**, **Plugin settings**, **Turn off**), focus restored, no live-region announcement; store `hidden_on` like the closed callouts.
+- [x] T031 [US1] Add the `PluginContributions` global and the GPUI bridge (channels, `cx.spawn`, `Arc` swap, notify) in `crates/bientot-app/src/plugins.rs`.
+- [x] T032 [US1] Convert validated trees into prepared cards with the app's widgets and tokens in `crates/bientot-app/src/plugins/card.rs`; `duration` and `countdown` read the clock at render.
+- [ ] T033 [US1] Add `Part::PluginCard` after `Part::Worked` in `crates/bientot-app/src/flyout/body.rs`: one visible card, others under **More**, header with icon, name and « … » menu (**Hide for today**, **Plugin settings**, **Turn off**), focus restored, no live-region announcement; store `hidden_on` like the closed callouts. (Done except **Plugin settings** and **Turn off**, which need T034; the other cards are under **Show instead**.)
 - [ ] T034 [US1] Add `Page::Plugins` to `crates/bientot-app/src/settings.rs` and `crates/bientot-app/src/settings_view/plugins.rs`: list, states of FR-044, turn on or off, remove, **Install from file…**, drop target, **Open folder** at its real path through `bientot-windows`.
 - [ ] T035 [US1] Add the consent dialog (capabilities in plain words, fingerprint or unsigned warning, declared memory) in `crates/bientot-app/src/settings_view/plugins.rs`.
 - [ ] T036 [US1] Add every new text in French and English to `crates/bientot-app/src/strings/table.rs`; consent and security texts can never come from a plugin.
