@@ -57,11 +57,11 @@ Stored in `plugins/state.json` (host-private, not part of the API crate).
 | `files` | path → SHA-256, from the signed list or computed at install |
 | `manifest_hash` | SHA-256 of `plugin.json` |
 | `granted` | capabilities the user accepted, with the `manifest_hash` they were accepted for |
-| `enabled` | the user's switch |
-| `status` | `Active`, `Off`, `FailedUntilRestart { reason }`, `Revoked { reason }`, `FilesChanged`, `UnsupportedApi` |
+| `status` | `Active`, `Off`, `FailedUntilRestart { reason }`, `Revoked { reason }`, `FilesChanged`, `UnsupportedApi`; `Active` and `Off` are the user's switch |
 | `failures` | timestamps of the last traps (at most 3 kept) |
 | `card_preference` | the user picked this card as the visible one |
 | `hidden_on` | local date the card was hidden for |
+| `pending` | `installed` or `upgraded { from }` still to deliver |
 
 State transitions:
 
@@ -74,9 +74,12 @@ State transitions:
                        FailedUntilRestart
  Active/Off ── revocation list names it ──► Revoked ── list clears it ──► Off
  Active/Off ── file hash differs at load ──► FilesChanged ── reinstall ──► Active
- Active/Off ── host no longer supports api ──► UnsupportedApi
+ Active/Off ── host no longer supports api ──► UnsupportedApi ── reinstall ──► Active
  any ── remove ──► (none, folder deleted)
 ```
+
+An update by the same author keeps `Off`, `Revoked` and `FailedUntilRestart` as they are;
+from any other state it leaves the plugin `Active`.
 
 ## RevocationList
 
@@ -92,7 +95,7 @@ The host keeps the last good list in `plugins/revocations.json`.
 
 ## DaySnapshot (v1)
 
-Built from `WorkdayRefreshState` and the published week, only when a plugin
+Built from the daily summary of `WorkdayRefreshState`, only when a plugin
 listens.
 
 | Field | Type |
@@ -108,7 +111,7 @@ listens.
 | `forecast` | `Firm`, `Estimated`, `Unavailable`, `Unknown` |
 | `segments` | list of `{ start, end, kind }`, settled only; `kind` is `Work`, `Break`, `Lunch`, `Away`, `Manual`, `Appointment`, `Unknown`, `Other` |
 | `open_tail` | `{ start, kind }` or null |
-| `week` | `{ counted, target, credit }` in seconds |
+| `week` | `{ credit }`: the weekly balance at the end of today, in seconds |
 | `source` | `Ok`, `Degraded`, `Unknown` |
 
 The departure at the minimum uses the same projection as the departure at

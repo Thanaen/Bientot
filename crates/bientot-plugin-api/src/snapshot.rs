@@ -103,10 +103,7 @@ pub struct OpenTail {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Week {
-    /// Seconds counted this week, today included.
-    pub counted: i64,
-    pub target: i64,
-    /// Seconds above (positive) or below the week's targets so far.
+    /// The weekly balance at the end of today, in seconds: positive when ahead.
     pub credit: i64,
 }
 

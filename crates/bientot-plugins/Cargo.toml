@@ -8,8 +8,25 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
+# Verification only; `fast` would add precomputed tables for a few signatures a day.
+ed25519-dalek = { version = "3.0.0", default-features = false }
+flate2 = "1.1.10"
+jiff = "0.2.38"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
 # Pinned: a wasmi update changes the sandbox. `portable-dispatch` turns a `call_indirect` loop into
 # a trap where the default tail-call dispatcher overflows the native stack and aborts the process
 # (specs/003-plugin-runtime/research.md, R1).
 wasmi = { version = "=2.0.0", default-features = false, features = ["std", "validate", "portable-dispatch"] }
+# Names the limiter error of `wasmi::ResourceLimiter`, which wasmi does not re-export.
+wasmi_core = { version = "=2.0.0", default-features = false }
+bientot-core = { path = "../bientot-core" }
+bientot-domain = { path = "../bientot-domain" }
 bientot-plugin-api = { path = "../bientot-plugin-api" }
+
+[dev-dependencies]
+bientot-store = { path = "../bientot-store" }
+rusqlite = "0.41.0"
+tempfile = "3.27.0"
+wat = "1.263.0"

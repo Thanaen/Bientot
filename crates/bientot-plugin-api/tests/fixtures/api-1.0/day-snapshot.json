@@ -17,6 +17,6 @@
     { "start": "2026-11-08T11:00:00Z", "end": "2026-11-08T11:45:00Z", "kind": "lunch" }
   ],
   "open_tail": { "start": "2026-11-08T11:45:00Z", "kind": "work" },
-  "week": { "counted": 113400, "target": 135000, "credit": -1800 },
+  "week": { "credit": -1800 },
   "source": "ok"
 }
