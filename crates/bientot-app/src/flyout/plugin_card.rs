@@ -17,7 +17,7 @@ use crate::settings_view;
 use crate::strings::Key;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, motion, radius, size, text};
-use crate::widgets::{caps, icon};
+use crate::widgets::{self, caps, icon};
 
 /// The ids of the card's buttons, which [`Flyout::reveal_on_tab`] keeps.
 const ACTION_IDS: [&str; 2] = ["plugin-action-0", "plugin-action-1"];
@@ -96,17 +96,20 @@ impl Flyout {
             .format(Key::PluginCardMenuFormat, &[&shown.name])
             .into();
         let open = self.plugin_menu.open;
-        let button = control(MENU_ID, menu_label.clone(), theme)
-            .track_focus(&self.plugin_menu.button)
-            .aria_expanded(open)
-            .size(size::BUTTON_DEFAULT)
-            .flex_none()
-            .flex()
-            .items_center()
-            .justify_center()
-            .when(open, |button| button.bg(theme.element_active))
-            .child(control_icon(MENU_ID, "ellipsis", theme))
-            .on_click(cx.listener(|flyout, _, window, cx| flyout.toggle_plugin_menu(window, cx)));
+        let button = widgets::expandable(
+            control(MENU_ID, menu_label.clone(), theme),
+            open,
+            cx.listener(|flyout, _: &(), window, cx| flyout.toggle_plugin_menu(window, cx)),
+        )
+        .track_focus(&self.plugin_menu.button)
+        .size(size::BUTTON_DEFAULT)
+        .flex_none()
+        .flex()
+        .items_center()
+        .justify_center()
+        .when(open, |button| button.bg(theme.element_active))
+        .child(control_icon(MENU_ID, "ellipsis", theme))
+        .on_click(cx.listener(|flyout, _, window, cx| flyout.toggle_plugin_menu(window, cx)));
         let time = if open {
             self.plugin_menu.entrance.time(motion::MENU, window, cx)
         } else {
