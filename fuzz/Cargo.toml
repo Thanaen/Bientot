@@ -1,6 +1,6 @@
 [package]
 name = "bientot-fuzz"
-description = "Fuzz targets for the files Bientôt reads from disk. Run with cargo-fuzz, see docs/ci-quality-gates.md."
+description = "Fuzz targets for the files Bientôt reads from disk and the data plugins send it. Run with cargo-fuzz, see docs/ci-quality-gates.md."
 version = "0.0.0"
 edition = "2024"
 publish = false
@@ -10,9 +10,13 @@ license = "MIT"
 cargo-fuzz = true
 
 [dependencies]
+ed25519-dalek = { version = "3.0.0", default-features = false }
 jiff = "0.2.38"
 libfuzzer-sys = "0.4.13"
 serde_json = "1.0.154"
+wat = "1.263.0"
+bientot-plugin-api = { path = "../crates/bientot-plugin-api" }
+bientot-plugins = { path = "../crates/bientot-plugins" }
 bientot-store = { path = "../crates/bientot-store" }
 
 # Not a member of the app's workspace: these targets build only with cargo-fuzz and nightly Rust.
@@ -35,6 +39,41 @@ bench = false
 [[bin]]
 name = "codec"
 path = "fuzz_targets/codec.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "manifest"
+path = "fuzz_targets/manifest.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "package"
+path = "fuzz_targets/package.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "host-call"
+path = "fuzz_targets/host-call.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "view-tree"
+path = "fuzz_targets/view-tree.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "revocations"
+path = "fuzz_targets/revocations.rs"
 test = false
 doc = false
 bench = false

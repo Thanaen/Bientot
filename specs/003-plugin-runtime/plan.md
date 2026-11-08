@@ -129,7 +129,7 @@ crates/
 │   ├── src/launch.rs            #   --no-plugins, safe mode
 │   └── src/strings/table.rs     #   FR/EN texts
 ├── bientot-windows/             # real path of the plugins folder
-fuzz/                            # targets manifest, package, host-call, view-tree
+fuzz/                            # targets manifest, package, host-call, view-tree, revocations
 scripts/                         # pack-plugin, sign-plugin, check-sample-plugins, measure gates
 services/bientot/                # serve /plugins/revocations.json
 ```
