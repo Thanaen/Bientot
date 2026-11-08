@@ -12,8 +12,8 @@
   "locales": ["en", "fr"],
   "capabilities": ["ui:flyout"],
   "commands": [
-    { "name": "start", "title": { "en": "Start a tomato", "fr": "Lancer une tomate" } },
-    { "name": "break", "title": { "en": "Take a short break", "fr": "Faire une courte pause" } },
-    { "name": "stop", "title": { "en": "Stop the timer", "fr": "Arrêter le minuteur" } }
+    { "name": "start", "title": { "en": "start the timer", "fr": "lancer le minuteur" } },
+    { "name": "break", "title": { "en": "take a short break", "fr": "faire une courte pause" } },
+    { "name": "stop", "title": { "en": "stop the timer", "fr": "arrêter le minuteur" } }
   ]
 }

@@ -94,7 +94,7 @@ rustflags = ["-C", "link-arg=-zstack-size=65536"]
   "locales": ["en", "fr"],
   "capabilities": ["read:day", "ui:flyout"],
   "events": ["day.refreshed"],
-  "commands": [{ "name": "wave", "title": { "en": "Wave", "fr": "Saluer" } }]
+  "commands": [{ "name": "wave", "title": { "en": "wave", "fr": "saluer" } }]
 }
 ```
 
@@ -105,6 +105,13 @@ Manifest rules that are easy to miss:
 - Every localized text needs the first locale of `locales`, which is the fallback.
 - `name` has at most 40 characters, `description` 120, and a command `title` 48. A title may not
   equal one of Bientôt's own commands.
+- Write a command `title` as a verb phrase starting in lower case, unless its first word is a
+  proper noun or an acronym, and don't repeat the plugin's name: the palette shows this sample's
+  title as "Hello: wave" in English and « Bonjour : saluer » in French, like Bientôt's
+  "Tracking: pause" / « Suivi : mettre en pause ». The name is dimmed, so the title alone must tell
+  the commands apart. In French use the infinitive (« lancer le minuteur », not « lancez le
+  minuteur »); in English use the bare verb ("start the timer"). Don't end a title with a
+  period; end it with « … » only when the command opens a window or asks for something first.
 - A command `name` matches `^[a-z][a-z0-9-]{0,31}$`. There is no `shortcut` key.
 - `day.refreshed` needs `read:day`. `installed`, `upgraded`, `activate` and `command.invoked`
   always arrive and are not listed in `events`.

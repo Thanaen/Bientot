@@ -933,6 +933,9 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="PaletteCommands" xml:space="preserve">
     <value>Commands</value>
   </data>
+  <data name="PalettePlugins" xml:space="preserve">
+    <value>Plugins</value>
+  </data>
   <data name="PaletteDialogName" xml:space="preserve">
     <value>Command palette</value>
   </data>

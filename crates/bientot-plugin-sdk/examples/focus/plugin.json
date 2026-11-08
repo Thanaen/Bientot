@@ -15,7 +15,7 @@
   "commands": [
     {
       "name": "toggle-detail",
-      "title": { "en": "Show or hide the detail", "fr": "Afficher ou masquer le détail" }
+      "title": { "en": "show or hide the detail", "fr": "afficher ou masquer le détail" }
     }
   ]
 }

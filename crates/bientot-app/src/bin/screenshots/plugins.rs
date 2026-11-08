@@ -4,17 +4,21 @@
 //! - `flyout-plugin-menu.png`, its « … » menu open, the other cards under it;
 //! - `flyout-plugin-tomato.png`, a countdown and two buttons;
 //! - `flyout-plugin-battery.png`, a progress bar, a badge and a time;
-//! - `flyout-plugins-paused.png`, the plugins off after two crashed starts.
+//! - `flyout-plugins-paused.png`, the plugins off after two crashed starts;
+//! - `palette-plugin-commands.png`, the commands of « Tomate » in the palette, found by its name;
+//! - `palette-plugins.png`, the same under their « Plugins » heading, the last one selected.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use bientot_app::demo::{self, DemoHost};
+use bientot_app::palette::PluginCommand;
 use bientot_app::plugins::{PluginCard, PluginCards};
 use bientot_app::strings::Language;
 use bientot_core::demo::DemoScenario;
 use bientot_domain::accounting::TrackingState;
 use bientot_plugin_api::PluginId;
+use bientot_plugin_api::manifest::Manifest;
 use bientot_plugin_api::view::{Prepared, PreparedButton, PreparedCard, Role, Tone};
 use gpui::{HeadlessAppContext, SharedString};
 use jiff::Timestamp;
@@ -254,5 +258,78 @@ pub fn capture_cards(
         )?;
     }
     cx.update(|cx| cx.set_global(PluginCards::default()));
-    Ok(())
+    capture_palette(cx, language, output, true)?;
+    capture_palette(cx, language, output, false)
+}
+
+/// The palette over the flyout, where the three commands of « Tomate » follow Bientôt's own:
+/// filtered on its name, or unfiltered and scrolled to them.
+fn capture_palette(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+    filtered: bool,
+) -> anyhow::Result<()> {
+    let manifest = Manifest::parse(
+        include_bytes!("../../../../bientot-plugin-sdk/examples/tomato/plugin.json"),
+        &[],
+    )?;
+    let tag = match language {
+        Language::French => bientot_plugin_api::Language::Fr,
+        Language::English => bientot_plugin_api::Language::En,
+    };
+    let fallback = &manifest.locales[0];
+    let plugin_name = manifest.name.get(tag, fallback).to_owned();
+    let commands = manifest
+        .commands
+        .iter()
+        .map(|command| PluginCommand {
+            plugin: manifest.id.clone(),
+            plugin_name: plugin_name.clone(),
+            command: command.name.clone(),
+            title: command.title.get(tag, fallback).to_owned(),
+            in_flyout: true,
+            in_week: true,
+        })
+        .collect::<Vec<_>>();
+    let directory = demo::throwaway_directory();
+    let day = DemoHost::open(DemoScenario::OnTrack, &directory)?.refresh(language);
+    std::fs::remove_dir_all(&directory).ok();
+    let window = open_flyout(cx, day?, working(TrackingState::Running), None)?;
+    let query: String = plugin_name.chars().take(3).collect();
+    cx.update(|cx| {
+        window.update(cx, |flyout, window, cx| {
+            flyout.open_palette(window, cx);
+            if let Some(palette) = flyout.palette() {
+                palette.update(cx, |palette, cx| {
+                    palette.show_plugin_commands(commands, cx);
+                    if filtered {
+                        palette.type_query(&query, cx);
+                    }
+                });
+            }
+        })
+    })?;
+    if !filtered {
+        // The list scrolls once it has its height, which the first frame measures.
+        cx.run_until_parked();
+        cx.update_window(window.into(), |_, window, _| window.refresh())?;
+        cx.run_until_parked();
+        cx.update(|cx| {
+            window.update(cx, |flyout, _, cx| {
+                if let Some(palette) = flyout.palette() {
+                    palette.update(cx, |palette, cx| palette.select_last(cx));
+                }
+            })
+        })?;
+    }
+    capture(
+        cx,
+        window.into(),
+        &output.join(if filtered {
+            "palette-plugin-commands.png"
+        } else {
+            "palette-plugins.png"
+        }),
+    )
 }

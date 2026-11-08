@@ -74,9 +74,9 @@ texts, and the design-system artifacts updated with any UI change.
 
 **Independent test**: spec US3.
 
-- [ ] T050 [US3] Add `PaletteRow` (`Builtin(Command)` or `Plugin { plugin, command }`) in `crates/bientot-app/src/palette.rs` and `palette_view.rs`: listing as « <plugin>: <title> » from manifests, filtering, running through the plugin thread with user priority.
-- [ ] T051 [US3] Route card buttons to `command.invoked` with `arg` and `source: "card"` in `crates/bientot-app/src/plugins/card.rs`.
-- [ ] T052 [US3] Refuse built-in titles and `shortcut` keys at install, with the messages of `contracts/manifest.md`; tests in `crates/bientot-plugin-api/src/manifest.rs`.
+- [x] T050 [US3] Add `PaletteRow` (`Builtin(Command)` or `Plugin { plugin, command }`) in `crates/bientot-app/src/palette.rs` and `palette_view.rs`: listing as « <plugin>: <title> » from manifests, filtering, running through the plugin thread with user priority.
+- [x] T051 [US3] Route card buttons to `command.invoked` with `arg` and `source: "card"` in `crates/bientot-app/src/plugins/card.rs`.
+- [x] T052 [US3] Refuse built-in titles and `shortcut` keys at install, with the messages of `contracts/manifest.md`; tests in `crates/bientot-plugin-api/src/manifest.rs`.
 
 ## Phase 6: User Story 4 — A bad plugin is stopped (P2)
 
@@ -85,7 +85,7 @@ texts, and the design-system artifacts updated with any UI change.
 - [ ] T053 [US4] Implement the revocation list (verification with the built-in key, version and expiry checks, application to `state.json`, last good list) in `crates/bientot-plugins/src/revocation.rs`; tests per rule of `contracts/revocations.md`.
 - [ ] T054 [US4] Fetch the list with the update check and before an install or a turn-on, on a background thread, in `crates/bientot-app/src/plugins.rs`; skip in debug and demo runs; tell the user when the last list was used.
 - [ ] T055 [P] [US4] Serve `/plugins/revocations.json` as a static file from `services/bientot` (`site` scope pull request), with the first empty list signed by the maintainer's offline key.
-- [ ] T056 [US4] Check file hashes at every load and show `FilesChanged` with **Remove** in **Settings › Plugins**; test by editing a file of an installed plugin.
+- [x] T056 [US4] Check file hashes at every load and show `FilesChanged` with **Remove** in **Settings › Plugins**; test by editing a file of an installed plugin.
 
 ## Phase 7: User Story 5 — Build the sample plugin (P3)
 
