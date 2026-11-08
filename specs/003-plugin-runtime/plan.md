@@ -99,13 +99,18 @@ crates/
 │   ├── src/revocation.rs        #   revocation list
 │   └── wit/bientot.wit          #   the contract, source of truth
 ├── bientot-plugins/             # NEW: the host (any OS)
-│   ├── src/package.rs           #   reader, hashes, signatures, install/remove
+│   ├── src/zip.rs               #   the zip subset, read without extraction
+│   ├── src/package.rs           #   entry names, manifest, locales, signature
+│   ├── src/trust.rs             #   key or hash binding, announcements
+│   ├── src/files.rs             #   plugins\<id>\ written whole, checked at load
+│   ├── src/manager.rs           #   offer, install, load, remove, failures
 │   ├── src/state.rs             #   plugins/state.json
 │   ├── src/runtime.rs           #   wasmi engine, linker, stores, slices, fuel
-│   ├── src/budget.rs            #   token buckets, failure record
+│   ├── src/host.rs              #   bt:log, bt:time, bt:day, bt:ui
+│   ├── src/log.rs               #   logs\plugins\<id>.jsonl
+│   ├── src/budget.rs            #   token buckets
 │   ├── src/thread.rs            #   plugins thread, bounded queue, priorities
-│   ├── src/interfaces/          #   bt:log, bt:time, bt:day, bt:ui
-│   ├── src/snapshot.rs          #   WorkdayRefreshState → DaySnapshot
+│   ├── src/snapshot.rs          #   DailySummary → DaySnapshot, structural changes
 │   ├── src/revocation.rs        #   check, apply, persist
 │   └── tests/hostile/           #   hostile corpus sources and runner
 ├── bientot-plugin-sdk/          # NEW: guest side, wasm32 and native test host

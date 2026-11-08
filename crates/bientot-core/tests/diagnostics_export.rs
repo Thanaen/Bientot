@@ -975,3 +975,51 @@ fn archives_match_dotnet() {
         }
     }
 }
+
+/// Plugin logs live in `logs\plugins\` (spec 003, FR-034): the export never reads them, even
+/// when a file there is named like a log of the app.
+#[test]
+fn leaves_plugin_logs_out() {
+    let root = TempDir::new().unwrap();
+    let logs = logs_directory(&root, "logs");
+    let plugins = logs.join("plugins");
+    fs::create_dir_all(&plugins).unwrap();
+    let secret = "SENTINEL-plugin-text";
+    fs::write(
+        plugins.join("bientot.focus.jsonl"),
+        format!(r#"{{"level":"info","text":"{secret}","time":"2026-09-10T12:30:00Z"}}"#),
+    )
+    .unwrap();
+    fs::write(
+        strict_log_path(&plugins, now() - minutes(2), 1),
+        log_line(
+            now() - minutes(2),
+            "Information",
+            "startup.tray_ready",
+            Some(&format!(r#"{{"status":"{secret}"}}"#)),
+        ) + "\n",
+    )
+    .unwrap();
+    fs::write(
+        strict_log_path(&logs, now() - minutes(2), 2),
+        log_line(
+            now() - minutes(1),
+            "Information",
+            "startup.tray_ready",
+            None,
+        ) + "\n",
+    )
+    .unwrap();
+
+    let destination = root.path().join("diagnostics.zip");
+    let result = export(&destination, Some(&logs), &useful_snapshot()).unwrap();
+
+    let archive = Archive::open(&destination);
+    assert_eq!(result.log_record_count, 1);
+    for (name, bytes) in &archive.entries {
+        assert!(
+            !String::from_utf8_lossy(bytes).contains(secret),
+            "{name} holds a plugin line"
+        );
+    }
+}

@@ -20,7 +20,7 @@ interface types {
 
   record segment { start: instant, end: instant, kind: segment-kind }
   record open-tail { start: instant, kind: segment-kind }
-  record week { counted: seconds, target: seconds, credit: seconds }
+  record week { credit: seconds }
 
   record day-snapshot {
     schema: u32,

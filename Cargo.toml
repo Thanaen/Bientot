@@ -23,3 +23,14 @@ strip = true
 inherits = "dev"
 opt-level = 3
 debug = false
+
+# Unoptimised, the interpreter runs plugins about ten times slower, so a fuel allowance takes
+# seconds in tests and debug builds instead of the milliseconds of a release.
+[profile.dev.package.wasmi]
+opt-level = 2
+
+[profile.dev.package.wasmi_core]
+opt-level = 2
+
+[profile.dev.package.wasmi_ir]
+opt-level = 2
