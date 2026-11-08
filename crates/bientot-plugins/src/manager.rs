@@ -188,23 +188,70 @@ pub fn load_active(
         if !plugin.is_active() {
             continue;
         }
-        let spec = match read(dir, id, plugin, reserved_titles) {
-            Ok(spec) => spec,
-            Err(problem) => {
-                match &problem {
-                    LoadProblem::FilesChanged => plugin.files_changed(),
-                    LoadProblem::UnsupportedApi(_) => plugin.api_unsupported(),
-                };
-                problems.push((id.clone(), problem));
-                continue;
-            }
-        };
-        loaded.push(spec);
+        match checked(dir, id, plugin, reserved_titles) {
+            Ok(spec) => loaded.push(spec),
+            Err(problem) => problems.push((id.clone(), problem)),
+        }
     }
     if !problems.is_empty() {
         let _ = state.save(&dir.state_path());
     }
     (loaded, problems)
+}
+
+/// Checks and reads one active plugin, as [`load_active`] does: one just installed or turned
+/// on. `None` when it is not installed or not on.
+pub fn load(
+    dir: &PluginsDir,
+    state: &mut StateFile,
+    id: &PluginId,
+    reserved_titles: &[&str],
+) -> Option<Result<PluginSpec, LoadProblem>> {
+    let plugin = state.plugins.get_mut(id).filter(|p| p.is_active())?;
+    let loaded = checked(dir, id, plugin, reserved_titles);
+    if loaded.is_err() {
+        let _ = state.save(&dir.state_path());
+    }
+    Some(loaded)
+}
+
+/// Turns `id` on or off. Returns whether its state changed: a plugin that failed, was revoked
+/// or whose files changed stays as it is.
+pub fn turn(dir: &PluginsDir, state: &mut StateFile, id: &PluginId, on: bool) -> bool {
+    let Some(plugin) = state.plugins.get_mut(id) else {
+        return false;
+    };
+    let changed = if on {
+        plugin.turn_on()
+    } else {
+        plugin.turn_off()
+    };
+    if changed {
+        let _ = state.save(&dir.state_path());
+    }
+    changed
+}
+
+/// The manifest of an installed plugin, for its name on the settings page. Its files are not
+/// checked: loading the plugin does that.
+pub fn installed_manifest(dir: &PluginsDir, id: &PluginId) -> Option<Manifest> {
+    let bytes = std::fs::read(dir.plugin(id).join(MANIFEST)).ok()?;
+    Manifest::parse(&bytes, &[]).ok()
+}
+
+/// [`read`], and the state a problem leaves the plugin in.
+fn checked(
+    dir: &PluginsDir,
+    id: &PluginId,
+    plugin: &mut InstalledPlugin,
+    reserved_titles: &[&str],
+) -> Result<PluginSpec, LoadProblem> {
+    read(dir, id, plugin, reserved_titles).inspect_err(|problem| {
+        match problem {
+            LoadProblem::FilesChanged => plugin.files_changed(),
+            LoadProblem::UnsupportedApi(_) => plugin.api_unsupported(),
+        };
+    })
 }
 
 fn read(

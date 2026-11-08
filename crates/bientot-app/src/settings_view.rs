@@ -7,6 +7,8 @@ mod data;
 mod dialog;
 mod json;
 mod language;
+#[cfg(feature = "plugins")]
+mod plugins;
 
 use dialog::Dialog;
 pub(crate) use dialog::warning;
@@ -329,6 +331,11 @@ pub struct SettingsView {
     focused_clock: Option<Clock>,
     json: json::JsonPage,
     data: DataPage,
+    #[cfg(feature = "plugins")]
+    plugins: crate::settings::plugins::PluginsPage,
+    /// The plugins the screenshots list, in place of the installed ones.
+    #[cfg(feature = "plugins")]
+    plugins_shown: Option<Arc<Vec<crate::plugins::Installed>>>,
     /// The import dialog just showed: the next frame focuses it.
     focus_dialog: bool,
     content_scroll: ScrollHandle,
@@ -429,6 +436,10 @@ impl SettingsView {
                 let backup = directory.as_ref().and_then(transfer::latest_backup);
                 DataPage::new(language, directory, backup)
             },
+            #[cfg(feature = "plugins")]
+            plugins: crate::settings::plugins::PluginsPage::new(language),
+            #[cfg(feature = "plugins")]
+            plugins_shown: None,
             focus_dialog: false,
             content_scroll: ScrollHandle::new(),
             startup,
@@ -715,6 +726,11 @@ impl SettingsView {
     }
 
     fn escape(&mut self, _: &Escape, window: &mut Window, cx: &mut Context<Self>) {
+        #[cfg(feature = "plugins")]
+        if self.plugins.dialog().is_some() {
+            self.cancel_consent(window, cx);
+            return;
+        }
         if self.data.dialog().is_some() {
             self.cancel_import(window, cx);
         } else if self.form.dialog().is_some() {
@@ -761,11 +777,12 @@ pub(crate) fn spinner(theme: &Theme) -> impl IntoElement {
         )
 }
 
-pub(crate) fn field_error(message: &'static str, theme: &Theme) -> impl IntoElement {
+pub(crate) fn field_error(message: impl Into<SharedString>, theme: &Theme) -> impl IntoElement {
+    let message = message.into();
     div()
         .id("field-error")
         .role(Role::Alert)
-        .aria_label(message)
+        .aria_label(message.clone())
         .mt(BASE_04)
         .flex()
         .items_start()
@@ -917,6 +934,9 @@ impl SettingsView {
             .flex()
             .flex_col()
             .gap(BASE_02)
+            .when(cfg!(feature = "plugins"), |items| {
+                items.child(item(Page::Plugins))
+            })
             .child(item(Page::Data))
             .child(item(Page::Json));
         div()
@@ -1775,6 +1795,8 @@ impl Render for SettingsView {
         let body = match self.form.page() {
             Page::Json => self.json.render(self.language, &theme, window, cx),
             Page::Data => self.data_page(&theme, cx).into_any_element(),
+            #[cfg(feature = "plugins")]
+            Page::Plugins => self.plugins_page(&theme, cx).into_any_element(),
             _ => {
                 let page = self.form.view();
                 self.form_page(page, language_time, &theme, cx)
@@ -1785,6 +1807,8 @@ impl Render for SettingsView {
             Some(dialog) => Some(Dialog::Import(dialog)),
             None => self.form.dialog().map(Dialog::Unsaved),
         };
+        #[cfg(feature = "plugins")]
+        let shown = shown.or_else(|| self.plugins.dialog().map(Dialog::Consent));
         let dialog = match shown {
             Some(dialog) => {
                 if std::mem::take(&mut self.focus_dialog) {

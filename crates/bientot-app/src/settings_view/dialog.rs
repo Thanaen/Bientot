@@ -6,6 +6,8 @@ use gpui::{Context, Pixels, Role, SharedString, div, prelude::*, px};
 use super::{SettingsView, filled, outlined};
 use crate::settings::DialogView;
 use crate::settings::data::ImportDialog;
+#[cfg(feature = "plugins")]
+use crate::settings::plugins::ConsentDialog;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, motion, radius, size as token, text};
 use crate::widgets;
@@ -38,6 +40,16 @@ impl SettingsView {
                     .track_focus(&self.safe_focus)
                     .on_click(cx.listener(|view, _, window, cx| view.keep_editing(window, cx))),
             ],
+            #[cfg(feature = "plugins")]
+            Dialog::Consent(dialog) => [
+                outlined("cancel-consent", dialog.cancel, token::BUTTON_LARGE, theme)
+                    .focus(move |style| style.border_color(focused))
+                    .track_focus(&self.safe_focus)
+                    .on_click(cx.listener(|view, _, window, cx| view.cancel_consent(window, cx))),
+                accent("confirm-consent", dialog.confirm)
+                    .track_focus(&self.action_focus)
+                    .on_click(cx.listener(|view, _, window, cx| view.confirm_consent(window, cx))),
+            ],
             Dialog::Import(dialog) => [
                 // Focused from the start, its ring shows what Enter does.
                 outlined("cancel-import", dialog.cancel, token::BUTTON_LARGE, theme)
@@ -65,7 +77,7 @@ impl SettingsView {
                 div()
                     .id(text.id)
                     .role(Role::AlertDialog)
-                    .aria_label(text.title)
+                    .aria_label(text.title.clone())
                     .aria_description(text.description())
                     .map(|card| frame.card.apply(card))
                     .w(DIALOG_WIDTH)
@@ -92,6 +104,7 @@ impl SettingsView {
                                     .map(|paragraph| div().child(paragraph)),
                             )
                             .children(text.warning.map(|loss| warning(loss, theme)))
+                            .children(text.list.map(|(intro, items)| list(intro, items, theme)))
                             .child(text.message),
                     )
                     .child(
@@ -128,18 +141,46 @@ pub(crate) fn warning(message: SharedString, theme: &Theme) -> impl IntoElement 
         .child(div().flex_1().min_w_0().child(message))
 }
 
-/// The dialog over the window: unsaved changes, or an import to confirm.
+/// What a plugin will be able to do: `intro`, then a line for each of `items`.
+fn list(intro: SharedString, items: Vec<SharedString>, theme: &Theme) -> impl IntoElement {
+    div()
+        .flex()
+        .flex_col()
+        .gap(BASE_04)
+        .child(intro)
+        .children(items.into_iter().map(|item| {
+            div()
+                .flex()
+                .items_start()
+                .gap(BASE_08)
+                .child(
+                    div()
+                        .h(text::LABEL_MD.line_height)
+                        .flex()
+                        .items_center()
+                        .child(widgets::icon("check", theme.text_muted).size(token::ICON_SM)),
+                )
+                .child(div().flex_1().min_w_0().child(item))
+        }))
+}
+
+/// The dialog over the window: unsaved changes, an import to confirm, or a plugin to install.
 pub(super) enum Dialog {
     Unsaved(DialogView),
     Import(ImportDialog),
+    #[cfg(feature = "plugins")]
+    Consent(ConsentDialog),
 }
 
 /// What a dialog says above its buttons.
 struct DialogText {
     id: &'static str,
-    title: &'static str,
+    title: SharedString,
     paragraphs: Vec<SharedString>,
-    /// What the action loses, in the warning colour after the paragraphs that describe it.
+    /// An introduction and the lines it introduces, after the warning.
+    list: Option<(SharedString, Vec<SharedString>)>,
+    /// What the action loses, or the risk it takes, in the warning colour after the paragraphs
+    /// that describe it.
     warning: Option<SharedString>,
     /// The last paragraph.
     message: &'static str,
@@ -150,6 +191,10 @@ impl DialogText {
     fn description(&self) -> String {
         let mut parts: Vec<&str> = self.paragraphs.iter().map(SharedString::as_ref).collect();
         parts.extend(self.warning.as_deref());
+        if let Some((intro, items)) = &self.list {
+            parts.push(intro);
+            parts.extend(items.iter().map(SharedString::as_ref));
+        }
         parts.push(self.message);
         parts.join(" ")
     }
@@ -160,16 +205,30 @@ impl Dialog {
         match self {
             Self::Unsaved(dialog) => DialogText {
                 id: "unsaved",
-                title: dialog.title,
+                title: dialog.title.into(),
                 paragraphs: Vec::new(),
+                list: None,
                 warning: None,
                 message: dialog.message,
             },
             Self::Import(dialog) => DialogText {
                 id: "import",
-                title: dialog.title,
+                title: dialog.title.into(),
                 paragraphs: dialog.paragraphs.iter().cloned().map(Into::into).collect(),
+                list: None,
                 warning: dialog.loss.clone().map(Into::into),
+                message: dialog.message,
+            },
+            #[cfg(feature = "plugins")]
+            Self::Consent(dialog) => DialogText {
+                id: "consent",
+                title: dialog.title.clone().into(),
+                paragraphs: dialog.paragraphs.iter().cloned().map(Into::into).collect(),
+                list: Some((
+                    dialog.intro.into(),
+                    dialog.list.iter().cloned().map(Into::into).collect(),
+                )),
+                warning: dialog.warning.map(Into::into),
                 message: dialog.message,
             },
         }

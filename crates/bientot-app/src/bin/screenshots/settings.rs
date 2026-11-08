@@ -1,17 +1,21 @@
 //! « Paramètres » on each page and in each state, `settings-<page>[-<state>].png`, and the
 //! entrances `settings-schedule-unsaved-motion-<0|7|13|50|100>.png` and
 //! `settings-general-language-open-motion-<0|8|17|50|100>.png`, and « Données » in each state,
-//! `settings-data[-<state>].png`.
+//! `settings-data[-<state>].png`, and « Plugins » in each state, `settings-plugins[-<state>].png`.
 
 use std::path::PathBuf;
 
 use anyhow::Context as _;
+use bientot_app::plugins::{Consent, Installed, Offered, Refused};
 use bientot_app::settings::data::{Action, Backup, Chosen, DataPage, Exported, Refusal};
+use bientot_app::settings::plugins::PluginsPage;
 use bientot_app::settings::{Page, SettingsForm};
 use bientot_app::settings_view::{self, SettingsView};
 use bientot_app::strings::Language;
 use bientot_app::theme::motion;
 use bientot_domain::configuration::Settings;
+use bientot_plugin_api::{Capability, PluginId};
+use bientot_plugins::state::Status;
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SettingsStore;
 use bientot_store::transfer::Contents;
@@ -85,6 +89,188 @@ pub fn capture_pages(
     for state in DataState::ALL {
         capture_data(cx, language, state, output)?;
     }
+    Ok(())
+}
+
+/// « Plugins » in each state.
+pub fn capture_plugin_pages(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    for state in PluginsState::ALL {
+        capture_plugins(cx, language, state, output)?;
+    }
+    Ok(())
+}
+
+/// The states of « Plugins ».
+#[derive(Clone, Copy)]
+enum PluginsState {
+    /// The four sample plugins, on, off, stopped after errors and with files changed, and one
+    /// blocked by Bientôt.
+    List,
+    Empty,
+    /// A package for an installed plugin, signed by another author.
+    OtherAuthor,
+    Installed,
+    Consent,
+    /// Unsigned, and asking for more memory than the default.
+    ConsentUnsigned,
+}
+
+impl PluginsState {
+    const ALL: [PluginsState; 6] = [
+        Self::List,
+        Self::Empty,
+        Self::OtherAuthor,
+        Self::Installed,
+        Self::Consent,
+        Self::ConsentUnsigned,
+    ];
+
+    fn slug(self) -> Option<&'static str> {
+        match self {
+            Self::List => None,
+            Self::Empty => Some("empty"),
+            Self::OtherAuthor => Some("other-author"),
+            Self::Installed => Some("installed"),
+            Self::Consent => Some("consent"),
+            Self::ConsentUnsigned => Some("consent-unsigned"),
+        }
+    }
+
+    fn page(self, language: Language) -> PluginsPage {
+        let mut page = PluginsPage::new(language);
+        let consent = |fingerprint: Option<&str>, memory_mib| Consent {
+            name: name(language, "Focus", "Concentration"),
+            version: "0.1.0".into(),
+            replaces: None,
+            fingerprint: fingerprint.map(Into::into),
+            capabilities: vec![Capability::ReadDay, Capability::UiFlyout],
+            memory_mib,
+            needs_consent: true,
+        };
+        match self {
+            Self::List | Self::Empty => {}
+            Self::OtherAuthor => {
+                page.start();
+                page.read(Err(Refused::OtherAuthor {
+                    bound: FINGERPRINT.into(),
+                    offered: "0c4e 9a7f 31d2 b85e 6f10 a4c9 d273 58e1".into(),
+                }));
+            }
+            Self::Installed => page.installed(consent(Some(FINGERPRINT), None), true),
+            Self::Consent | Self::ConsentUnsigned => {
+                let consent = match self {
+                    Self::Consent => consent(Some(FINGERPRINT), None),
+                    _ => consent(None, Some(16)),
+                };
+                page.start();
+                page.read(Ok(Offered::preview(consent)));
+            }
+        }
+        page
+    }
+
+    fn installed(self, language: Language) -> Vec<Installed> {
+        if let Self::Empty = self {
+            return Vec::new();
+        }
+        let plugin =
+            |id: &str, (en, fr), fingerprint: Option<&str>, capabilities, status| Installed {
+                id: PluginId::parse(id).unwrap(),
+                name: name(language, en, fr),
+                version: "0.1.0".into(),
+                fingerprint: fingerprint.map(Into::into),
+                capabilities,
+                status,
+            };
+        let both = || vec![Capability::ReadDay, Capability::UiFlyout];
+        vec![
+            plugin(
+                "bientot.focus",
+                ("Focus", "Concentration"),
+                Some(FINGERPRINT),
+                both(),
+                Status::Active,
+            ),
+            plugin(
+                "bientot.tomato",
+                ("Tomato", "Tomate"),
+                Some(FINGERPRINT),
+                vec![Capability::UiFlyout],
+                Status::Off,
+            ),
+            plugin(
+                "bientot.battery",
+                ("Battery", "Batterie"),
+                None,
+                both(),
+                Status::FailedUntilRestart {
+                    reason: "trap".into(),
+                },
+            ),
+            plugin(
+                "bientot.weekend",
+                ("Weekend", "Vivement le week-end"),
+                None,
+                both(),
+                Status::FilesChanged,
+            ),
+            plugin(
+                "someone.weather",
+                ("Weather", "Météo"),
+                Some("0c4e 9a7f 31d2 b85e 6f10 a4c9 d273 58e1"),
+                both(),
+                Status::Revoked {
+                    reason_en: "It sent your day to a server.".into(),
+                    reason_fr: "Il envoyait votre journée à un serveur.".into(),
+                },
+            ),
+        ]
+    }
+}
+
+/// An author's fingerprint, for the screenshots.
+const FINGERPRINT: &str = "7f3a 21c9 e04b 88d1 5c62 b9a0 13fe 4d77";
+
+fn name(language: Language, en: &str, fr: &str) -> String {
+    match language {
+        Language::French => fr,
+        Language::English => en,
+    }
+    .to_owned()
+}
+
+fn capture_plugins(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    state: PluginsState,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    let settings = SettingsState::Saved.settings();
+    let file = settings_file(&settings)?;
+    let window = cx.open_window(
+        size(settings_view::WINDOW_WIDTH, settings_view::WINDOW_HEIGHT),
+        |window, cx| {
+            let mut form = SettingsForm::new(settings, SettingsState::Saved.usage_ping(), language);
+            form.go_to(Page::Plugins);
+            cx.new(|cx| {
+                let mut view = SettingsView::new(form, Some(file), window, cx);
+                view.show_plugins(state.page(language), state.installed(language));
+                view
+            })
+        },
+    )?;
+    let name = match state.slug() {
+        Some(state) => format!("settings-plugins-{state}"),
+        None => "settings-plugins".to_owned(),
+    };
+    cx.run_until_parked();
+    cx.advance_clock(motion::DIALOG.duration());
+    capture(cx, window.into(), &output.join(format!("{name}.png")))?;
+    std::fs::remove_dir_all(screenshot_root()).ok();
     Ok(())
 }
 
@@ -333,6 +519,7 @@ fn capture_settings(
         Page::Schedule => "schedule",
         Page::Accounting => "accounting",
         Page::Notifications => "notifications",
+        Page::Plugins => "plugins",
         Page::Data => "data",
         Page::Json => "json",
     };

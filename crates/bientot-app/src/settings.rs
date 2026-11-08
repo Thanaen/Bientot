@@ -9,6 +9,8 @@
 pub mod appointments;
 pub mod data;
 pub mod json;
+#[cfg(feature = "plugins")]
+pub mod plugins;
 pub mod startup;
 
 use bientot_core::routing;
@@ -38,6 +40,8 @@ pub enum Page {
     Schedule,
     Accounting,
     Notifications,
+    /// The installed plugins, under the pages, with the `plugins` feature.
+    Plugins,
     /// Export and import, under the pages.
     Data,
     /// The file itself, read-only, under the pages.
@@ -59,6 +63,7 @@ impl Page {
             Self::Schedule => Key::SettingsScheduleNavContent,
             Self::Accounting => Key::SettingsAccountingNavContent,
             Self::Notifications => Key::SettingsNotificationsNavContent,
+            Self::Plugins => Key::SettingsPluginsNavContent,
             Self::Data => Key::SettingsDataNavContent,
             Self::Json => Key::SettingsJsonNavContent,
         })
@@ -70,6 +75,7 @@ impl Page {
             Self::Schedule => Key::SettingsScheduleTitle,
             Self::Accounting => Key::SettingsAccountingTitle,
             Self::Notifications => Key::SettingsNotificationsTitle,
+            Self::Plugins => Key::SettingsPluginsTitle,
             Self::Data => Key::SettingsDataTitle,
             Self::Json => Key::SettingsJsonNavContent,
         })
@@ -82,6 +88,7 @@ impl Page {
             Self::Schedule => "clock",
             Self::Accounting => "sigma",
             Self::Notifications => "bell",
+            Self::Plugins => "puzzle",
             Self::Data => "database",
             Self::Json => "braces",
         }
@@ -101,7 +108,7 @@ impl Page {
                     &[Setting::Updates, Setting::UsagePing],
                 ),
             ],
-            Self::Data | Self::Json => &[],
+            Self::Plugins | Self::Data | Self::Json => &[],
             Self::Schedule => &[
                 (
                     Some(Key::SettingsTargetsGroup),
