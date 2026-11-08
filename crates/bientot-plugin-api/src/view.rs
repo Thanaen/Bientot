@@ -162,6 +162,7 @@ pub enum ViewError {
     TooManyActions,
     TooManyArgs,
     TextTooLong(String),
+    ArgTooLong(String),
     UnknownText(String),
     UnknownCommand(String),
     UnknownPrimitive,
@@ -184,6 +185,10 @@ impl std::fmt::Display for ViewError {
             ViewError::TextTooLong(key) => write!(
                 f,
                 "the text `{key}` is longer than {MAX_TEXT_CHARS} characters"
+            ),
+            ViewError::ArgTooLong(command) => write!(
+                f,
+                "the `arg` of the button for `{command}` is longer than {MAX_TEXT_CHARS} characters"
             ),
             ViewError::UnknownText(key) => write!(f, "the text `{key}` is in no locale file"),
             ViewError::UnknownCommand(name) => {
@@ -247,8 +252,9 @@ impl Card {
                 .as_ref()
                 .is_some_and(|a| a.chars().count() > MAX_TEXT_CHARS)
             {
-                return Err(ViewError::TextTooLong(label.key.clone()));
+                return Err(ViewError::ArgTooLong(command.clone()));
             }
+            walk.count()?;
             actions.push(PreparedButton {
                 command: command.clone(),
                 arg: arg.clone(),

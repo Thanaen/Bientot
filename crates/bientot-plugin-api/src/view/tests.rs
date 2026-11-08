@@ -193,6 +193,30 @@ fn buttons_live_only_in_actions() {
         ),
         Err(ViewError::TooManyActions)
     );
+    let long_arg = json!({ "type": "button", "command": "toggle-range", "arg": "x".repeat(201), "label": { "type": "text", "key": "show-week" } });
+    assert_eq!(
+        prepare(json!({ "type": "card", "lines": [], "actions": [long_arg] })),
+        Err(ViewError::ArgTooLong("toggle-range".into()))
+    );
+}
+
+#[test]
+fn button_labels_count_as_nodes() {
+    let button = json!({ "type": "button", "command": "toggle-range", "label": { "type": "text", "key": "show-week" } });
+    // 1 root + 1 row + 58 texts + 2 buttons with their labels = 64.
+    let fits: Vec<Value> = (0..58).map(|_| text("streak")).collect();
+    let actions = json!([button.clone(), button.clone()]);
+    assert!(
+        prepare(json!({ "type": "card", "lines": [{ "type": "row", "children": fits }], "actions": actions }))
+            .is_ok()
+    );
+    let over: Vec<Value> = (0..59).map(|_| text("streak")).collect();
+    assert_eq!(
+        prepare(
+            json!({ "type": "card", "lines": [{ "type": "row", "children": over }], "actions": actions })
+        ),
+        Err(ViewError::TooManyNodes)
+    );
 }
 
 #[test]
