@@ -66,7 +66,7 @@ texts, and the design-system artifacts updated with any UI change.
 - [x] T042 [US2] Run the corpus on the Windows release build in the `Rust on Windows` job of `.github/workflows/ci.yml`.
 - [x] T043 [US2] Add `--no-plugins` and the safe mode (marker, two failed starts, flyout notice with **Turn plugins back on**) in `crates/bientot-app/src/launch.rs` and `crates/bientot-app/src/main.rs`, with tests in `launch.rs`.
 - [x] T044 [US2] Check FR-018 and FR-019 with a test in `crates/bientot-app/tests/plugins_start.rs` (it needs a GPUI app): no thread, no engine and no manifest read before `startup.tray_ready`; with no plugin enabled, none at all.
-- [ ] T045 [US2] Extend `scripts/measure-performance.ps1` to measure with no plugin and with the sample plugin, and report SC-002 and SC-003 in the job summary.
+- [x] T045 [US2] Extend `scripts/measure-performance.ps1` to measure with no plugin and with the sample plugin, and report SC-002 and SC-003 in the job summary.
 
 **Checkpoint**: SC-001 to SC-004 measured on the CI Windows runner.
 

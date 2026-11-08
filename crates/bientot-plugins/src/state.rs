@@ -17,11 +17,21 @@ pub const SCHEMA: u32 = 1;
 pub const FAILURE_WINDOW: SignedDuration = SignedDuration::from_mins(10);
 pub const MAX_FAILURES: usize = 3;
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StateFile {
     pub schema: u32,
     #[serde(default)]
     pub plugins: BTreeMap<PluginId, InstalledPlugin>,
+}
+
+/// No plugin yet, in the current schema: the first install writes it.
+impl Default for StateFile {
+    fn default() -> Self {
+        StateFile {
+            schema: SCHEMA,
+            plugins: BTreeMap::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -150,10 +160,7 @@ impl StateFile {
         match std::fs::read(path) {
             Ok(bytes) => serde_json::from_slice(&bytes)
                 .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e)),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(StateFile {
-                schema: SCHEMA,
-                plugins: BTreeMap::new(),
-            }),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(StateFile::default()),
             Err(e) => Err(e),
         }
     }

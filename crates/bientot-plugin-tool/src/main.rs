@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 mod check;
+mod install;
 mod keys;
 mod pack;
 
@@ -14,6 +15,7 @@ usage:
   bientot-plugin keygen <key file>
   bientot-plugin sign <file.bientot-plugin> --key <key file> [--announce <public key>] [--handover <old key file>]
   bientot-plugin check <file.bientot-plugin> [--language en|fr] [--expect <folder>] [--log]
+  bientot-plugin install <file.bientot-plugin> --data-dir <Bientôt data folder>
 
 pack     checks the manifest, the locale files and the module's imports, and writes the package.
 keygen   creates a signing key and prints its public key and fingerprint. Keep the key file safe:
@@ -21,7 +23,10 @@ keygen   creates a signing key and prints its public key and fingerprint. Keep t
 sign     signs the package with the key; --announce adds a key that may sign later versions,
          --handover lets a new key take over from the old key that signed the installed version.
 check    installs the package as Bientôt would, runs it on every demo day and prints its cards;
-         with --expect, compares them with the <language>.txt files of the folder.";
+         with --expect, compares them with the <language>.txt files of the folder.
+install  installs the package in the data folder, turned on with what it asks for, as after
+         the consent dialog; an update keeps a plugin that is off as it is. For measurements
+         and tests, with Bientôt closed.";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -41,6 +46,7 @@ fn main() -> ExitCode {
         "keygen" => keys::keygen(&parsed),
         "sign" => keys::sign(&parsed),
         "check" => check::run(&parsed),
+        "install" => install::run(&parsed),
         "help" | "--help" | "-h" => {
             println!("{USAGE}");
             return ExitCode::SUCCESS;
@@ -73,6 +79,7 @@ const OPTIONS: &[&str] = &[
     "--handover",
     "--language",
     "--expect",
+    "--data-dir",
 ];
 
 impl Args {
