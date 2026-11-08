@@ -62,9 +62,9 @@ that do.
 A plugin runs inside Bientôt with no access to the network, to your files or
 to the database. It sees only what you granted when you installed it, which
 the consent dialog lists: the current day as Bientôt shows it (the time
-counted, the targets, the departure times, the day's segments and this week's
-totals, never the database itself), the time, and its own card. Its log lines
-stay on the machine.
+counted, the targets, the departure times, the day's segments and the week's
+credit, never the database itself) and its own card. Every plugin can also
+read the time and write log lines, which stay on the machine.
 
 | File | Content |
 | --- | --- |

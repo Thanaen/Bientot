@@ -68,13 +68,12 @@ it; nothing in this repository or its CI holds one.
   **Settings › Plugins**; it does not say who owns the key.
 - **The revocation key.** The maintainer keeps one more key offline, on their
   own machine. Only its public half goes into the app, with the fetch of the
-list (spec 003, task T054); until then the app fetches no list. The key signs
-the revocation list
-  served at `https://bientot.dev/plugins/revocations.json` with
-  `bientot-plugin sign-revocations`, which refuses a list the app would refuse.
-  The app accepts only a list signed by it, newer than the last one it kept and
-  not expired. Losing this key means shipping a new public key in an app
-  update; a leaked key means the same, at once.
+  list (spec 003, task T054); until then the app fetches no list. The key signs
+  the revocation list served at `https://bientot.dev/plugins/revocations.json`
+  with `bientot-plugin sign-revocations`, which refuses a list the app would
+  refuse. The app accepts only a list signed by it, not older than the last one
+  it kept and not expired. Losing this key means shipping a new public key in
+  an app update; a leaked key means the same, at once.
 
 See the [package contract](../specs/003-plugin-runtime/contracts/package.md)
 and the [revocation contract](../specs/003-plugin-runtime/contracts/revocations.md).

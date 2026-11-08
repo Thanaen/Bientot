@@ -79,12 +79,14 @@ lists what it may do (`plugins.rs`, `settings_view/plugins.rs`).
 
 - **Isolation.** Each module runs in [wasmi](https://github.com/wasmi-labs/wasmi),
   an interpreter, on a `plugins` thread of its own, never on the interface
-  thread. It sees only the imports its manifest declares and the user granted:
-  it can log, read the time, read the published day as a snapshot, and set or
-  clear its card. It cannot reach the network, the files or the ledger.
+  thread. Every plugin can log and read the time. It can read the published
+  day as a snapshot, and set or clear its card, only when its manifest
+  declares it and the user granted it. It cannot reach the network, the files
+  or the ledger.
 - **Budgets.** Every event has a fuel allowance and a safety net in time, and
-  every instance a memory limit within a shared pool. A plugin that traps three
-  times in ten minutes is stopped until the next start; the app never stops.
+  every instance a memory limit within a shared pool. A plugin that fails three
+  times in ten minutes (a trap, its fuel used up or a malformed call) is
+  stopped until the next start; the app never stops.
   Two starts in a row that crash with plugins on start the next one with them
   off (safe mode), and `--no-plugins` starts with none.
 - **Display.** The host draws the card from a declarative tree the plugin
