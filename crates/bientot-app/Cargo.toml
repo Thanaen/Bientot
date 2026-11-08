@@ -28,8 +28,9 @@ updates = ["dep:ureq", "dep:velopack"]
 # compiled in.
 plugins = ["dep:bientot-plugin-api", "dep:bientot-plugins"]
 # The features of the Store package and the portable ZIP, whose updates do not go through
-# Velopack. The notices generator reads the same feature.
-release = ["usage-ping", "plugins"]
+# Velopack. The notices generator reads the same feature. `plugins` joins it once
+# specs/003-plugin-runtime is done (T066); until then only CI and the screenshots build it.
+release = ["usage-ping"]
 # The features of the Velopack Setup.exe (scripts/release-direct.sh).
 direct = ["release", "updates"]
 
