@@ -8,6 +8,7 @@ use std::path::Path;
 use bientot_plugin_api::Language;
 use bientot_plugins::base64;
 use bientot_plugins::package::{self, Package, SIGNATURE};
+use bientot_plugins::revocation;
 use bientot_plugins::trust;
 use bientot_plugins::zip;
 use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
@@ -71,6 +72,42 @@ pub fn sign(args: &Args) -> Result<(), String> {
     println!(
         "{} signed by {}",
         path.display(),
+        package::fingerprint(&key.verifying_key())
+    );
+    Ok(())
+}
+
+/// Signs `revocations.json` (contract `revocations.md`): the signature covers the canonical JSON
+/// of every other field, and a signature already there is replaced.
+pub fn sign_revocations(args: &Args) -> Result<(), String> {
+    let path = args.path(0, "revocation list")?;
+    let key = load(Path::new(
+        args.option("--key")
+            .ok_or("sign-revocations needs --key <key file>")?,
+    ))?;
+    let mut fields: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_slice(&read(&path)?)
+            .map_err(|e| format!("{}: not a JSON object: {e}", path.display()))?;
+    fields.remove("signature");
+    let signed = revocation::canonical(&serde_json::Value::Object(fields.clone()))?;
+    let signature = key.sign(signed.as_bytes());
+    fields.insert(
+        "signature".into(),
+        serde_json::Value::String(base64::encode(&signature.to_bytes())),
+    );
+    let mut text =
+        serde_json::to_vec_pretty(&serde_json::Value::Object(fields)).map_err(|e| e.to_string())?;
+    text.push(b'\n');
+    // Refuses a list Bientôt would refuse, before it is published.
+    let list = revocation::verify(&text, &key.verifying_key(), None, jiff::Timestamp::now())
+        .map_err(|e| format!("{}: {e}", path.display()))?;
+    write(&path, &text)?;
+    println!(
+        "{} version {}, {} revoked, expires {}, signed by {}",
+        path.display(),
+        list.version,
+        list.revoked.len(),
+        list.expires,
         package::fingerprint(&key.verifying_key())
     );
     Ok(())
@@ -198,6 +235,37 @@ mod tests {
         keygen(&args(&[&path], &[])).unwrap();
         load(&path).unwrap();
         assert!(public_path(&path).exists());
+    }
+
+    #[test]
+    fn a_revocation_list_signed_here_is_one_bientot_accepts() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = dir.path().join("revocations.key");
+        keygen(&args(&[&key], &[])).unwrap();
+        let list = dir.path().join("revocations.json");
+        std::fs::write(
+            &list,
+            r#"{ "version": 1, "expires": "2099-01-01T00:00:00Z", "level2_disabled": false, "revoked": [] }"#,
+        )
+        .unwrap();
+        sign_revocations(&args(&[&list], &[("--key", &key)])).unwrap();
+        // Signing again replaces the signature rather than signing it.
+        sign_revocations(&args(&[&list], &[("--key", &key)])).unwrap();
+        let public = load(&key).unwrap().verifying_key();
+        let bytes = std::fs::read(&list).unwrap();
+        let parsed = revocation::verify(&bytes, &public, None, jiff::Timestamp::now()).unwrap();
+        assert_eq!((parsed.version, parsed.revoked.len()), (1, 0));
+
+        std::fs::write(
+            &list,
+            r#"{ "version": 2, "expires": "2001-01-01T00:00:00Z" }"#,
+        )
+        .unwrap();
+        assert!(
+            sign_revocations(&args(&[&list], &[("--key", &key)]))
+                .unwrap_err()
+                .contains("expired")
+        );
     }
 
     #[test]

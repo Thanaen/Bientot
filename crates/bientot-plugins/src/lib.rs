@@ -6,6 +6,7 @@ pub mod host;
 pub mod log;
 pub mod manager;
 pub mod package;
+pub mod revocation;
 pub mod runtime;
 pub mod snapshot;
 pub mod state;
