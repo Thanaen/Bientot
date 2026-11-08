@@ -1,0 +1,70 @@
+# start
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# OnTrack
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# Warning
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# Late
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# Complete
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# Morning
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# Unavailable
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# Credit
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# HistoryWeek
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# MorningWarning
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# MorningLate
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# ProblemPeriods
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# FragmentedDay
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# ActivityWatchUnavailable
+Tomato
+  Ready for 25 minutes of focus?
+  [Start](start 0)
+# press Start
+Tomato
+  Focus, time left ⏳0:25
+  [Short break](break 0:1788195300) [Stop](stop 0:1788195300)
+# press Short break
+Tomato
+  Break, time left ⏳0:05
+  Today: 🍅
+  [Start](start 1) [Stop](stop 1)
+# press Start
+Tomato
+  Focus, time left ⏳0:25
+  Today: 🍅
+  [Short break](break 1:1788198900) [Stop](stop 1:1788198900)

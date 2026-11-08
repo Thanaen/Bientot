@@ -1,0 +1,10 @@
+{
+  "ready": "Envie de 25 minutes de concentration\u00a0?",
+  "focus": "Concentration, encore",
+  "break": "Pause, encore",
+  "today": "Aujourd’hui\u00a0: {tomatoes}",
+  "today-many": "Aujourd’hui\u00a0: {count} 🍅",
+  "start": "Lancer",
+  "short-break": "Courte pause",
+  "stop": "Arrêter"
+}

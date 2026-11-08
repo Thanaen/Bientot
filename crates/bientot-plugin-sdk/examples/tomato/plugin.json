@@ -1,0 +1,19 @@
+{
+  "$schema": "https://bientot.dev/plugins/manifest-1.json",
+  "id": "bientot.tomato",
+  "name": { "en": "Tomato", "fr": "Tomate" },
+  "description": {
+    "en": "A 25-minute focus timer, with short breaks in between",
+    "fr": "Un minuteur de 25 minutes de concentration, avec de courtes pauses"
+  },
+  "version": "0.1.0",
+  "api": "1.0",
+  "memory": "2MiB",
+  "locales": ["en", "fr"],
+  "capabilities": ["ui:flyout"],
+  "commands": [
+    { "name": "start", "title": { "en": "Start a tomato", "fr": "Lancer une tomate" } },
+    { "name": "break", "title": { "en": "Take a short break", "fr": "Faire une courte pause" } },
+    { "name": "stop", "title": { "en": "Stop the timer", "fr": "Arrêter le minuteur" } }
+  ]
+}

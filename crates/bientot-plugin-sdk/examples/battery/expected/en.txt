@@ -1,0 +1,94 @@
+# start
+(no card)
+# OnTrack
+Battery
+  ▰▱▱▱▱▱▱▱▱▱ Battery 14%
+  (warning: Running low, coffee?)
+  Recharge at 17:00
+  [Coffee](coffee 0)
+# Warning
+Battery
+  ▰▰▰▱▱▱▱▱▱▱ Battery 33%
+  (warning: Running low, coffee?)
+  Recharge at 18:20
+  [Coffee](coffee 0)
+# Late
+Battery
+  ▰▰▰▰▱▱▱▱▱▱ Battery 43%
+  (info: Cruising along)
+  Recharge at 19:00
+  [Coffee](coffee 0)
+# Complete
+Battery
+  ▱▱▱▱▱▱▱▱▱▱ Battery 0%
+  (muted: Day done, recharge tonight)
+  [Coffee](coffee 0)
+# Morning
+Battery
+  ▰▰▰▰▰▰▰▱▱▱ Battery 71%
+  (info: Cruising along)
+  Recharge at 18:00
+  [Coffee](coffee 0)
+# Unavailable
+Battery
+  ▰▰▰▰▰▰▰▰▰▰ Battery 100%
+  (success: Fully charged)
+  [Coffee](coffee 0)
+# Credit
+Battery
+  ▰▰▰▰▰▰▰▰▰▰ Battery 97%
+  (success: Fully charged)
+  Recharge at 21:48
+  [Coffee](coffee 0)
+# HistoryWeek
+Battery
+  ▱▱▱▱▱▱▱▱▱▱ Battery 0%
+  (muted: Day done, recharge tonight)
+  [Coffee](coffee 0)
+# MorningWarning
+Battery
+  ▰▰▰▰▰▰▰▰▱▱ Battery 76%
+  (success: Fully charged)
+  Recharge at 18:20
+  [Coffee](coffee 0)
+# MorningLate
+Battery
+  ▰▰▰▰▰▰▰▰▱▱ Battery 81%
+  (success: Fully charged)
+  Recharge at 18:40
+  [Coffee](coffee 0)
+# ProblemPeriods
+Battery
+  ▰▰▱▱▱▱▱▱▱▱ Battery 20%
+  (warning: Running low, coffee?)
+  Recharge at 17:25
+  [Coffee](coffee 0)
+# FragmentedDay
+Battery
+  ▰▱▱▱▱▱▱▱▱▱ Battery 8%
+  (warning: Power saving mode)
+  Recharge at 16:31
+  [Coffee](coffee 0)
+# ActivityWatchUnavailable
+Battery
+  ▰▰▰▰▰▰▰▰▰▰ Battery 100%
+  (success: Fully charged)
+  [Coffee](coffee 0)
+# press Coffee
+Battery
+  ▰▰▰▰▰▰▰▰▰▰ Battery 100%
+  (success: Fully charged)
+  Coffees: ☕
+  [Coffee](coffee 1)
+# press Coffee
+Battery
+  ▰▰▰▰▰▰▰▰▰▰ Battery 100%
+  (success: Fully charged)
+  Coffees: ☕☕
+  [Coffee](coffee 2)
+# press Coffee
+Battery
+  ▰▰▰▰▰▰▰▰▰▰ Battery 100%
+  (success: Fully charged)
+  Coffees: ☕☕☕
+  [Coffee](coffee 3)

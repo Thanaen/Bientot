@@ -1,0 +1,94 @@
+# start
+(no card)
+# OnTrack
+Batterie
+  ▰▱▱▱▱▱▱▱▱▱ Batterie 14 %
+  (warning: Batterie faible, un café ?)
+  Recharge à 17:00
+  [Café](coffee 0)
+# Warning
+Batterie
+  ▰▰▰▱▱▱▱▱▱▱ Batterie 33 %
+  (warning: Batterie faible, un café ?)
+  Recharge à 18:20
+  [Café](coffee 0)
+# Late
+Batterie
+  ▰▰▰▰▱▱▱▱▱▱ Batterie 43 %
+  (info: Vitesse de croisière)
+  Recharge à 19:00
+  [Café](coffee 0)
+# Complete
+Batterie
+  ▱▱▱▱▱▱▱▱▱▱ Batterie 0 %
+  (muted: Journée bouclée, recharge ce soir)
+  [Café](coffee 0)
+# Morning
+Batterie
+  ▰▰▰▰▰▰▰▱▱▱ Batterie 71 %
+  (info: Vitesse de croisière)
+  Recharge à 18:00
+  [Café](coffee 0)
+# Unavailable
+Batterie
+  ▰▰▰▰▰▰▰▰▰▰ Batterie 100 %
+  (success: Pleine charge)
+  [Café](coffee 0)
+# Credit
+Batterie
+  ▰▰▰▰▰▰▰▰▰▰ Batterie 97 %
+  (success: Pleine charge)
+  Recharge à 21:48
+  [Café](coffee 0)
+# HistoryWeek
+Batterie
+  ▱▱▱▱▱▱▱▱▱▱ Batterie 0 %
+  (muted: Journée bouclée, recharge ce soir)
+  [Café](coffee 0)
+# MorningWarning
+Batterie
+  ▰▰▰▰▰▰▰▰▱▱ Batterie 76 %
+  (success: Pleine charge)
+  Recharge à 18:20
+  [Café](coffee 0)
+# MorningLate
+Batterie
+  ▰▰▰▰▰▰▰▰▱▱ Batterie 81 %
+  (success: Pleine charge)
+  Recharge à 18:40
+  [Café](coffee 0)
+# ProblemPeriods
+Batterie
+  ▰▰▱▱▱▱▱▱▱▱ Batterie 20 %
+  (warning: Batterie faible, un café ?)
+  Recharge à 17:25
+  [Café](coffee 0)
+# FragmentedDay
+Batterie
+  ▰▱▱▱▱▱▱▱▱▱ Batterie 8 %
+  (warning: Mode économie d’énergie)
+  Recharge à 16:31
+  [Café](coffee 0)
+# ActivityWatchUnavailable
+Batterie
+  ▰▰▰▰▰▰▰▰▰▰ Batterie 100 %
+  (success: Pleine charge)
+  [Café](coffee 0)
+# press Café
+Batterie
+  ▰▰▰▰▰▰▰▰▰▰ Batterie 100 %
+  (success: Pleine charge)
+  Cafés : ☕
+  [Café](coffee 1)
+# press Café
+Batterie
+  ▰▰▰▰▰▰▰▰▰▰ Batterie 100 %
+  (success: Pleine charge)
+  Cafés : ☕☕
+  [Café](coffee 2)
+# press Café
+Batterie
+  ▰▰▰▰▰▰▰▰▰▰ Batterie 100 %
+  (success: Pleine charge)
+  Cafés : ☕☕☕
+  [Café](coffee 3)

@@ -1,0 +1,11 @@
+{
+  "longest": "Plus longue concentration",
+  "current": "En cours depuis",
+  "none": "Pas de concentration en cours",
+  "waiting": "Votre première concentration arrive",
+  "sessions": "{count} de 25 min ou plus",
+  "sessions-one": "1 de 25 min ou plus",
+  "sessions-none": "Aucune de 25 min pour l’instant",
+  "more": "Détail",
+  "less": "Moins"
+}

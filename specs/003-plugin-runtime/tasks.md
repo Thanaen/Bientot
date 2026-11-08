@@ -61,9 +61,9 @@ texts, and the design-system artifacts updated with any UI change.
 
 **Independent test**: spec US2.
 
-- [ ] T040 [US2] Write the hostile corpus in `crates/bientot-plugins/tests/hostile/`: `call_indirect` loop, deep recursion, `memory.grow` storm, huge `memset`, oversized and deep view trees, import call loop, log flood, invalid JSON, missing exports, start-function loop.
-- [ ] T041 [US2] Add the `hostile-corpus` runner as `crates/bientot-plugins/examples/hostile-corpus.rs`; it fails on an abort, on a working set more than 5 MiB above its start once instances are dropped, or on a flyout render that waited for a call.
-- [ ] T042 [US2] Run the corpus on the Windows release build in the `Rust on Windows` job of `.github/workflows/ci.yml`.
+- [x] T040 [US2] Write the hostile corpus in `crates/bientot-plugins/tests/hostile/`: `call_indirect` loop, deep recursion, `memory.grow` storm, huge `memset`, oversized and deep view trees, import call loop, log flood, invalid JSON, missing exports, start-function loop.
+- [x] T041 [US2] Add the `hostile-corpus` runner as `crates/bientot-plugins/examples/hostile-corpus.rs`; it fails on an abort, on a working set more than 5 MiB above its start once instances are dropped, or on a flyout render that waited for a call.
+- [x] T042 [US2] Run the corpus on the Windows release build in the `Rust on Windows` job of `.github/workflows/ci.yml`.
 - [ ] T043 [US2] Add `--no-plugins` and the safe mode (marker, two failed starts, flyout notice with **Turn plugins back on**) in `crates/bientot-app/src/launch.rs` and `crates/bientot-app/src/main.rs`, with tests in `launch.rs`.
 - [ ] T044 [US2] Check FR-018 and FR-019 with a test in `crates/bientot-app/src/host/tests.rs`: no thread, no engine and no manifest read before `startup.tray_ready`; with no plugin enabled, none at all.
 - [ ] T045 [US2] Extend `scripts/measure-performance.ps1` to measure with no plugin and with the sample plugin, and report SC-002 and SC-003 in the job summary.
@@ -91,9 +91,9 @@ texts, and the design-system artifacts updated with any UI change.
 
 **Independent test**: spec US5 and `quickstart.md`.
 
-- [ ] T057 [P] [US5] Implement the SDK in `crates/bientot-plugin-sdk`: exports, buffer handling, generated types, view builders, a panic hook that logs the message before the trap, the 64 KiB stack link setting, and a native test host that runs handlers on demo snapshots with an injected clock.
-- [ ] T058 [US5] Write the sample « Focus » plugin in `crates/bientot-plugin-sdk/examples/focus/` with its manifest, FR/EN locales, icon and reference cards.
-- [ ] T059 [US5] Write `scripts/pack-plugin.sh` and `scripts/sign-plugin.sh` (validation, import check naming the missing capability, canonical list, key creation).
+- [x] T057 [P] [US5] Implement the SDK in `crates/bientot-plugin-sdk`: exports, buffer handling, generated types, view builders, a panic hook that logs the message before the trap, the 64 KiB stack link setting, and a native test host that runs handlers on demo snapshots with an injected clock.
+- [x] T058 [US5] Write the sample « Focus » plugin in `crates/bientot-plugin-sdk/examples/focus/` with its manifest, FR/EN locales and reference cards (the manifest contract has no icon). Three more samples: `tomato`, `weekend`, `battery`.
+- [x] T059 [US5] Write `scripts/pack-plugin.sh` and `scripts/sign-plugin.sh` (validation, import check naming the missing capability, canonical list, key creation).
 
 ## Phase 8: Polish and cross-cutting
 

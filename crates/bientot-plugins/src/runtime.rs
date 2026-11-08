@@ -8,9 +8,11 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
 use bientot_plugin_api::{ABI_VERSION, Capability};
+/// A validated module, as [`Runtime::compile`] gives it.
+pub use wasmi::Module;
 use wasmi::{
-    Config, Engine, Error, ExternType, Func, FuncType, Linker, Memory, Module, ResourceLimiter,
-    ResumableCall, Store, TrapCode, Val, ValType,
+    Config, Engine, Error, ExternType, Func, FuncType, Linker, Memory, OperatorCost,
+    ResourceLimiter, ResumableCall, Store, TrapCode, Val, ValType,
 };
 use wasmi_core::LimiterError;
 
@@ -260,6 +262,17 @@ impl Runtime {
     pub fn new(pool: Arc<Pool>) -> Runtime {
         let mut config = Config::default();
         config.consume_fuel(true);
+        // wasmi charges 1 per operator, but a call takes 3 to 10 times as long as an add: priced
+        // so, an endless loop of `return_call_indirect` would outlast the safety net and never
+        // count as a failure. The `fuel_calibration` test measures the time per fuel of each.
+        config.operator_cost(OperatorCost {
+            call: 5,
+            call_indirect: 16,
+            return_call: 4,
+            return_call_indirect: 18,
+            memory_grow: 4,
+            ..OperatorCost::default()
+        });
         let engine = Engine::new(&config);
         let mut linker = Linker::new(&engine);
         host::define(&mut linker).expect("the host imports are defined once");
@@ -510,7 +523,7 @@ impl PluginInstance {
         meter: &mut Meter,
         between: &mut dyn FnMut(),
     ) -> Result<(), CallError> {
-        let mut slice = self.start_slice(meter)?;
+        let mut slice = self.start_slice(meter, 0)?;
         let mut started = Instant::now();
         let mut call = func.call_resumable(&mut self.store, inputs, outputs);
         loop {
@@ -520,14 +533,18 @@ impl PluginInstance {
             match call {
                 Ok(ResumableCall::Finished) => return Ok(()),
                 Ok(ResumableCall::OutOfFuel(invocation)) => {
-                    if meter.used >= meter.allowance {
+                    // The next step takes `required` fuel at once. With less, the call would
+                    // yield again without progress, and spin until the safety net, which is no
+                    // failure.
+                    let required = invocation.required_fuel();
+                    if meter.used.saturating_add(required) > meter.allowance {
                         return Err(CallError::OutOfFuel);
                     }
                     if meter.busy >= meter.safety_net {
                         return Err(CallError::TimedOut);
                     }
                     between();
-                    slice = self.start_slice(meter)?;
+                    slice = self.start_slice(meter, required)?;
                     started = Instant::now();
                     call = invocation.resume(&mut self.store, outputs);
                 }
@@ -539,8 +556,12 @@ impl PluginInstance {
         }
     }
 
-    fn start_slice(&mut self, meter: &Meter) -> Result<u64, CallError> {
-        let slice = SLICE.min(meter.allowance.saturating_sub(meter.used));
+    /// Sets the fuel of the next slice: [`SLICE`], or more when the next step needs it, and never
+    /// more than the allowance left.
+    fn start_slice(&mut self, meter: &Meter, required: u64) -> Result<u64, CallError> {
+        let slice = SLICE
+            .max(required)
+            .min(meter.allowance.saturating_sub(meter.used));
         if slice == 0 {
             return Err(CallError::OutOfFuel);
         }

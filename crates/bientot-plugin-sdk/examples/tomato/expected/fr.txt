@@ -1,0 +1,70 @@
+# start
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# OnTrack
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# Warning
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# Late
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# Complete
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# Morning
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# Unavailable
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# Credit
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# HistoryWeek
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# MorningWarning
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# MorningLate
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# ProblemPeriods
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# FragmentedDay
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# ActivityWatchUnavailable
+Tomate
+  Envie de 25 minutes de concentration ?
+  [Lancer](start 0)
+# press Lancer
+Tomate
+  Concentration, encore ⏳0:25
+  [Courte pause](break 0:1788195300) [Arrêter](stop 0:1788195300)
+# press Courte pause
+Tomate
+  Pause, encore ⏳0:05
+  Aujourd’hui : 🍅
+  [Lancer](start 1) [Arrêter](stop 1)
+# press Lancer
+Tomate
+  Concentration, encore ⏳0:25
+  Aujourd’hui : 🍅
+  [Courte pause](break 1:1788198900) [Arrêter](stop 1:1788198900)

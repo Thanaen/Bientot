@@ -35,6 +35,84 @@ pub trait LogSink: Send + Sync {
     fn host(&self, plugin: &PluginId, text: &str);
 }
 
+/// One plugin's log, held to [`LOG_LINES_PER_MINUTE`]. It outlives the plugin's instances, so
+/// that a plugin that traps or is re-created gets no fresh minute, and it reports the lines it
+/// dropped when the next minute starts and when it goes, so that a plugin that floods and then
+/// falls silent still has its count in the log.
+pub struct LimitedLog {
+    inner: Arc<dyn LogSink>,
+    window: std::sync::Mutex<LogWindow>,
+}
+
+#[derive(Default)]
+struct LogWindow {
+    plugin: Option<PluginId>,
+    start: Option<Instant>,
+    lines: u32,
+    dropped: u32,
+}
+
+impl LogWindow {
+    fn report(&mut self, inner: &dyn LogSink) {
+        if let Some(plugin) = &self.plugin
+            && self.dropped > 0
+        {
+            inner.dropped(plugin, self.dropped);
+        }
+        self.dropped = 0;
+    }
+}
+
+impl LimitedLog {
+    pub fn new(inner: Arc<dyn LogSink>) -> LimitedLog {
+        LimitedLog {
+            inner,
+            window: Default::default(),
+        }
+    }
+
+    fn write_at(&self, plugin: &PluginId, level: LogLevel, text: &str, now: Instant) {
+        let mut window = self.window.lock().unwrap_or_else(|e| e.into_inner());
+        window.plugin.get_or_insert_with(|| plugin.clone());
+        if window
+            .start
+            .is_none_or(|start| now.duration_since(start).as_secs() >= 60)
+        {
+            window.report(&*self.inner);
+            window.start = Some(now);
+            window.lines = 0;
+        }
+        if window.lines >= LOG_LINES_PER_MINUTE {
+            window.dropped += 1;
+            return;
+        }
+        window.lines += 1;
+        drop(window);
+        self.inner.write(plugin, level, text);
+    }
+}
+
+impl LogSink for LimitedLog {
+    fn write(&self, plugin: &PluginId, level: LogLevel, text: &str) {
+        self.write_at(plugin, level, text, Instant::now());
+    }
+
+    fn dropped(&self, plugin: &PluginId, count: u32) {
+        self.inner.dropped(plugin, count);
+    }
+
+    fn host(&self, plugin: &PluginId, text: &str) {
+        self.inner.host(plugin, text);
+    }
+}
+
+impl Drop for LimitedLog {
+    fn drop(&mut self) {
+        let window = self.window.get_mut().unwrap_or_else(|e| e.into_inner());
+        window.report(&*self.inner);
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
@@ -117,8 +195,6 @@ pub struct HostState {
     allowance: u64,
     used_before_slice: u64,
     slice: u64,
-    /// Start of the current minute, lines written and lines dropped in it.
-    log_window: Option<(Instant, u32, u32)>,
 }
 
 impl HostState {
@@ -132,7 +208,6 @@ impl HostState {
             allowance: u64::MAX,
             used_before_slice: 0,
             slice: 0,
-            log_window: None,
         }
     }
 
@@ -321,19 +396,7 @@ struct LogRequest {
 fn log_write(state: &mut HostState, request: Value) -> Result<Option<Value>, HostError> {
     let request: LogRequest = serde_json::from_value(request)
         .map_err(|e| HostError::BadRequest(format!("bt:log@1 write: {e}")))?;
-    let now = Instant::now();
-    let (start, lines, dropped) = state.log_window.get_or_insert((now, 0, 0));
-    if now.duration_since(*start).as_secs() >= 60 {
-        if *dropped > 0 {
-            state.context.log.dropped(&state.context.id, *dropped);
-        }
-        (*start, *lines, *dropped) = (now, 0, 0);
-    }
-    if *lines >= LOG_LINES_PER_MINUTE {
-        *dropped += 1;
-        return Ok(None);
-    }
-    *lines += 1;
+    // The context's log is a [`LimitedLog`] wherever Bientôt runs plugins: it keeps the rate.
     let text: String = request.text.chars().take(MAX_LOG_CHARS).collect();
     state
         .context
@@ -396,4 +459,35 @@ fn ui_clear(state: &mut HostState, request: Value) -> Result<Option<Value>, Host
     slot(&request)?;
     state.changes.ui.push(UiChange::Clear);
     Ok(None)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::*;
+    use crate::runtime::tests::Lines;
+
+    #[test]
+    fn a_log_keeps_60_lines_a_minute_and_reports_the_rest() {
+        let lines = Arc::new(Lines::default());
+        let log = LimitedLog::new(lines.clone());
+        let id = PluginId::parse("bientot.focus").unwrap();
+        let t0 = Instant::now();
+        for _ in 0..70 {
+            log.write_at(&id, LogLevel::Info, "x", t0);
+        }
+        let taken = |lines: &Lines| std::mem::take(&mut *lines.0.lock().unwrap());
+        assert_eq!(taken(&lines).len(), 60);
+        // The next minute starts with the count of the last one.
+        log.write_at(&id, LogLevel::Info, "x", t0 + Duration::from_secs(61));
+        assert_eq!(taken(&lines), ["dropped 10", "bientot.focus Info x"]);
+        for _ in 0..65 {
+            log.write_at(&id, LogLevel::Info, "x", t0 + Duration::from_secs(62));
+        }
+        assert_eq!(taken(&lines).len(), 59);
+        // A plugin that falls silent or goes still has its count written.
+        drop(log);
+        assert_eq!(taken(&lines), ["dropped 6"]);
+    }
 }

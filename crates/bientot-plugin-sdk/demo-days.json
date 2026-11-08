@@ -1,0 +1,626 @@
+[
+  {
+    "day": {
+      "computed_at": "2026-08-31T16:00:00Z",
+      "counted": 21600,
+      "date": "2026-08-31",
+      "departure_at_minimum": null,
+      "departure_at_target": "2026-08-31T17:00:00Z",
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T13:00:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T09:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        },
+        {
+          "end": "2026-08-31T12:00:00Z",
+          "kind": "work",
+          "start": "2026-08-31T09:00:00Z"
+        },
+        {
+          "end": "2026-08-31T13:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T12:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "OnTrack"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T16:00:00Z",
+      "counted": 16800,
+      "date": "2026-08-31",
+      "departure_at_minimum": "2026-08-31T17:20:00Z",
+      "departure_at_target": "2026-08-31T18:20:00Z",
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T13:00:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T10:20:00Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        },
+        {
+          "end": "2026-08-31T12:00:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:20:00Z"
+        },
+        {
+          "end": "2026-08-31T13:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T12:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "Warning"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T16:00:00Z",
+      "counted": 14400,
+      "date": "2026-08-31",
+      "departure_at_minimum": "2026-08-31T18:00:00Z",
+      "departure_at_target": "2026-08-31T19:00:00Z",
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T13:00:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T11:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        },
+        {
+          "end": "2026-08-31T12:00:00Z",
+          "kind": "work",
+          "start": "2026-08-31T11:00:00Z"
+        },
+        {
+          "end": "2026-08-31T13:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T12:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "Late"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T18:00:00Z",
+      "counted": 28800,
+      "date": "2026-08-31",
+      "departure_at_minimum": null,
+      "departure_at_target": null,
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T13:00:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T09:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        },
+        {
+          "end": "2026-08-31T12:00:00Z",
+          "kind": "work",
+          "start": "2026-08-31T09:00:00Z"
+        },
+        {
+          "end": "2026-08-31T13:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T12:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "Complete"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T11:00:00Z",
+      "counted": 7200,
+      "date": "2026-08-31",
+      "departure_at_minimum": "2026-08-31T17:00:00Z",
+      "departure_at_target": "2026-08-31T18:00:00Z",
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T09:00:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T09:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "Morning"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T16:00:00Z",
+      "counted": 0,
+      "date": "2026-08-31",
+      "departure_at_minimum": null,
+      "departure_at_target": null,
+      "forecast": "unavailable",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "other",
+        "start": "2026-08-31T00:00:00Z"
+      },
+      "schema": 1,
+      "segments": [],
+      "source": "degraded",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "Unavailable"
+  },
+  {
+    "day": {
+      "computed_at": "2026-09-01T16:00:00Z",
+      "counted": 720,
+      "date": "2026-09-01",
+      "departure_at_minimum": "2026-09-01T21:48:00Z",
+      "departure_at_target": "2026-09-01T21:48:00Z",
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "away",
+        "start": "2026-09-01T09:12:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-09-01T09:00:00Z",
+          "kind": "away",
+          "start": "2026-09-01T00:00:00Z"
+        },
+        {
+          "end": "2026-09-01T09:12:00Z",
+          "kind": "work",
+          "start": "2026-09-01T09:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 21600,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "Credit"
+  },
+  {
+    "day": {
+      "computed_at": "2026-09-04T18:00:00Z",
+      "counted": 25200,
+      "date": "2026-09-04",
+      "departure_at_minimum": null,
+      "departure_at_target": null,
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "away",
+        "start": "2026-09-04T16:00:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-09-04T09:00:00Z",
+          "kind": "away",
+          "start": "2026-09-04T00:00:00Z"
+        },
+        {
+          "end": "2026-09-04T16:00:00Z",
+          "kind": "work",
+          "start": "2026-09-04T09:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "HistoryWeek"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T11:00:00Z",
+      "counted": 6000,
+      "date": "2026-08-31",
+      "departure_at_minimum": "2026-08-31T17:20:00Z",
+      "departure_at_target": "2026-08-31T18:20:00Z",
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T09:20:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T09:20:00Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "MorningWarning"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T11:00:00Z",
+      "counted": 4800,
+      "date": "2026-08-31",
+      "departure_at_minimum": "2026-08-31T17:40:00Z",
+      "departure_at_target": "2026-08-31T18:40:00Z",
+      "forecast": "firm",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T09:40:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T09:40:00Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        }
+      ],
+      "source": "ok",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "MorningLate"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T16:00:00Z",
+      "counted": 20070,
+      "date": "2026-08-31",
+      "departure_at_minimum": "2026-08-31T16:25:30Z",
+      "departure_at_target": "2026-08-31T17:25:30Z",
+      "forecast": "estimated",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T14:20:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T09:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        },
+        {
+          "end": "2026-08-31T09:40:12Z",
+          "kind": "work",
+          "start": "2026-08-31T09:00:00Z"
+        },
+        {
+          "end": "2026-08-31T09:45:42Z",
+          "kind": "other",
+          "start": "2026-08-31T09:40:12Z"
+        },
+        {
+          "end": "2026-08-31T12:00:00Z",
+          "kind": "work",
+          "start": "2026-08-31T09:45:42Z"
+        },
+        {
+          "end": "2026-08-31T13:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T12:00:00Z"
+        },
+        {
+          "end": "2026-08-31T14:00:00Z",
+          "kind": "work",
+          "start": "2026-08-31T13:00:00Z"
+        },
+        {
+          "end": "2026-08-31T14:20:00Z",
+          "kind": "other",
+          "start": "2026-08-31T14:00:00Z"
+        }
+      ],
+      "source": "degraded",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "ProblemPeriods"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T16:00:00Z",
+      "counted": 23300,
+      "date": "2026-08-31",
+      "departure_at_minimum": null,
+      "departure_at_target": "2026-08-31T16:31:39.266Z",
+      "forecast": "estimated",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "work",
+        "start": "2026-08-31T13:00:00Z"
+      },
+      "schema": 1,
+      "segments": [
+        {
+          "end": "2026-08-31T08:27:08Z",
+          "kind": "away",
+          "start": "2026-08-31T00:00:00Z"
+        },
+        {
+          "end": "2026-08-31T09:40:00Z",
+          "kind": "work",
+          "start": "2026-08-31T08:27:08Z"
+        },
+        {
+          "end": "2026-08-31T09:44:30Z",
+          "kind": "other",
+          "start": "2026-08-31T09:40:00Z"
+        },
+        {
+          "end": "2026-08-31T10:00:00Z",
+          "kind": "work",
+          "start": "2026-08-31T09:44:30Z"
+        },
+        {
+          "end": "2026-08-31T10:00:00.1Z",
+          "kind": "other",
+          "start": "2026-08-31T10:00:00Z"
+        },
+        {
+          "end": "2026-08-31T10:03:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:00:00.1Z"
+        },
+        {
+          "end": "2026-08-31T10:03:00.101Z",
+          "kind": "other",
+          "start": "2026-08-31T10:03:00Z"
+        },
+        {
+          "end": "2026-08-31T10:06:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:03:00.101Z"
+        },
+        {
+          "end": "2026-08-31T10:06:00.102Z",
+          "kind": "other",
+          "start": "2026-08-31T10:06:00Z"
+        },
+        {
+          "end": "2026-08-31T10:09:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:06:00.102Z"
+        },
+        {
+          "end": "2026-08-31T10:09:00.103Z",
+          "kind": "other",
+          "start": "2026-08-31T10:09:00Z"
+        },
+        {
+          "end": "2026-08-31T10:12:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:09:00.103Z"
+        },
+        {
+          "end": "2026-08-31T10:12:00.104Z",
+          "kind": "other",
+          "start": "2026-08-31T10:12:00Z"
+        },
+        {
+          "end": "2026-08-31T10:15:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:12:00.104Z"
+        },
+        {
+          "end": "2026-08-31T10:15:00.105Z",
+          "kind": "other",
+          "start": "2026-08-31T10:15:00Z"
+        },
+        {
+          "end": "2026-08-31T10:18:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:15:00.105Z"
+        },
+        {
+          "end": "2026-08-31T10:18:00.106Z",
+          "kind": "other",
+          "start": "2026-08-31T10:18:00Z"
+        },
+        {
+          "end": "2026-08-31T10:21:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:18:00.106Z"
+        },
+        {
+          "end": "2026-08-31T10:21:00.107Z",
+          "kind": "other",
+          "start": "2026-08-31T10:21:00Z"
+        },
+        {
+          "end": "2026-08-31T10:24:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:21:00.107Z"
+        },
+        {
+          "end": "2026-08-31T10:24:00.108Z",
+          "kind": "other",
+          "start": "2026-08-31T10:24:00Z"
+        },
+        {
+          "end": "2026-08-31T10:27:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:24:00.108Z"
+        },
+        {
+          "end": "2026-08-31T10:27:00.109Z",
+          "kind": "other",
+          "start": "2026-08-31T10:27:00Z"
+        },
+        {
+          "end": "2026-08-31T10:30:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:27:00.109Z"
+        },
+        {
+          "end": "2026-08-31T10:30:00.11Z",
+          "kind": "other",
+          "start": "2026-08-31T10:30:00Z"
+        },
+        {
+          "end": "2026-08-31T10:33:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:30:00.11Z"
+        },
+        {
+          "end": "2026-08-31T10:33:00.111Z",
+          "kind": "other",
+          "start": "2026-08-31T10:33:00Z"
+        },
+        {
+          "end": "2026-08-31T12:00:00Z",
+          "kind": "work",
+          "start": "2026-08-31T10:33:00.111Z"
+        },
+        {
+          "end": "2026-08-31T13:00:00Z",
+          "kind": "away",
+          "start": "2026-08-31T12:00:00Z"
+        }
+      ],
+      "source": "degraded",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "FragmentedDay"
+  },
+  {
+    "day": {
+      "computed_at": "2026-08-31T16:00:00Z",
+      "counted": 0,
+      "date": "2026-08-31",
+      "departure_at_minimum": null,
+      "departure_at_target": null,
+      "forecast": "unavailable",
+      "language": "fr",
+      "minimum": 21600,
+      "open_tail": {
+        "kind": "other",
+        "start": "2026-08-31T00:00:00Z"
+      },
+      "schema": 1,
+      "segments": [],
+      "source": "degraded",
+      "target": 25200,
+      "time_zone": "UTC",
+      "tracking": "running",
+      "week": {
+        "credit": 0
+      }
+    },
+    "scenario": "ActivityWatchUnavailable"
+  }
+]

@@ -59,6 +59,24 @@ that long. Host functions charge
 fuel by the bytes they copy. A wall-clock stop never counts as a failure, so
 a plugin that passes on a fast PC is not turned off on a slow one.
 
+**Found by the hostile corpus (T040)**, measured on Linux in release with
+the `fuel_calibration` test of `runtime/tests.rs`:
+
+- wasmi's default charges 1 per operator. A plain loop then takes 2.2 ns per
+  fuel, arithmetic 1.2 ns, `call` 4 ns, `call_indirect` 8 ns and
+  `return_call_indirect` 11.7 ns. At that price a loop of indirect tail
+  calls given 400 M fuel outlasts the 2 s safety net and never counts as a
+  failure. The runtime now prices `call` 5, `call_indirect` 16,
+  `return_call` 4, `return_call_indirect` 18 and `memory.grow` 4, which keeps
+  every kernel between 1.3 and 3.2 ns per fuel. SDK code is cheaper per fuel
+  (0.5 ns for the focus sample on a day), and the samples use at most 1.7 M
+  of their 20 M.
+- When the fuel left was less than the next step needs (`required_fuel`),
+  the last slice yielded at once without progress, and the call spun on
+  empty slices until the safety net. A call now ends out of fuel when the
+  next step needs more than is left, and a slice is never smaller than the
+  step.
+
 ## R3. Encoding
 
 JSON is ~99 % of a call's cost (8.9 K fuel for an empty call, 878 K with a

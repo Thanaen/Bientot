@@ -43,8 +43,8 @@ Module names carry their version. Any other import refuses the module.
 | `bt:ui@1` | `clear` | `{ "slot": "flyout.card" }` → empty | `ui:flyout` |
 
 Limits: a request is at most 64 KiB and 32 levels deep; `bt:log@1` accepts 60
-lines per minute of at most 2 048 characters, the rest is dropped and
-counted; `bt:ui@1 set` at most 2 calls per event. Each import charges fuel:
+lines per minute and per plugin, whatever its instances, of at most 2 048
+characters, the rest is dropped and counted; `bt:ui@1 set` at most 2 calls per event. Each import charges fuel:
 10 000 plus 250 per byte copied in either direction.
 
 ## Events
@@ -78,6 +78,9 @@ step; later steps add fields, for example `continue`.
 | Wall-clock safety net | call stopped, instance discarded | no |
 | Memory pool full after evictions | trap | no |
 | `bt_abi` not `1`, missing export, unknown import | module refused at install or load | — |
+
+After any of these, the plugin's background events wait 30 s; its user
+commands do not.
 
 ## WIT excerpt
 

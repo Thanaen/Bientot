@@ -305,6 +305,30 @@ fn a_loop_runs_in_slices_until_its_fuel_is_spent() {
 }
 
 #[test]
+fn a_step_that_needs_more_than_the_fuel_left_ends_the_call() {
+    // 6 fuel per turn: the allowance is not a multiple of it, so the last slice is too small for
+    // the next step. That used to yield without progress until the safety net, no failure.
+    let wasm = module(
+        "",
+        &[],
+        "(local i32) (loop $l (local.set 2 (i32.add (local.get 2) (i32.const 1))) (br $l)) i64.const 0",
+        "",
+    );
+    let mut instance = start(&wasm).unwrap();
+    let mut slices = 0;
+    let result = instance.deliver(
+        br#"{"event":"activate","language":"en","reason":"first"}"#,
+        Limits {
+            allowance: 20_000_000,
+            safety_net: Duration::from_secs(5),
+        },
+        &mut || slices += 1,
+    );
+    assert_eq!(result, Err(CallError::OutOfFuel));
+    assert!(slices <= 10, "{slices} slices");
+}
+
+#[test]
 fn the_safety_net_stops_a_slow_call_without_a_failure() {
     let wasm = module("", &[], SPIN, "");
     let limits = Limits {
@@ -471,4 +495,127 @@ fn the_abi_and_the_start_function_are_checked() {
         "(func $s (loop $l (br $l))) (start $s)",
     );
     assert_eq!(start(&spinning_start).err(), Some(CallError::OutOfFuel));
+}
+
+/// Time per fuel of each kind of work, to price the operators so that fuel follows time:
+/// `cargo test -p bientot-plugins --release --lib fuel_calibration -- --ignored --nocapture`.
+#[test]
+#[ignore = "a measurement, not a check"]
+fn fuel_calibration() {
+    let kernels: [(&str, &str, &str); 11] = [
+        ("loop", "(loop $l (br $l))", ""),
+        (
+            "arithmetic",
+            "(local i32) (loop $l (local.set 2 (i32.add (local.get 2) (i32.const 1))) (br $l))",
+            "",
+        ),
+        (
+            "load and store",
+            "(loop $l (i32.store (i32.const 64) (i32.add (i32.load (i32.const 64)) (i32.const 1))) (br $l))",
+            "",
+        ),
+        ("call", "(loop $l (call $f) (br $l))", ""),
+        (
+            "call_indirect",
+            "(loop $l (call_indirect (type $void) (i32.const 0)) (br $l))",
+            "",
+        ),
+        (
+            "return_call",
+            "(call $again)",
+            "(func $again (return_call $again))",
+        ),
+        (
+            "return_call_indirect",
+            "(call $again)",
+            "(func $again (return_call_indirect (type $void) (i32.const 0)))",
+        ),
+        (
+            "memory.fill 2 MiB",
+            "(drop (memory.grow (i32.const 32))) (loop $l (memory.fill (i32.const 0) (i32.const 7) (i32.const 2097152)) (br $l))",
+            "",
+        ),
+        (
+            "memory.copy 1 MiB",
+            "(drop (memory.grow (i32.const 32))) (loop $l (memory.copy (i32.const 0) (i32.const 1048576) (i32.const 1048576)) (br $l))",
+            "",
+        ),
+        (
+            "memory.fill 64 B",
+            "(loop $l (memory.fill (i32.const 0) (i32.const 7) (i32.const 64)) (br $l))",
+            "",
+        ),
+        (
+            "refused memory.grow",
+            "(loop $l (drop (memory.grow (i32.const 65536))) (br $l))",
+            "",
+        ),
+    ];
+    let runtime = Runtime::default();
+    eprintln!(
+        "{:<22} {:>10} {:>10} {:>9}",
+        "kernel", "fuel", "time", "ns/fuel"
+    );
+    let measure = |name: &str, wasm: &[u8], event: &[u8], allowance: u64| {
+        let module = runtime.compile(wasm, &granted()).unwrap();
+        let (mut fuel, mut time) = (0, Duration::ZERO);
+        while time < Duration::from_millis(300) {
+            // An instance is dropped after it runs out of fuel, as the host does.
+            let mut instance = runtime
+                .instantiate(&module, context(manifest("8MiB", "1MiB"), Arc::default()))
+                .unwrap();
+            let limits = Limits {
+                allowance,
+                safety_net: Duration::from_secs(10),
+            };
+            let started = std::time::Instant::now();
+            let result = instance.deliver(event, limits, &mut || {});
+            time += started.elapsed();
+            fuel += match result {
+                Ok(outcome) => outcome.fuel,
+                Err(CallError::OutOfFuel) => allowance,
+                Err(e) => panic!("{name}: {e}"),
+            };
+        }
+        eprintln!(
+            "{name:<22} {:>9.1}M {:>8.1}ms {:>9.2}",
+            fuel as f64 / 1e6,
+            time.as_secs_f64() * 1e3,
+            time.as_nanos() as f64 / fuel as f64
+        );
+    };
+    for (name, handle, extra) in kernels {
+        let wasm = module(
+            IMPORTS,
+            &[(0, "{}")],
+            &format!("{handle} i64.const 0"),
+            &format!(
+                "(type $void (func)) (table 1 funcref) (elem (i32.const 0) {}) (func $f) {extra}",
+                if extra.contains("$again") {
+                    "$again"
+                } else {
+                    "$f"
+                }
+            ),
+        );
+        measure(
+            name,
+            &wasm,
+            br#"{"event":"activate","language":"en","reason":"first"}"#,
+            20_000_000,
+        );
+    }
+    // A real plugin built by the SDK: the focus sample on a day.
+    let focus = std::env::var("BIENTOT_FOCUS_WASM").ok();
+    if let Some(path) = focus {
+        let day =
+            include_str!("../../../bientot-plugin-api/tests/fixtures/api-1.0/day-snapshot.json");
+        let event = format!(r#"{{"event":"day.refreshed","day":{day}}}"#);
+        measure(
+            "focus sample, a day",
+            &std::fs::read(path).unwrap(),
+            event.as_bytes(),
+            100_000_000,
+        );
+    }
 }

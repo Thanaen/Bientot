@@ -24,6 +24,10 @@ struct Script {
     inbox: Option<Arc<Mutex<VecDeque<Request>>>>,
     /// Time an activation takes.
     activation: Duration,
+    /// The next event of this name answers `PoolFull`, once.
+    pool_full_on: Option<String>,
+    /// Every card is refused.
+    refuse_cards: bool,
 }
 
 #[derive(Clone, Default)]
@@ -89,14 +93,24 @@ impl Sandboxed for FakeInstance {
         if script.trap_on.contains(&name) {
             return Err(CallError::Trap("unreachable".into()));
         }
+        if script.pool_full_on.as_deref() == Some(name.as_str()) {
+            script.pool_full_on = None;
+            return Err(CallError::PoolFull);
+        }
         let mut ui = Vec::new();
         if name == "activate" && script.card_on_activate {
             let card = json!({ "type": "card", "lines": [{ "type": "text", "key": "title" }] });
             ui.push(UiChange::Set(Card::from_value(card).unwrap()));
         }
+        let rejected = if script.refuse_cards && !ui.is_empty() {
+            ui.clear();
+            vec!["the card has more than 64 nodes".to_owned()]
+        } else {
+            Vec::new()
+        };
         Ok(Outcome {
             ui,
-            rejected: Vec::new(),
+            rejected,
             fuel: 1,
             busy: script.busy,
         })
@@ -564,4 +578,83 @@ fn the_thread_runs_requests_and_stops_on_drop() {
         updates.lock().unwrap()[0],
         HostUpdate::Card { card: Some(_), .. }
     ));
+}
+
+#[test]
+fn after_a_failure_background_events_wait_but_commands_do_not() {
+    let mut h = Harness::new();
+    h.script().trap_on = vec!["activate".into()];
+    h.send(Request::Day(day(0)), 0.0);
+    h.send(
+        Request::Load(Box::new(spec("bientot.a", &["day.refreshed"], None))),
+        0.0,
+    );
+    let failures = |h: &Harness| {
+        h.updates
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|u| matches!(u, HostUpdate::Failed { .. }))
+            .count()
+    };
+    for t in [0.001, 0.01, 1.0, 29.0] {
+        h.host.step(h.at(t));
+    }
+    assert_eq!(failures(&h), 1, "the day is not retried at once");
+    assert_eq!(h.host.next_wakeup(h.at(1.0)), h.at(30.0));
+    h.send(command("bientot.a"), 2.0);
+    assert_eq!(failures(&h), 2, "a command still runs");
+    h.host.step(h.at(32.1));
+    assert_eq!(failures(&h), 3);
+}
+
+#[test]
+fn a_pool_that_eviction_frees_costs_no_wait() {
+    let mut h = Harness::new();
+    h.script().pool_full_on = Some("day.refreshed".into());
+    h.send(
+        Request::Load(Box::new(spec("bientot.a", &["day.refreshed"], None))),
+        0.0,
+    );
+    h.send(Request::Day(day(0)), 0.0);
+    let id = PluginId::parse("bientot.a").unwrap();
+    assert!(
+        h.updates
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|u| !matches!(u, HostUpdate::Failed { .. }))
+    );
+    let days = h
+        .seen()
+        .iter()
+        .filter(|(_, e, _)| e == "day.refreshed")
+        .count();
+    assert_eq!(days, 2, "refused once, delivered after the eviction");
+    assert!(h.host.slots[&id].not_before < h.at(1.0), "no wait");
+}
+
+#[test]
+fn a_refused_card_makes_background_events_wait() {
+    let mut h = Harness::new();
+    {
+        let mut script = h.script();
+        script.card_on_activate = true;
+        script.refuse_cards = true;
+    }
+    h.send(
+        Request::Load(Box::new(spec("bientot.a", &["day.refreshed"], None))),
+        0.0,
+    );
+    h.send(Request::Day(day(0)), 0.0);
+    let id = PluginId::parse("bientot.a").unwrap();
+    assert!(
+        h.updates
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|u| matches!(u, HostUpdate::Failed { .. }))
+    );
+    assert!(h.host.slots[&id].not_before >= h.at(30.0));
+    assert!(h.host.slots[&id].instance.is_some(), "the instance stays");
 }

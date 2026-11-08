@@ -1,0 +1,10 @@
+{
+  "ready": "Ready for 25 minutes of focus?",
+  "focus": "Focus, time left",
+  "break": "Break, time left",
+  "today": "Today: {tomatoes}",
+  "today-many": "Today: {count} 🍅",
+  "start": "Start",
+  "short-break": "Short break",
+  "stop": "Stop"
+}

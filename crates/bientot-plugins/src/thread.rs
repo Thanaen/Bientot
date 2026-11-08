@@ -19,7 +19,7 @@ use bientot_plugin_api::{Card, Language, LocaleTexts, Manifest, PluginId, Prepar
 use jiff::Timestamp;
 
 use crate::budget::Budgets;
-use crate::host::{Clock, LogSink, PluginContext, UiChange};
+use crate::host::{Clock, LimitedLog, LogSink, PluginContext, UiChange};
 use crate::runtime::{CallError, CallKind, Limits, Outcome};
 use crate::snapshot::is_structural;
 use crate::state::Pending;
@@ -30,6 +30,10 @@ pub const DAY_INTERVAL: Duration = Duration::from_secs(30);
 /// First activations at start are spread this far apart.
 pub const ACTIVATION_STAGGER: Duration = Duration::from_millis(250);
 pub const MIN_RECREATE_BYTES: usize = 1 << 20;
+/// After a failure, a plugin's background events wait this long; user commands do not. Without
+/// it, a plugin that traps in `activate` is activated again at once, and fails thousands of times
+/// before the app turns it off.
+pub const RETRY_AFTER_FAILURE: Duration = Duration::from_secs(30);
 const IDLE_WAIT: Duration = Duration::from_secs(60);
 
 /// A plugin the thread may run: checked on disk, turned on, its manifest read.
@@ -117,6 +121,8 @@ struct Shared {
 
 struct Slot<I> {
     spec: PluginSpec,
+    /// The plugin's log, shared by its instances, so that its 60 lines a minute outlive them.
+    log: Arc<LimitedLog>,
     instance: Option<I>,
     reason: ActivateReason,
     size_after_activate: usize,
@@ -241,6 +247,7 @@ impl<S: Sandbox> Host<S> {
             day_due: self.shared.day.is_some()
                 && spec.manifest.events.contains(&EventKind::DayRefreshed),
             spec,
+            log: Arc::new(LimitedLog::new(self.log.clone())),
             instance: None,
             reason: ActivateReason::First,
             size_after_activate: 0,
@@ -383,19 +390,23 @@ impl<S: Sandbox> Host<S> {
         };
         // A user action does not wait for the stagger or the budget, but a pending `installed`
         // still comes first.
-        self.flush_queued(&plugin, now);
-        self.deliver(&plugin, &event, CallKind::User, now);
+        if self.flush_queued(&plugin, now) {
+            self.deliver(&plugin, &event, CallKind::User, now);
+        }
     }
 
-    fn flush_queued(&mut self, id: &PluginId, now: Instant) {
+    /// Activates `id` and delivers its queued events. Returns whether it is still running: a
+    /// failure here must not be followed by a second activation for the same command.
+    fn flush_queued(&mut self, id: &PluginId, now: Instant) -> bool {
         if !self.ensure_instance(id, now) {
-            return;
+            return false;
         }
         while let Some(event) = self.slots.get_mut(id).and_then(|s| s.queued.pop_front()) {
             if !self.deliver(id, &event, CallKind::Background, now) {
-                break;
+                return false;
             }
         }
+        true
     }
 
     fn background(&mut self, id: &PluginId, now: Instant) {
@@ -441,8 +452,12 @@ impl<S: Sandbox> Host<S> {
         let mut result = self.call(id, &bytes, kind, now);
         if result == Err(CallError::PoolFull) {
             self.evict_others(id);
-            if self.ensure_instance(id, now) {
-                result = self.call(id, &bytes, kind, now);
+            if !self.ensure_instance(id, now) {
+                return false;
+            }
+            result = self.call(id, &bytes, kind, now);
+            if result == Err(CallError::PoolFull) {
+                self.failed(id, &CallError::PoolFull, now);
             }
         }
         if matches!(event, Event::Installed { .. } | Event::Upgraded { .. }) && result.is_ok() {
@@ -475,7 +490,7 @@ impl<S: Sandbox> Host<S> {
         self.budgets.charge(id, busy, now);
         match result {
             Ok(outcome) => {
-                self.apply(id, outcome);
+                self.apply(id, outcome, now);
                 let slot = self.slots.get_mut(id).expect("the slot outlives its call");
                 slot.last_event = now;
                 let size = instance.memory_bytes();
@@ -486,8 +501,16 @@ impl<S: Sandbox> Host<S> {
                 }
                 Ok(())
             }
+            // The caller evicts the others and tries again; it reports the failure only if that
+            // does not help, so that a recovered pool costs the plugin no wait.
+            Err(CallError::PoolFull) => {
+                if let Some(slot) = self.slots.get_mut(id) {
+                    slot.reason = ActivateReason::Restart;
+                }
+                Err(CallError::PoolFull)
+            }
             Err(error) => {
-                self.failed(id, &error);
+                self.failed(id, &error, now);
                 Err(error)
             }
         }
@@ -523,43 +546,26 @@ impl<S: Sandbox> Host<S> {
     }
 
     fn ensure_instance(&mut self, id: &PluginId, now: Instant) -> bool {
-        let Some(slot) = self.slots.get_mut(id) else {
+        let Some(slot) = self.slots.get(id) else {
             return false;
         };
         if slot.instance.is_some() {
             return true;
         }
-        let context = PluginContext {
-            id: id.clone(),
-            manifest: slot.spec.manifest.clone(),
-            locales: slot.spec.locales.clone(),
-            language: self.shared.language,
-            day: self.shared.day_json.clone(),
-            log: self.log.clone(),
-            clock: self.clock.clone(),
-        };
+        let context = self.context(id);
         let started = Instant::now();
-        let mut activated = self.sandbox.activate(&slot.spec, context);
+        let mut activated = self.sandbox.activate(&self.slots[id].spec, context);
         if activated.as_ref().err() == Some(&CallError::PoolFull) {
             self.evict_others(id);
-            let slot = &self.slots[id];
-            let context = PluginContext {
-                id: id.clone(),
-                manifest: slot.spec.manifest.clone(),
-                locales: slot.spec.locales.clone(),
-                language: self.shared.language,
-                day: self.shared.day_json.clone(),
-                log: self.log.clone(),
-                clock: self.clock.clone(),
-            };
-            activated = self.sandbox.activate(&slot.spec, context);
+            let context = self.context(id);
+            activated = self.sandbox.activate(&self.slots[id].spec, context);
         }
         // The start function is the plugin's code too: its time counts, failed or not.
         self.budgets.charge(id, started.elapsed(), now);
         let instance = match activated {
             Ok(instance) => instance,
             Err(error) => {
-                self.failed(id, &error);
+                self.failed(id, &error, now);
                 return false;
             }
         };
@@ -594,12 +600,29 @@ impl<S: Sandbox> Host<S> {
         slot.instance.is_some()
     }
 
-    fn deliver_now(&mut self, id: &PluginId, event: &Event, now: Instant) -> bool {
-        let bytes = serde_json::to_vec(event).expect("an event serializes");
-        self.call(id, &bytes, CallKind::Background, now).is_ok()
+    fn context(&self, id: &PluginId) -> PluginContext {
+        let slot = &self.slots[id];
+        PluginContext {
+            id: id.clone(),
+            manifest: slot.spec.manifest.clone(),
+            locales: slot.spec.locales.clone(),
+            language: self.shared.language,
+            day: self.shared.day_json.clone(),
+            log: slot.log.clone(),
+            clock: self.clock.clone(),
+        }
     }
 
-    fn apply(&mut self, id: &PluginId, outcome: Outcome) {
+    fn deliver_now(&mut self, id: &PluginId, event: &Event, now: Instant) -> bool {
+        let bytes = serde_json::to_vec(event).expect("an event serializes");
+        let result = self.call(id, &bytes, CallKind::Background, now);
+        if result == Err(CallError::PoolFull) {
+            self.failed(id, &CallError::PoolFull, now);
+        }
+        result.is_ok()
+    }
+
+    fn apply(&mut self, id: &PluginId, outcome: Outcome, now: Instant) {
         let language = self.shared.language;
         let slot = self.slots.get_mut(id).expect("applied to a live slot");
         for rejected in &outcome.rejected {
@@ -620,6 +643,8 @@ impl<S: Sandbox> Host<S> {
             });
         }
         if !outcome.rejected.is_empty() {
+            // A refused card is a failure too: the background events wait, the instance stays.
+            slot.not_before = slot.not_before.max(now + RETRY_AFTER_FAILURE);
             (self.notify)(HostUpdate::Failed {
                 plugin: id.clone(),
                 error: outcome.rejected.join("; "),
@@ -628,11 +653,12 @@ impl<S: Sandbox> Host<S> {
         }
     }
 
-    fn failed(&mut self, id: &PluginId, error: &CallError) {
+    fn failed(&mut self, id: &PluginId, error: &CallError, now: Instant) {
         self.log.host(id, &error.to_string());
         if let Some(slot) = self.slots.get_mut(id) {
             slot.instance = None;
             slot.reason = ActivateReason::Restart;
+            slot.not_before = slot.not_before.max(now + RETRY_AFTER_FAILURE);
         }
         if error.is_failure() {
             (self.notify)(HostUpdate::Failed {

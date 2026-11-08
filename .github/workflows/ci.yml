@@ -150,6 +150,11 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-features --locked
 
+      # Each sample plugin built for WebAssembly must give, in Bientôt's own runtime, the cards
+      # its native tests check (crates/bientot-plugin-sdk/examples/*/expected/).
+      - name: Check the sample plugins
+        run: scripts/check-sample-plugins.sh
+
   # The flyout of every demo scenario and the other windows, rendered off screen by Mesa's
   # software Vulkan driver in French and English, light and dark. Apart from the Rust job, so
   # that the Windows job does not wait for it.
@@ -255,6 +260,11 @@ jobs:
       # The Win32 calls: the last-input query, the Run key, and the single-instance event.
       - name: Test the Windows integration
         run: cargo test --locked -p bientot-windows
+
+      # Every hostile plugin of crates/bientot-plugins/tests/hostile on the plugin host built for
+      # release (FR-072, SC-004): no abort, the UI never waits, memory comes back.
+      - name: Run the hostile plugins
+        run: cargo run --release --locked -p bientot-plugins --example hostile-corpus
 
       # The executable as it ships, with the usage signal (spec signal-utilisation §4).
       # Kept aside for the upload: the Velopack build below writes the same path.
