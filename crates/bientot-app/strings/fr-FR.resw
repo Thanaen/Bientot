@@ -1097,4 +1097,16 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="FlyoutRebuiltReviewText" xml:space="preserve">
     <value>Votre session Windows était ouverte avant l’installation de Bientôt. Ce temps est compté provisoirement comme du travail.</value>
   </data>
+  <data name="PluginCardMenuFormat" xml:space="preserve">
+    <value>Options de la carte {0}</value>
+  </data>
+  <data name="PluginCardHideToday" xml:space="preserve">
+    <value>Masquer pour aujourd’hui</value>
+  </data>
+  <data name="PluginCardOthers" xml:space="preserve">
+    <value>Afficher plutôt</value>
+  </data>
+  <data name="PluginCardShowFormat" xml:space="preserve">
+    <value>Afficher plutôt la carte {0}</value>
+  </data>
 </root>

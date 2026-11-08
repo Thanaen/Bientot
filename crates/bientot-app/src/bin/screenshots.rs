@@ -35,6 +35,8 @@ mod flyout;
 mod midnight;
 #[path = "screenshots/onboarding.rs"]
 mod onboarding;
+#[path = "screenshots/plugins.rs"]
+mod plugins;
 #[path = "screenshots/saturday.rs"]
 mod saturday;
 #[path = "screenshots/settings.rs"]
@@ -94,6 +96,7 @@ fn main() -> anyhow::Result<()> {
     flyout::capture_rebuilt_review(&mut cx, language, &output)?;
     flyout::capture_updates(&mut cx, language, &output)?;
     flyout::capture_palette(&mut cx, language, &output)?;
+    plugins::capture_cards(&mut cx, language, &output)?;
     week::capture_weeks(&mut cx, language, &output)?;
     details::capture_details(&mut cx, language, &output)?;
     adjust::capture_states(&mut cx, language, &output)?;

@@ -39,6 +39,9 @@ pub struct InstalledPlugin {
     pub card_preference: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hidden_on: Option<Date>,
+    /// Its place among the installs, 0 for the first. An update keeps it.
+    #[serde(default)]
+    pub rank: u32,
     /// `installed` or `upgraded` still has to be delivered.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pending: Option<Pending>,
@@ -174,6 +177,47 @@ impl StateFile {
     pub fn any_active(&self) -> bool {
         self.plugins.values().any(InstalledPlugin::is_active)
     }
+
+    /// The rank of the next install.
+    pub fn next_rank(&self) -> u32 {
+        self.plugins.values().map(|p| p.rank + 1).max().unwrap_or(0)
+    }
+
+    /// Which of the plugins that have a card the flyout shows on `today`: the one the user chose
+    /// last, otherwise the first installed, never one hidden for the day. All the others, the
+    /// hidden ones last, go under « More » (US1, scenarios 4 and 5).
+    pub fn cards<'a>(
+        &self,
+        today: Date,
+        with_card: impl IntoIterator<Item = &'a PluginId>,
+    ) -> Cards<'a> {
+        let mut order: Vec<(bool, bool, u32, &PluginId)> = with_card
+            .into_iter()
+            .filter_map(|id| {
+                let plugin = self.plugins.get(id)?;
+                let hidden = plugin.hidden_on == Some(today);
+                Some((hidden, !plugin.card_preference, plugin.rank, id))
+            })
+            .collect();
+        order.sort();
+        let mut ids = order.into_iter().map(|(hidden, .., id)| (hidden, id));
+        let shown = ids.next();
+        let (shown, more) = match shown {
+            Some((false, id)) => (Some(id), ids.map(|(_, id)| id).collect()),
+            first => (
+                None,
+                first.into_iter().chain(ids).map(|(_, id)| id).collect(),
+            ),
+        };
+        Cards { shown, more }
+    }
+}
+
+/// The flyout's plugin cards, from [`StateFile::cards`].
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Cards<'a> {
+    pub shown: Option<&'a PluginId>,
+    pub more: Vec<&'a PluginId>,
 }
 
 #[cfg(test)]
@@ -196,6 +240,7 @@ mod tests {
             failures: Vec::new(),
             card_preference: false,
             hidden_on: None,
+            rank: 0,
             pending: Some(Pending::Installed),
         }
     }
@@ -249,6 +294,58 @@ mod tests {
         assert!(p.files_changed() && p.status == Status::FilesChanged);
         let mut q = plugin();
         assert!(q.api_unsupported() && !q.is_active());
+    }
+
+    #[test]
+    fn the_chosen_card_shows_otherwise_the_first_installed_and_never_a_hidden_one() {
+        let today = jiff::civil::date(2026, 11, 9);
+        let ids = ["bientot.zebra", "bientot.apple", "bientot.mango"]
+            .map(|id| PluginId::parse(id).unwrap());
+        let [zebra, apple, mango] = &ids;
+        let mut state = StateFile::default();
+        for (rank, id) in ids.iter().enumerate() {
+            let rank = u32::try_from(rank).unwrap();
+            state
+                .plugins
+                .insert(id.clone(), InstalledPlugin { rank, ..plugin() });
+        }
+        assert_eq!(state.next_rank(), 3);
+        let cards = |state: &StateFile, with: &[&PluginId]| {
+            let cards = state.cards(today, with.iter().copied());
+            (
+                cards.shown.cloned(),
+                cards.more.into_iter().cloned().collect::<Vec<_>>(),
+            )
+        };
+        assert_eq!(
+            cards(&state, &[apple, mango, zebra]),
+            (Some(zebra.clone()), vec![apple.clone(), mango.clone()])
+        );
+        assert_eq!(
+            cards(&state, &[mango, apple]),
+            (Some(apple.clone()), vec![mango.clone()]),
+            "only plugins that have a card count"
+        );
+        state.plugins.get_mut(mango).unwrap().card_preference = true;
+        assert_eq!(
+            cards(&state, &[apple, mango, zebra]),
+            (Some(mango.clone()), vec![zebra.clone(), apple.clone()])
+        );
+        state.plugins.get_mut(mango).unwrap().hidden_on = Some(today);
+        assert_eq!(
+            cards(&state, &[apple, mango, zebra]),
+            (Some(zebra.clone()), vec![apple.clone(), mango.clone()])
+        );
+        state.plugins.get_mut(zebra).unwrap().hidden_on = Some(today);
+        state.plugins.get_mut(apple).unwrap().hidden_on = Some(today);
+        assert_eq!(
+            cards(&state, &[apple, mango, zebra]),
+            (None, vec![mango.clone(), zebra.clone(), apple.clone()])
+        );
+        assert_eq!(cards(&state, &[apple]).0, None, "hidden for the day only");
+        let tomorrow = state.cards(today.tomorrow().unwrap(), [apple]);
+        assert_eq!(tomorrow.shown, Some(apple));
+        assert_eq!(StateFile::default().next_rank(), 0);
     }
 
     #[test]

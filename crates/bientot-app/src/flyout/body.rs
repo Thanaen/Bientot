@@ -59,6 +59,8 @@ pub(super) enum Part {
     TrustCallout,
     Headline,
     Worked,
+    #[cfg(feature = "plugins")]
+    PluginCard,
     Announcement(usize),
     UpdateCallout,
 }
@@ -427,6 +429,8 @@ impl Flyout {
                 .as_ref()
                 .map(|worked| (Part::Worked, self.worked(worked, theme).into_any_element())),
         );
+        #[cfg(feature = "plugins")]
+        parts.extend(self.plugin_card(window, cx, theme));
         parts.extend(self.announcements(theme));
         parts.extend(
             self.update_callout(theme, cx)

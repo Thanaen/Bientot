@@ -18,7 +18,7 @@ required-features = ["screenshots"]
 
 [features]
 # Renders the flyout off screen to PNG files (software Vulkan on Linux CI).
-screenshots = ["gpui/test-support", "gpui_platform/test-support", "dep:gpui_wgpu"]
+screenshots = ["gpui/test-support", "gpui_platform/test-support", "dep:gpui_wgpu", "plugins"]
 # Sends the anonymous daily usage signal over HTTPS from a release build. A debug build never
 # sends, even with this feature on, and CI only measures the release build with `--data-dir`.
 usage-ping = ["dep:ureq"]

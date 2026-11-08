@@ -396,6 +396,10 @@ pub enum Key {
     PaletteSettleNext,
     PaletteUndo,
     PeriodicRefreshErrorMessage,
+    PluginCardHideToday,
+    PluginCardMenuFormat,
+    PluginCardOthers,
+    PluginCardShowFormat,
     RebuiltReviewName,
     SettingsAboutGroup,
     SettingsAccountingNavContent,
@@ -823,7 +827,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 815] = [
+pub(super) static ENTRIES: [Entry; 819] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1214,6 +1218,10 @@ pub(super) static ENTRIES: [Entry; 815] = [
     Entry { name: "PaletteSettleNext", fr: "régler le prochain créneau", en: "settle next slot" },
     Entry { name: "PaletteUndo", fr: "annuler la dernière action", en: "undo last action" },
     Entry { name: "PeriodicRefreshErrorMessage", fr: "Bientôt n’a pas pu actualiser les données. Une nouvelle tentative aura lieu automatiquement.", en: "Bientôt could not refresh. It will try again automatically." },
+    Entry { name: "PluginCardHideToday", fr: "Masquer pour aujourd’hui", en: "Hide for today" },
+    Entry { name: "PluginCardMenuFormat", fr: "Options de la carte {0}", en: "{0} card options" },
+    Entry { name: "PluginCardOthers", fr: "Afficher plutôt", en: "Show instead" },
+    Entry { name: "PluginCardShowFormat", fr: "Afficher plutôt la carte {0}", en: "Show the {0} card instead" },
     Entry { name: "RebuiltReviewName", fr: "Avant Bientôt", en: "Time before Bientôt" },
     Entry { name: "SettingsAboutGroup", fr: "À propos", en: "About" },
     Entry { name: "SettingsAccountingNav.Content", fr: "Comptabilisation", en: "Accounting" },

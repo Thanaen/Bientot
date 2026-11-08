@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use bientot_plugin_api::{Capability, LocaleTexts, Manifest, ManifestError, PluginId};
 use jiff::Timestamp;
+use jiff::civil::Date;
 
 use crate::files::PluginsDir;
 use crate::package::{self, MANIFEST, MODULE, Package, PackageError};
@@ -116,6 +117,7 @@ pub fn install(dir: &PluginsDir, state: &mut StateFile, offer: Offer) -> io::Res
     };
     let id = package.manifest.id.clone();
     let manifest_hash = package::hex(&package::hash(&package.files[MANIFEST]));
+    let next_rank = state.next_rank();
     let previous = if fresh {
         None
     } else {
@@ -149,7 +151,8 @@ pub fn install(dir: &PluginsDir, state: &mut StateFile, offer: Offer) -> io::Res
         },
         failures: Vec::new(),
         card_preference: previous.as_ref().is_some_and(|p| p.card_preference),
-        hidden_on: previous.and_then(|p| p.hidden_on),
+        hidden_on: previous.as_ref().and_then(|p| p.hidden_on),
+        rank: previous.map_or(next_rank, |p| p.rank),
         pending,
     };
     state.plugins.insert(id.clone(), entry);
@@ -260,6 +263,29 @@ pub fn record_failure(
     let off = plugin.record_failure(at, reason);
     let _ = state.save(&dir.state_path());
     off
+}
+
+/// The user picked `id`'s card under « More »: the flyout shows it from now on, even today if it
+/// was hidden.
+pub fn show_card(dir: &PluginsDir, state: &mut StateFile, id: &PluginId) {
+    if !state.plugins.contains_key(id) {
+        return;
+    }
+    for (plugin_id, plugin) in &mut state.plugins {
+        plugin.card_preference = plugin_id == id;
+        if plugin_id == id {
+            plugin.hidden_on = None;
+        }
+    }
+    let _ = state.save(&dir.state_path());
+}
+
+/// « Hide for today »: `id`'s card stays hidden until the day after `today`.
+pub fn hide_card(dir: &PluginsDir, state: &mut StateFile, id: &PluginId, today: Date) {
+    if let Some(plugin) = state.plugins.get_mut(id) {
+        plugin.hidden_on = Some(today);
+        let _ = state.save(&dir.state_path());
+    }
 }
 
 /// `installed` or `upgraded` reached the plugin: it is not sent again.

@@ -1116,4 +1116,16 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="FlyoutRebuiltReviewText" xml:space="preserve">
     <value>Your Windows session was open before Bientôt was installed. This time counts as work for now.</value>
   </data>
+  <data name="PluginCardMenuFormat" xml:space="preserve">
+    <value>{0} card options</value>
+  </data>
+  <data name="PluginCardHideToday" xml:space="preserve">
+    <value>Hide for today</value>
+  </data>
+  <data name="PluginCardOthers" xml:space="preserve">
+    <value>Show instead</value>
+  </data>
+  <data name="PluginCardShowFormat" xml:space="preserve">
+    <value>Show the {0} card instead</value>
+  </data>
 </root>
