@@ -1,0 +1,10 @@
+{
+  "name": "bientot",
+  "version": "0.1.0",
+  "description": "Write, test, pack and sign plugins for Bientôt, the Windows tray app that tells you when you can leave.",
+  "author": { "name": "Thanaen" },
+  "homepage": "https://bientot.dev",
+  "repository": "https://github.com/Thanaen/Bientot",
+  "license": "MIT",
+  "keywords": ["bientot", "plugin", "webassembly", "rust"]
+}

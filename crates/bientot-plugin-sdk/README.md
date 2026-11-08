@@ -39,6 +39,8 @@ bientot-plugin-sdk = { git = "https://github.com/Thanaen/Bientot" }
 [profile.release]
 opt-level = "s"
 lto = true
+codegen-units = 1
+strip = true
 ```
 
 `.cargo/config.toml` links the module with a 64 KiB stack. Without it, Rust reserves 1 MiB, and
@@ -200,6 +202,20 @@ the same key signs it, or a key it announced (`--announce`, `--handover`), so ke
 safe. `check` installs the package in Bientôt's own runtime, runs it over the demo days and
 prints its cards, the fuel it used and its memory. With `--expect <folder>`, it compares the
 cards with your reference files.
+
+## With Claude Code
+
+The repository is a Claude Code plugin marketplace. Its skill `write-a-bientot-plugin` walks
+an agent through these steps, from the five files to `check`:
+
+```text
+/plugin marketplace add Thanaen/Bientot
+/plugin install bientot@thanaen-bientot
+```
+
+The skill is a plain `SKILL.md` in
+[`plugins/bientot/skills/write-a-bientot-plugin/`](../../plugins/bientot/skills/write-a-bientot-plugin/SKILL.md):
+copy that folder into `.claude/skills/` of your project to use it without the marketplace.
 
 ## Samples
 

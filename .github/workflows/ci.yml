@@ -35,7 +35,8 @@ jobs:
     steps:
       # Screenshots only matter when the pull request can change what the app looks like; the
       # GPUI screenshots job takes them. The Rust job runs only when a Rust file, `packaging/`
-      # (read by the tests) or this workflow changes. The Windows Rust job, the costliest minutes,
+      # (read by the tests), the Claude Code skill under `plugins/`, the plugin check scripts or
+      # this workflow changes. The Windows Rust job, the costliest minutes,
       # runs only when the app crate, the plugin host, the store's Windows-only code, the dependencies or this
       # workflow change.
       - name: Detect pull request changes
@@ -55,7 +56,7 @@ jobs:
             gpui_screenshots=true
           fi
 
-          rust_files='^crates/|^packaging/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$'
+          rust_files='^crates/|^packaging/|^plugins/|^scripts/check-(sample-plugins|plugin-skill)\.sh$|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$'
 
           rust=false
           if grep -qE "${rust_files}|^\.github/workflows/ci\.yml$" <<< "$files"; then
@@ -154,6 +155,9 @@ jobs:
       # its native tests check (crates/bientot-plugin-sdk/examples/*/expected/).
       - name: Check the sample plugins
         run: scripts/check-sample-plugins.sh
+
+      - name: Check the plugin of the Claude Code skill
+        run: scripts/check-plugin-skill.sh
 
   # The flyout of every demo scenario and the other windows, rendered off screen by Mesa's
   # software Vulkan driver in French and English, light and dark. Apart from the Rust job, so

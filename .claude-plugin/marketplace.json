@@ -1,0 +1,12 @@
+{
+  "name": "thanaen-bientot",
+  "description": "Claude Code skills for Bientôt, the Windows tray app that tells you when you can leave.",
+  "owner": { "name": "Thanaen", "url": "https://github.com/Thanaen" },
+  "plugins": [
+    {
+      "name": "bientot",
+      "source": "./plugins/bientot",
+      "description": "Write, test, pack and sign plugins for Bientôt."
+    }
+  ]
+}
