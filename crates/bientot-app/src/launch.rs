@@ -32,11 +32,16 @@ pub struct Launch {
     /// which this one waits for.
     pub restarted_from: Option<u32>,
     pub origin: Origin,
+    /// `--no-plugins` starts Bientôt without any plugin (FR-052).
+    pub no_plugins: bool,
 }
 
 /// Names the process id of the WorkTime that restarted this one. An argument, unlike an
 /// environment variable, is not handed down to what this WorkTime starts in turn.
 pub const RESTARTED_FROM_ARGUMENT: &str = "--restarted-from";
+
+/// Starts Bientôt without any plugin, whatever is turned on.
+pub const NO_PLUGINS_ARGUMENT: &str = "--no-plugins";
 
 /// What started this process.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -98,7 +103,7 @@ impl Launch {
     /// `--dark` fix the theme, `--french` and `--english` the language, `--data-dir` the data
     /// folder, and `--demo`, `--demo-history-week`, `--demo-problem-periods` and
     /// `--demo-fragmented-day` the demo, `--demo-update` a demo Store update, and `--onboarding`
-    /// asks for the onboarding. `--demo` may name a scenario, as the R1 prototype's `--demo late`
+    /// asks for the onboarding, `--no-plugins` leaves the plugins out. `--demo` may name a scenario, as the R1 prototype's `--demo late`
     /// did. The start-with-Windows marker sets `windows_startup`, and the toast activator's
     /// arguments set the [`Origin`]. The last flag of a kind wins.
     pub fn parse(arguments: impl IntoIterator<Item = String>) -> anyhow::Result<Self> {
@@ -113,6 +118,7 @@ impl Launch {
             windows_startup: false,
             restarted_from: None,
             origin: Origin::Command,
+            no_plugins: false,
         };
         let mut arguments = arguments.into_iter().peekable();
         while let Some(argument) = arguments.next() {
@@ -148,6 +154,7 @@ impl Launch {
                 }
                 ACTIVATOR_ARGUMENT | COM_SERVER_ARGUMENT => launch.origin = Origin::ToastActivator,
                 "--open-flyout" => launch.open_flyout = true,
+                NO_PLUGINS_ARGUMENT => launch.no_plugins = true,
                 onboarding::ARGUMENT => launch.onboarding = true,
                 "--light" => launch.theme = ThemeMode::Light,
                 "--dark" => launch.theme = ThemeMode::Dark,
@@ -206,6 +213,54 @@ fn kept_on_restart(
     kept
 }
 
+/// Counts the starts with plugins that did not get through (plan, Safe mode). A start writes it
+/// before it reads the plugins and removes it once they have run a while, or at a quit: a
+/// marker left behind is a start that crashed.
+#[cfg(feature = "plugins")]
+#[derive(Debug)]
+pub struct StartMarker {
+    path: PathBuf,
+}
+
+#[cfg(feature = "plugins")]
+impl StartMarker {
+    /// After this many crashed starts in a row, the next start leaves the plugins off.
+    const CRASHED_STARTS: u32 = 2;
+
+    /// The marker of the plugins folder `folder`.
+    pub fn in_folder(folder: &std::path::Path) -> Self {
+        Self {
+            path: folder.join("starting"),
+        }
+    }
+
+    /// Counts a start with plugins, unless the last starts crashed: then `false`, and the
+    /// plugins stay off until the user turns them back on.
+    pub fn begin(&self) -> bool {
+        let crashed = self.crashed_starts();
+        if crashed >= Self::CRASHED_STARTS {
+            return false;
+        }
+        // A marker that cannot be written only means no safe mode: the plugins still start.
+        let _ = std::fs::write(&self.path, (crashed + 1).to_string());
+        true
+    }
+
+    /// The plugins got through this start.
+    pub fn passed(&self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+
+    fn crashed_starts(&self) -> u32 {
+        match std::fs::read_to_string(&self.path) {
+            Ok(count) => count.trim().parse().unwrap_or(1),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0,
+            // There, but unreadable: a start left it.
+            Err(_) => 1,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
@@ -249,8 +304,55 @@ mod tests {
                 windows_startup: false,
                 restarted_from: None,
                 origin: Origin::Command,
+                no_plugins: false,
             }
         );
+    }
+
+    #[test]
+    fn no_plugins_leaves_the_plugins_out() {
+        assert!(parse(&["--no-plugins"]).unwrap().no_plugins);
+        assert!(!parse(&["--dark"]).unwrap().no_plugins);
+    }
+
+    #[cfg(feature = "plugins")]
+    #[test]
+    fn two_crashed_starts_in_a_row_leave_the_plugins_off_until_they_are_turned_back_on() {
+        let folder = tempfile::tempdir().unwrap();
+        let marker = StartMarker::in_folder(folder.path());
+        // Two starts that crashed before the plugins got through.
+        assert!(marker.begin());
+        assert!(marker.begin());
+        // The third leaves them off, and so does every start after it.
+        assert!(!marker.begin());
+        assert!(!marker.begin());
+        // « Réactiver les plugins »: they start again.
+        marker.passed();
+        assert!(marker.begin());
+    }
+
+    #[cfg(feature = "plugins")]
+    #[test]
+    fn a_start_that_got_through_clears_the_crashes_before_it() {
+        let folder = tempfile::tempdir().unwrap();
+        let marker = StartMarker::in_folder(folder.path());
+        assert!(marker.begin());
+        marker.passed();
+        assert!(marker.begin());
+        marker.passed();
+        assert!(marker.begin());
+        assert!(marker.begin());
+        assert!(!marker.begin());
+    }
+
+    #[cfg(feature = "plugins")]
+    #[test]
+    fn a_marker_that_cannot_be_read_counts_as_one_crash() {
+        let folder = tempfile::tempdir().unwrap();
+        std::fs::write(folder.path().join("starting"), "garbled").unwrap();
+        let marker = StartMarker::in_folder(folder.path());
+        assert!(marker.begin());
+        assert!(!marker.begin());
     }
 
     #[test]
@@ -427,6 +529,7 @@ mod tests {
                 windows_startup: false,
                 restarted_from: None,
                 origin: Origin::Command,
+                no_plugins: false,
             }
         );
         let demo = |arguments: &[&str]| parse(arguments).unwrap().demo.unwrap();

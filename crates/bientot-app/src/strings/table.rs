@@ -414,6 +414,8 @@ pub enum Key {
     PluginConsentUpdate,
     PluginConsentUpdateTitleFormat,
     PluginConsentVersionFormat,
+    PluginsPausedText,
+    PluginsResume,
     RebuiltReviewName,
     SettingsAboutGroup,
     SettingsAccountingNavContent,
@@ -874,7 +876,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 866] = [
+pub(super) static ENTRIES: [Entry; 868] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1283,6 +1285,8 @@ pub(super) static ENTRIES: [Entry; 866] = [
     Entry { name: "PluginConsentUpdate", fr: "Mettre à jour", en: "Update" },
     Entry { name: "PluginConsentUpdateTitleFormat", fr: "Mettre à jour {0}\u{202f}?", en: "Update {0}?" },
     Entry { name: "PluginConsentVersionFormat", fr: "Version {0}", en: "Version {0}" },
+    Entry { name: "PluginsPausedText", fr: "Plugins désactivés\u{a0}: Bientôt s’est fermé de façon inattendue deux fois de suite en démarrant avec eux.", en: "Plugins are off: Bientôt closed unexpectedly twice in a row while starting\u{a0}with\u{a0}them." },
+    Entry { name: "PluginsResume", fr: "Réactiver les plugins", en: "Turn plugins back on" },
     Entry { name: "RebuiltReviewName", fr: "Avant Bientôt", en: "Time before Bientôt" },
     Entry { name: "SettingsAboutGroup", fr: "À propos", en: "About" },
     Entry { name: "SettingsAccountingNav.Content", fr: "Comptabilisation", en: "Accounting" },

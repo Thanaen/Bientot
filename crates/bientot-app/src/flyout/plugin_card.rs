@@ -12,10 +12,10 @@ use gpui::{
     anchored, deferred, div, prelude::*, px,
 };
 
-use super::{Closing, Flyout, body::Part, control, control_icon};
+use super::{Closing, Flyout, body::Part, control, control_icon, readable};
 use crate::plugins::{self, PluginCards, card};
 use crate::settings::Page;
-use crate::settings_view;
+use crate::settings_view::{self, outlined_on_tint};
 use crate::strings::Key;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, motion, radius, size, text};
@@ -98,6 +98,10 @@ impl Flyout {
         cx: &mut Context<Self>,
         theme: &Theme,
     ) -> Option<(Part, AnyElement)> {
+        if plugins::paused(cx) {
+            self.plugin_menu.open = false;
+            return Some((Part::PluginCard, self.plugins_paused(theme, cx)));
+        }
         let cards = cx.try_global::<PluginCards>()?;
         let Some((id, shown)) = cards.shown() else {
             self.plugin_menu.open = false;
@@ -217,6 +221,39 @@ impl Flyout {
             })
             .into_any_element();
         Some((Part::PluginCard, element))
+    }
+
+    /// The plugins stayed off after two crashed starts: where a card goes, a warning with
+    /// « Réactiver les plugins » (FR-052).
+    fn plugins_paused(&self, theme: &Theme, cx: &mut Context<Self>) -> AnyElement {
+        let id = "resume-plugins";
+        let text = SharedString::from(self.text(Key::PluginsPausedText));
+        let label = SharedString::from(self.text(Key::PluginsResume));
+        // As `callout_button` draws the other callouts' buttons, with a click instead of an action.
+        let resume = outlined_on_tint(id, label.clone(), size::BUTTON_MEDIUM, theme)
+            .aria_label(label)
+            .px(BASE_08)
+            .on_click(cx.listener(|_, _, _, cx| plugins::resume(cx)));
+        widgets::callout_box_with_icon(widgets::Hue::Warning, "puzzle", theme)
+            .id("plugins-paused-callout")
+            .role(Role::Group)
+            .aria_label(text.clone())
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .flex()
+                    .flex_col()
+                    .gap(BASE_02)
+                    .child(readable("plugins-paused", text))
+                    .child(
+                        div()
+                            .pt(BASE_06)
+                            .flex()
+                            .child(self.reveal_on_tab(id, resume)),
+                    ),
+            )
+            .into_any_element()
     }
 
     #[allow(clippy::too_many_arguments)]
