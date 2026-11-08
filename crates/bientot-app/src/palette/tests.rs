@@ -214,3 +214,21 @@ fn the_pause_row_follows_the_day() {
     palette.set_situation(situation(Host::Flyout, TrackingState::Paused));
     assert_eq!(labels(&palette), ["Tracking: resume"]);
 }
+
+#[test]
+fn plugin_commands_cannot_take_the_labels_of_bientots_own() {
+    let titles = reserved_titles();
+    for title in [
+        "Suivi\u{a0}: mettre en pause",
+        "Suivi\u{a0}: reprendre",
+        "Bientôt\u{a0}: quitter",
+    ] {
+        assert!(titles.iter().any(|t| t == title), "{title} in {titles:?}");
+    }
+    assert!(
+        titles
+            .iter()
+            .any(|t| t.ends_with(": quit") || t.ends_with(": Quit")),
+        "{titles:?}"
+    );
+}

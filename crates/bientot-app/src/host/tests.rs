@@ -980,3 +980,19 @@ fn time_counted_since_the_hint_showed_it_is_refused() {
     assert_eq!(again.undo, None);
     assert_eq!(worked(&today), "5\u{a0}h\u{a0}30\u{a0}min");
 }
+
+#[cfg(feature = "plugins")]
+#[test]
+fn plugins_read_the_published_day() {
+    let folder = tempfile::tempdir().unwrap();
+    let mut today = start(folder.path(), clock());
+    let day = today
+        .live()
+        .unwrap()
+        .plugin_day(bientot_plugin_api::Language::Fr)
+        .expect("a published day");
+    assert_eq!(day.date, jiff::civil::date(2026, 10, 8));
+    assert_eq!(day.computed_at, START.parse::<jiff::Timestamp>().unwrap());
+    assert_eq!(day.language, bientot_plugin_api::Language::Fr);
+    assert!(day.target > 0, "{day:?}");
+}
