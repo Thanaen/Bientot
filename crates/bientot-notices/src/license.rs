@@ -130,7 +130,19 @@ impl Parser<'_> {
         let token = self.tokens.get(self.position);
         self.position += 1;
         match token {
-            Some(Token::Id(id)) => Ok(Expression::License(id.clone())),
+            // `Apache-2.0 WITH LLVM-exception`: an exception only adds permissions, but it is
+            // kept in the id so that only a listed pair counts as allowed.
+            Some(Token::Id(id)) => match self.tokens.get(self.position) {
+                Some(Token::Id(with)) if with == "WITH" => match self.tokens.get(self.position + 1)
+                {
+                    Some(Token::Id(exception)) => {
+                        self.position += 2;
+                        Ok(Expression::License(format!("{id} WITH {exception}")))
+                    }
+                    _ => Err("WITH without an exception".to_owned()),
+                },
+                _ => Ok(Expression::License(id.clone())),
+            },
             Some(Token::Open) => {
                 let inner = self.or()?;
                 if self.eat(&Token::Close) {
@@ -220,6 +232,21 @@ mod tests {
         ] {
             assert!(Expression::parse(text).is_err(), "{text:?} parsed");
         }
+    }
+
+    #[test]
+    fn with_keeps_the_exception_in_the_id() {
+        assert_eq!(
+            parse("Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"),
+            Or(vec![
+                id("Apache-2.0 WITH LLVM-exception"),
+                id("Apache-2.0"),
+                id("MIT")
+            ])
+        );
+        assert!(parse("Apache-2.0 WITH LLVM-exception OR MIT").is_allowed());
+        assert!(!parse("Apache-2.0 WITH LLVM-exception").is_allowed());
+        assert!(Expression::parse("Apache-2.0 WITH").is_err());
     }
 
     #[test]

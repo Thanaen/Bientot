@@ -17,18 +17,18 @@ texts, and the design-system artifacts updated with any UI change.
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `crates/bientot-plugin-api`, `crates/bientot-plugins` and `crates/bientot-plugin-sdk` to the workspace with empty `lib.rs` files, `publish = false`, and the workspace lints.
-- [ ] T002 Add the `plugins` feature to `crates/bientot-app/Cargo.toml`, on in `release` and `direct`, pulling `bientot-plugins`; check that a build without it is byte-identical in behaviour (`cargo test -p bientot-app` with and without).
-- [ ] T003 Measure the size cost of `toml` in the `release` executable; keep TOML if it is at most 100 KB, otherwise switch the manifest contract to JSON (`contracts/manifest.md`, `plan.md`, `quickstart.md`).
-- [ ] T004 [P] Add a size gate for the `direct` build to the `Rust on Windows` job in `.github/workflows/ci.yml`, beside the existing `release` gate, and record both sizes in the job summary.
-- [ ] T005 [P] Pin `wasmi` with `default-features = false, features = ["std", "validate", "portable-dispatch"]` in `crates/bientot-plugins/Cargo.toml`; add it to `osv-scanner.toml` tracking and to the allowed licenses check of `bientot-notices`.
+- [x] T001 Add `crates/bientot-plugin-api`, `crates/bientot-plugins` and `crates/bientot-plugin-sdk` to the workspace with empty `lib.rs` files and `publish = false`.
+- [x] T002 Add the `plugins` feature to `crates/bientot-app/Cargo.toml`, on in `release` and `direct`, pulling `bientot-plugins`; check that a build without it is byte-identical in behaviour (`cargo test -p bientot-app` with and without).
+- [x] T003 Measure the size cost of `toml` in the `release` executable; keep TOML if it is at most 100 KB, otherwise switch the manifest contract to JSON (`contracts/manifest.md`, `plan.md`, `quickstart.md`). Done: 195 KiB, the manifest is `plugin.json`.
+- [x] T004 [P] Add a size gate for the `direct` build to the `Rust on Windows` job in `.github/workflows/ci.yml`, beside the existing `release` gate, and record both sizes in the job summary.
+- [x] T005 [P] Pin `wasmi` with `default-features = false, features = ["std", "validate", "portable-dispatch"]` in `crates/bientot-plugins/Cargo.toml`; add it to `osv-scanner.toml` tracking and to the allowed licenses check of `bientot-notices`.
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T010 [P] Write `crates/bientot-plugin-api/wit/bientot.wit` from `contracts/host-abi.md`.
-- [ ] T011 [P] Implement `PluginId`, `Capability`, localized texts and `Manifest` parsing and validation in `crates/bientot-plugin-api/src/{lib,manifest}.rs`, with tests for every rule and error message of `contracts/manifest.md`.
-- [ ] T012 [P] Implement `DaySnapshot` v1 in `crates/bientot-plugin-api/src/snapshot.rs` and events in `src/event.rs`, every enum with `Unknown`, with JSON fixtures in `crates/bientot-plugin-api/tests/fixtures/api-1.0/` that later versions must keep reading.
-- [ ] T013 [P] Implement the view tree and its validation in `crates/bientot-plugin-api/src/view.rs`, with tests for each limit of `contracts/view-tree.md`.
+- [x] T010 [P] Write `crates/bientot-plugin-api/wit/bientot.wit` from `contracts/host-abi.md`.
+- [x] T011 [P] Implement `PluginId`, `Capability`, localized texts and `Manifest` parsing and validation in `crates/bientot-plugin-api/src/{lib,manifest}.rs`, with tests for every rule and error message of `contracts/manifest.md`.
+- [x] T012 [P] Implement `DaySnapshot` v1 in `crates/bientot-plugin-api/src/snapshot.rs` and events in `src/event.rs`, every enum with `Unknown`, with JSON fixtures in `crates/bientot-plugin-api/tests/fixtures/api-1.0/` that later versions must keep reading.
+- [x] T013 [P] Implement the view tree and its validation in `crates/bientot-plugin-api/src/view.rs`, with tests for each limit of `contracts/view-tree.md`.
 - [ ] T014 Implement the package reader in `crates/bientot-plugins/src/package.rs` per `contracts/package.md`: central directory and local header cross-check, every refusal and cap, `flate2` inflate, CRC check, temporary folder and rename; tests with a crafted package per refusal.
 - [ ] T015 Implement signatures and trust in `crates/bientot-plugins/src/package.rs`: canonical file list, ed25519 verification, key fingerprint, binding on first install, key announcement, unsigned hash binding; tests for each case of « Trust on install and update ».
 - [ ] T016 Implement `plugins/state.json` in `crates/bientot-plugins/src/state.rs` with the states and transitions of `data-model.md`, written through a temporary file and a rename; tests for each transition.
@@ -97,8 +97,8 @@ texts, and the design-system artifacts updated with any UI change.
 
 ## Phase 8: Polish and cross-cutting
 
-- [ ] T060 Confirm the timings of `research.md` and the `auto-dispatch` abort on a real Windows machine; update `research.md`.
-- [ ] T061 Measure the size cost of `ed25519-dalek` and record it in `research.md`.
+- [x] T060 Confirm the timings of `research.md` and the `auto-dispatch` abort on a real Windows machine; update `research.md`.
+- [x] T061 Measure the size cost of `ed25519-dalek` and record it in `research.md`.
 - [ ] T062 [P] Add the fuzz targets `manifest`, `package`, `host-call` and `view-tree` to `fuzz/`, with seeds from the tests, and to `.github/workflows/fuzz.yml`.
 - [ ] T063 [P] Update `docs/privacy.md` (the revocation request, `plugins\`, `logs\plugins\`, the transfer file), `docs/architecture.md` (a « Plugins » section and the new crates), `SECURITY.md` (host and SDK in scope) and `docs/code-signing.md` (the offline keys).
 - [ ] T064 [P] Add to `docs/release-checklist.md` the Store listing line and certification notes for the first Store build with plugins (`research.md` R8).

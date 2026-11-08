@@ -157,7 +157,7 @@ shared, since a sandbox flaw or a malicious plugin cannot wait for an app
 release.
 
 **Independent Test**: serve a revocation list that names the sample plugin;
-check that it turns off with an explanation. Edit `plugin.toml` of an
+check that it turns off with an explanation. Edit `plugin.json` of an
 installed plugin; check that it no longer loads until it is installed again.
 
 **Acceptance Scenarios**:

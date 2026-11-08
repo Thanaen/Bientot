@@ -2,9 +2,10 @@
 
 Measured on 8 November 2026 on Linux x86-64 (Xeon 2.1 GHz) with toolchain
 1.97.0 and Bientôt's `[profile.release]` (`opt-level = "s"`, fat LTO, one
-codegen unit, strip), plus a cross-build for `x86_64-pc-windows-msvc`. The
-Windows timings are still to be measured on a real Windows machine (task
-T060).
+codegen unit, strip), plus a cross-build for `x86_64-pc-windows-msvc`.
+The Windows timings (task T060) were measured the same day on an AMD Ryzen 7
+9800X3D under Windows 11 build 26300, mains power, with the same bench built
+for `x86_64-pc-windows-msvc`, two runs each, medians.
 
 ## R1. Engine
 
@@ -15,11 +16,13 @@ T060).
 | --- | --- | --- | --- |
 | Executable growth, MSVC | +0.87 MB | +0.87 MB | not built |
 | Executable growth, Linux | +0.96 MB | +0.96 MB | +6.46 MB |
-| One call, 3.6 KB JSON day in and a card out | ~0.5 ms | 0.21 ms | 0.02 ms |
-| First activation (lazy compile, instantiate, first call) | ~4 ms | ~3.1 ms | ~100 ms |
-| Re-instantiation after eviction | ~0.8 ms | | |
-| Committed memory of an idle instance, 64 KiB stack | 128–192 KiB | | |
-| `call_indirect` loop of 100 000 iterations | clean result or trap | **process abort** | |
+| One call, 3.6 KB JSON day in and a card out, Linux | ~0.42 ms | 0.21 ms | 0.02 ms |
+| Same, Windows | 0.27 ms | 0.11 ms | |
+| First activation (engine, lazy compile, instantiate, first call), Linux | ~3.5 ms | ~3.1 ms | ~100 ms |
+| Same, Windows | 1.4 ms | 1.1 ms | |
+| Re-instantiation and one call, module kept, Windows | 0.30 ms | 0.14 ms | |
+| Committed memory of an idle instance, 64 KiB stack, Windows (private bytes) | 280 KiB | 280 KiB | |
+| `call_indirect` loop of 100 000 iterations, Linux and Windows | clean result | **process abort** | |
 
 **Rationale**:
 
@@ -30,7 +33,9 @@ T060).
   aborted the process (`fatal runtime error: stack overflow`) even on an
   8 MiB thread stack with fuel left. That is an abort, not a trap.
   `portable-dispatch` has the same size and turns the same loop into a clean
-  result or trap, at about 2.3 times the call cost.
+  result or trap, at about 2.3 times the call cost. On Windows the same loop
+  ends the child process with `STATUS_STACK_OVERFLOW` (`0xC00000FD`) under
+  `auto-dispatch` and returns in 3.6 ms under `portable-dispatch`.
 - `wat` (the text format) is left out: it is not needed at run time.
 
 **Alternatives rejected**: `wasmtime`; `wasmi` with `auto-dispatch`; Lua,
@@ -43,11 +48,14 @@ Store); external processes as the main model (no simple sandbox on Windows).
 ## R2. Fuel and time
 
 50 M fuel takes 28 ms (JSON) to 122 ms (`memset`) with portable dispatch;
-200 M takes 182 ms to 529 ms. Fuel does not measure host functions.
+200 M takes 182 ms to 529 ms. On Windows, 50 M takes 34 ms (arithmetic loop)
+to 103 ms (`memset`), and 200 M 135 ms to 412 ms. Fuel does not measure host
+functions.
 
 **Decision**: fuel is the limit and the clock is only a safety net (FR-013).
 Calls run in 2 M slices with `call_resumable`; the longest slice measured
-was 8.5 ms, so a user action waits at most that long. Host functions charge
+was 8.5 ms on Linux and 4.1 ms on Windows, so a user action waits at most
+that long. Host functions charge
 fuel by the bytes they copy. A wall-clock stop never counts as a failure, so
 a plugin that passes on a fast PC is not turned off on a slow one.
 
@@ -99,10 +107,11 @@ and central directory disagree cannot pass.
 
 ## R7. Signatures
 
-**Decision**: ed25519 (`ed25519-dalek` with `default-features = false`), the
-public key in the package, bound to the id on first install. To measure: its
-size cost in T061; the revocation list and future registry use the same
-primitive.
+**Decision**: ed25519 (`ed25519-dalek` 3 with `default-features = false`),
+the public key in the package, bound to the id on first install. The
+revocation list and future registry use the same primitive. Measured in
+T061: +44 KiB on an MSVC release executable that already has `sha2` 0.11,
+which `ed25519-dalek` 3 shares.
 
 ## R8. Microsoft Store
 
@@ -135,3 +144,14 @@ The full design (French) went through four review rounds by five reviewers
 until all approved. Its findings that matter to this step are folded into
 the spec, the plan and the contracts. The later steps it describes are not
 specified here.
+
+## R10. Manifest format
+
+Measured for T003 on `x86_64-pc-windows-msvc` with the release profile: a
+program that already links `serde` (derive), `serde_json` and `sha2` and reads
+a manifest is 307 200 bytes; reading the same manifest with `toml` 1.x
+(`default-features = false`, features `std`, `parse`, `serde`) makes it
+506 880 bytes, so `toml` costs 195 KiB, above the 100 KB threshold.
+
+**Decision**: the manifest is `plugin.json`, read with `serde_json`, which is
+already in the executable. Authors get a `$schema` key for editor checks.

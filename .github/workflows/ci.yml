@@ -36,7 +36,7 @@ jobs:
       # Screenshots only matter when the pull request can change what the app looks like; the
       # GPUI screenshots job takes them. The Rust job runs only when a Rust file, `packaging/`
       # (read by the tests) or this workflow changes. The Windows Rust job, the costliest minutes,
-      # runs only when the app crate, the store's Windows-only code, the dependencies or this
+      # runs only when the app crate, the plugin host, the store's Windows-only code, the dependencies or this
       # workflow change.
       - name: Detect pull request changes
         id: pull-request
@@ -63,7 +63,7 @@ jobs:
           fi
 
           rust_windows=false
-          if grep -qE '^crates/bientot-(app|windows|store)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+          if grep -qE '^crates/bientot-(app|windows|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
             rust_windows=true
           fi
 
@@ -257,8 +257,13 @@ jobs:
         run: cargo test --locked -p bientot-windows
 
       # The executable as it ships, with the usage signal (spec signal-utilisation §4).
+      # Kept aside for the upload: the Velopack build below writes the same path.
       - name: Build release executable
-        run: cargo build --release --locked -p bientot-app --bin worktime --features release
+        run: |
+          cargo build --release --locked -p bientot-app --bin worktime --features release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force -Path artifacts/release | Out-Null
+          Copy-Item target/release/worktime.exe artifacts/release/worktime.exe
 
       # Task Manager and the Startup apps page name the app from the exe's version resource.
       - name: Check the version resource
@@ -348,9 +353,23 @@ jobs:
           $private = Join-Path $env:LOCALAPPDATA "Packages\$($package.PackageFamilyName)"
           Write-Host "Package data left after uninstall: $(Test-Path $private)"
 
-      # scripts/release-direct.sh builds the Velopack Setup.exe with this feature, outside CI.
-      - name: Check the Velopack build
-        run: cargo check --release --locked -p bientot-app --bin worktime --features direct
+      # scripts/release-direct.sh builds the Velopack Setup.exe with this feature, outside CI. It
+      # adds the update code to `release`, so it has its own size gate (spec 003, FR-071).
+      - name: Measure the Velopack build
+        shell: pwsh
+        run: |
+          cargo build --release --locked -p bientot-app --bin worktime --features direct
+          if ($LASTEXITCODE -ne 0) { throw 'The Velopack build failed.' }
+          $sizeMb = [math]::Round((Get-Item target/release/worktime.exe).Length / 1MB, 2)
+          $table = @(
+            ''
+            '| Gate | Measured | Target |'
+            '| --- | --- | --- |'
+            "| Executable size, Velopack build | $sizeMb MB | < 20 MB |"
+          ) -join "`n"
+          Write-Host $table
+          $table >> $env:GITHUB_STEP_SUMMARY
+          if ($sizeMb -ge 20) { throw "The Velopack executable is $sizeMb MB, over the 20 MB gate." }
 
       # Lets a person try the build, for example with Narrator, without building it, even one
       # over a gate.
@@ -359,7 +378,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: worktime-rust-windows-${{ github.run_attempt }}
-          path: target/release/worktime.exe
+          path: artifacts/release/worktime.exe
           retention-days: 7
           if-no-files-found: error
 

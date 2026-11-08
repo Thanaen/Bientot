@@ -1,0 +1,11 @@
+[package]
+name = "bientot-plugin-sdk"
+description = "Writes Bientôt plugins in Rust: exports, host calls, card builders and a native test host."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+bientot-plugin-api = { path = "../bientot-plugin-api" }

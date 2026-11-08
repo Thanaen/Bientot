@@ -21,8 +21,7 @@ plugins in CI protect users. With no plugin installed the app pays nothing.
 **Primary Dependencies**: existing `gpui-pre` 0.3.9, `serde_json`, `flate2`,
 `ureq` (behind `usage-ping`); new `wasmi` 2.0 (pinned, `std`, `validate`,
 `portable-dispatch`), `ed25519-dalek` (no default features), `sha2` (already
-in `bientot-core`), `toml` for the manifest (or `serde_json` if the manifest
-moves to JSON, see Complexity Tracking)
+in `bientot-core`); the manifest is JSON, read with `serde_json` (R10)
 
 **Storage**: files under `<data folder>\plugins\`: one folder per plugin,
 `state.json` written through a temporary file and a rename like
@@ -63,8 +62,7 @@ interfaces, nine view primitives.
 | V. Simple deterministic core | `bientot-domain` does not change. Plugins read time from the host, so plugin tests use the injected clock. Every new dependency has a stated reason (R1, R6, R7). | Pass |
 | VI. Contained extensions | Sandbox, budgets, capabilities, host-drawn surfaces, no abort (hostile corpus), zero cost without plugins. | Pass |
 
-Re-check after design: pass. The manifest format is the only open choice
-(Complexity Tracking).
+Re-check after design: pass. The manifest is JSON (T003, `research.md` R10).
 
 ## Project Structure
 
@@ -79,7 +77,7 @@ specs/003-plugin-runtime/
 ├── quickstart.md        # Build, pack, sign and install the sample plugin
 ├── contracts/
 │   ├── package.md       # .bientot-plugin layout, reader rules, signature
-│   ├── manifest.md      # plugin.toml, this step's subset
+│   ├── manifest.md      # plugin.json, this step's subset
 │   ├── host-abi.md      # exports, imports, events, buffers, errors, WIT
 │   ├── view-tree.md     # card primitives and validation
 │   └── revocations.md   # revocation list format and fetch
@@ -212,4 +210,3 @@ transfer file behaviour; `docs/architecture.md` gains a « Plugins » section;
 | --- | --- | --- |
 | Two new crates plus an SDK | The host must test on Linux; the API is shared by host and guests | Putting the host in `bientot-app` would tie its tests to GPUI and Windows |
 | A purpose-built zip reader | Safe reading without generic extraction | `zip` 8.6 carries ignored advisories and is absent from two builds |
-| `toml` dependency | Authors write the manifest by hand; TOML is what Cargo users know | JSON manifests avoid the dependency; decide in T003 by measuring the size cost, and use JSON if `toml` costs more than 100 KB |

@@ -1,0 +1,15 @@
+[package]
+name = "bientot-plugin-api"
+description = "The types Bientôt and its plugins exchange: manifest, events, day snapshot and view tree (api 1.0)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+# No default features: plugins build this crate for wasm32-unknown-unknown, where the system
+# time zone database does not exist. Instants cross the boundary as UTC.
+jiff = { version = "0.2.38", default-features = false, features = ["std", "serde"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
