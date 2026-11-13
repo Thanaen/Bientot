@@ -34,7 +34,7 @@ Independent of every other phase.
 **PR 2** `refactor(app): resolve a plan for every day` (no behaviour change).
 
 - [ ] T010 [P] Create `crates/bientot-domain/src/schedule.rs` with `ScheduledDay`, `WeeklySchedule` (default Monday–Friday), `ScheduleVersion`, `DayPlanKind`, `DayPlan` and `resolve()` per `data-model.md` and `plan.md` « Plan resolution »; tests in `crates/bientot-domain/src/schedule/tests.rs`.
-- [ ] T011 [P] Create `crates/bientot-domain/src/schedule/holidays.rs`: `HolidayId`, `HolidayCalendar`, Easter, `holidays(year)` for France and Alsace-Moselle, per-year cache; tests against a fixed table 2024–2035.
+- [ ] T011 [P] Create `crates/bientot-domain/src/schedule/holidays.rs`: `HolidayId`, the calendar rule table and its rule kinds of `data-model.md` (`Fixed`, `Easter`, `NthWeekday`, `observed`), Easter, `holidays(calendar, year)` with a per-year cache, and the rows `FR` and `FR/alsace-moselle`; tests against a fixed table 2024–2035. Other countries are rows added later, without new code paths.
 - [ ] T012 Add `weekly_schedule`, `schedule_since`, `schedule_history`, `holiday_calendar` (default `None` in this PR), `worked_holidays` to `Settings` in `crates/bientot-domain/src/configuration/mod.rs` and their validation in `configuration/validator.rs`; JSON keys in `crates/bientot-store/src/settings/json.rs` with round-trip and old-file tests.
 - [ ] T013 Add migration 12 (`DayPlanMarking`, `DailySummaryRevision.DayPlan`) to `crates/bientot-store/src/database/schema.rs`; update the migration tests in `database/tests.rs` (the .NET parity list ends at 11: document why 12 has no .NET twin).
 - [ ] T014 Add `crates/bientot-store/src/plans.rs` (append, latest per date, undo, current-week guard) and `crates/bientot-core/src/plans.rs`; capture the current week's markings in `CalculationContext` (`crates/bientot-core/src/accounting.rs`).
@@ -78,7 +78,7 @@ Independent of every other phase.
 
 **PR 5** `feat(app): treat French public holidays as days off`.
 
-- [ ] T040 [US4] Default `holiday_calendar` from the Windows region on first read (`crates/bientot-windows` region query behind a trait, `crates/bientot-core/src/settings.rs`); Linux tests with an injected region.
+- [ ] T040 [US4] Default `holiday_calendar` from the Windows region's country on first read, when the table has a calendar for it (`crates/bientot-windows` region query behind a trait, `crates/bientot-core/src/settings.rs`); Linux tests with an injected region.
 - [ ] T041 [US4] Resolver: holidays of the selected calendar on working days become `Holiday(id)` unless remembered as worked; « Passer en journée travaillée » and « Jour férié » update `worked_holidays` from the current week on; half day on a holiday does not (`crates/bientot-domain/src/schedule.rs`, `crates/bientot-core/src/plans.rs`).
 - [ ] T042 [US4] Week row « Férié · <nom> », explanation block with its « aujourd'hui » variant and single button, selector with « Jour férié » (`crates/bientot-app/src/week*.rs`).
 - [ ] T043 [US4] Holiday flyout (`crates/bientot-app/src/workday.rs`, `flyout/body.rs`).

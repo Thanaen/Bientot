@@ -55,8 +55,29 @@ settings (a later version or a plugin pack) are kept and ignored.
 
 ## HolidayCalendar
 
-`None` | `France` | `FranceAlsaceMoselle`. `holidays(year) -> [(Date,
-HolidayId)]`, cached per year. Easter: anonymous Gregorian algorithm.
+A calendar is a row of a static rule table, so that adding a country or a
+region later means adding rows and tests, not code paths:
+
+| Field | Type | Example |
+| --- | --- | --- |
+| `id` | CalendarId | `FR`, `FR/alsace-moselle` (country ISO 3166-1 code, optional `/region`) |
+| `country` | ISO 3166-1 alpha-2 | `FR` |
+| `extends` | Option<CalendarId> | `FR/alsace-moselle` extends `FR` |
+| `rules` | list of HolidayRule | |
+
+`HolidayRule`: a `HolidayId`, a `since` / `until` year range, and a date rule:
+`Fixed { month, day }`, `Easter { offset_days }`, or `NthWeekday { month,
+weekday, n }` (n = −1 for the last); and an `observed` rule for a date
+that falls on a weekend: `None` (stays on its date, as in France),
+`NextWeekday` (Saturday or Sunday moves to the next weekday that is not
+already a holiday, so 25 and 26 December on a weekend become 27 and 28) or `NearestWeekday`
+(Saturday moves to Friday, Sunday to Monday). France uses `None` only; the
+other kinds are in the format so that later countries fit without new code.
+
+This specification ships two rows: `FR` and `FR/alsace-moselle`. `None` is
+the absence of a calendar. `holidays(calendar, year) -> [(Date, HolidayId)]`
+is cached per year. Easter: anonymous Gregorian algorithm. Other countries
+are a follow-up (#179).
 
 ## DayPlanKind and DayPlan
 
@@ -84,7 +105,7 @@ target).
 | `weeklySchedule` | array of 7 `{ "working": bool, "target": "H:mm" \| null }`, Monday first | Monday–Friday working, no targets |
 | `scheduleSince` | date \| null | null |
 | `scheduleHistory` | array of `{ "since": date \| null, "weeklySchedule": …, "nominalDailyTarget": …, "minimumEffectiveTarget": … }` | `[]` |
-| `holidayCalendar` | `"none"` \| `"france"` \| `"france-alsace-moselle"` | `"france"` when the Windows region is FR on first read, else `"none"`; written on first save |
+| `holidayCalendar` | `"none"` or a CalendarId (`"FR"`, `"FR/alsace-moselle"`) | the calendar of the Windows region's country when the table has one (`"FR"` for France), else `"none"`; written on first save; an unknown id reads as `"none"` and is kept |
 | `workedHolidays` | array of HolidayId strings | `[]` |
 
 Validation (`configuration/validator.rs`): seven entries, at least one
