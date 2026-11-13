@@ -60,15 +60,16 @@ jobs:
 
       # The Store package workflow sends these texts with each submission, so a difference means
       # an edit made in Partner Center that the next submission would undo, or one in the
-      # repository that is not submitted yet.
+      # repository that is not submitted yet. The release notes are left out: each submission
+      # makes them from the user summaries of scripts/release-summary/.
       - name: Compare with the repository
         shell: bash
         run: |
           set -euo pipefail
           jq -S --slurpfile listing repo/packaging/store/listing.json \
-            '.Listings | with_entries(.value = (.value.BaseListing | with_entries(select(.key as $k | $listing[0] | any(.[]; has($k))))))' \
+            '.Listings | with_entries(.value = (.value.BaseListing | with_entries(select(.key != "ReleaseNotes" and (.key as $k | $listing[0] | any(.[]; has($k)))))))' \
             submission.json > partner-center.json
-          jq -S . repo/packaging/store/listing.json > repository.json
+          jq -S 'map_values(del(.ReleaseNotes))' repo/packaging/store/listing.json > repository.json
           if diff -u repository.json partner-center.json > listing.diff; then
             echo "The listing texts in Partner Center match packaging/store/listing.json." >> "$GITHUB_STEP_SUMMARY"
           else
