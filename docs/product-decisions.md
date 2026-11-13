@@ -93,6 +93,9 @@ Monday–Friday workday. Saturday and Sunday remain inactive by default.
 V1 uses one configuration for Monday through Friday. Per-day targets, general
 days-off calendars, and workdays spanning midnight are out of scope.
 
+Replaced on 2026-11-13 by D-025, except for workdays spanning midnight, which
+stay out of scope.
+
 ### D-007 — Cross-day overtime credit
 
 V1 supports carrying surplus credited time to later workdays so, for example,
@@ -488,8 +491,48 @@ own decision before it is built:
 - dated appointment occurrences supplied by a plugin;
 - activity sources supplied by a plugin;
 - plugins that reclassify time;
-- public holidays and closures (D-006 leaves them out);
+- public holidays of other countries and closures (built-in French holidays
+  are decided by D-025);
 - a public plugin registry.
+
+### D-025 — Weekly schedule, leave and public holidays
+
+Decided on 2026-11-13 by the owner, after the study of holidays and leave and
+its design review. Replaces D-006, except for workdays spanning midnight,
+which stay out of scope. Specified in `specs/004-weekly-schedule-days-off/`.
+
+- Every day has a plan that sets its target: worked day (the day's target),
+  half day of leave (half of it, rounded up to the minute), day of leave,
+  public holiday or non-working day (no target).
+- The weekly schedule is a setting. Each weekday, Monday through Sunday, is a
+  working day or not, and may have its own target; otherwise it uses the
+  daily target. A change of the schedule, the daily target or the minimum
+  target applies from the day it is made. Earlier days and closed weeks keep
+  the plan and target they had.
+- A day without a target counts nothing: no time counted, no credit applied or
+  earned, no debt, no forecast, no notification. Its activity stays recorded,
+  so turning it back into a worked day recounts it from its start. A finished
+  worked day with no counted work applies no credit either.
+- Weekly credit never lowers any day's target below the minimum target.
+  Credit and debt end with the week, on Sunday night (D-007 otherwise
+  unchanged).
+- Leave is declared per day, for days of the current week only. There is no
+  list of upcoming leave.
+- French public holidays are built in and computed offline. A holiday that
+  falls on a working day is a holiday without asking. The week view and the
+  flyout explain it and offer to turn it into a worked day; only that
+  exception is remembered, per holiday, for the following years. Settings
+  hold the calendar choice and the list of worked holidays. Nothing is asked
+  and no notification is sent.
+- A day without a target that has recorded activity says so, in the week view
+  and the flyout, next to the action that turns it into a worked day.
+- The forecast reserves the lunch break as before, except on a half day of
+  leave and on a day whose target is below the minimum target.
+- D-024: built-in French holidays no longer need a decision. Holidays supplied
+  by a plugin (`holidays` packs) feed the same list and still follow D-024.
+- Out of scope: leave planned beyond the current week, leave balances, working
+  exceptionally on a non-working day, closures, calendars fetched from the
+  network.
 
 ## Later decisions
 
