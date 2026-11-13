@@ -13,7 +13,7 @@ path = "src/main.rs"
 
 [dependencies]
 ed25519-dalek = { version = "3.0.0", default-features = false }
-getrandom = "0.3.4"
+getrandom = "0.4.3"
 jiff = "0.2.38"
 serde_json = "1.0.154"
 bientot-plugin-api = { path = "../bientot-plugin-api" }

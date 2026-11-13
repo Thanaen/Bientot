@@ -234,7 +234,9 @@ export function siteRoutes(version: () => Promise<string | null>): Record<string
       },
     };
   }
-  routes["/robots.txt"] = { GET: () => text(`User-agent: *\nDisallow: /v1/\nDisallow: /updates/\nDisallow: /download\nSitemap: ${ORIGIN}/sitemap.xml\n`, "text/plain") };
+  // /download stays crawlable: the pages link to it, and a blocked URL gets indexed on its links
+  // alone. Crawled, it is a plain redirect to the installer, which Google leaves out of its index.
+  routes["/robots.txt"] = { GET: () => text(`User-agent: *\nDisallow: /v1/\nDisallow: /updates/\nSitemap: ${ORIGIN}/sitemap.xml\n`, "text/plain") };
   routes["/sitemap.xml"] = { GET: () => text(sitemap(), "application/xml") };
   return routes;
 }

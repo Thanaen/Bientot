@@ -254,6 +254,12 @@ describe("the site", () => {
     expect(sitemap).toContain("<loc>https://bientot.dev/en</loc>");
   });
 
+  test("robots.txt lets crawlers follow the download link, so it is not indexed as a blocked page", async () => {
+    const robots = await (await get("/robots.txt"))!.text();
+    expect(robots).toContain("Disallow: /updates/");
+    expect(robots).not.toMatch(/^Disallow: \/download/m);
+  });
+
   test("llms.txt describes the app in plain text for AI assistants", async () => {
     const response = (await get("/llms.txt"))!;
     expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
