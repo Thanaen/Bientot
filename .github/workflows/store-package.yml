@@ -58,9 +58,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Fetched apart: a failing substitution in a `for` list would not stop the step.
+          runs=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/workflows/store-package.yml/runs?branch=main&status=success&per_page=100" \
+            --jq '.workflow_runs[] | "\(.id):\(.head_sha)"')
           since=""
-          for run in $(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/store-package.yml/runs?branch=main&status=success&per_page=50" \
-              --jq '.workflow_runs[] | "\(.id):\(.head_sha)"'); do
+          for run in $runs; do
             submitted=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/${run%%:*}/jobs" \
               --jq '[.jobs[] | select(.name == "Submit") | .steps[] | select(.name == "Submit for certification" and .conclusion == "success")] | length')
             if ((submitted > 0)); then
@@ -68,6 +70,11 @@ jobs:
               break
             fi
           done
+          # Without it, the notes would gather every summary ever added.
+          if [[ -z $since ]]; then
+            echo "::error::No earlier run of this workflow submitted to the Store, so the release notes have no starting point."
+            exit 1
+          fi
           echo "since=$since" >> "$GITHUB_OUTPUT"
 
       - name: Write the listing
