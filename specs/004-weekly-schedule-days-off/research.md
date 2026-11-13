@@ -55,9 +55,8 @@ options were compared in the design; the reviewers chose F after rejecting E:
 | E. Treated as holiday, confirmed in place the first time | Rejected in review: the confirmation changes nothing for the common case and adds ten pending badges a year. |
 | **F. Treated as holiday silently; only exceptions remembered** | Chosen. No setup, one action per holiday actually worked, remembered for later years. |
 
-Default calendar: France when the Windows region is France, else Aucun. It
-only selects days that are holidays for nearly every French employee; it is
-listed as the remaining open point for the owner.
+Default calendar, confirmed by the owner on 2026-11-13: the calendar of the
+Windows region's country when Bientôt has one, otherwise none at all.
 
 ## R5. Lunch on short days
 

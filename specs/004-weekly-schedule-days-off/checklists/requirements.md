@@ -20,7 +20,7 @@
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified
 - [x] Scope is clearly bounded
-- [x] Dependencies and assumptions identified (one assumption left for the owner: the default calendar from the Windows region)
+- [x] Dependencies and assumptions identified (the default calendar was confirmed by the owner on 2026-11-13)
 
 ## Feature Readiness
 
