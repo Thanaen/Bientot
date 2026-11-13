@@ -67,8 +67,12 @@ region later means adding rows and tests, not code paths:
 
 `HolidayRule`: a `HolidayId`, a `since` / `until` year range, and a date rule:
 `Fixed { month, day }`, `Easter { offset_days }`, or `NthWeekday { month,
-weekday, n }` (n = −1 for the last); an optional `observed` rule (moved to the
-next Monday when on a weekend) is part of the format but unused by France.
+weekday, n }` (n = −1 for the last); and an `observed` rule for a date
+that falls on a weekend: `None` (stays on its date, as in France),
+`NextWeekday` (Saturday or Sunday moves to the next weekday that is not
+already a holiday, so 25 and 26 December on a weekend become 27 and 28) or `NearestWeekday`
+(Saturday moves to Friday, Sunday to Monday). France uses `None` only; the
+other kinds are in the format so that later countries fit without new code.
 
 This specification ships two rows: `FR` and `FR/alsace-moselle`. `None` is
 the absence of a calendar. `holidays(calendar, year) -> [(Date, HolidayId)]`
