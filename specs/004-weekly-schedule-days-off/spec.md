@@ -396,8 +396,9 @@ travaillés » with « Retirer ».
   « France (Alsace-Moselle) » also Vendredi saint and 26 décembre.
 - **FR-022**: Settings MUST hold the calendar (Aucun, France, France
   (Alsace-Moselle)) and the set of holidays remembered as worked, by holiday
-  identity. Default calendar: France when the Windows region is France,
-  otherwise Aucun.
+  identity. Default calendar: the one of the Windows region's country when
+  Bientôt has it (France only in this specification), otherwise Aucun. The
+  calendar list grows with later rows of the rule table (`data-model.md`).
 - **FR-023**: Making a built-in holiday a working day MUST add it to the
   remembered set; picking « Jour férié » on it or « Retirer » MUST remove it.
   These changes apply from the current week; closed weeks keep their plans.
