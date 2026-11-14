@@ -65,3 +65,36 @@ creation, not from a sign-in.
    and approve the `release` environment.
 5. After certification, update an installed copy through the Store and check
    the version in « Paramètres › À propos ».
+
+## First Store build with plugins
+
+Store Policies 10.1.5 and 10.2.2 allow extensions that the listing describes,
+that the user installs and approves, and that add no native code
+([research R8](../specs/003-plugin-runtime/research.md#r8-microsoft-store)).
+Before submitting the first Store build with the `plugins` feature:
+
+1. Add this line to `Features` in `packaging/store/listing.json`, last:
+   - en-us: « Optional plugins that add a card to the flyout and commands to the palette, run in a sandbox and installed only with your approval »
+   - fr-fr: « Plugins facultatifs qui ajoutent une carte au volet et des commandes à la palette, isolés et installés seulement avec votre accord »
+2. Mention plugins in `Description`, in both languages, in the same terms.
+3. In Partner Center, under **Submission options › Notes for certification**,
+   paste:
+
+   > Bientôt can run optional plugins (.bientot-plugin files) that the user
+   > installs from Settings › Plugins after a consent dialog listing what each
+   > one may do. A plugin is a WebAssembly module run by an interpreter inside
+   > Bientôt, with no native code, no network, no file access and fixed time
+   > and memory budgets. It can only show one card in the flyout and add
+   > commands to the command palette, as the listing describes. No plugin is
+   > installed by default and Bientôt downloads none. To test, install
+   > focus.bientot-plugin, attached to the GitHub release of this version, from
+   > Settings › Plugins › Install from file….
+
+4. Attach `focus.bientot-plugin` to the GitHub release of that version. Build
+   and pack it as the `Rust on Windows` job does: `cargo build --release -p
+   bientot-plugin-sdk --example focus --target wasm32-unknown-unknown`, then
+   `bientot-plugin pack crates/bientot-plugin-sdk/examples/focus
+   target/wasm32-unknown-unknown/release/examples/focus.wasm --out
+   focus.bientot-plugin`.
+5. Check that the package declares no new capability in
+   `packaging/msix/AppxManifest.xml`.

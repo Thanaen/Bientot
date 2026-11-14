@@ -24,8 +24,19 @@ credits you unless you ask otherwise.
 In scope:
 
 - the Windows app (`worktime.exe`) and its installer and update process;
+- the plugin host (`crates/bientot-plugins`, `crates/bientot-plugin-api`): a
+  plugin that escapes its sandbox, reads or writes what it was not granted,
+  stops or slows the app beyond its budgets, or passes as signed by a key that
+  did not sign it, and the revocation list;
+- the plugin SDK and tool (`crates/bientot-plugin-sdk`,
+  `crates/bientot-plugin-tool`), when they produce a package or signature that
+  misleads the user or the host;
 - the web service at `https://bientot.dev`, also reached at
   `https://worktime.thanaen.dev` (`services/bientot`): update redirects,
   downloads and the anonymous usage signal.
+
+Out of scope: what a plugin does with what it was granted. A plugin you
+installed can show anything on its card and log anything; report a harmful
+plugin to its author, or to the maintainer for the revocation list.
 
 What Bientôt stores and sends is listed in [docs/privacy.md](docs/privacy.md).

@@ -1,0 +1,1 @@
+{"version":3,"expires":"2027-11-09T00:00:00Z","level2_disabled":true,"revoked":[{"id":"com.example.bad","reason":{"en":"Sends data","fr":"Envoie des données"}},{"key":"ab12-cd34-ef56-7890-ab12-cd34-ef56-7890","reason":{"en":"Key leaked"}}],"signature":"AAAA"}

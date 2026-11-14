@@ -3,7 +3,7 @@
 Bientôt is one Rust process with a [GPUI](https://www.gpui.rs/) interface.
 The rules live in crates that build and test on any OS; only the Win32 calls
 and the windows on screen need Windows. This page describes the code as of
-October 2026.
+November 2026.
 
 ## Crates
 
@@ -15,6 +15,10 @@ it in this table.
 | `bientot-domain` | any OS | The accounting rules, as pure functions over a clock and a time zone: intervals, workday accounting, manual adjustments, weekly credit, forecasts and indicator state, daily summaries, reminders, settings validation, the usage-signal rules. |
 | `bientot-store` | any OS (DPAPI on Windows) | Persistence in the data directory: `settings.json`, the SQLite ledger and its migrations, `app-state.json`, the DPAPI secrets, and the `.bientot` transfer file. |
 | `bientot-core` | any OS | The app services: the activity source router, the accounting of one day, the weekly recalculation, tracking commands, corrections, long-lock reviews, reminders, the settings form logic, the demo scenarios, diagnostics, the usage signal sender. |
+| `bientot-plugin-api` | any OS | The types Bientôt and its plugins exchange (api 1.0): the `plugin.json` manifest and its checks, the events, the day snapshot, the view tree of a card and its limits. |
+| `bientot-plugins` | any OS | The plugin host: the package reader, signatures and trust, `plugins\state.json`, the WebAssembly runtime (wasmi) with its fuel, memory and time budgets, the host imports, the `plugins` thread, the plugin logs and the revocation list. |
+| `bientot-plugin-sdk` | any OS, and `wasm32-unknown-unknown` | Writes plugins in Rust: the exports, the host calls, card builders and a native test host. Its `examples/` are the four sample plugins. |
+| `bientot-plugin-tool` | any OS | The `bientot-plugin` command for plugin authors and the maintainer: `pack`, `keygen`, `sign`, `check`, `install`, `sign-revocations`. |
 | `bientot-windows` | Windows for its Win32 calls | The built-in activity source (last-input time), session lock and power events, power history from the System event log, start with Windows, toast notifications, the single-instance claim, file dialogs, Microsoft Store updates. |
 | `bientot-app` | Windows to run; tests on any OS | The `worktime.exe` binary: the notification-area icon (`tray-icon`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `bientot-screenshots` tool. |
 | `bientot-notices` | any OS | Writes `THIRD-PARTY-NOTICES.txt` for the release executable and fails on a license outside the allowed list. |
@@ -65,6 +69,37 @@ window that says why and offers the diagnostic export
    `bientot_core::notifications` decides which reminders are due, and the
    notification receipts in the ledger make each one show once.
 
+## Plugins
+
+Plugins are built only with bientot-app's `plugins` feature, which no release
+build turns on yet (spec 003, task T066). A plugin is a `.bientot-plugin` ZIP:
+a `plugin.json` manifest, one WebAssembly module and its texts, signed by its
+author or not. **Settings › Plugins** installs it after a consent dialog that
+lists what it may do (`plugins.rs`, `settings_view/plugins.rs`).
+
+- **Isolation.** Each module runs in [wasmi](https://github.com/wasmi-labs/wasmi),
+  an interpreter, on a `plugins` thread of its own, never on the interface
+  thread. Every plugin can log and read the time. It can read the published
+  day as a snapshot, and set or clear its card, only when its manifest
+  declares it and the user granted it. It cannot reach the network, the files
+  or the ledger.
+- **Budgets.** Every event has a fuel allowance and a safety net in time, and
+  every instance a memory limit within a shared pool. A plugin that fails three
+  times in ten minutes (a trap, its fuel used up or a malformed call) is
+  stopped until the next start; the app never stops.
+  Two starts in a row that crash with plugins on start the next one with them
+  off (safe mode), and `--no-plugins` starts with none.
+- **Display.** The host draws the card from a declarative tree the plugin
+  sends, checked against fixed limits, and shows plugin commands in the
+  command palette under « Plugins ». No plugin code draws anything.
+- **Revocation.** A list signed with a key kept offline by the maintainer can
+  turn a plugin or a signing key off from a distance (`revocation.rs`).
+
+With no plugin on, the start reads `plugins\state.json` if it exists and
+starts no thread. The [plugin runtime specification](../specs/003-plugin-runtime/spec.md)
+and its contracts give the details, and the
+[SDK README](../crates/bientot-plugin-sdk/README.md) shows how to write one.
+
 ## Where state lives
 
 The data directory is `%LOCALAPPDATA%\Bientot`. A `--data-dir <path>`
@@ -91,6 +126,8 @@ folder and a demo folder never move.
 | `app-state.json` | The date of the last usage signal the service recorded, and the flyout callouts closed today. |
 | `secrets\*.secret` | Secrets encrypted with DPAPI for the current Windows user. |
 | `logs\worktime-*.jsonl` | Structured diagnostic events, 5 files of 1 MiB at most by default, deleted after 14 days. |
+| `plugins\` | With the `plugins` feature: one folder per installed plugin, `state.json` (versions, trust, grants, status), `starting` (the crashed-start counter) and `revocations.json` (the last good revocation list). |
+| `logs\plugins\<id>.jsonl` | With the `plugins` feature: what each plugin logged and why the host stopped it, 1 MiB per file, deleted after 14 days. The diagnostic export does not read them. |
 
 [Privacy](privacy.md) lists what each file holds and every network request.
 

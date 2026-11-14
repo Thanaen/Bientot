@@ -1,13 +1,16 @@
 name: Fuzz
 
-# Runs the cargo-fuzz targets of fuzz/ against the files Bientôt reads from disk: settings.json,
-# transfer files, and the dates and instants of the ledger. See docs/ci-quality-gates.md.
+# Runs the cargo-fuzz targets of fuzz/ against the files Bientôt reads from disk (settings.json,
+# transfer files, the dates and instants of the ledger) and the data plugins hand it (manifests,
+# packages, host import requests, view trees, the revocation list). See docs/ci-quality-gates.md.
 on:
   pull_request:
     paths:
       - "fuzz/**"
       - "crates/bientot-domain/**"
       - "crates/bientot-store/**"
+      - "crates/bientot-plugin-api/**"
+      - "crates/bientot-plugins/**"
       - "Cargo.lock"
       - ".github/workflows/fuzz.yml"
   schedule:
@@ -34,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [codec, settings, transfer]
+        target: [codec, settings, transfer, manifest, package, host-call, view-tree, revocations]
     env:
       SECONDS_PER_TARGET: ${{ github.event_name == 'pull_request' && '60' || inputs.seconds || '600' }}
 
