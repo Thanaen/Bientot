@@ -40,8 +40,13 @@ The `Fuzz` workflow (`.github/workflows/fuzz.yml`) runs the [cargo-fuzz](https:/
 - `codec` reads any text as the ledger's dates and instants, and checks that what reads writes back to text that reads as the same value.
 - `settings` loads any file as `settings.json`, and checks that settings which load save to a file that loads as the same settings.
 - `transfer` overwrites bytes of a real transfer file and inspects it, as an import does before it asks to confirm.
+- `manifest` parses any file as a plugin's `plugin.json`, and checks that a refusal names its field in both languages and that a manifest that parses keeps the rules the host relies on.
+- `package` reads any file as a `.bientot-plugin` package, and checks that a package that reads has a module and the texts of every locale it declares.
+- `host-call` sends any request to the host imports from inside a real WebAssembly instance (the first byte picks the import), and checks that the host refuses a bad one as bad data, never as a failure of its own.
+- `view-tree` checks any JSON as the card a plugin sends, and checks that a card that passes stays within the flyout's limits.
+- `revocations` checks any response as the revocation list, and checks that any JSON object signed the way `bientot-plugin sign-revocations` signs is never refused for its signature.
 
-No input may panic. The corpus starts from the inputs of the `bientot-store` test fixtures (`fuzz/seed.sh`). The workflow fuzzes each target for 60 seconds on a pull request that changes `fuzz/`, `crates/bientot-domain/`, `crates/bientot-store/` or `Cargo.lock`, for 10 minutes every Sunday, and for the chosen number of seconds from the Actions tab. A failing job keeps the input that failed as the `fuzz-<target>-artifacts` artifact for 30 days.
+No input may panic. The corpus starts from the inputs of the `bientot-store` test fixtures, the manifests and packages of the SDK samples and the seeds of `fuzz/seeds/` (`fuzz/seed.sh`). The workflow fuzzes each target for 60 seconds on a pull request that changes `fuzz/`, `crates/bientot-domain/`, `crates/bientot-store/`, `crates/bientot-plugin-api/`, `crates/bientot-plugins/` or `Cargo.lock`, for 10 minutes every Sunday, and for the chosen number of seconds from the Actions tab. A failing job keeps the input that failed as the `fuzz-<target>-artifacts` artifact for 30 days.
 
 ## Required checks
 

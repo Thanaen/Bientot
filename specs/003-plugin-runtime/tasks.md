@@ -99,9 +99,9 @@ texts, and the design-system artifacts updated with any UI change.
 
 - [x] T060 Confirm the timings of `research.md` and the `auto-dispatch` abort on a real Windows machine; update `research.md`.
 - [x] T061 Measure the size cost of `ed25519-dalek` and record it in `research.md`.
-- [ ] T062 [P] Add the fuzz targets `manifest`, `package`, `host-call` and `view-tree` to `fuzz/`, with seeds from the tests, and to `.github/workflows/fuzz.yml`.
+- [x] T062 [P] Add the fuzz targets `manifest`, `package`, `host-call`, `view-tree` and `revocations` to `fuzz/`, with seeds from the tests, and to `.github/workflows/fuzz.yml`.
 - [ ] T063 [P] Update `docs/privacy.md` (the revocation request, `plugins\`, `logs\plugins\`, the transfer file), `docs/architecture.md` (a « Plugins » section and the new crates), `SECURITY.md` (host and SDK in scope) and `docs/code-signing.md` (the offline keys).
-- [ ] T064 [P] Add to `docs/release-checklist.md` the Store listing line and certification notes for the first Store build with plugins (`research.md` R8).
+- [x] T064 [P] Add to `docs/release-checklist.md` the Store listing line and certification notes for the first Store build with plugins (`research.md` R8).
 - [ ] T065 Run the full validation of `quickstart.md` on Windows and record it in `docs/validation-report.md`.
 - [ ] T066 Turn the `plugins` feature on in `release` (and so `direct`), in a `feat(app)` pull request with its release summary, once T053–T065 are done. Until then a nightly release ships none of the plugin runtime.
 

@@ -460,9 +460,9 @@ travaillés » with « Retirer ».
 ## Assumptions
 
 - The defaults stay 7 h and 6 h; examples use them.
-- The France default from the Windows region is the one remaining guess. It
-  only selects holidays that are already holidays for nearly every French
-  employee; the owner may still change it.
+- The default calendar follows the Windows region's country when Bientôt has
+  a calendar for it, and is « Aucun » otherwise (confirmed by the owner on
+  2026-11-13).
 - A half day has no morning or afternoon; the forecast simply does not reserve
   lunch.
 - Working exceptionally on a non-working day is done by editing the schedule;
