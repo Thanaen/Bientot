@@ -52,19 +52,25 @@ creation, not from a sign-in.
 | Reinstall | Pass | The reinstalled package found the same history (« 23 min »). |
 | Privacy policy | Pass | The Store catalog serves `PrivacyUrl` `https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md` for product `9N4FL1HRF4KL`. |
 
-## Before submitting a release
+## Store submissions
 
-1. Bump `version` in `Cargo.toml` and `Version` in
-   `packaging/msix/AppxManifest.xml` (`<version>.0`): the Store build shows
-   that version, and `tests/msix_manifest.rs` checks that both agree.
-2. Run the `Store listing` workflow and check that it reports no difference,
-   so that no text edited in Partner Center is lost.
-3. Update `ReleaseNotes` in `packaging/store/listing.json`, in English and
-   French.
-4. Run the `Store package` workflow with **Submit the package to the Store**,
-   and approve the `release` environment.
-5. After certification, update an installed copy through the Store and check
-   the version in « Paramètres › À propos ».
+The `Store package` workflow submits `main` every Monday when a pull request
+added a user summary to `scripts/release-summary/` since the last submission,
+and makes the release notes from those summaries. Each run waits for the
+reviewer of the `release` environment.
+
+1. Before approving, run the `Store listing` workflow and check that it reports
+   no difference, so that no text edited in Partner Center is lost.
+2. Read the release notes in the summary of the run's `Plan` job, then approve
+   the `release` environment.
+3. After certification, update an installed copy through the Store and check
+   the version in « Paramètres › À propos »: it is the package's first three
+   numbers, `1.0.<commit count>`.
+
+To submit at once, run the workflow from the Actions tab. For a new major or
+minor version, bump `version` in `Cargo.toml` and `Version` in
+`packaging/msix/AppxManifest.xml` (`<version>.0`) first:
+`tests/msix_manifest.rs` checks that both agree.
 
 ## First Store build with plugins
 

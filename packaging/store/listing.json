@@ -22,7 +22,7 @@
       "time tracking",
       "work schedule"
     ],
-    "ReleaseNotes": "Bientôt 1.0. Screen readers now announce every heading of Settings and can open and close the expandable sections. The late state, error icons and the keyboard focus ring are easier to see. Closing a window now frees the memory it used.",
+    "ReleaseNotes": "Fixes and improvements.",
     "CopyrightAndTrademarkInfo": "© 2026 Thanaen",
     "LicenseTerms": "Bientôt is open source under the MIT License: https://github.com/Thanaen/Bientot/blob/main/LICENSE",
     "DevStudio": "Thanaen"
@@ -50,7 +50,7 @@
       "journée de travail",
       "suivi du temps"
     ],
-    "ReleaseNotes": "Bientôt 1.0. Les lecteurs d’écran annoncent désormais chaque titre des Paramètres et peuvent ouvrir et fermer les sections dépliables. L’état En retard, les icônes d’erreur et le repère du focus clavier sont plus lisibles. Fermer une fenêtre libère désormais la mémoire qu’elle utilisait.",
+    "ReleaseNotes": "Corrections et améliorations.",
     "CopyrightAndTrademarkInfo": "© 2026 Thanaen",
     "LicenseTerms": "Bientôt is open source under the MIT License: https://github.com/Thanaen/Bientot/blob/main/LICENSE",
     "DevStudio": "Thanaen"
