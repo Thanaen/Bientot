@@ -85,7 +85,7 @@ The Store package has the `plugins` feature, so:
 - Every submission sends `packaging/store/certification-notes.txt` as the
   **Notes for certification**. It points testers to the sample plugin.
 - Every GitHub release attaches `focus.bientot-plugin`, the sample plugin
-  the notes point to (`.github/workflows/release.yml`).
+  the notes point to (`scripts/release-direct.sh`).
 - The package declares no new capability in
   `packaging/msix/AppxManifest.xml`. Check it again if a plugin capability
   ever needs one.

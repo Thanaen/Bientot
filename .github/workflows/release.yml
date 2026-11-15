@@ -135,16 +135,6 @@ jobs:
           cp Thanaen.WorkTime-win-Portable.zip "$dist/Bientot-Portable.zip"
           ls -l "$dist"
 
-      # The sample plugin, which the Store's certification notes (packaging/store/
-      # certification-notes.txt) point testers to, and an example for anyone writing one.
-      - name: Pack the sample plugin
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo build --release --locked -p bientot-plugin-sdk --example focus --target wasm32-unknown-unknown
-          scripts/pack-plugin.sh crates/bientot-plugin-sdk/examples/focus \
-            target/wasm32-unknown-unknown/release/examples/focus.wasm --out dist/focus.bientot-plugin
-
       - name: Upload the release
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
