@@ -13,8 +13,8 @@ use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, radius, tabular_figures, text};
 use crate::time_text;
 
-/// What `node` reads at `now`: its text, its time, or the label of its progress bar. A stack or
-/// a row reads its children, one after the other.
+/// What `node` reads at `now`: its text or its time. A stack or a row reads its children, one
+/// after the other. A progress bar reads nothing here: it is a node of its own, with its label.
 pub fn spoken(node: &Prepared, now: Timestamp, zone: &TimeZone, language: Language) -> String {
     match node {
         Prepared::Stack(children) | Prepared::Row(children) => children
@@ -23,7 +23,6 @@ pub fn spoken(node: &Prepared, now: Timestamp, zone: &TimeZone, language: Langua
             .filter(|text| !text.is_empty())
             .collect::<Vec<_>>()
             .join(" "),
-        Prepared::Progress { label, .. } => label.clone(),
         node => shown(node, now, zone, language).unwrap_or_default(),
     }
 }
@@ -79,11 +78,11 @@ impl<'a> Drawing<'a> {
 
     /// One line of a card: at most one line high, what does not fit ends with an ellipsis. A
     /// screen reader reads it as one node, its texts in order, as the flyout's own lines; a
-    /// progress bar is a node of its own already.
+    /// progress bar, even inside a stack or a row, is a node of its own already.
     pub fn line(&mut self, node: &Prepared) -> AnyElement {
         let drawn = self.element(node);
         let spoken = spoken(node, self.now, self.zone, self.language);
-        if matches!(node, Prepared::Progress { .. }) || spoken.is_empty() {
+        if spoken.is_empty() {
             return drawn;
         }
         self.lines += 1;
@@ -292,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn a_line_reads_its_texts_in_order_and_a_bar_its_label() {
+    fn a_line_reads_its_texts_in_order_and_leaves_its_bars_to_their_own_node() {
         let zone = TimeZone::UTC;
         let now = at("2026-11-09T14:00:00Z");
         let row = Prepared::Row(vec![
@@ -314,9 +313,18 @@ mod tests {
             max: 4.,
             label: "2 of 4 tomatoes".into(),
         };
+        assert_eq!(spoken(&bar, now, &zone, Language::English), "");
+        let stack = Prepared::Stack(vec![
+            Prepared::Text {
+                text: "Tomatoes".into(),
+                role: TextRole::Title,
+            },
+            bar,
+        ]);
         assert_eq!(
-            spoken(&bar, now, &zone, Language::English),
-            "2 of 4 tomatoes"
+            spoken(&stack, now, &zone, Language::English),
+            "Tomatoes",
+            "the bar's own node reads its label"
         );
     }
 }

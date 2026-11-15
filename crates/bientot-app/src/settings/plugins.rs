@@ -82,9 +82,9 @@ impl PluginRow {
         [
             Some(self.description.as_str()),
             Some(self.capabilities.as_str()),
+            self.problem.as_ref().map(|problem| problem.text.as_str()),
         ]
         .into_iter()
-        .chain([self.problem.as_ref().map(|problem| problem.text.as_str())])
         .flatten()
         .filter(|part| !part.is_empty())
         .collect::<Vec<_>>()
