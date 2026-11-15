@@ -84,6 +84,7 @@ jobs:
         run: |
           set -euo pipefail
           scripts/store-release-notes.sh "$SINCE" "$GITHUB_SHA" > listing.json
+          cp packaging/store/certification-notes.txt certification-notes.txt
           # The script keeps the file's release notes when no summary was added.
           if [[ $GITHUB_EVENT_NAME != schedule ]] || ! cmp -s <(jq -S . listing.json) <(jq -S . packaging/store/listing.json); then
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -99,7 +100,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bientot-store-listing
-          path: listing.json
+          path: |
+            listing.json
+            certification-notes.txt
           retention-days: 30
           if-no-files-found: error
 
@@ -240,11 +243,11 @@ jobs:
           $draft = Join-Path $env:RUNNER_TEMP 'draft.json'
           msstore submission get 9N4FL1HRF4KL | Out-File -Encoding utf8 $draft
           if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed ($LASTEXITCODE)" }
-          # The listing texts come from the Plan job; images and other fields stay as Partner Center
-          # has them.
+          # The listing texts and the notes for certification come from the Plan job; images and
+          # other fields stay as Partner Center has them.
           $merged = Join-Path $env:RUNNER_TEMP 'submission.json'
-          jq -c --slurpfile listing store/listing.json `
-            '.Listings |= with_entries(.value.BaseListing += ($listing[0][.key] // {}))' $draft | Out-File -Encoding utf8 $merged
+          jq -c --slurpfile listing store/listing.json --rawfile notes store/certification-notes.txt `
+            '.Listings |= with_entries(.value.BaseListing += ($listing[0][.key] // {})) | .NotesForCertification = ($notes | rtrimstr([10] | implode))' $draft | Out-File -Encoding utf8 $merged
           if ($LASTEXITCODE -ne 0) { throw "jq failed ($LASTEXITCODE)" }
           # `submission update` prints the submission, signed upload URLs included, and the logs
           # of this public repository are public.

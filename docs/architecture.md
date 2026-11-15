@@ -71,9 +71,9 @@ window that says why and offers the diagnostic export
 
 ## Plugins
 
-Plugins are built only with bientot-app's `plugins` feature, which no release
-build turns on yet (spec 003, task T066). A plugin is a `.bientot-plugin` ZIP:
-a `plugin.json` manifest, one WebAssembly module and its texts, signed by its
+Plugins are built with bientot-app's `plugins` feature, which `release` and
+`direct` turn on (spec 003). A plugin is a `.bientot-plugin` ZIP: a
+`plugin.json` manifest, one WebAssembly module and its texts, signed by its
 author or not. **Settings › Plugins** installs it after a consent dialog that
 lists what it may do (`plugins.rs`, `settings_view/plugins.rs`).
 

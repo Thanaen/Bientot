@@ -56,9 +56,6 @@ anywhere.
 
 ## Plugins
 
-No release build includes plugins yet. This section describes the builds
-that do.
-
 A plugin runs inside Bientôt with no access to the network, to your files or
 to the database. It sees only what you granted when you installed it, which
 the consent dialog lists: the current day as Bientôt shows it (the time
