@@ -595,7 +595,7 @@ impl crate::thread::Sandbox for WasmSandbox {
 
     fn activate(
         &mut self,
-        spec: &crate::thread::PluginSpec,
+        spec: &mut crate::thread::PluginSpec,
         context: PluginContext,
     ) -> Result<PluginInstance, CallError> {
         let id = &spec.manifest.id;
@@ -605,6 +605,9 @@ impl crate::thread::Sandbox for WasmSandbox {
                 .compile(&spec.wasm, &spec.granted)
                 .map_err(|e| CallError::BadData(e.to_string()))?;
             self.modules.insert(id.clone(), module);
+            // The module keeps what it needs of the bytes, and stays until the plugin is
+            // unloaded.
+            spec.wasm = Arc::default();
         }
         self.runtime.instantiate(&self.modules[id], context)
     }

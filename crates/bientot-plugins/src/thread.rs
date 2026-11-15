@@ -41,6 +41,7 @@ const IDLE_WAIT: Duration = Duration::from_secs(60);
 pub struct PluginSpec {
     pub manifest: Arc<Manifest>,
     pub locales: Arc<std::collections::BTreeMap<String, LocaleTexts>>,
+    /// The module, emptied by the sandbox once compiled.
     pub wasm: Arc<Vec<u8>>,
     pub granted: BTreeSet<bientot_plugin_api::Capability>,
     /// `installed` or `upgraded` to deliver before the first `activate`.
@@ -50,9 +51,10 @@ pub struct PluginSpec {
 /// What runs plugin code: the wasmi runtime, or a fake in tests.
 pub trait Sandbox {
     type Instance: Sandboxed;
+    /// May empty `spec.wasm` once it no longer needs the bytes.
     fn activate(
         &mut self,
-        spec: &PluginSpec,
+        spec: &mut PluginSpec,
         context: PluginContext,
     ) -> Result<Self::Instance, CallError>;
     /// The plugin is gone: its compiled module can go too.
@@ -554,11 +556,17 @@ impl<S: Sandbox> Host<S> {
         }
         let context = self.context(id);
         let started = Instant::now();
-        let mut activated = self.sandbox.activate(&self.slots[id].spec, context);
+        let mut activated = self.sandbox.activate(
+            &mut self.slots.get_mut(id).expect("checked above").spec,
+            context,
+        );
         if activated.as_ref().err() == Some(&CallError::PoolFull) {
             self.evict_others(id);
             let context = self.context(id);
-            activated = self.sandbox.activate(&self.slots[id].spec, context);
+            activated = self.sandbox.activate(
+                &mut self.slots.get_mut(id).expect("checked above").spec,
+                context,
+            );
         }
         // The start function is the plugin's code too: its time counts, failed or not.
         self.budgets.charge(id, started.elapsed(), now);

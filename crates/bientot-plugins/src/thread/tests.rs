@@ -46,7 +46,7 @@ impl Sandbox for Fake {
 
     fn activate(
         &mut self,
-        spec: &PluginSpec,
+        spec: &mut PluginSpec,
         context: PluginContext,
     ) -> Result<FakeInstance, CallError> {
         let activation = {
