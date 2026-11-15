@@ -78,6 +78,8 @@ pub enum Status {
     },
     FilesChanged,
     UnsupportedApi,
+    /// Off with every other plugin while the revocation list sets `level2_disabled`.
+    Suspended,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -129,8 +131,17 @@ impl InstalledPlugin {
         self.set_if(self.status != revoked, revoked)
     }
 
+    /// From any status but one the list revokes by name, as [`Self::revoke`].
+    pub fn suspend(&mut self) -> bool {
+        self.set_if(self.status != Status::Suspended, Status::Suspended)
+    }
+
+    /// The list no longer blocks it: off, never back on.
     pub fn unrevoke(&mut self) -> bool {
-        self.set_if(matches!(self.status, Status::Revoked { .. }), Status::Off)
+        self.set_if(
+            matches!(self.status, Status::Revoked { .. } | Status::Suspended),
+            Status::Off,
+        )
     }
 
     pub fn files_changed(&mut self) -> bool {

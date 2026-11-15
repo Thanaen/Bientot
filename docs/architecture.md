@@ -93,7 +93,11 @@ lists what it may do (`plugins.rs`, `settings_view/plugins.rs`).
   sends, checked against fixed limits, and shows plugin commands in the
   command palette under « Plugins ». No plugin code draws anything.
 - **Revocation.** A list signed with a key kept offline by the maintainer can
-  turn a plugin or a signing key off from a distance (`revocation.rs`).
+  turn a plugin or a signing key off, or every plugin, from a distance
+  (`revocation.rs`). Release builds fetch it off the main thread with the
+  daily update check and before an install or a turn-on
+  (`bientot-app/src/plugins/revocations.rs`), and go by the last good list
+  when it cannot be fetched.
 
 With no plugin on, the start reads `plugins\state.json` if it exists and
 starts no thread. The [plugin runtime specification](../specs/003-plugin-runtime/spec.md)

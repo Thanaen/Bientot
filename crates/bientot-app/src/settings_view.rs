@@ -336,6 +336,9 @@ pub struct SettingsView {
     /// The plugins the screenshots list, in place of the installed ones.
     #[cfg(feature = "plugins")]
     plugins_shown: Option<Arc<Vec<crate::plugins::Installed>>>,
+    /// The screenshots show the note that the last revocation list kept was used.
+    #[cfg(feature = "plugins")]
+    plugins_last_list_shown: bool,
     /// The import dialog just showed: the next frame focuses it.
     focus_dialog: bool,
     content_scroll: ScrollHandle,
@@ -440,6 +443,8 @@ impl SettingsView {
             plugins: crate::settings::plugins::PluginsPage::new(language),
             #[cfg(feature = "plugins")]
             plugins_shown: None,
+            #[cfg(feature = "plugins")]
+            plugins_last_list_shown: false,
             focus_dialog: false,
             content_scroll: ScrollHandle::new(),
             startup,
@@ -1882,7 +1887,7 @@ impl SettingsView {
             .map(|appointments| self.appointments_section(appointments, theme, cx));
         self.page_body(
             page.title,
-            page.status.map(SharedString::from),
+            page.status.map(PageStatus::note),
             page.saving,
             source
                 .into_iter()
@@ -1900,7 +1905,7 @@ impl SettingsView {
     fn page_body(
         &self,
         title: &'static str,
-        status: Option<SharedString>,
+        status: Option<PageStatus>,
         busy: bool,
         content: impl IntoIterator<Item = gpui::AnyElement>,
         theme: &Theme,
@@ -1931,25 +1936,53 @@ impl SettingsView {
     }
 }
 
+/// The line under a page's title.
+pub(crate) struct PageStatus {
+    text: SharedString,
+    /// Something stops working until it ends: in the error colour, after an alert icon.
+    alert: bool,
+}
+
+impl PageStatus {
+    pub(crate) fn note(text: impl Into<SharedString>) -> Self {
+        Self {
+            text: text.into(),
+            alert: false,
+        }
+    }
+
+    pub(crate) fn alert(text: impl Into<SharedString>) -> Self {
+        Self {
+            text: text.into(),
+            alert: true,
+        }
+    }
+}
+
 /// A page's title, and the status line under it with a spinner while `busy`.
 pub(crate) fn page_header(
     title: &'static str,
-    status: Option<SharedString>,
+    status: Option<PageStatus>,
     busy: bool,
     theme: &Theme,
 ) -> gpui::Div {
+    let alert = status.as_ref().is_some_and(|status| status.alert);
+    let text = status.map(|status| status.text);
     let status = div()
         .id("status")
-        .role(Role::Status)
-        .aria_label(status.clone().unwrap_or_default())
+        .role(if alert { Role::Alert } else { Role::Status })
+        .aria_label(text.clone().unwrap_or_default())
         .min_h(text::LABEL_SM.line_height)
         .flex()
         .items_center()
         .gap(BASE_06)
         .type_style(text::LABEL_SM)
-        .text_color(theme.text_muted)
+        .text_color(if alert { theme.error } else { theme.text_muted })
         .when(busy, |status| status.child(spinner(theme)))
-        .children(status);
+        .when(alert, |status| {
+            status.child(widgets::icon("circle-alert", theme.error).size(token::ICON_SM))
+        })
+        .children(text);
     div()
         .flex_none()
         .pt(BASE_20)

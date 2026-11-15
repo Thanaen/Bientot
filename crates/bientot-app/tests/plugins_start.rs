@@ -53,7 +53,7 @@ fn with_plugin(folder: &Path, status: Status) {
 fn start(folder: &Path) -> HeadlessAppContext {
     let mut cx = common::app(true, |_| {});
     let directory = DataDirectory::from(folder.to_owned());
-    cx.update(|cx| plugins::start(&directory, Language::French, cx));
+    cx.update(|cx| plugins::start(&directory, Language::French, false, cx));
     cx.run_until_parked();
     cx
 }

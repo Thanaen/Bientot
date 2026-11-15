@@ -10,7 +10,9 @@ use gpui::{
 };
 
 use super::dialog::warning;
-use super::{RowText, SettingsView, field_error, group, outlined, row_frame, switch_frame};
+use super::{
+    PageStatus, RowText, SettingsView, field_error, group, outlined, row_frame, switch_frame,
+};
 use crate::file_dialogs;
 use crate::plugins;
 use crate::settings::RowTone;
@@ -29,11 +31,17 @@ const EXTENSIONS: [&str; 1] = [EXTENSION];
 
 impl SettingsView {
     /// Shows `page` listing `installed`, its dialog focused as when it opens, for the
-    /// screenshots.
-    pub fn show_plugins(&mut self, page: PluginsPage, installed: Vec<plugins::Installed>) {
+    /// screenshots. `last_list_used` shows the note that the last revocation list was used.
+    pub fn show_plugins(
+        &mut self,
+        page: PluginsPage,
+        installed: Vec<plugins::Installed>,
+        last_list_used: bool,
+    ) {
         self.focus_dialog = page.dialog().is_some();
         self.plugins = page;
         self.plugins_shown = Some(Arc::new(installed));
+        self.plugins_last_list_shown = last_list_used;
     }
 
     pub(super) fn plugins_page(
@@ -45,7 +53,10 @@ impl SettingsView {
             .plugins_shown
             .clone()
             .or_else(|| plugins::installed(cx));
-        let page = self.plugins.view(installed.as_deref().map(Vec::as_slice));
+        let last_list_used = self.plugins_last_list_shown || plugins::last_list_used(cx);
+        let page = self
+            .plugins
+            .view(installed.as_deref().map(Vec::as_slice), last_list_used);
         let count = page.rows.len();
         let rows: Vec<gpui::AnyElement> = if let Some(empty) = page.empty {
             vec![
@@ -84,7 +95,13 @@ impl SettingsView {
         let accent = theme.accent_background;
         self.page_body(
             page.title,
-            page.status.map(SharedString::from),
+            page.status.map(|status| {
+                if page.alert {
+                    PageStatus::alert(status)
+                } else {
+                    PageStatus::note(status)
+                }
+            }),
             page.busy,
             [
                 // The install and how it went stay in view, however many plugins follow.

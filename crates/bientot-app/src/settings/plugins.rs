@@ -42,6 +42,8 @@ pub struct PluginsView {
     pub title: &'static str,
     /// Under the title: what runs, or how the last removal went.
     pub status: Option<String>,
+    /// The status says every plugin is stopped: an alert, not a note.
+    pub alert: bool,
     pub busy: bool,
     pub installed_heading: &'static str,
     pub rows: Vec<PluginRow>,
@@ -201,8 +203,9 @@ impl PluginsPage {
     }
 
     /// The page, with the plugins `installed` lists: `None` where there are none to have, as in
-    /// a demo.
-    pub fn view(&self, installed: Option<&[Installed]>) -> PluginsView {
+    /// a demo. `last_list_used` when the last install or turn-on could not fetch the revocation
+    /// list.
+    pub fn view(&self, installed: Option<&[Installed]>, last_list_used: bool) -> PluginsView {
         let language = self.language;
         let available = installed.is_some();
         let installed = installed.unwrap_or_default();
@@ -236,15 +239,26 @@ impl PluginsPage {
                 None,
             ),
         };
+        let stopped = available
+            && !reading
+            && installed
+                .iter()
+                .any(|plugin| plugin.status == Status::Suspended);
         PluginsView {
             title: language.text(Key::SettingsPluginsTitle),
             status: if reading {
                 Some(language.text(Key::SettingsPluginsReading).to_owned())
             } else if !available {
                 Some(language.text(Key::SettingsPluginsUnavailable).to_owned())
+            } else if stopped {
+                Some(language.text(Key::SettingsPluginsAllStopped).to_owned())
             } else {
-                status
+                status.or_else(|| {
+                    last_list_used
+                        .then(|| language.text(Key::SettingsPluginsLastListUsed).to_owned())
+                })
             },
+            alert: stopped,
             busy: reading,
             installed_heading: language.text(Key::SettingsPluginsInstalledGroup),
             rows: installed
@@ -301,6 +315,8 @@ fn row(plugin: &Installed, language: Language) -> PluginRow {
                 Language::English => reason_en,
             }],
         ))),
+        // The page says why, once for all of them.
+        Status::Suspended => None,
         Status::FilesChanged => Some(blocking(
             language.text(Key::SettingsPluginsFilesChanged).into(),
         )),
@@ -389,6 +405,11 @@ fn refusal(refused: &Refused, language: Language) -> String {
         Refused::NowUnsigned { bound } => {
             language.format(Key::SettingsPluginsNowUnsignedFormat, &[&unbroken(bound)])
         }
+        Refused::Blocked(reason) => language.format(Key::SettingsPluginsRevokedFormat, &[reason]),
+        Refused::AllStopped => language.format(
+            Key::SettingsPluginsRevokedFormat,
+            &[&language.text(Key::SettingsPluginsAllStopped)],
+        ),
     }
 }
 
@@ -428,7 +449,7 @@ mod tests {
 
     #[test]
     fn with_no_plugin_the_page_says_so_and_offers_the_install() {
-        let view = PluginsPage::new(Language::French).view(Some(&[]));
+        let view = PluginsPage::new(Language::French).view(Some(&[]), false);
         assert_eq!(view.empty, Some("Aucun plugin installé."));
         assert!(view.install.enabled);
         assert_eq!(view.install.label, "Installer depuis un fichier…");
@@ -437,7 +458,7 @@ mod tests {
 
     #[test]
     fn in_a_demo_nothing_can_be_installed() {
-        let view = PluginsPage::new(Language::English).view(None);
+        let view = PluginsPage::new(Language::English).view(None, false);
         assert_eq!(view.status.as_deref(), Some("Plugins aren’t available."));
         assert!(!view.install.enabled && !view.folder.enabled);
     }
@@ -446,7 +467,7 @@ mod tests {
     fn a_row_tells_the_version_the_author_and_the_capabilities_in_plain_words() {
         let page = PluginsPage::new(Language::French);
         let row = &page
-            .view(Some(&[installed(Status::Active, Some("1a2b 3c4d"))]))
+            .view(Some(&[installed(Status::Active, Some("1a2b 3c4d"))]), false)
             .rows[0];
         assert_eq!(
             row.description,
@@ -460,7 +481,7 @@ mod tests {
         assert_eq!(row.problem, None);
         assert_eq!(row.remove_name, "Retirer Concentration");
 
-        let unsigned = &page.view(Some(&[installed(Status::Off, None)])).rows[0];
+        let unsigned = &page.view(Some(&[installed(Status::Off, None)]), false).rows[0];
         assert_eq!(
             unsigned.description,
             "Version 0.1.0 · Non signé\u{a0}: l’auteur n’est pas vérifié"
@@ -497,7 +518,7 @@ mod tests {
                 true,
             ),
         ] {
-            let row = &page.view(Some(&[installed(status, None)])).rows[0];
+            let row = &page.view(Some(&[installed(status, None)]), false).rows[0];
             assert_eq!(
                 row.problem,
                 Some(Problem {
@@ -548,13 +569,13 @@ mod tests {
         let mut page = PluginsPage::new(Language::French);
         assert!(page.start());
         assert!(!page.start(), "one read at a time");
-        assert!(page.view(Some(&[])).busy);
+        assert!(page.view(Some(&[]), false).busy);
         let refused = Refused::OtherAuthor {
             bound: "aaaa bbbb".into(),
             offered: "cccc dddd".into(),
         };
         assert!(page.read(Err(refused)).is_none());
-        let view = page.view(Some(&[]));
+        let view = page.view(Some(&[]), false);
         assert!(!view.busy && view.install.enabled);
         assert_eq!(
             view.install.error.as_deref(),
@@ -594,28 +615,78 @@ mod tests {
     }
 
     #[test]
+    fn when_the_list_stops_every_plugin_the_page_says_it_once_as_an_alert() {
+        let page = PluginsPage::new(Language::English);
+        let view = page.view(
+            Some(&[
+                installed(Status::Suspended, None),
+                installed(Status::Suspended, None),
+            ]),
+            true,
+        );
+        assert_eq!(
+            view.status.as_deref(),
+            Some("All plugins are turned off for now, for safety.")
+        );
+        assert!(view.alert);
+        for row in &view.rows {
+            assert_eq!(row.problem, None);
+            assert!(!row.on && !row.switchable);
+        }
+    }
+
+    #[test]
+    fn an_install_or_turn_on_without_the_latest_list_says_so_until_one_comes() {
+        let page = PluginsPage::new(Language::French);
+        let view = page.view(Some(&[installed(Status::Active, None)]), true);
+        assert_eq!(
+            view.status.as_deref(),
+            Some("Bientôt n’a pas pu télécharger la liste à jour des plugins bloqués.")
+        );
+        assert!(!view.alert);
+        assert_eq!(page.view(Some(&[]), false).status, None);
+    }
+
+    #[test]
+    fn a_package_the_list_blocks_is_refused_with_why() {
+        let mut page = PluginsPage::new(Language::English);
+        page.start();
+        page.read(Err(Refused::AllStopped));
+        assert_eq!(
+            page.view(Some(&[]), false).install.error.as_deref(),
+            Some("Blocked by Bientôt. All plugins are turned off for now, for safety.")
+        );
+        page.start();
+        page.read(Err(Refused::Blocked("Malware".into())));
+        assert_eq!(
+            page.view(Some(&[]), false).install.error.as_deref(),
+            Some("Blocked by Bientôt. Malware")
+        );
+    }
+
+    #[test]
     fn the_install_and_the_removal_say_how_they_went() {
         let mut page = PluginsPage::new(Language::French);
         page.installed(consent(None, None), true);
         assert_eq!(
-            page.view(Some(&[])).install.status.as_deref(),
+            page.view(Some(&[]), false).install.status.as_deref(),
             Some("Concentration est installé.")
         );
         page.installed(consent(None, Some("0.1.0")), true);
         assert_eq!(
-            page.view(Some(&[])).install.status.as_deref(),
+            page.view(Some(&[]), false).install.status.as_deref(),
             Some("Concentration est passé en version 0.2.0.")
         );
         page.removed("Concentration".into(), true);
-        let view = page.view(Some(&[]));
+        let view = page.view(Some(&[]), false);
         assert_eq!(view.status.as_deref(), Some("Concentration est retiré."));
         assert_eq!(view.install.status, None);
         assert!(page.start(), "a new action clears the last ending");
         assert_eq!(
-            page.view(Some(&[])).status.as_deref(),
+            page.view(Some(&[]), false).status.as_deref(),
             Some("Lecture du plugin…")
         );
         page.dismissed();
-        assert_eq!(page.view(Some(&[])).status, None);
+        assert_eq!(page.view(Some(&[]), false).status, None);
     }
 }

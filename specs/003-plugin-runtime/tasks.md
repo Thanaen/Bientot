@@ -83,8 +83,8 @@ texts, and the design-system artifacts updated with any UI change.
 **Independent test**: spec US4.
 
 - [x] T053 [US4] Implement the revocation list (verification with the built-in key, version and expiry checks, application to `state.json`, last good list) in `crates/bientot-plugins/src/revocation.rs`; tests per rule of `contracts/revocations.md`.
-- [ ] T054 [US4] Fetch the list with the update check and before an install or a turn-on, on a background thread, in `crates/bientot-app/src/plugins.rs`; skip in debug and demo runs; tell the user when the last list was used.
-- [ ] T055 [P] [US4] Serve `/plugins/revocations.json` as a static file from `services/bientot` (`site` scope pull request), with the first empty list signed by the maintainer's offline key.
+- [x] T054 [US4] Fetch the list with the update check and before an install or a turn-on, on a background thread, in `crates/bientot-app/src/plugins.rs`; skip in debug and demo runs; tell the user when the last list was used.
+- [x] T055 [P] [US4] Serve `/plugins/revocations.json` as a static file from `services/bientot` (`site` scope pull request), with the first empty list signed by the maintainer's offline key.
 - [x] T056 [US4] Check file hashes at every load and show `FilesChanged` with **Remove** in **Settings › Plugins**; test by editing a file of an installed plugin.
 
 ## Phase 7: User Story 5 — Build the sample plugin (P3)
@@ -100,7 +100,7 @@ texts, and the design-system artifacts updated with any UI change.
 - [x] T060 Confirm the timings of `research.md` and the `auto-dispatch` abort on a real Windows machine; update `research.md`.
 - [x] T061 Measure the size cost of `ed25519-dalek` and record it in `research.md`.
 - [x] T062 [P] Add the fuzz targets `manifest`, `package`, `host-call`, `view-tree` and `revocations` to `fuzz/`, with seeds from the tests, and to `.github/workflows/fuzz.yml`.
-- [ ] T063 [P] Update `docs/privacy.md` (the revocation request, `plugins\`, `logs\plugins\`, the transfer file), `docs/architecture.md` (a « Plugins » section and the new crates), `SECURITY.md` (host and SDK in scope) and `docs/code-signing.md` (the offline keys).
+- [x] T063 [P] Update `docs/privacy.md` (the revocation request, `plugins\`, `logs\plugins\`, the transfer file), `docs/architecture.md` (a « Plugins » section and the new crates), `SECURITY.md` (host and SDK in scope) and `docs/code-signing.md` (the offline keys).
 - [x] T064 [P] Add to `docs/release-checklist.md` the Store listing line and certification notes for the first Store build with plugins (`research.md` R8).
 - [ ] T065 Run the full validation of `quickstart.md` on Windows and record it in `docs/validation-report.md`.
 - [ ] T066 Turn the `plugins` feature on in `release` (and so `direct`), in a `feat(app)` pull request with its release summary, once T053–T065 are done. Until then a nightly release ships none of the plugin runtime.
