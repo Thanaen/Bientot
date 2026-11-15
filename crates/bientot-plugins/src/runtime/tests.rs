@@ -619,3 +619,30 @@ fn fuel_calibration() {
         );
     }
 }
+
+#[test]
+fn the_sandbox_lets_go_of_the_module_bytes_once_compiled() {
+    use crate::thread::{PluginSpec, Sandbox};
+
+    let manifest = manifest("8MiB", "1MiB");
+    let wasm = module(IMPORTS, &[], "i64.const 0", "");
+    let mut spec = PluginSpec {
+        manifest: manifest.clone(),
+        locales: Arc::default(),
+        wasm: Arc::new(b"not a module".to_vec()),
+        granted: granted(),
+        pending: None,
+    };
+    let mut sandbox = WasmSandbox::new(Runtime::default());
+    let context = || context(manifest.clone(), Arc::default());
+    // A module that does not compile keeps its bytes: nothing else holds them.
+    assert!(sandbox.activate(&mut spec, context()).is_err());
+    assert!(!spec.wasm.is_empty());
+
+    spec.wasm = Arc::new(wasm);
+    let instance = sandbox.activate(&mut spec, context()).unwrap();
+    assert!(spec.wasm.is_empty());
+    drop(instance);
+    // The compiled module stays until the plugin is unloaded, so it starts again without them.
+    assert!(sandbox.activate(&mut spec, context()).is_ok());
+}
