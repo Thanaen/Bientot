@@ -55,13 +55,14 @@ fn shown(node: &Prepared, now: Timestamp, zone: &TimeZone, language: Language) -
 }
 
 /// What draws the lines of one card: the clock and zone of the drawing, and a count of its
-/// progress bars, which need an id of their own.
+/// lines and progress bars, which need an id of their own.
 pub struct Drawing<'a> {
     pub now: Timestamp,
     pub zone: &'a TimeZone,
     pub language: Language,
     pub theme: &'a Theme,
     bars: usize,
+    lines: usize,
 }
 
 impl<'a> Drawing<'a> {
@@ -72,12 +73,27 @@ impl<'a> Drawing<'a> {
             language,
             theme,
             bars: 0,
+            lines: 0,
         }
     }
 
-    /// One line of a card: at most one line high, what does not fit ends with an ellipsis.
+    /// One line of a card: at most one line high, what does not fit ends with an ellipsis. A
+    /// screen reader reads it as one node, its texts in order, as the flyout's own lines; a
+    /// progress bar is a node of its own already.
     pub fn line(&mut self, node: &Prepared) -> AnyElement {
-        self.element(node)
+        let drawn = self.element(node);
+        let spoken = spoken(node, self.now, self.zone, self.language);
+        if matches!(node, Prepared::Progress { .. }) || spoken.is_empty() {
+            return drawn;
+        }
+        self.lines += 1;
+        div()
+            .id(("plugin-line", self.lines))
+            .role(Role::Group)
+            .aria_label(SharedString::from(spoken))
+            .min_w_0()
+            .child(drawn)
+            .into_any_element()
     }
 
     fn element(&mut self, node: &Prepared) -> AnyElement {

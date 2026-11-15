@@ -2,7 +2,8 @@
 
 This report records each scenario of
 [`quickstart.md`](../specs/001-core-workday-indicator/quickstart.md) against
-the Rust app before v1.0.0 (T116). The release smoke and Store package checks
+the Rust app before v1.0.0 (T116), and [the plugin runtime](#plugin-runtime)
+before it ships (T065). The release smoke and Store package checks
 are in [release-checklist.md](release-checklist.md), and the accessibility
 checks in [accessibility-checklist.md](accessibility-checklist.md).
 
@@ -131,3 +132,41 @@ Recorded in [release-checklist.md](release-checklist.md#release-smoke).
   copies can start at sign-in. Documented in
   [startup-registration.md](startup-registration.md#moving-to-the-store-build);
   a fix is tracked in [#124](https://github.com/Thanaen/Bientot/issues/124).
+
+## Plugin runtime
+
+The scenario of
+[`specs/003-plugin-runtime/quickstart.md`](../specs/003-plugin-runtime/quickstart.md)
+(T065), before the `plugins` feature joins the release builds.
+
+- **Date.** 15 November 2026, 23:38 to 00:05 (Paris time).
+- **Machine.** The maintainer's PC, as above. The session was unlocked, and
+  nobody was in front of it.
+- **Build.** `origin/main` at `d14ce90`, built on that PC with
+  `cargo build --release --locked -p bientot-app --bin worktime --features release,plugins`.
+  The sample is `focus`, packed and signed with a throwaway key.
+- **How.** The app was driven through UI Automation, with a fresh
+  `--data-dir` for every run. The data folder of the installed Bientôt was
+  never opened.
+
+| Step | Result | Evidence |
+| --- | --- | --- |
+| 1. Build and test the sample | Pass | `focus.wasm` is 370,704 bytes. `cargo test -p bientot-plugin-sdk --example focus`: 4 of 4. |
+| 2. Pack, sign and check | Pass | The package is 113 KiB. `bientot-plugin check --expect` matches `en.txt` and `fr.txt` for the signed and the unsigned package: 15 events, at most 1.6 M fuel of 20 M, at most 1 ms each. |
+| 3. Install and see the card (SC-008) | Pass | The consent dialog reads « Installer Concentration ? », the version, « Empreinte de l’auteur : a22e… », « Lire votre journée en cours », « Afficher une carte dans le flyout » and « Il ne pourra rien faire d’autre. ». Then « Concentration est installé. », and the flyout shows « Concentration » under the counted time. The 199 s measured are the automation's, mostly spent in the file picker. A demo run has no plugins: the quickstart said otherwise, and is fixed. |
+| 4. Run its command | Pass | Ctrl+Maj+P: `concentration` finds « Concentration : afficher ou masquer le détail » in French, `focus` finds « Focus: show or hide the detail » in English. The command runs. With no counted time, the card has no detail to show; the change of card is covered by `the_detail_button_shows_the_sessions`. |
+| 5. Screen readers (SC-007) | Fixed | UI Automation found the card's group, its « … » button and its menu, in French and in English. It did not find the card's lines, the empty page, or the version, author and capabilities of an installed plugin: they are exposed since this report. The consent dialog's text is its description (`FullDescription`), which the dump did not read. Narrator was not heard: nobody was there. |
+| 6. Unsigned package | Pass | The dialog warns « L’auteur ne peut pas être vérifié, et ce plugin ne pourra jamais être mis à jour. ». The row reads « Version 0.1.0 · Non signé : l’auteur n’est pas vérifié ». Off, on, then « Retirer »: « Concentration est retiré. », and its folder is gone. |
+| 7. Revocation list (T054) | Pass | After the install, `plugins\revocations.json` is byte for byte the list served at `https://bientot.dev/plugins/revocations.json`. With the request sent to a closed port, turning the plugin off and on again turns it on, keeps the last list and shows « Bientôt n’a pas pu télécharger la liste à jour des plugins bloqués. ». |
+| 8. `--no-plugins` (FR-052) | Pass | No card, and the plugin stays on for the next start. The page shows « Les plugins ne sont pas disponibles. », as in a demo. |
+| 9. Drop a package | Pass | A real OLE drag over **Settings › Plugins** tints the page (RGB 40,44,51 to 48,57,69) and the drop opens the consent dialog. |
+| 10. Startup, memory and CPU (SC-002, SC-003) | Pass | Without a plugin: 0.31 s to `startup.tray_ready`, 0.020 % idle CPU, 55.3 MiB peak idle working set (0.32 s, 0.020 %, 55.4 MiB for a build without the feature). With the sample: 0.32 s, 0.013 %, and the working set grows by 2.5, 2.6 and 2.8 MiB over three runs, under the 3 MiB of SC-003. |
+| 11. Executable size (SC-001) | Pass | 16,549,888 bytes with plugins and 14,753,792 without: 1.71 MiB more, under 2.0 MB and 20 MB. |
+| 12. Hostile corpus (SC-004) | Pass | `cargo run -p bientot-plugins --example hostile-corpus --release`: 18 modules, no problem. 16 stop after three errors in 0.54 to 1.05 s, `log-flood` and `probe` live on. Probe commands: median 0.1 ms, slowest 195 ms; longest UI frame 0.03 ms. 60 log lines kept of 3,300. The working set ends 1.9 MiB above its start. |
+
+### Defects found
+
+- Screen readers missed the card's lines and the details of an installed
+  plugin. Fixed with this report.
+- Two spellings of one `--data-dir` start two primary instances on the same
+  folder: [#186](https://github.com/Thanaen/Bientot/issues/186).

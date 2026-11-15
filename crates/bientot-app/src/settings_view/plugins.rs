@@ -63,7 +63,7 @@ impl SettingsView {
                 div()
                     .py(BASE_12)
                     .text_color(theme.text_muted)
-                    .child(empty)
+                    .child(crate::flyout::readable("plugins-empty", empty))
                     .into_any_element(),
             ]
         } else {
@@ -200,6 +200,8 @@ impl SettingsView {
             .id(("plugin", index))
             .role(Role::Group)
             .aria_label(row.name.clone())
+            // The row draws these as plain text, which is not in the accessibility tree.
+            .aria_description(row.spoken())
             .child(row_frame(
                 text,
                 controls.into_any_element(),
