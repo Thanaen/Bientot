@@ -10,7 +10,9 @@ use gpui::{
 };
 
 use super::dialog::warning;
-use super::{RowText, SettingsView, field_error, group, outlined, row_frame, switch_frame};
+use super::{
+    PageStatus, RowText, SettingsView, field_error, group, outlined, row_frame, switch_frame,
+};
 use crate::file_dialogs;
 use crate::plugins;
 use crate::settings::RowTone;
@@ -93,7 +95,13 @@ impl SettingsView {
         let accent = theme.accent_background;
         self.page_body(
             page.title,
-            page.status.map(SharedString::from),
+            page.status.map(|status| {
+                if page.alert {
+                    PageStatus::alert(status)
+                } else {
+                    PageStatus::note(status)
+                }
+            }),
             page.busy,
             [
                 // The install and how it went stay in view, however many plugins follow.

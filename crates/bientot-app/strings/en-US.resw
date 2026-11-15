@@ -1197,8 +1197,11 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="SettingsPluginsFolderButton" xml:space="preserve">
     <value>Open folder</value>
   </data>
+  <data name="SettingsPluginsAllStopped" xml:space="preserve">
+    <value>All plugins are turned off for now, for safety.</value>
+  </data>
   <data name="SettingsPluginsLastListUsed" xml:space="preserve">
-    <value>Bientôt couldn’t check the list of blocked plugins, so it used the last one it had.</value>
+    <value>Bientôt couldn’t get the latest list of blocked plugins.</value>
   </data>
   <data name="SettingsPluginsReading" xml:space="preserve">
     <value>Reading the plugin…</value>

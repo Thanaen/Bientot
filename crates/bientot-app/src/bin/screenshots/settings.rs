@@ -117,7 +117,7 @@ enum PluginsState {
     Consent,
     /// Unsigned, and asking for more memory than the default.
     ConsentUnsigned,
-    /// A package the revocation list blocks.
+    /// A package refused while the revocation list stops every plugin, which the rows show too.
     Blocked,
     /// A plugin turned on while the revocation list could not be fetched.
     LastListUsed,
@@ -162,9 +162,8 @@ impl PluginsState {
         match self {
             Self::List | Self::Empty | Self::LastListUsed => {}
             Self::Blocked => {
-                let (en, fr) = bientot_plugins::revocation::LEVEL2_REASON;
                 page.start();
-                page.read(Err(Refused::Blocked(name(language, en, fr))));
+                page.read(Err(Refused::AllStopped));
             }
             Self::OtherAuthor => {
                 page.start();
@@ -200,7 +199,7 @@ impl PluginsState {
                 status,
             };
         let both = || vec![Capability::ReadDay, Capability::UiFlyout];
-        vec![
+        let plugins = vec![
             plugin(
                 "bientot.focus",
                 ("Focus", "Concentration"),
@@ -241,7 +240,20 @@ impl PluginsState {
                     reason_fr: "Il envoyait votre journée à un serveur.".into(),
                 },
             ),
-        ]
+        ];
+        if !matches!(self, Self::Blocked) {
+            return plugins;
+        }
+        // The list stops every plugin; one it names keeps its own reason.
+        plugins
+            .into_iter()
+            .map(|mut plugin| {
+                if !matches!(plugin.status, Status::Revoked { .. }) {
+                    plugin.status = Status::Suspended;
+                }
+                plugin
+            })
+            .collect()
     }
 }
 

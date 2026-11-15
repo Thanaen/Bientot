@@ -154,7 +154,10 @@ pub fn install(dir: &PluginsDir, state: &mut StateFile, offer: Offer) -> io::Res
             // revoked until the list says otherwise, failed waits for the next start. New files
             // mend changed files and an api this host did not read.
             Some(
-                status @ (Status::Off | Status::Revoked { .. } | Status::FailedUntilRestart { .. }),
+                status @ (Status::Off
+                | Status::Revoked { .. }
+                | Status::Suspended
+                | Status::FailedUntilRestart { .. }),
             ) => status.clone(),
             _ => Status::Active,
         },

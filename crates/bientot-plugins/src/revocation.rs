@@ -22,11 +22,7 @@ pub const URL: &str = "https://bientot.dev/plugins/revocations.json";
 /// The public half of the maintainer's offline key, which signs every list
 /// (`docs/code-signing.md`). Fingerprint `0d2b e2d5 200e 3fec febe 6c5d aeb8 d6ed`.
 pub const PUBLIC_KEY: &str = "o6SUgfWpEedZjSEkb0lQZF1eKiOyTId3CLD9fCjWaIo=";
-/// Why a plugin stops while a list sets `level2_disabled`, in English and in French.
-pub const LEVEL2_REASON: (&str, &str) = (
-    "Bientôt has paused all plugins for safety.",
-    "Bientôt a suspendu tous les plugins par sécurité.",
-);
+
 /// A larger response is refused unread.
 pub const MAX_BYTES: usize = 256 * 1024;
 /// The last good list, beside `state.json`.
@@ -46,6 +42,15 @@ pub struct Revoked {
     pub target: Target,
     pub reason_en: String,
     pub reason_fr: String,
+}
+
+/// Why a list stops a plugin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Block<'a> {
+    /// Named by its id or its author's key.
+    Revoked(&'a Revoked),
+    /// With every other WebAssembly plugin, by `level2_disabled`.
+    AllStopped,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,12 +90,11 @@ pub fn public_key() -> VerifyingKey {
 }
 
 impl List {
-    /// Why the list stops `plugin`, bound by `trust`, in English and in French: revoked by its
-    /// id or its author's key, or every WebAssembly plugin stopped.
-    pub fn blocks(&self, plugin: &PluginId, trust: &Trust) -> Option<(&str, &str)> {
+    /// Why the list stops `plugin`, bound by `trust`, if it does.
+    pub fn blocks(&self, plugin: &PluginId, trust: &Trust) -> Option<Block<'_>> {
         self.revokes(plugin, trust)
-            .map(|revoked| (revoked.reason_en.as_str(), revoked.reason_fr.as_str()))
-            .or(self.level2_disabled.then_some(LEVEL2_REASON))
+            .map(Block::Revoked)
+            .or(self.level2_disabled.then_some(Block::AllStopped))
     }
 
     /// Whether `plugin`, bound by `trust`, is revoked, and why.
@@ -212,7 +216,8 @@ pub fn apply(state: &mut StateFile, list: &List) -> Vec<PluginId> {
     let mut changed = Vec::new();
     for (id, plugin) in &mut state.plugins {
         let did = match list.blocks(id, &plugin.trust) {
-            Some((reason_en, reason_fr)) => plugin.revoke(reason_en, reason_fr),
+            Some(Block::Revoked(revoked)) => plugin.revoke(&revoked.reason_en, &revoked.reason_fr),
+            Some(Block::AllStopped) => plugin.suspend(),
             None => plugin.unrevoke(),
         };
         if did {

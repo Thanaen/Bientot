@@ -366,8 +366,9 @@ fn when_the_list_cannot_be_fetched_the_last_good_one_applies_and_says_why() {
     assert_eq!(
         fetched
             .list()
-            .and_then(|list| list.blocks(&id("com.example.bad"), &unsigned())),
-        Some(("Malware", "Malware"))
+            .and_then(|list| list.revokes(&id("com.example.bad"), &unsigned()))
+            .map(|revoked| revoked.reason_en.as_str()),
+        Some("Malware")
     );
     assert_eq!(
         fetched.take(&plugins, &mut state),
@@ -422,15 +423,20 @@ fn level_2_can_be_stopped_from_a_distance() {
             (id("com.example.off"), plugin(unsigned(), Status::Off)),
         ]),
     };
-    assert_eq!(apply(&mut state, &stopping).len(), 2);
-    let (en, fr) = LEVEL2_REASON;
     assert_eq!(
-        state.plugins[&id("com.example.on")].status,
-        Status::Revoked {
-            reason_en: en.into(),
-            reason_fr: fr.into()
-        }
+        stopping.blocks(&id("com.example.new"), &unsigned()),
+        Some(Block::AllStopped)
     );
+    assert_eq!(apply(&mut state, &stopping).len(), 2);
+    assert!(
+        state
+            .plugins
+            .values()
+            .all(|p| p.status == Status::Suspended)
+    );
+    // A restart keeps it stopped.
+    state.on_start();
+    assert!(!state.any_active());
     // A later list that clears the flag turns them off, never back on.
     apply(&mut state, &check(2, false, Some(&stopping)));
     assert!(state.plugins.values().all(|p| p.status == Status::Off));

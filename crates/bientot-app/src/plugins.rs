@@ -22,7 +22,7 @@ use bientot_plugins::host::Clock;
 use bientot_plugins::log::LogFiles;
 use bientot_plugins::manager::{self, InstallError, Offer};
 use bientot_plugins::package;
-use bientot_plugins::revocation::{self, Fetched};
+use bientot_plugins::revocation::{self, Block, Fetched};
 use bientot_plugins::runtime::{POOL_BYTES, Pool, Runtime, WasmSandbox};
 use bientot_plugins::state::{StateFile, Status};
 use bientot_plugins::thread::{self, HostUpdate, PluginSpec, PluginThread, Request};
@@ -785,8 +785,10 @@ pub enum Refused {
     OtherAuthor { bound: String, offered: String },
     /// The installed plugin is signed by `bound` and this package is not.
     NowUnsigned { bound: String },
-    /// The revocation list blocks it, for this reason in the app's language.
+    /// The revocation list names it, for this reason in the app's language.
     Blocked(String),
+    /// The revocation list stops every plugin for now.
+    AllStopped,
 }
 
 /// A package that passed every check.
@@ -872,14 +874,18 @@ pub fn read_package(
             .as_ref()
             .and_then(Fetched::list)
             .and_then(|list| list.blocks(&offer.package.manifest.id, offer.trust()));
-        if let Some((reason_en, reason_fr)) = blocked {
-            return Err(Refused::Blocked(
-                match language {
-                    bientot_plugin_api::Language::Fr => reason_fr,
-                    _ => reason_en,
-                }
-                .to_owned(),
-            ));
+        match blocked {
+            Some(Block::Revoked(revoked)) => {
+                return Err(Refused::Blocked(
+                    match language {
+                        bientot_plugin_api::Language::Fr => &revoked.reason_fr,
+                        _ => &revoked.reason_en,
+                    }
+                    .clone(),
+                ));
+            }
+            Some(Block::AllStopped) => return Err(Refused::AllStopped),
+            None => {}
         }
         let manifest = &offer.package.manifest;
         let consent = Consent {

@@ -45,7 +45,7 @@ impl SettingsView {
             .collect();
         self.page_body(
             page.title,
-            page.status.map(SharedString::from),
+            page.status.map(super::PageStatus::note),
             page.busy,
             [group(("section", 0_usize), Some(page.heading), rows, theme).into_any_element()],
             theme,

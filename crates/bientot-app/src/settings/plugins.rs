@@ -42,6 +42,8 @@ pub struct PluginsView {
     pub title: &'static str,
     /// Under the title: what runs, or how the last removal went.
     pub status: Option<String>,
+    /// The status says every plugin is stopped: an alert, not a note.
+    pub alert: bool,
     pub busy: bool,
     pub installed_heading: &'static str,
     pub rows: Vec<PluginRow>,
@@ -237,18 +239,26 @@ impl PluginsPage {
                 None,
             ),
         };
+        let stopped = available
+            && !reading
+            && installed
+                .iter()
+                .any(|plugin| plugin.status == Status::Suspended);
         PluginsView {
             title: language.text(Key::SettingsPluginsTitle),
             status: if reading {
                 Some(language.text(Key::SettingsPluginsReading).to_owned())
             } else if !available {
                 Some(language.text(Key::SettingsPluginsUnavailable).to_owned())
+            } else if stopped {
+                Some(language.text(Key::SettingsPluginsAllStopped).to_owned())
             } else {
                 status.or_else(|| {
                     last_list_used
                         .then(|| language.text(Key::SettingsPluginsLastListUsed).to_owned())
                 })
             },
+            alert: stopped,
             busy: reading,
             installed_heading: language.text(Key::SettingsPluginsInstalledGroup),
             rows: installed
@@ -305,6 +315,8 @@ fn row(plugin: &Installed, language: Language) -> PluginRow {
                 Language::English => reason_en,
             }],
         ))),
+        // The page says why, once for all of them.
+        Status::Suspended => None,
         Status::FilesChanged => Some(blocking(
             language.text(Key::SettingsPluginsFilesChanged).into(),
         )),
@@ -394,6 +406,10 @@ fn refusal(refused: &Refused, language: Language) -> String {
             language.format(Key::SettingsPluginsNowUnsignedFormat, &[&unbroken(bound)])
         }
         Refused::Blocked(reason) => language.format(Key::SettingsPluginsRevokedFormat, &[reason]),
+        Refused::AllStopped => language.format(
+            Key::SettingsPluginsRevokedFormat,
+            &[&language.text(Key::SettingsPluginsAllStopped)],
+        ),
     }
 }
 
@@ -596,6 +612,56 @@ mod tests {
         assert!(page.start());
         assert!(page.read(Ok(Offered::preview(update))).is_some());
         assert!(page.dialog().is_none());
+    }
+
+    #[test]
+    fn when_the_list_stops_every_plugin_the_page_says_it_once_as_an_alert() {
+        let page = PluginsPage::new(Language::English);
+        let view = page.view(
+            Some(&[
+                installed(Status::Suspended, None),
+                installed(Status::Suspended, None),
+            ]),
+            true,
+        );
+        assert_eq!(
+            view.status.as_deref(),
+            Some("All plugins are turned off for now, for safety.")
+        );
+        assert!(view.alert);
+        for row in &view.rows {
+            assert_eq!(row.problem, None);
+            assert!(!row.on && !row.switchable);
+        }
+    }
+
+    #[test]
+    fn an_install_or_turn_on_without_the_latest_list_says_so_until_one_comes() {
+        let page = PluginsPage::new(Language::French);
+        let view = page.view(Some(&[installed(Status::Active, None)]), true);
+        assert_eq!(
+            view.status.as_deref(),
+            Some("Bientôt n’a pas pu télécharger la liste à jour des plugins bloqués.")
+        );
+        assert!(!view.alert);
+        assert_eq!(page.view(Some(&[]), false).status, None);
+    }
+
+    #[test]
+    fn a_package_the_list_blocks_is_refused_with_why() {
+        let mut page = PluginsPage::new(Language::English);
+        page.start();
+        page.read(Err(Refused::AllStopped));
+        assert_eq!(
+            page.view(Some(&[]), false).install.error.as_deref(),
+            Some("Blocked by Bientôt. All plugins are turned off for now, for safety.")
+        );
+        page.start();
+        page.read(Err(Refused::Blocked("Malware".into())));
+        assert_eq!(
+            page.view(Some(&[]), false).install.error.as_deref(),
+            Some("Blocked by Bientôt. Malware")
+        );
     }
 
     #[test]
