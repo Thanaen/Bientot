@@ -89,10 +89,10 @@ const FILES: Record<string, { url: URL; type: string; maxAge: number; immutable?
   "/og/home-en.png": { url: new URL("../site/og/home-en.png", import.meta.url), type: "image/png", maxAge: DAY },
   // What the app is, in a few lines, for AI assistants and the search engines behind them (llmstxt.org).
   "/llms.txt": { url: new URL("../site/llms.txt", import.meta.url), type: "text/plain; charset=utf-8", maxAge: DAY },
-  // The key that proves to IndexNow (Bing, Yandex…) that our submissions come from the site (scripts/indexnow.ts).
   // The signed list of the plugins the app turns off from a distance (specs/003-plugin-runtime/contracts/revocations.md).
   // Signed offline by the maintainer: replace the whole file, never edit it here. An hour, so a revocation spreads the same day.
   "/plugins/revocations.json": { url: new URL("../site/plugins/revocations.json", import.meta.url), type: "application/json", maxAge: 3600 },
+  // The key that proves to IndexNow (Bing, Yandex…) that our submissions come from the site (scripts/indexnow.ts).
   [`/${INDEXNOW_KEY}.txt`]: { url: new URL("../site/indexnow-key.txt", import.meta.url), type: "text/plain; charset=utf-8", maxAge: DAY },
 };
 
