@@ -336,6 +336,9 @@ pub struct SettingsView {
     /// The plugins the screenshots list, in place of the installed ones.
     #[cfg(feature = "plugins")]
     plugins_shown: Option<Arc<Vec<crate::plugins::Installed>>>,
+    /// The screenshots show the note that the last revocation list kept was used.
+    #[cfg(feature = "plugins")]
+    plugins_last_list_shown: bool,
     /// The import dialog just showed: the next frame focuses it.
     focus_dialog: bool,
     content_scroll: ScrollHandle,
@@ -440,6 +443,8 @@ impl SettingsView {
             plugins: crate::settings::plugins::PluginsPage::new(language),
             #[cfg(feature = "plugins")]
             plugins_shown: None,
+            #[cfg(feature = "plugins")]
+            plugins_last_list_shown: false,
             focus_dialog: false,
             content_scroll: ScrollHandle::new(),
             startup,

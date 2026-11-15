@@ -298,23 +298,31 @@ fn the_last_good_list_is_kept_and_a_bad_one_leaves_it_in_force() {
         ),
         &key,
     );
-    let (list, changed) =
-        accept(&plugins, &mut state, &revoking, &key.verifying_key(), now()).unwrap();
-    assert_eq!((list.version, changed), (5, vec![id("com.example.bad")]));
+    let fetched = Fetched::check(&plugins, &key.verifying_key(), Ok(revoking), now());
+    assert_eq!(fetched.unavailable, None);
+    assert_eq!(
+        fetched.take(&plugins, &mut state),
+        vec![id("com.example.bad")]
+    );
     assert_eq!(
         last_good(&plugins, &key.verifying_key()).map(|l| l.version),
         Some(5)
     );
+    // The change is saved.
+    assert!(matches!(
+        StateFile::load(&plugins.state_path()).unwrap().plugins[&id("com.example.bad")].status,
+        Status::Revoked { .. }
+    ));
 
     // An older list that would bring the plugin back is refused; the kept one stays.
     let older = signed(list_with_level2(4, true), &key);
+    let fetched = Fetched::check(&plugins, &key.verifying_key(), Ok(older), now());
     assert_eq!(
-        accept(&plugins, &mut state, &older, &key.verifying_key(), now()).map(|(l, _)| l),
-        Err(Unavailable::Older {
-            version: 4,
-            last: 5
-        })
+        fetched.unavailable.as_deref(),
+        Some("version 4 is older than 5")
     );
+    assert_eq!(fetched.list().map(|l| l.version), Some(5));
+    assert_eq!(fetched.take(&plugins, &mut state), Vec::<PluginId>::new());
     assert!(matches!(
         state.plugins[&id("com.example.bad")].status,
         Status::Revoked { .. }
@@ -330,16 +338,114 @@ fn the_last_good_list_is_kept_and_a_bad_one_leaves_it_in_force() {
 }
 
 #[test]
-fn level_2_can_be_stopped_from_a_distance() {
+fn when_the_list_cannot_be_fetched_the_last_good_one_applies_and_says_why() {
+    let dir = tempfile::tempdir().unwrap();
+    let plugins = PluginsDir::new(dir.path().join("plugins"));
     let key = maintainer();
-    let list = verify(
-        &signed(list_with_level2(1, true), &key),
+    let unreachable = || Err("connection refused".to_owned());
+
+    let none = Fetched::check(&plugins, &key.verifying_key(), unreachable(), now());
+    assert_eq!(none.unavailable.as_deref(), Some("connection refused"));
+    assert_eq!(none.list(), None);
+
+    let revoking = signed(
+        list(
+            2,
+            json!([{ "id": "com.example.bad", "reason": { "en": "Malware" } }]),
+        ),
+        &key,
+    );
+    let mut state = StateFile::default();
+    Fetched::check(&plugins, &key.verifying_key(), Ok(revoking), now()).take(&plugins, &mut state);
+
+    // A plugin installed since is blocked by the list kept before.
+    state
+        .plugins
+        .insert(id("com.example.bad"), plugin(unsigned(), Status::Active));
+    let fetched = Fetched::check(&plugins, &key.verifying_key(), unreachable(), now());
+    assert_eq!(
+        fetched
+            .list()
+            .and_then(|list| list.blocks(&id("com.example.bad"), &unsigned())),
+        Some(("Malware", "Malware"))
+    );
+    assert_eq!(
+        fetched.take(&plugins, &mut state),
+        vec![id("com.example.bad")]
+    );
+}
+
+#[test]
+fn a_list_checked_before_a_newer_one_was_kept_does_not_replace_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let plugins = PluginsDir::new(dir.path().join("plugins"));
+    let key = maintainer();
+    let mut state = StateFile::default();
+    let first = Fetched::check(
+        &plugins,
         &key.verifying_key(),
-        None,
+        Ok(signed(list(1, json!([])), &key)),
+        now(),
+    );
+    Fetched::check(
+        &plugins,
+        &key.verifying_key(),
+        Ok(signed(list(2, json!([])), &key)),
         now(),
     )
-    .unwrap();
-    assert!(list.level2_disabled);
+    .take(&plugins, &mut state);
+    first.take(&plugins, &mut state);
+    assert_eq!(
+        last_good(&plugins, &key.verifying_key()).map(|l| l.version),
+        Some(2)
+    );
+}
+
+#[test]
+fn level_2_can_be_stopped_from_a_distance() {
+    let key = maintainer();
+    let check = |version, disabled, last: Option<&List>| {
+        verify(
+            &signed(list_with_level2(version, disabled), &key),
+            &key.verifying_key(),
+            last,
+            now(),
+        )
+        .unwrap()
+    };
+    let stopping = check(1, true, None);
+    assert!(stopping.level2_disabled);
+    let mut state = StateFile {
+        schema: SCHEMA,
+        plugins: BTreeMap::from([
+            (id("com.example.on"), plugin(unsigned(), Status::Active)),
+            (id("com.example.off"), plugin(unsigned(), Status::Off)),
+        ]),
+    };
+    assert_eq!(apply(&mut state, &stopping).len(), 2);
+    let (en, fr) = LEVEL2_REASON;
+    assert_eq!(
+        state.plugins[&id("com.example.on")].status,
+        Status::Revoked {
+            reason_en: en.into(),
+            reason_fr: fr.into()
+        }
+    );
+    // A later list that clears the flag turns them off, never back on.
+    apply(&mut state, &check(2, false, Some(&stopping)));
+    assert!(state.plugins.values().all(|p| p.status == Status::Off));
+}
+
+#[test]
+fn the_built_in_key_is_the_maintainers() {
+    assert_eq!(
+        package::fingerprint(&public_key()),
+        "0d2b e2d5 200e 3fec febe 6c5d aeb8 d6ed"
+    );
+    // The first list, as bientot.dev serves it.
+    let served = include_bytes!("../../../../services/bientot/site/plugins/revocations.json");
+    let list = verify(served, &public_key(), None, now()).unwrap();
+    assert_eq!((list.version, list.revoked.len()), (1, 0));
 }
 
 fn list_with_level2(version: u64, disabled: bool) -> Value {

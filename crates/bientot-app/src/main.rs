@@ -474,7 +474,11 @@ fn show(
         .map(|host| host.data_directory().clone())
     {
         let language = *cx.global::<Language>();
-        bientot_app::plugins::start(&directory, language, cx);
+        let daily = matches!(
+            update_source,
+            Some(UpdateSource::Store | UpdateSource::Direct)
+        );
+        bientot_app::plugins::start(&directory, language, daily, cx);
     }
     // The CI startup measurement waits for this file: the shell is ready to be clicked.
     if let Some(path) = std::env::var_os("BIENTOT_READY_FILE") {

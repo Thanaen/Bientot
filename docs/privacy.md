@@ -79,7 +79,7 @@ id and version only: no plugin file, grant or log goes into it.
 
 ## Network requests
 
-Bientôt makes two kinds of request.
+Bientôt makes three kinds of request.
 
 1. **Update check.** At most once a day, and only while **Check for updates**
    is on in the General settings.
@@ -126,6 +126,16 @@ Bientôt makes two kinds of request.
    and finished months, no figure under 10 (small groups are merged until they
    reach 10), and the figures per version and channel rounded to the nearest 5,
    so that no figure points at a few installations.
+3. **Plugin revocation list.** Only in builds that include plugins, and only
+   while a plugin is installed. Bientôt sends one `GET` request to
+   `https://bientot.dev/plugins/revocations.json`, with no query string, no
+   cookie and no identifier, with the update check (at most once a day, while
+   **Check for updates** is on, in the Store build and the build installed by
+   `Setup.exe`) and each time you install a plugin or turn one on, on every
+   build, the portable ZIP included. The answer is the signed list of the
+   plugins and signing keys Bientôt turns off; Bientôt keeps the last good one
+   in `plugins\revocations.json`. The server stores nothing and logs nothing
+   about the request. Debug builds and demo launches never send it.
 
 ## The website
 

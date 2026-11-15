@@ -39,6 +39,15 @@ impl Offer {
             .map(|s| package::fingerprint(&s.key))
     }
 
+    /// What the plugin is bound by once installed: its author's key, or none.
+    pub fn trust(&self) -> &trust::Trust {
+        match &self.decision {
+            Decision::FirstInstall(trust)
+            | Decision::ReplaceUnsigned(trust)
+            | Decision::Update(trust) => trust,
+        }
+    }
+
     /// The consent dialog is skipped only when the same author ships a manifest that asks for
     /// nothing more (FR-006).
     pub fn needs_consent(&self, state: &StateFile) -> bool {

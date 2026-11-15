@@ -4,12 +4,13 @@
 //! Nothing here runs when no plugin is on: no thread, no engine (FR-018).
 
 pub mod card;
+pub mod revocations;
 
 use std::cell::OnceCell;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
 use bientot_plugin_api::Capability;
@@ -21,11 +22,13 @@ use bientot_plugins::host::Clock;
 use bientot_plugins::log::LogFiles;
 use bientot_plugins::manager::{self, InstallError, Offer};
 use bientot_plugins::package;
+use bientot_plugins::revocation::{self, Fetched};
 use bientot_plugins::runtime::{POOL_BYTES, Pool, Runtime, WasmSandbox};
 use bientot_plugins::state::{StateFile, Status};
 use bientot_plugins::thread::{self, HostUpdate, PluginSpec, PluginThread, Request};
 use bientot_plugins::trust::{self, Trust};
 use bientot_store::data_directory::DataDirectory;
+use bientot_windows::updates::RECHECK_INTERVAL;
 use futures::StreamExt as _;
 use gpui::{App, BorrowAppContext as _, Global, SharedString};
 use jiff::Timestamp;
@@ -157,10 +160,18 @@ struct Plugins {
     today: Option<Date>,
     /// Counts the starts that crashed.
     marker: StartMarker,
+    /// When the list was last fetched.
+    fetched_at: Option<Instant>,
+    /// The last install or turn-on could not fetch the list and went by the last one kept,
+    /// until a fetch brings one.
+    last_list_used: bool,
 }
 
 /// A start that crashes later than this after the plugins loaded is not blamed on them.
 const STARTUP: Duration = Duration::from_secs(30);
+
+/// The daily fetch of the list waits this long since the last one.
+const DAY: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// The `plugins` thread and the plugins it holds.
 struct Running {
@@ -199,8 +210,9 @@ pub fn folder(directory: &DataDirectory) -> PluginsDir {
 
 /// Reads the installed plugins and starts those that are on, after the tray is ready (plan,
 /// Lifecycle 2 and 3). With none on, nothing more than the read happens. After two starts in a
-/// row that crashed, they stay off until the user turns them back on (FR-052).
-pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
+/// row that crashed, they stay off until the user turns them back on (FR-052). `daily` when the
+/// build checks for updates: the revocation list is then fetched once a day too.
+pub fn start(directory: &DataDirectory, language: Language, daily: bool, cx: &mut App) {
     cx.set_global(PluginCards::default());
     let dir = folder(directory);
     let state = if dir.state_path().exists() {
@@ -233,6 +245,8 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
         running: None,
         today: None,
         marker,
+        fetched_at: None,
+        last_list_used: false,
     };
     let paused = any_on && !plugins.marker.begin();
     cx.set_global(plugins);
@@ -247,6 +261,9 @@ pub fn start(directory: &DataDirectory, language: Language, cx: &mut App) {
         async {}
     })
     .detach();
+    if revocations::FETCHES && daily {
+        fetch_daily(cx);
+    }
     if paused {
         diagnose(cx, "plugins.safe_mode", &[]);
         return;
@@ -455,6 +472,85 @@ fn changed(cx: &mut App) {
     cx.refresh_windows();
 }
 
+/// Fetches the revocation list once a day while « Rechercher les mises à jour » is on and a
+/// plugin is installed, first a while after the start (FR-050).
+fn fetch_daily(cx: &mut App) {
+    cx.spawn(async move |cx| {
+        let mut wait = STARTUP;
+        loop {
+            cx.background_executor().timer(wait).await;
+            wait = RECHECK_INTERVAL;
+            cx.update(|cx| {
+                let plugins = cx.global::<Plugins>();
+                let due = !plugins.state.plugins.is_empty()
+                    && plugins.fetched_at.is_none_or(|at| at.elapsed() >= DAY)
+                    && cx.global::<Today>().settings().updates.check_for_updates;
+                if due {
+                    refresh(false, |_| {}, cx);
+                }
+            });
+        }
+    })
+    .detach();
+}
+
+/// Fetches the list off the main thread, applies the list in force, then calls `then`. `asked`
+/// for an install or a turn-on, which says when it went by the last list kept.
+fn refresh(asked: bool, then: impl FnOnce(&mut App) + 'static, cx: &mut App) {
+    let plugins = cx.global_mut::<Plugins>();
+    plugins.fetched_at = Some(Instant::now());
+    let dir = plugins.dir.clone();
+    let fetched = cx
+        .background_executor()
+        .spawn(async move { check_list(&dir) });
+    cx.spawn(async move |cx| {
+        let fetched = fetched.await;
+        cx.update(|cx| {
+            take_list(&fetched, asked, cx);
+            then(cx);
+        });
+    })
+    .detach();
+}
+
+/// Fetches the list and checks it against the last one kept. Blocks.
+fn check_list(dir: &PluginsDir) -> Fetched {
+    Fetched::check(
+        dir,
+        &revocation::public_key(),
+        revocations::fetch(),
+        Timestamp::now(),
+    )
+}
+
+/// Applies the list in force: a plugin it blocks stops at once.
+fn take_list(fetched: &Fetched, asked: bool, cx: &mut App) {
+    if let Some(why) = &fetched.unavailable {
+        diagnose(
+            cx,
+            "plugins.revocations.unavailable",
+            &[("reason", why.as_str().into())],
+        );
+    }
+    let plugins = cx.global_mut::<Plugins>();
+    if fetched.unavailable.is_none() {
+        plugins.last_list_used = false;
+    } else if asked {
+        plugins.last_list_used = true;
+    }
+    let stopped = fetched.take(&plugins.dir, &mut plugins.state);
+    for id in &stopped {
+        unload(id, cx);
+    }
+    changed(cx);
+}
+
+/// The last install or turn-on went by the last list kept: « Paramètres › Plugins » says so.
+pub fn last_list_used(cx: &App) -> bool {
+    cx.try_global::<Plugins>()
+        .is_some_and(|plugins| plugins.last_list_used)
+}
+
 /// Sends the published day to the plugins that read it. The thread keeps only the latest, which
 /// `bt:day@1 current` answers, and sends `day.refreshed` to the plugins that listen to it on a
 /// structural change, at most every 30 s (FR-032).
@@ -630,10 +726,21 @@ pub fn turn(id: &PluginId, on: bool, cx: &mut App) {
     if !manager::turn(&plugins.dir, &mut plugins.state, id, on) {
         return;
     }
-    if on {
-        load_installed(id, cx);
-    } else {
+    if !on {
         unload(id, cx);
+    } else if revocations::FETCHES {
+        // It loads once the list says it may.
+        let id = id.clone();
+        refresh(
+            true,
+            move |cx| {
+                load_installed(&id, cx);
+                changed(cx);
+            },
+            cx,
+        );
+    } else {
+        load_installed(id, cx);
     }
     changed(cx);
 }
@@ -678,12 +785,16 @@ pub enum Refused {
     OtherAuthor { bound: String, offered: String },
     /// The installed plugin is signed by `bound` and this package is not.
     NowUnsigned { bound: String },
+    /// The revocation list blocks it, for this reason in the app's language.
+    Blocked(String),
 }
 
 /// A package that passed every check.
 pub struct Offered {
     /// `None` in a [`Offered::preview`].
     offer: Option<Offer>,
+    /// The revocation list fetched with the package, applied once it is installed.
+    list: Option<Fetched>,
     pub consent: Consent,
 }
 
@@ -693,6 +804,7 @@ impl Offered {
     pub fn preview(consent: Consent) -> Self {
         Self {
             offer: None,
+            list: None,
             consent,
         }
     }
@@ -733,6 +845,10 @@ pub fn read_package(
     };
     let state = plugins.state.clone();
     let language = plugin_language(plugins.language);
+    let dir = plugins.dir.clone();
+    if revocations::FETCHES {
+        cx.global_mut::<Plugins>().fetched_at = Some(Instant::now());
+    }
     let read = cx.background_executor().spawn(async move {
         let bytes = std::fs::read(&file).map_err(|_| Refused::Unreadable)?;
         let reserved = palette::reserved_titles();
@@ -750,6 +866,21 @@ pub fn read_package(
                     }
                 }
             })?;
+        // The list is read before an install, on every build that fetches it (FR-050).
+        let list = revocations::FETCHES.then(|| check_list(&dir));
+        let blocked = list
+            .as_ref()
+            .and_then(Fetched::list)
+            .and_then(|list| list.blocks(&offer.package.manifest.id, offer.trust()));
+        if let Some((reason_en, reason_fr)) = blocked {
+            return Err(Refused::Blocked(
+                match language {
+                    bientot_plugin_api::Language::Fr => reason_fr,
+                    _ => reason_en,
+                }
+                .to_owned(),
+            ));
+        }
         let manifest = &offer.package.manifest;
         let consent = Consent {
             name: manifest.name.get(language, &manifest.locales[0]).to_owned(),
@@ -762,6 +893,7 @@ pub fn read_package(
         };
         Ok(Offered {
             offer: Some(offer),
+            list,
             consent,
         })
     });
@@ -784,6 +916,10 @@ pub fn install(offered: Offered, cx: &mut App) -> std::io::Result<PluginId> {
     unload(&id, cx);
     let plugins = cx.global_mut::<Plugins>();
     let installed = manager::install(&plugins.dir, &mut plugins.state, offer);
+    // The list read with the package is kept and applies to every plugin.
+    if let Some(list) = &offered.list {
+        take_list(list, true, cx);
+    }
     // After a failed update, the version still installed loads again.
     load_installed(&id, cx);
     changed(cx);

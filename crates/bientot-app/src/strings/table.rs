@@ -594,6 +594,7 @@ pub enum Key {
     SettingsPluginsInstallTitle,
     SettingsPluginsInstalledFormat,
     SettingsPluginsInstalledGroup,
+    SettingsPluginsLastListUsed,
     SettingsPluginsModuleRefused,
     SettingsPluginsNavContent,
     SettingsPluginsNowUnsignedFormat,
@@ -877,7 +878,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 869] = [
+pub(super) static ENTRIES: [Entry; 870] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again." },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration" },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval" },
@@ -1466,6 +1467,7 @@ pub(super) static ENTRIES: [Entry; 869] = [
     Entry { name: "SettingsPluginsInstallTitle", fr: "Installer un plugin", en: "Install a plugin" },
     Entry { name: "SettingsPluginsInstalledFormat", fr: "{0} est installé.", en: "{0} is installed." },
     Entry { name: "SettingsPluginsInstalledGroup", fr: "Installés", en: "Installed" },
+    Entry { name: "SettingsPluginsLastListUsed", fr: "Bientôt n’a pas pu vérifier la liste des plugins bloqués\u{a0}: il a utilisé la dernière qu’il avait.", en: "Bientôt couldn’t check the list of blocked plugins, so it used the last one it had." },
     Entry { name: "SettingsPluginsModuleRefused", fr: "Ce plugin ne peut pas être installé\u{a0}: son code ne correspond pas à ce qu’il annonce.", en: "This plugin can’t be installed: its code doesn’t match what it declares." },
     Entry { name: "SettingsPluginsNav.Content", fr: "Plugins", en: "Plugins" },
     Entry { name: "SettingsPluginsNowUnsignedFormat", fr: "Refusé\u{a0}: seul l’auteur du plugin installé peut le mettre à jour, et ce fichier n’est pas signé. Empreinte de l’auteur\u{a0}: {0}.", en: "Refused: only the author of the installed plugin can update it, and this file isn’t signed. Author fingerprint: {0}." },

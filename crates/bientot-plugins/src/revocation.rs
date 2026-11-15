@@ -19,6 +19,14 @@ use crate::trust::Trust;
 
 /// The address the app fetches the list from.
 pub const URL: &str = "https://bientot.dev/plugins/revocations.json";
+/// The public half of the maintainer's offline key, which signs every list
+/// (`docs/code-signing.md`). Fingerprint `0d2b e2d5 200e 3fec febe 6c5d aeb8 d6ed`.
+pub const PUBLIC_KEY: &str = "o6SUgfWpEedZjSEkb0lQZF1eKiOyTId3CLD9fCjWaIo=";
+/// Why a plugin stops while a list sets `level2_disabled`, in English and in French.
+pub const LEVEL2_REASON: (&str, &str) = (
+    "Bientôt has paused all plugins for safety.",
+    "Bientôt a suspendu tous les plugins par sécurité.",
+);
 /// A larger response is refused unread.
 pub const MAX_BYTES: usize = 256 * 1024;
 /// The last good list, beside `state.json`.
@@ -71,7 +79,20 @@ impl fmt::Display for Unavailable {
     }
 }
 
+/// The key built into the app that every list must be signed by.
+pub fn public_key() -> VerifyingKey {
+    crate::package::parse_key(PUBLIC_KEY).expect("the built-in key is a key")
+}
+
 impl List {
+    /// Why the list stops `plugin`, bound by `trust`, in English and in French: revoked by its
+    /// id or its author's key, or every WebAssembly plugin stopped.
+    pub fn blocks(&self, plugin: &PluginId, trust: &Trust) -> Option<(&str, &str)> {
+        self.revokes(plugin, trust)
+            .map(|revoked| (revoked.reason_en.as_str(), revoked.reason_fr.as_str()))
+            .or(self.level2_disabled.then_some(LEVEL2_REASON))
+    }
+
     /// Whether `plugin`, bound by `trust`, is revoked, and why.
     pub fn revokes(&self, plugin: &PluginId, trust: &Trust) -> Option<&Revoked> {
         let key = trust.fingerprint().map(|f| hex_only(&f));
@@ -110,21 +131,74 @@ pub fn last_good(dir: &PluginsDir, key: &VerifyingKey) -> Option<List> {
     verify_signature(&bytes, key).ok()
 }
 
-/// Takes a fetched list: verifies it against the last good one, keeps it, and applies it to
-/// `state`. Returns the plugins whose status changed; `state` is the caller's to save.
-pub fn accept(
-    dir: &PluginsDir,
-    state: &mut StateFile,
-    bytes: &[u8],
-    key: &VerifyingKey,
-    now: Timestamp,
-) -> Result<(List, Vec<PluginId>), Unavailable> {
-    let last = last_good(dir, key);
-    let list = verify(bytes, key, last.as_ref(), now)?;
-    // Should it not be kept, the list still applies now and the next fetch brings it again.
-    keep(dir, bytes).ok();
-    let changed = apply(state, &list);
-    Ok((list, changed))
+/// A fetch of the list, checked off the main thread: the list the app goes by from now on.
+#[derive(Debug)]
+pub struct Fetched {
+    key: VerifyingKey,
+    /// The list fetched just now and its bytes, when it was taken.
+    fresh: Option<(List, Vec<u8>)>,
+    /// The last good list, which stands when the fetched one was not taken.
+    last: Option<List>,
+    /// Why the fetched list was not taken (`plugins.revocations.unavailable`).
+    pub unavailable: Option<String>,
+}
+
+impl Fetched {
+    /// Checks what the fetch of the list brought, or why nothing came, against the last good
+    /// list kept in `dir`.
+    pub fn check(
+        dir: &PluginsDir,
+        key: &VerifyingKey,
+        fetched: Result<Vec<u8>, String>,
+        now: Timestamp,
+    ) -> Self {
+        let last = last_good(dir, key);
+        let checked = fetched.and_then(|bytes| {
+            verify(&bytes, key, last.as_ref(), now)
+                .map(|list| (list, bytes))
+                .map_err(|why| why.to_string())
+        });
+        let (fresh, unavailable) = match checked {
+            Ok(fresh) => (Some(fresh), None),
+            Err(why) => (None, Some(why)),
+        };
+        Self {
+            key: *key,
+            fresh,
+            last,
+            unavailable,
+        }
+    }
+
+    /// The list in force: the one fetched just now if it was taken, otherwise the last good one.
+    pub fn list(&self) -> Option<&List> {
+        self.fresh
+            .as_ref()
+            .map(|(list, _)| list)
+            .or(self.last.as_ref())
+    }
+
+    /// Keeps the list fetched just now and applies the list in force to `state`, which is saved
+    /// when it changed. Returns the plugins whose status changed.
+    pub fn take(&self, dir: &PluginsDir, state: &mut StateFile) -> Vec<PluginId> {
+        if let Some((list, bytes)) = &self.fresh {
+            // Another fetch may have kept a newer list since this one was checked.
+            let newer = last_good(dir, &self.key).filter(|kept| kept.version > list.version);
+            if newer.is_none() {
+                // Should it not be kept, the list still applies now and the next fetch brings it
+                // again.
+                keep(dir, bytes).ok();
+            }
+        }
+        let Some(list) = self.list() else {
+            return Vec::new();
+        };
+        let changed = apply(state, list);
+        if !changed.is_empty() {
+            let _ = state.save(&dir.state_path());
+        }
+        changed
+    }
 }
 
 fn keep(dir: &PluginsDir, bytes: &[u8]) -> io::Result<()> {
@@ -132,13 +206,13 @@ fn keep(dir: &PluginsDir, bytes: &[u8]) -> io::Result<()> {
     files::replace(&dir.root().join(FILE), bytes)
 }
 
-/// Revokes the plugins `list` names and turns off, never back on, those it no longer names.
+/// Revokes the plugins `list` blocks and turns off, never back on, those it no longer blocks.
 /// Returns the plugins whose status changed.
 pub fn apply(state: &mut StateFile, list: &List) -> Vec<PluginId> {
     let mut changed = Vec::new();
     for (id, plugin) in &mut state.plugins {
-        let did = match list.revokes(id, &plugin.trust) {
-            Some(revoked) => plugin.revoke(&revoked.reason_en, &revoked.reason_fr),
+        let did = match list.blocks(id, &plugin.trust) {
+            Some((reason_en, reason_fr)) => plugin.revoke(reason_en, reason_fr),
             None => plugin.unrevoke(),
         };
         if did {

@@ -117,16 +117,22 @@ enum PluginsState {
     Consent,
     /// Unsigned, and asking for more memory than the default.
     ConsentUnsigned,
+    /// A package the revocation list blocks.
+    Blocked,
+    /// A plugin turned on while the revocation list could not be fetched.
+    LastListUsed,
 }
 
 impl PluginsState {
-    const ALL: [PluginsState; 6] = [
+    const ALL: [PluginsState; 8] = [
         Self::List,
         Self::Empty,
         Self::OtherAuthor,
         Self::Installed,
         Self::Consent,
         Self::ConsentUnsigned,
+        Self::Blocked,
+        Self::LastListUsed,
     ];
 
     fn slug(self) -> Option<&'static str> {
@@ -137,6 +143,8 @@ impl PluginsState {
             Self::Installed => Some("installed"),
             Self::Consent => Some("consent"),
             Self::ConsentUnsigned => Some("consent-unsigned"),
+            Self::Blocked => Some("blocked"),
+            Self::LastListUsed => Some("last-list"),
         }
     }
 
@@ -152,7 +160,12 @@ impl PluginsState {
             needs_consent: true,
         };
         match self {
-            Self::List | Self::Empty => {}
+            Self::List | Self::Empty | Self::LastListUsed => {}
+            Self::Blocked => {
+                let (en, fr) = bientot_plugins::revocation::LEVEL2_REASON;
+                page.start();
+                page.read(Err(Refused::Blocked(name(language, en, fr))));
+            }
             Self::OtherAuthor => {
                 page.start();
                 page.read(Err(Refused::OtherAuthor {
@@ -258,7 +271,11 @@ fn capture_plugins(
             form.go_to(Page::Plugins);
             cx.new(|cx| {
                 let mut view = SettingsView::new(form, Some(file), window, cx);
-                view.show_plugins(state.page(language), state.installed(language));
+                view.show_plugins(
+                    state.page(language),
+                    state.installed(language),
+                    matches!(state, PluginsState::LastListUsed),
+                );
                 view
             })
         },

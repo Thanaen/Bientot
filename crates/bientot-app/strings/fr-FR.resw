@@ -1178,6 +1178,9 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   <data name="SettingsPluginsFolderButton" xml:space="preserve">
     <value>Ouvrir le dossier</value>
   </data>
+  <data name="SettingsPluginsLastListUsed" xml:space="preserve">
+    <value>Bientôt n’a pas pu vérifier la liste des plugins bloqués : il a utilisé la dernière qu’il avait.</value>
+  </data>
   <data name="SettingsPluginsReading" xml:space="preserve">
     <value>Lecture du plugin…</value>
   </data>
