@@ -182,19 +182,29 @@ impl Fetched {
             .or(self.last.as_ref())
     }
 
-    /// Keeps the list fetched just now and applies the list in force to `state`, which is saved
-    /// when it changed. Returns the plugins whose status changed.
+    /// Keeps the list fetched just now and applies the newest list to `state`, which is saved
+    /// when it changed: another fetch may have kept a newer one since this one was checked.
+    /// Returns the plugins whose status changed.
     pub fn take(&self, dir: &PluginsDir, state: &mut StateFile) -> Vec<PluginId> {
-        if let Some((list, bytes)) = &self.fresh {
-            // Another fetch may have kept a newer list since this one was checked.
-            let newer = last_good(dir, &self.key).filter(|kept| kept.version > list.version);
-            if newer.is_none() {
-                // Should it not be kept, the list still applies now and the next fetch brings it
-                // again.
-                keep(dir, bytes).ok();
-            }
+        let kept = last_good(dir, &self.key);
+        let fresh = self.fresh.as_ref().filter(|(list, _)| {
+            kept.as_ref()
+                .is_none_or(|kept| list.version >= kept.version)
+        });
+        if let Some((_, bytes)) = fresh {
+            // Should it not be kept, the list still applies now and the next fetch brings it
+            // again.
+            keep(dir, bytes).ok();
         }
-        let Some(list) = self.list() else {
+        let newest = [
+            fresh.map(|(list, _)| list),
+            kept.as_ref(),
+            self.last.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .max_by_key(|list| list.version);
+        let Some(list) = newest else {
             return Vec::new();
         };
         let changed = apply(state, list);

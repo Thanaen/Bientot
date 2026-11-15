@@ -377,29 +377,57 @@ fn when_the_list_cannot_be_fetched_the_last_good_one_applies_and_says_why() {
 }
 
 #[test]
-fn a_list_checked_before_a_newer_one_was_kept_does_not_replace_it() {
-    let dir = tempfile::tempdir().unwrap();
-    let plugins = PluginsDir::new(dir.path().join("plugins"));
+fn a_list_checked_before_a_newer_one_was_kept_neither_replaces_nor_overrides_it() {
     let key = maintainer();
-    let mut state = StateFile::default();
-    let first = Fetched::check(
-        &plugins,
-        &key.verifying_key(),
+    let revoking = || {
+        list(
+            2,
+            json!([{ "id": "com.example.bad", "reason": { "en": "Malware" } }]),
+        )
+    };
+    // The older list was fetched just now (`fresh`), or could not be fetched and only the
+    // last good one stood (`last`), before another fetch kept version 2.
+    let fetches = [
         Ok(signed(list(1, json!([])), &key)),
-        now(),
-    );
-    Fetched::check(
-        &plugins,
-        &key.verifying_key(),
-        Ok(signed(list(2, json!([])), &key)),
-        now(),
-    )
-    .take(&plugins, &mut state);
-    first.take(&plugins, &mut state);
-    assert_eq!(
-        last_good(&plugins, &key.verifying_key()).map(|l| l.version),
-        Some(2)
-    );
+        Err("offline".to_owned()),
+    ];
+    for fetch in fetches {
+        let dir = tempfile::tempdir().unwrap();
+        let plugins = PluginsDir::new(dir.path().join("plugins"));
+        let mut state = StateFile::default();
+        state
+            .plugins
+            .insert(id("com.example.bad"), plugin(unsigned(), Status::Active));
+        Fetched::check(
+            &plugins,
+            &key.verifying_key(),
+            Ok(signed(list(1, json!([])), &key)),
+            now(),
+        )
+        .take(&plugins, &mut state);
+        let older = Fetched::check(&plugins, &key.verifying_key(), fetch, now());
+        Fetched::check(
+            &plugins,
+            &key.verifying_key(),
+            Ok(signed(revoking(), &key)),
+            now(),
+        )
+        .take(&plugins, &mut state);
+        assert!(matches!(
+            state.plugins[&id("com.example.bad")].status,
+            Status::Revoked { .. }
+        ));
+
+        older.take(&plugins, &mut state);
+        assert_eq!(
+            last_good(&plugins, &key.verifying_key()).map(|l| l.version),
+            Some(2)
+        );
+        assert!(matches!(
+            state.plugins[&id("com.example.bad")].status,
+            Status::Revoked { .. }
+        ));
+    }
 }
 
 #[test]
