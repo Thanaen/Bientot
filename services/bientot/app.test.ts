@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { createPublicKey, verify } from "node:crypto";
 import { createApp } from "./src/app";
 import { FONTS } from "./src/fonts";
 import { INDEXNOW_KEY } from "./src/site";
@@ -285,6 +286,41 @@ describe("the site", () => {
 
   test("the IndexNow key file holds the key it is named after", async () => {
     expect(await (await get(`/${INDEXNOW_KEY}.txt`))!.text()).toBe(INDEXNOW_KEY);
+  });
+
+  describe("the plugin revocation list", () => {
+    // The public half of the maintainer's offline key, the same as `REVOCATION_KEY` in the app.
+    const PUBLIC_KEY = "o6SUgfWpEedZjSEkb0lQZF1eKiOyTId3CLD9fCjWaIo=";
+    // Keys sorted, no whitespace, integers only: the text the signature covers (contracts/revocations.md).
+    const canonical = (value: unknown): string =>
+      Array.isArray(value)
+        ? `[${value.map(canonical).join(",")}]`
+        : value !== null && typeof value === "object"
+          ? `{${Object.keys(value)
+              .sort()
+              .map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`)
+              .join(",")}}`
+          : JSON.stringify(value);
+    const list = async () => {
+      const response = (await get("/plugins/revocations.json"))!;
+      expect(response.headers.get("content-type")).toBe("application/json");
+      expect(response.headers.get("cache-control")).toBe("public, max-age=3600");
+      return response.json();
+    };
+
+    test("is signed by the maintainer's offline key", async () => {
+      const { signature, ...signed } = await list();
+      const key = createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: Buffer.from(PUBLIC_KEY, "base64").toString("base64url") }, format: "jwk" });
+      expect(verify(null, Buffer.from(canonical(signed)), key, Buffer.from(signature, "base64"))).toBe(true);
+      expect(Number.isInteger(signed.version)).toBe(true);
+      expect(Array.isArray(signed.revoked)).toBe(true);
+    });
+
+    // Past its expiry, installed copies ignore the list and keep the last one: sign a new one in time.
+    test("stays valid for more than 30 days", async () => {
+      const { expires } = await list();
+      expect(Date.parse(expires) - Date.now()).toBeGreaterThan(30 * 86_400_000);
+    });
   });
 
   test.each(["/", "/en"])("the structured data of %p is valid JSON naming the app, its source and its download", async (path) => {
