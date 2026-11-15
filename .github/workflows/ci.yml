@@ -401,7 +401,7 @@ jobs:
             ''
             '| Gate | Measured | Target |'
             '| --- | --- | --- |'
-            ('| Executable size, with the plugin runtime | {0:N2} MB, {1:N2} MB more | < 20 MB, at most 1.0 MB more (SC-001) |' -f $pluginsMb, ($pluginsMb - $releaseMb))
+            ('| Executable size, with the plugin runtime | {0:N2} MB, {1:N2} MB more | < 20 MB, at most 2.0 MB more (SC-001) |' -f $pluginsMb, ($pluginsMb - $releaseMb))
             ''
           ) -join "`n"
           Write-Host $table

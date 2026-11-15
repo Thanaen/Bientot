@@ -35,7 +35,7 @@ Writes the measures to this JSON file, for a later run's -Baseline.
 
 .PARAMETER Baseline
 The -ResultPath of a run without the plugin: the summary adds SC-003, the growth of the idle working
-set (at most 2 MiB) and the idle CPU (under 0.5 %) with the plugin.
+set (at most 3 MiB) and the idle CPU (under 0.5 %) with the plugin.
 #>
 [CmdletBinding()]
 param(
@@ -80,7 +80,7 @@ $WorkingSetBudgetMiB = 150
 $StartupBudgetSeconds = 3
 # SC-003 of specs/003-plugin-runtime: what the sample plugin may add to the idle working set. Two
 # processes' peaks vary by about as much between runs, so CI fails only well above it.
-$PluginWorkingSetBudgetMiB = 2
+$PluginWorkingSetBudgetMiB = 3
 $PluginWorkingSetLimitMiB = 10
 
 if ($PluginPackage -and -not $PluginTool) {

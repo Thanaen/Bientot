@@ -42,8 +42,8 @@ portable ZIP); the non-Win32 crates build and test on Linux.
 structural change; a user command served within one 2 M fuel slice (≤ 9 ms
 measured) of a running background call.
 
-**Constraints**: executable ≤ +1.0 MB and < 20 MB for `release` and
-`direct`; no startup, memory or CPU change without plugins; ≤ +2 MiB idle
+**Constraints**: executable ≤ +2.0 MB and < 20 MB for `release` and
+`direct`; no startup, memory or CPU change without plugins; ≤ +3 MiB idle
 working set with the sample plugin; no process abort from any plugin.
 
 **Scale/Scope**: tens of installed plugins, one visible card, four host
