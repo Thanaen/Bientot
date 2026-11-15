@@ -75,6 +75,23 @@ pub struct PluginRow {
     pub remove_name: String,
 }
 
+impl PluginRow {
+    /// What a screen reader reads after the row's name: the version and the author, what the
+    /// plugin may do, and why it does not run.
+    pub fn spoken(&self) -> String {
+        [
+            Some(self.description.as_str()),
+            Some(self.capabilities.as_str()),
+            self.problem.as_ref().map(|problem| problem.text.as_str()),
+        ]
+        .into_iter()
+        .flatten()
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(". ")
+    }
+}
+
 /// Why an installed plugin does not run.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Problem {
@@ -487,6 +504,11 @@ mod tests {
             "Version 0.1.0 · Non signé\u{a0}: l’auteur n’est pas vérifié"
         );
         assert!(!unsigned.on && unsigned.switchable);
+        assert_eq!(
+            unsigned.spoken(),
+            "Version 0.1.0 · Non signé\u{a0}: l’auteur n’est pas vérifié. Lire votre journée en \
+             cours · Afficher une carte dans le flyout"
+        );
     }
 
     #[test]

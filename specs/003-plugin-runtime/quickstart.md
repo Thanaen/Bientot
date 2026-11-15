@@ -49,16 +49,19 @@ every demo day and compares its cards with the reference files.
 `scripts/check-sample-plugins.sh` does all three for every sample, as CI
 does.
 
-## 4. Install it in a demo run
+## 4. Install it
 
 ```powershell
-worktime.exe --demo
+worktime.exe --data-dir $env:TEMP\bientot-plugins
 ```
 
-Open **Settings › Plugins › Install from file…**, pick
-`target\focus.bientot-plugin`, check the consent dialog, install, then open
-the flyout: the « Focus » card shows after the counted time. Ctrl+Maj+P,
-type `focus`, run « Focus: Show today or this week ».
+A demo run (`--demo`) has no plugins, so the install uses a run of its own
+on a throwaway data folder, after its onboarding. Open **Settings › Plugins ›
+Install from file…**, pick `target\focus.bientot-plugin` (or drop it on the
+page), check the consent dialog, install, then open the flyout: the « Focus »
+card (« Concentration » in French) shows under the counted time. Press
+Ctrl+Maj+P, type `focus` (`concentration` in French), and run « Focus: show or
+hide the detail ».
 
 ## 5. Check the gates
 
