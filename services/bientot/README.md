@@ -21,6 +21,7 @@ statistics show no older version.
 | `GET /statistiques/<name>.<csv\|json>` | The open data files: `mensuel`, `quotidien`, `details` |
 | `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png`, `/analytics.js` | The files listed in `src/site.ts`; `404` for any other path |
 | `GET /robots.txt`, `/sitemap.xml` | Generated from the pages listed in `src/site.ts` |
+| `GET /plugins/revocations.json` | The signed plugin revocation list, `site/plugins/revocations.json` (see Plugin revocation list) |
 | `POST /v1/ping` | `204`; `400` for any other shape, `413` above 256 bytes |
 | `GET /updates/<file>` | `302` to that file in the GitHub Releases (see Updates); `404` for a name the Release workflow never publishes |
 | `GET /download` | `302` to the latest installer, `Bientot-Setup.exe` (see Updates) |
@@ -202,6 +203,19 @@ The service redirects, without caching:
 - `/download` to `Bientot-Setup.exe`.
 
 These addresses stay the same wherever the files live.
+
+## Plugin revocation list
+
+`site/plugins/revocations.json` is the list of plugins and signing keys the app turns off from a
+distance (`specs/003-plugin-runtime/contracts/revocations.md`). The app checks its signature with the
+public key built into it and ignores a list that is older than the last one it kept or past its
+`expires` date, so the file is never edited here: the maintainer edits it on the machine that holds
+the offline key, increments `version`, signs it with
+`bientot-plugin sign-revocations revocations.json --key <key file>` (`docs/code-signing.md`), and the
+signed file replaces this one in a `site` pull request. Browsers and the CDN keep it one hour.
+
+A test checks the signature and fails once the list expires within 30 days, so a new one is signed
+before installed copies stop taking it.
 
 ## Run
 
