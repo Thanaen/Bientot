@@ -75,11 +75,7 @@ fn the_same_folder_in_any_case_gives_the_same_key() {
             "WorkTime-e790f8c42a78c8ca5d9151e9a4abb9520f0b79680330f520a1c3bc3c47532fbf",
         ),
     ] {
-        assert_eq!(
-            DataDirectory::from(PathBuf::from(folder)).instance_key(),
-            expected,
-            "{folder}"
-        );
+        assert_eq!(key_of(Path::new(folder)), expected, "{folder}");
     }
 }
 
@@ -148,11 +144,67 @@ fn instance_keys_match_dotnet() {
     assert_eq!(cases.len(), 5);
     for case in cases {
         assert_eq!(
-            DataDirectory::from(PathBuf::from(case["dataDirectory"].as_str().unwrap()))
-                .instance_key(),
+            key_of(Path::new(case["dataDirectory"].as_str().unwrap())),
             case["key"],
             "{}",
             case["dataDirectory"]
         );
     }
+}
+
+#[test]
+fn every_spelling_of_a_folder_gives_one_key() {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("data");
+    let key = |path: PathBuf| DataDirectory::from(path).instance_key();
+    let before = key(folder.clone());
+
+    std::fs::create_dir(&folder).unwrap();
+    std::fs::create_dir(root.path().join("other")).unwrap();
+
+    assert_eq!(key(folder.clone()), before, "the folder was created");
+    assert_eq!(
+        key(root.path().join("other").join("..").join("data")),
+        before
+    );
+    assert_eq!(key(root.path().join(".").join("data")), before);
+    assert_eq!(key(folder.join("")), before);
+    assert_ne!(key(root.path().join("other")), before);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_to_a_folder_gives_the_folder_key() {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("data");
+    std::fs::create_dir(&folder).unwrap();
+    std::os::unix::fs::symlink(&folder, root.path().join("link")).unwrap();
+
+    assert_eq!(
+        DataDirectory::from(root.path().join("link")).instance_key(),
+        DataDirectory::from(folder).instance_key()
+    );
+}
+
+#[test]
+fn the_verbatim_prefix_is_dropped() {
+    for (verbatim, expected) in [
+        (r"\\?\C:\Users\Ana\Bientot", r"C:\Users\Ana\Bientot"),
+        (r"\\?\UNC\server\share\Bientot", r"\\server\share\Bientot"),
+        (r"\\?\Volume{0}\Bientot", r"\\?\Volume{0}\Bientot"),
+        ("/home/ana/Bientot", "/home/ana/Bientot"),
+    ] {
+        assert_eq!(
+            without_verbatim_prefix(PathBuf::from(verbatim)),
+            Path::new(expected)
+        );
+    }
+}
+
+#[test]
+fn a_path_with_no_existing_ancestor_keys_as_written() {
+    assert_eq!(
+        DataDirectory::from(PathBuf::from("no-such-root-for-bientot")).instance_key(),
+        key_of(Path::new("no-such-root-for-bientot"))
+    );
 }
