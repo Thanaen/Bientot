@@ -77,17 +77,61 @@ impl DataDirectory {
         self.0.join("app-state.json")
     }
 
-    /// `WorkTime-` and the lowercase hex SHA-256 of the folder path, upper-cased and without
-    /// trailing separators. Windows paths are case-insensitive and a trailing separator names the
-    /// same folder, so every spelling of one folder gets one key, the same as the .NET app's.
+    /// The key of the folder's resolved path (see [`resolved`]), so that a short (8.3) name, a
+    /// junction, a mapped drive or a `..` segment names the same instance as the folder's usual
+    /// spelling.
     pub fn instance_key(&self) -> String {
-        let path = self.0.to_string_lossy();
-        let normalized = upper_invariant(path.trim_end_matches(['\\', '/']));
-        let mut key = String::from("WorkTime-");
-        for byte in Sha256::digest(normalized.as_bytes()) {
-            let _ = write!(key, "{byte:02x}");
+        key_of(&resolved(&self.0))
+    }
+}
+
+/// `WorkTime-` and the lowercase hex SHA-256 of `path`, upper-cased and without trailing
+/// separators. Windows paths are case-insensitive and a trailing separator names the same folder,
+/// so these spellings share a key, the same as the .NET app's.
+fn key_of(path: &Path) -> String {
+    let path = path.to_string_lossy();
+    let normalized = upper_invariant(path.trim_end_matches(['\\', '/']));
+    let mut key = String::from("WorkTime-");
+    for byte in Sha256::digest(normalized.as_bytes()) {
+        let _ = write!(key, "{byte:02x}");
+    }
+    key
+}
+
+/// `path` with its deepest existing ancestor replaced by the canonical path of that ancestor,
+/// without Windows' `\\?\` prefix. A folder that the first launch has yet to create therefore
+/// resolves to the same path as once it exists. Falls back to `path` when no ancestor resolves.
+fn resolved(path: &Path) -> PathBuf {
+    let mut existing = path;
+    let mut missing = Vec::new();
+    loop {
+        if let Ok(canonical) = std::fs::canonicalize(existing) {
+            let mut resolved = without_verbatim_prefix(canonical);
+            resolved.extend(missing.iter().rev());
+            return resolved;
         }
-        key
+        match (existing.parent(), existing.file_name()) {
+            (Some(parent), Some(name)) => {
+                missing.push(name);
+                existing = parent;
+            }
+            _ => return path.to_owned(),
+        }
+    }
+}
+
+/// `C:\folder` for `\\?\C:\folder` and `\\server\share` for `\\?\UNC\server\share`, the
+/// spellings that `canonicalize` returns on Windows.
+fn without_verbatim_prefix(path: PathBuf) -> PathBuf {
+    let Some(text) = path.to_str() else {
+        return path;
+    };
+    if let Some(share) = text.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{share}"));
+    }
+    match text.strip_prefix(r"\\?\") {
+        Some(disk) if disk.as_bytes().get(1) == Some(&b':') => PathBuf::from(disk),
+        _ => path,
     }
 }
 
