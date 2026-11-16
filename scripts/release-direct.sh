@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds the Velopack release of Bientôt: `Setup.exe`, the full and delta packages and the
-# `releases.win.json` feed that installed copies read (crates/bientot-app/src/updates/direct.rs).
+# `releases.win.json` feed that installed copies read (crates/bientot-app/src/updates/direct.rs),
+# with the sample plugin `focus.bientot-plugin`.
 # The Release workflow (.github/workflows/release.yml) runs it on Windows and publishes the output
 # folder as a GitHub Release; it also cross-builds from Linux.
 #
@@ -106,4 +107,10 @@ fi
     --packId Thanaen.WorkTime --packVersion "$version" --packTitle "Bientôt" --packAuthors Thanaen \
     --packDir "$pack" --mainExe worktime.exe --icon "$staging/worktime.ico" \
     --shortcuts StartMenuRoot --outputDir "$output"
+# The sample plugin, which the Store's notes for certification (packaging/store/
+# certification-notes.txt) point testers to, and an example for anyone writing one.
+cargo build --release --locked -p bientot-plugin-sdk --example focus --target wasm32-unknown-unknown \
+    --manifest-path "$root/Cargo.toml"
+"$root/scripts/pack-plugin.sh" "$root/crates/bientot-plugin-sdk/examples/focus" \
+    "$target_dir/wasm32-unknown-unknown/release/examples/focus.wasm" --out "$output/focus.bientot-plugin"
 ls -l "$output"

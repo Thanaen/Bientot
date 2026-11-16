@@ -1951,6 +1951,7 @@ impl PageStatus {
         }
     }
 
+    #[cfg(feature = "plugins")]
     pub(crate) fn alert(text: impl Into<SharedString>) -> Self {
         Self {
             text: text.into(),

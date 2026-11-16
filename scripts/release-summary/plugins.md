@@ -1,0 +1,2 @@
+fr: Dans Paramètres › Plugins, vous pouvez installer des plugins facultatifs depuis un fichier, après avoir accepté ce qu’ils pourront faire : afficher une carte dans le volet et ajouter des commandes à la palette, sans accès au réseau ni à vos fichiers.
+en: In Settings › Plugins, you can install optional plugins from a file after approving what they may do: show a card in the flyout and add commands to the palette, with no network or file access.

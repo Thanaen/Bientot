@@ -385,18 +385,19 @@ jobs:
           $table >> $env:GITHUB_STEP_SUMMARY
           if ($sizeMb -ge 20) { throw "The Velopack executable is $sizeMb MB, over the 20 MB gate." }
 
-      # SC-001 to SC-003 of specs/003-plugin-runtime: the release executable with the plugin
-      # runtime, then idle with no plugin and with the sample plugin « Concentration ». Reported,
-      # not enforced, for the same reason as the measures above. It rebuilds worktime.exe, so it
-      # comes after every step that uses the release build.
+      # SC-001 to SC-003 of specs/003-plugin-runtime: what the plugin runtime adds to the release
+      # executable, then idle with no plugin and with the sample plugin « Concentration ».
+      # Reported, not enforced, for the same reason as the measures above. It builds the release
+      # features without `plugins` over worktime.exe, so it comes after every step that uses it.
       - name: Measure the plugin runtime
         continue-on-error: true
         shell: pwsh
         run: |
-          $releaseMb = (Get-Item artifacts/release/worktime.exe).Length / 1MB
-          cargo build --release --locked -p bientot-app --bin worktime --features release,plugins
-          if ($LASTEXITCODE -ne 0) { throw 'The build with the plugin runtime failed.' }
-          $pluginsMb = (Get-Item target/release/worktime.exe).Length / 1MB
+          $exe = 'artifacts/release/worktime.exe'
+          $pluginsMb = (Get-Item $exe).Length / 1MB
+          cargo build --release --locked -p bientot-app --bin worktime --features usage-ping
+          if ($LASTEXITCODE -ne 0) { throw 'The build without the plugin runtime failed.' }
+          $releaseMb = (Get-Item target/release/worktime.exe).Length / 1MB
           $table = @(
             ''
             '| Gate | Measured | Target |'
@@ -416,8 +417,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'The sample plugin did not pack.' }
 
           $baseline = Join-Path $env:RUNNER_TEMP 'no-plugin.json'
-          ./scripts/measure-performance.ps1 -ExecutablePath target/release/worktime.exe -ResultPath $baseline
-          ./scripts/measure-performance.ps1 -ExecutablePath target/release/worktime.exe -PluginTool target/release/bientot-plugin.exe -PluginPackage $package -Baseline $baseline
+          ./scripts/measure-performance.ps1 -ExecutablePath $exe -ResultPath $baseline
+          ./scripts/measure-performance.ps1 -ExecutablePath $exe -PluginTool target/release/bientot-plugin.exe -PluginPackage $package -Baseline $baseline
 
       # Lets a person try the build, for example with Narrator, without building it, even one
       # over a gate.
