@@ -27,6 +27,6 @@ bientot-plugin-api = { path = "../bientot-plugin-api" }
 
 [dev-dependencies]
 bientot-store = { path = "../bientot-store" }
-rusqlite = "0.41.0"
+rusqlite = "0.43.0"
 tempfile = "3.27.0"
 wat = "1.263.0"
