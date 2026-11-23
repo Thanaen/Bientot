@@ -78,7 +78,7 @@ fn seed_worked_week(
         Ok(monday
             .checked_add(jiff::Span::new().days(day))?
             .at(hour, minute, 0, 0)
-            .to_zoned(TimeZone::UTC)?
+            .to_zoned_datetime(TimeZone::UTC)?
             .timestamp())
     };
     ActivitySourceSelectionRepository::new(connection, clock).append(ActivitySourceSelection {

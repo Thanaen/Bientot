@@ -208,7 +208,11 @@ impl<'a> DiagnosticExport<'a> {
             .write(true)
             .create_new(true)
             .open(&temporary)?;
-        let modified = self.clock.now().to_zoned(TimeZone::system()).datetime();
+        let modified = self
+            .clock
+            .now()
+            .to_zoned_datetime(TimeZone::system())
+            .datetime();
         let entries: [(&str, &[u8]); 3] = [
             ("manifest.json", manifest_json.as_bytes()),
             ("snapshot.json", snapshot_json.as_bytes()),
@@ -895,7 +899,7 @@ fn parse_utc_timestamp(text: &str) -> Option<ParsedTimestamp> {
     }
     let civil = civil_date_time(year, month, day, hour, minute, second, nanosecond)?;
     Some(ParsedTimestamp {
-        instant: civil.to_zoned(TimeZone::UTC).ok()?.timestamp(),
+        instant: civil.to_zoned_datetime(TimeZone::UTC).ok()?.timestamp(),
         civil,
     })
 }

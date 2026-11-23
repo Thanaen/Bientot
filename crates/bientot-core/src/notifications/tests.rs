@@ -39,7 +39,7 @@ fn workday() -> LocalWorkday {
 
 fn at(hour: i8, minute: i8, second: i8) -> Timestamp {
     DAY.at(hour, minute, second, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

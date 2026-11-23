@@ -18,7 +18,7 @@ use crate::time::{LocalWorkday, WorkdayWindow};
 fn at(hour: i8, minute: i8) -> Timestamp {
     date(2026, 10, 22)
         .at(hour, minute, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

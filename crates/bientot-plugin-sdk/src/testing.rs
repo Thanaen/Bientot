@@ -512,7 +512,7 @@ fn render(node: &Prepared, now: Timestamp) -> String {
             format!("⏳{}", hours((until.as_second() - now.as_second()).max(0)))
         }
         Prepared::Time { at } => {
-            let time = at.to_zoned(jiff::tz::TimeZone::UTC).time();
+            let time = at.to_zoned_datetime(jiff::tz::TimeZone::UTC).time();
             format!("{:02}:{:02}", time.hour(), time.minute())
         }
         Prepared::Badge { text, tone } => {

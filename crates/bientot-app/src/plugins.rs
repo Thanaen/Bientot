@@ -93,7 +93,7 @@ impl PluginCards {
 
     /// The local date, as « Hide for today » counts it.
     pub fn today(&self) -> Date {
-        (self.clock)().to_zoned(self.zone.clone()).date()
+        (self.clock)().to_zoned_datetime(self.zone.clone()).date()
     }
 
     /// Orders the cards as `state` says on `today`; without a state, as the screenshots draw

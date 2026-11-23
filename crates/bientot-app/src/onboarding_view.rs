@@ -85,7 +85,7 @@ pub fn open(
     let usage_ping = UsagePingFacts {
         build: settings_view::build(),
         released: settings_view::released(),
-        today: jiff::Zoned::now().date(),
+        today: jiff::ZonedDateTime::now().date(),
         last_sent: None,
     };
     let onboarding = Onboarding::new(settings, usage_ping, forced, directory);

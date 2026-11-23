@@ -46,7 +46,7 @@ fn shown(node: &Prepared, now: Timestamp, zone: &TimeZone, language: Language) -
             time_text::minutes_text(SignedDuration::from_mins(minutes), language)
         }
         Prepared::Time { at } => {
-            let local = at.to_zoned(zone.clone()).datetime();
+            let local = at.to_zoned_datetime(zone.clone()).datetime();
             language.short_time(local.round(jiff::Unit::Minute).unwrap_or(local).time())
         }
         Prepared::Stack(_) | Prepared::Row(_) | Prepared::Progress { .. } => return None,

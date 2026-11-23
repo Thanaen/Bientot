@@ -62,8 +62,8 @@ pub fn minute_time(local: DateTime) -> String {
 
 /// `interval` in local times of `zone`, to the second: `09:40:12–09:45:42`.
 pub fn local_range_text(interval: UtcInterval, zone: &TimeZone, language: Language) -> String {
-    let [start, end] =
-        [interval.start(), interval.end()].map(|instant| instant.to_zoned(zone.clone()).datetime());
+    let [start, end] = [interval.start(), interval.end()]
+        .map(|instant| instant.to_zoned_datetime(zone.clone()).datetime());
     range_text(start, end, language)
 }
 

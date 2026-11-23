@@ -15,7 +15,7 @@ use crate::time::{LocalWorkday, WorkdayWindow};
 fn at(hour: i8, minute: i8, second: i8) -> Timestamp {
     date(2026, 9, 8)
         .at(hour, minute, second, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

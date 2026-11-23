@@ -44,7 +44,7 @@ fn stored(duration: SignedDuration) -> SignedDuration {
 
 fn utc_at(day: Date, hour: i8, minute: i8) -> Timestamp {
     day.at(hour, minute, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }
@@ -365,7 +365,7 @@ fn demo_history_week_draws_every_kind_of_segment_for_the_screenshots() {
     let week = current_week(connection, &demo, &zones);
 
     let time = |instant: Timestamp| {
-        let local = instant.to_zoned(TimeZone::UTC);
+        let local = instant.to_zoned_datetime(TimeZone::UTC);
         format!("{:02}:{:02}", local.hour(), local.minute())
     };
     let days: Vec<Vec<String>> = week
@@ -459,7 +459,7 @@ fn problem_periods_and_fragmented_day_store_today_with_their_seeded_sleep() {
     let at = |hour, minute, second| {
         monday
             .at(hour, minute, second, 0)
-            .to_zoned(TimeZone::UTC)
+            .to_zoned_datetime(TimeZone::UTC)
             .unwrap()
             .timestamp()
     };

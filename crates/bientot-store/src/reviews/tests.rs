@@ -9,7 +9,7 @@ fn monday() -> LocalWorkday {
 
 fn at(day: Date, hour: i8) -> Timestamp {
     day.at(hour, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

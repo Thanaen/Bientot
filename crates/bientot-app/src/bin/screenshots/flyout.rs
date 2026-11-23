@@ -202,11 +202,12 @@ pub fn capture_rebuilt_review(
         let at = |hour, minute| {
             today
                 .at(hour, minute, 0, 0)
-                .to_zoned(jiff::tz::TimeZone::UTC)
+                .to_zoned_datetime(jiff::tz::TimeZone::UTC)
                 .map(|zoned| zoned.timestamp())
         };
         let (start, end) = (at(8, 12)?, at(10, 30)?);
-        let local = |instant: jiff::Timestamp| instant.to_zoned(jiff::tz::TimeZone::UTC).time();
+        let local =
+            |instant: jiff::Timestamp| instant.to_zoned_datetime(jiff::tz::TimeZone::UTC).time();
         day.named_review = Some(ClosedReview {
             workday: LocalWorkday::new(today, "UTC"),
             id: LongLockReviewId::new(format!("session-rebuilt:1:{start}"))?,
@@ -235,11 +236,12 @@ pub fn capture_appointment_review(
         let at = |hour, minute| {
             today
                 .at(hour, minute, 0, 0)
-                .to_zoned(jiff::tz::TimeZone::UTC)
+                .to_zoned_datetime(jiff::tz::TimeZone::UTC)
                 .map(|zoned| zoned.timestamp())
         };
         let (start, end) = (at(14, 2)?, at(15, 47)?);
-        let local = |instant: jiff::Timestamp| instant.to_zoned(jiff::tz::TimeZone::UTC).time();
+        let local =
+            |instant: jiff::Timestamp| instant.to_zoned_datetime(jiff::tz::TimeZone::UTC).time();
         day.named_review = Some(ClosedReview {
             workday: LocalWorkday::new(today, "UTC"),
             id: LongLockReviewId::for_appointment("monday-1400", start),
@@ -263,11 +265,12 @@ pub fn capture_appointment_review(
         let at = |hour, minute| {
             today
                 .at(hour, minute, 0, 0)
-                .to_zoned(jiff::tz::TimeZone::UTC)
+                .to_zoned_datetime(jiff::tz::TimeZone::UTC)
                 .map(|zoned| zoned.timestamp())
         };
         let (start, end) = (at(14, 2)?, at(15, 47)?);
-        let local = |instant: jiff::Timestamp| instant.to_zoned(jiff::tz::TimeZone::UTC).time();
+        let local =
+            |instant: jiff::Timestamp| instant.to_zoned_datetime(jiff::tz::TimeZone::UTC).time();
         let workday = LocalWorkday::new(today, "UTC");
         let review = LongLockReviewId::for_appointment("thursday-1400", start);
         day.counted_absence = Some(CountedAbsence {

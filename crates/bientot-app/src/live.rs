@@ -398,7 +398,10 @@ impl<'a> LiveHost<'a> {
     }
 
     pub fn today(&self) -> Date {
-        self.clock.now().to_zoned(self.zones.local().1).date()
+        self.clock
+            .now()
+            .to_zoned_datetime(self.zones.local().1)
+            .date()
     }
 
     /// How long until the next midnight, where the next workday starts and a catch-up resets a
@@ -928,7 +931,7 @@ impl<'a> LiveHost<'a> {
             .zones
             .get(&workday.time_zone_id)
             .unwrap_or_else(|_| self.zones.local().1);
-        let local = |instant: jiff::Timestamp| instant.to_zoned(zone.clone()).time();
+        let local = |instant: jiff::Timestamp| instant.to_zoned_datetime(zone.clone()).time();
         let current = summary.accounting();
         current
             .pending_reviews()
@@ -1161,7 +1164,7 @@ impl<'a> LiveHost<'a> {
             .zones
             .get(&workday.time_zone_id)
             .unwrap_or_else(|_| self.zones.local().1);
-        let local = |instant: Timestamp| instant.to_zoned(zone.clone()).time();
+        let local = |instant: Timestamp| instant.to_zoned_datetime(zone.clone()).time();
         automatic::in_effect(&recorded)
             .into_iter()
             .filter(|count| !self.closed.has_count(self.today(), count.id().as_str()))

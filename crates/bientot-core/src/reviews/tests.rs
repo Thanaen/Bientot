@@ -38,7 +38,7 @@ const MONDAY: Date = date(2026, 8, 24);
 
 fn on(day: Date, hour: i8, minute: i8) -> Timestamp {
     day.at(hour, minute, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }
@@ -1125,7 +1125,7 @@ struct OfficeHours;
 
 impl ActivitySource for OfficeHours {
     fn read(&self, interval: UtcInterval) -> Result<ActivityReadResult, ActivityError> {
-        let day = interval.start().to_zoned(TimeZone::UTC).date();
+        let day = interval.start().to_zoned_datetime(TimeZone::UTC).date();
         let origin = || origin("activitywatch:test");
         let office = UtcInterval::new(on(day, 9, 0), on(day, 17, 0)).unwrap();
         let segments = [

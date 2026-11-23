@@ -16,7 +16,7 @@ const DAY: Date = date(2026, 8, 14);
 
 fn utc(day: Date, hour: i8, minute: i8) -> Timestamp {
     day.at(hour, minute, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

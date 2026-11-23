@@ -146,13 +146,13 @@ impl DayTimeline {
         })?;
         let offset = civil_seconds(nearest.local_start) - nearest.interval.start().as_second();
         let local = Timestamp::from_second(instant.as_second() + offset).ok()?;
-        Some(local.to_zoned(TimeZone::UTC).datetime())
+        Some(local.to_zoned_datetime(TimeZone::UTC).datetime())
     }
 }
 
 fn civil_seconds(local: DateTime) -> i64 {
     local
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .map_or(0, |zoned| zoned.timestamp().as_second())
 }
 

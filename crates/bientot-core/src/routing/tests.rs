@@ -31,7 +31,7 @@ fn at(day: i64, hour: i8, minute: i8) -> Timestamp {
         .checked_add(Span::new().days(day))
         .unwrap()
         .at(hour, minute, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

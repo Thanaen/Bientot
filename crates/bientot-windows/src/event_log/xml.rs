@@ -32,7 +32,7 @@ pub(crate) fn instant(text: &str) -> Option<Timestamp> {
     let text = text.trim();
     text.parse().ok().or_else(|| {
         let local: DateTime = text.parse().ok()?;
-        Some(local.to_zoned(TimeZone::UTC).ok()?.timestamp())
+        Some(local.to_zoned_datetime(TimeZone::UTC).ok()?.timestamp())
     })
 }
 

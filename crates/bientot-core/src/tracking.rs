@@ -137,7 +137,7 @@ impl<'a> TrackingControl<'a> {
 
         let finished_on = finished
             .occurred_at
-            .to_zoned(
+            .to_zoned_datetime(
                 self.calendar
                     .zones()
                     .get(&current.time_zone_id)

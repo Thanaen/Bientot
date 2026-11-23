@@ -391,7 +391,7 @@ pub fn days_after(date: Date, days: i64) -> Date {
 }
 
 pub fn midnight(date: Date) -> Timestamp {
-    date.to_zoned(TimeZone::UTC).unwrap().timestamp()
+    date.to_zoned_datetime(TimeZone::UTC).unwrap().timestamp()
 }
 
 pub fn source(id: &str) -> AutomaticOrigin {

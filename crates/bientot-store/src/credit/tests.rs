@@ -27,7 +27,7 @@ fn entry(
     let workday = plus_days(week, workday_offset);
     let created_at: Timestamp = workday
         .at(created_hour, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp();
     CreditLedgerEntry::new(

@@ -122,7 +122,7 @@ pub fn proposal(
         .filter_map(|revision| {
             let snapshot = revision.snapshot();
             let zone = zones.get(&snapshot.workday().time_zone_id).ok()?;
-            let local = |instant: jiff::Timestamp| instant.to_zoned(zone.clone()).time();
+            let local = |instant: jiff::Timestamp| instant.to_zoned_datetime(zone.clone()).time();
             let entries = snapshot.breakdown().entries();
             Some(ObservedDay {
                 date: snapshot.workday().date,

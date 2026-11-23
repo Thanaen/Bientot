@@ -40,7 +40,7 @@ futures = "0.3"
 gpui = { version = "=0.3.9", package = "gpui-pre" }
 gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform" }
 image = { version = "0.25", default-features = false, features = ["png"] }
-jiff = "0.2.38"
+jiff = "1.0.0"
 log = "0.4"
 # Draws the tray icon at the taskbar's size; the version gpui already builds.
 resvg = { version = "0.46", default-features = false }

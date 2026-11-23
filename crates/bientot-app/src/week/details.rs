@@ -8,7 +8,7 @@ use bientot_domain::accounting::AdjustmentId;
 use bientot_domain::history::{DailySummaryDisposition, DailySummarySnapshot};
 use bientot_domain::time::LocalWorkday;
 use jiff::tz::TimeZone;
-use jiff::{SignedDuration, Zoned};
+use jiff::{SignedDuration, ZonedDateTime};
 
 use super::{DayTone, Figures, Offer, WeekState};
 use crate::adjust::Seed;
@@ -55,7 +55,7 @@ pub struct CountedCorrection {
     pub offer: Offer,
     pub disposition: DailySummaryDisposition,
     /// Its intervals in the day's zone, touching ones merged; none for a duration.
-    pub ranges: Vec<(Zoned, Zoned)>,
+    pub ranges: Vec<(ZonedDateTime, ZonedDateTime)>,
     pub duration: SignedDuration,
 }
 
@@ -89,8 +89,8 @@ pub(super) fn corrections(
         // The breakdown orders its timed entries by interval, so a piece can only touch the
         // last range gathered.
         if let Some(interval) = entry.interval() {
-            let start = interval.start().to_zoned(zone.clone());
-            let end = interval.end().to_zoned(zone.clone());
+            let start = interval.start().to_zoned_datetime(zone.clone());
+            let end = interval.end().to_zoned_datetime(zone.clone());
             match correction.ranges.last_mut() {
                 Some((_, last)) if *last >= start => {
                     if end > *last {

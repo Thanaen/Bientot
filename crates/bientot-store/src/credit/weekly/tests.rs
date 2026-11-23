@@ -30,7 +30,7 @@ fn tuesday() -> Date {
 
 fn instant(day: Date) -> Timestamp {
     day.at(16, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

@@ -438,7 +438,10 @@ impl DemoHost {
 
     /// The demo's local date.
     pub fn today(&self) -> jiff::civil::Date {
-        self.environment.now().to_zoned(TimeZone::UTC).date()
+        self.environment
+            .now()
+            .to_zoned_datetime(TimeZone::UTC)
+            .date()
     }
 }
 
