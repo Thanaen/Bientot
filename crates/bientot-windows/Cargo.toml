@@ -8,7 +8,7 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
-jiff = "0.2.38"
+jiff = "1.0.0"
 bientot-domain = { path = "../bientot-domain" }
 bientot-store = { path = "../bientot-store" }
 
