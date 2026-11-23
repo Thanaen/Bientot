@@ -13,7 +13,7 @@ fn day() -> LocalWorkday {
 fn now() -> Timestamp {
     date(2026, 9, 7)
         .at(17, 45, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

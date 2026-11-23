@@ -55,7 +55,7 @@ impl Database {
 pub(crate) fn utc(year: i16, month: i8, day: i8, hour: i8) -> Timestamp {
     date(year, month, day)
         .at(hour, 0, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

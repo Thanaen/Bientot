@@ -34,7 +34,7 @@ use crate::weekly::WeeklyRecalculation;
 
 fn on(day: Date, hour: i8, minute: i8) -> Timestamp {
     day.at(hour, minute, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }
@@ -534,7 +534,7 @@ impl OfficeDay {
 impl ActivitySource for OfficeDay {
     fn read(&self, request: UtcInterval) -> Result<ActivityReadResult, ActivityError> {
         self.requests.borrow_mut().push(request);
-        let day = request.start().to_zoned(TimeZone::UTC).date();
+        let day = request.start().to_zoned_datetime(TimeZone::UTC).date();
         let active_start = request.start() + SignedDuration::from_hours(8);
         let active_end = active_start + self.work[&day];
         let origin = || AutomaticOrigin::new("activitywatch:test").unwrap();

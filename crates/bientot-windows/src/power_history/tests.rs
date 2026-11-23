@@ -19,7 +19,7 @@ use PowerHistoryBoundaryKind::{Boot, Resume, Shutdown, Suspend};
 fn at_ms(hour: i64, minute: i64, second: i64, millisecond: i64) -> Timestamp {
     date(2026, 9, 7)
         .at(0, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
         + SignedDuration::from_hours(hour)

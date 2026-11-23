@@ -52,7 +52,7 @@ fn tuesday() -> Date {
 
 fn at(date: Date, hour: i8) -> Timestamp {
     date.at(hour, 0, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }
@@ -108,10 +108,12 @@ impl WorkSource {
     fn utc_or_paris(self) -> Self {
         Self {
             date_selector: |request| {
-                if request.start().to_zoned(TimeZone::UTC).time() == jiff::civil::Time::midnight() {
+                if request.start().to_zoned_datetime(TimeZone::UTC).time()
+                    == jiff::civil::Time::midnight()
+                {
                     start_date(request)
                 } else {
-                    request.end().to_zoned(TimeZone::UTC).date()
+                    request.end().to_zoned_datetime(TimeZone::UTC).date()
                 }
             },
             ..self
@@ -124,7 +126,7 @@ impl WorkSource {
 }
 
 fn start_date(request: UtcInterval) -> Date {
-    request.start().to_zoned(TimeZone::UTC).date()
+    request.start().to_zoned_datetime(TimeZone::UTC).date()
 }
 
 impl ActivitySource for WorkSource {

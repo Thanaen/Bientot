@@ -369,7 +369,7 @@ impl DayView {
                 .workday()
                 .date
                 .to_datetime(settings.preferred_latest_departure)
-                .to_zoned(zone.clone())
+                .to_zoned_datetime(zone.clone())
                 .map_or(departure, |latest| latest.timestamp());
             let margin = latest.duration_since(departure);
             let hint = language.format(
@@ -380,10 +380,10 @@ impl DayView {
                 },
                 &[
                     &duration(margin.abs()),
-                    &language.short_time(latest.to_zoned(zone.clone()).time()),
+                    &language.short_time(latest.to_zoned_datetime(zone.clone()).time()),
                 ],
             );
-            let value = language.short_time(departure.to_zoned(zone.clone()).time());
+            let value = language.short_time(departure.to_zoned_datetime(zone.clone()).time());
             let tray = language.format(Key::TrayProjectionFormat, &[&value]);
             let headline = Headline {
                 label: Some(text(Key::WorkdayProjectionLabel)),
@@ -631,7 +631,8 @@ fn missing_work(summary: &DailySummary, zone: &TimeZone, language: Language) -> 
     // To the nearest minute, a total read at a glance: « 26 min », not « 25 min 30 s ».
     let duration = crate::time_text::minutes_text(total, language);
     let intervals: Vec<UtcInterval> = missing.iter().copied().collect();
-    let clock = |instant: Timestamp| language.short_time(instant.to_zoned(zone.clone()).time());
+    let clock =
+        |instant: Timestamp| language.short_time(instant.to_zoned_datetime(zone.clone()).time());
     let (first, last) = (intervals[0], intervals[intervals.len() - 1]);
     let key = if intervals.len() == 1 {
         Key::SourceMissingOneFormat

@@ -10,7 +10,7 @@ use super::*;
 fn day() -> Timestamp {
     date(2026, 10, 12)
         .at(0, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

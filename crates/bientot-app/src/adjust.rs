@@ -854,7 +854,9 @@ fn hour_after(end: Timestamp, target: &Target, now: Timestamp) -> Option<UtcInte
 
 /// The first instant of `date` in `zone`.
 fn midnight(date: Date, zone: &TimeZone) -> Option<Timestamp> {
-    date.to_zoned(zone.clone()).ok().map(|day| day.timestamp())
+    date.to_zoned_datetime(zone.clone())
+        .ok()
+        .map(|day| day.timestamp())
 }
 
 /// Début and Fin on the minutes of `interval`.
@@ -867,7 +869,7 @@ fn minute_fields(interval: UtcInterval, zone: &TimeZone) -> (TimeField, TimeFiel
 
 /// The minute of `instant` in `zone`, its seconds dropped as the .NET time picker shows them.
 fn minute_field(instant: Timestamp, zone: &TimeZone) -> TimeField {
-    let local = instant.to_zoned(zone.clone());
+    let local = instant.to_zoned_datetime(zone.clone());
     TimeField::new(local.hour(), local.minute())
 }
 

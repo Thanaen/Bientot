@@ -12,7 +12,7 @@ const OTHER_USER: &str = "S-1-5-21-1004336348-1177238915-682003330-1002";
 fn at(hour: i64, minute: i64, millisecond: i64) -> Timestamp {
     date(2026, 10, 26)
         .at(0, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
         + SignedDuration::from_hours(hour)

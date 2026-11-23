@@ -31,7 +31,7 @@ fn demo(scenario: DemoScenario, tracking: TrackingState, working_day: bool) -> D
             .workday()
             .date
             .to_datetime(time)
-            .to_zoned(TimeZone::UTC)
+            .to_zoned_datetime(TimeZone::UTC)
             .unwrap()
             .timestamp()
     };

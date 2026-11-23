@@ -449,7 +449,8 @@ const BACKUP_PREFIX: &str = "before-import-";
 fn backup_name(now: Timestamp, zone: &TimeZone) -> String {
     format!(
         "{BACKUP_PREFIX}{}.{EXTENSION}",
-        now.to_zoned(zone.clone()).strftime("%Y-%m-%d-%H-%M-%S")
+        now.to_zoned_datetime(zone.clone())
+            .strftime("%Y-%m-%d-%H-%M-%S")
     )
 }
 

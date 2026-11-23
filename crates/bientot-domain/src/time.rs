@@ -180,7 +180,7 @@ impl<P: TimeZoneProvider> WorkdayCalendar<P> {
 
     pub fn workday(&self, instant: Timestamp) -> LocalWorkday {
         let (id, zone) = self.zones.local();
-        LocalWorkday::new(instant.to_zoned(zone).date(), id)
+        LocalWorkday::new(instant.to_zoned_datetime(zone).date(), id)
     }
 
     pub fn window(&self, workday: &LocalWorkday) -> Result<WorkdayWindow, CalendarError> {

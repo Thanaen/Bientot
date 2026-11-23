@@ -85,7 +85,7 @@ pub(super) fn hours(hours: i64) -> SignedDuration {
 fn at(hour: i8, minute: i8) -> Timestamp {
     date(2026, 8, 3)
         .at(hour, minute, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }
@@ -522,7 +522,7 @@ fn finish_excludes_the_rest_of_the_current_workday() {
     let at_monday = |hour| {
         date(2026, 8, 24)
             .at(hour, 0, 0, 0)
-            .to_zoned(TimeZone::UTC)
+            .to_zoned_datetime(TimeZone::UTC)
             .unwrap()
             .timestamp()
     };

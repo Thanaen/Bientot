@@ -24,7 +24,7 @@ pub fn toast(
     let projected = notification
         .projected_departure
         .zip(zones.get(&notification.time_zone_id).ok())
-        .map(|(departure, zone)| language.short_time(departure.to_zoned(zone).time()))
+        .map(|(departure, zone)| language.short_time(departure.to_zoned_datetime(zone).time()))
         .unwrap_or_default();
     let mut body = language.format(key, &[&notification.remaining_minutes(), &projected]);
     if notification.is_estimated {

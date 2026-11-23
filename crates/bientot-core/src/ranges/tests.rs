@@ -24,7 +24,7 @@ const MONDAY: Date = date(2026, 8, 31);
 fn at(hour: i8, minute: i8) -> Timestamp {
     MONDAY
         .at(hour, minute, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

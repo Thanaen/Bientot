@@ -377,7 +377,7 @@ fn file_start(name: &str, metadata: &fs::Metadata) -> Timestamp {
                 field(16..23)? * 100,
             )
         })
-        .and_then(|civil| civil.to_zoned(TimeZone::UTC).ok())
+        .and_then(|civil| civil.to_zoned_datetime(TimeZone::UTC).ok())
         .map_or_else(|| modified(metadata), |zoned| zoned.timestamp())
 }
 

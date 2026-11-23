@@ -402,7 +402,7 @@ fn nothing_is_edited_or_added_while_a_refresh_is_pending() {
 fn at(hour: i8, minute: i8) -> Timestamp {
     date(9, 3)
         .at(hour, minute, 0, 0)
-        .to_zoned(TimeZone::UTC)
+        .to_zoned_datetime(TimeZone::UTC)
         .unwrap()
         .timestamp()
 }

@@ -476,7 +476,7 @@ impl<Z: TimeZoneProvider> DemoEnvironment<Z> {
     /// 7 hours on the other days, active from 9:00.
     fn read_history_week(&self, bounds: UtcInterval) -> ActivityReadResult {
         let (zone_id, zone) = self.zones.local();
-        let date = bounds.start().to_zoned(zone).date();
+        let date = bounds.start().to_zoned_datetime(zone).date();
         let workday = LocalWorkday::new(date, zone_id);
         let local_at = |hour| self.instant(&workday, time(hour, 0, 0, 0));
         let worked = match date.weekday() {

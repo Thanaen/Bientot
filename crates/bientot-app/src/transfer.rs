@@ -36,7 +36,7 @@ pub fn export(
     cx: &mut App,
 ) {
     let file_type = file_type(cx);
-    let suggested = format!("Bientot-{}.{EXTENSION}", jiff::Zoned::now().date());
+    let suggested = format!("Bientot-{}.{EXTENSION}", jiff::ZonedDateTime::now().date());
     cx.spawn(async move |cx| {
         let saved = match file_dialogs::pick_save(suggested, file_type, EXTENSION, cx).await {
             Ok(None) => None,
@@ -115,7 +115,10 @@ async fn inspect(
                 None
             });
             Ok(Chosen {
-                exported_on: contents.exported_at.to_zoned(TimeZone::system()).date(),
+                exported_on: contents
+                    .exported_at
+                    .to_zoned_datetime(TimeZone::system())
+                    .date(),
                 file,
                 contents,
                 this_pc,
@@ -138,7 +141,7 @@ pub fn latest_backup(directory: &DataDirectory) -> Option<Backup> {
         .ok()?;
     let saved_on = Timestamp::try_from(modified)
         .ok()?
-        .to_zoned(TimeZone::system())
+        .to_zoned_datetime(TimeZone::system())
         .date();
     Some(Backup { file, saved_on })
 }

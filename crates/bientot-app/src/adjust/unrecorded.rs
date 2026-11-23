@@ -325,7 +325,7 @@ fn minute_bounds(interval: UtcInterval, zone: &TimeZone) -> [String; 2] {
 /// The two ends of `interval` in `zone`, each on the minute Début and Fin would show.
 fn minute_ends(interval: UtcInterval, zone: &TimeZone) -> [DateTime; 2] {
     [interval.start(), interval.end()].map(|instant| {
-        let local = instant.to_zoned(zone.clone()).datetime();
+        let local = instant.to_zoned_datetime(zone.clone()).datetime();
         local
             .round(
                 DateTimeRound::new()

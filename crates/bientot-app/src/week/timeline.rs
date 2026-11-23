@@ -189,7 +189,7 @@ impl WeekTimeline {
             .collect();
         Self {
             week_start: week.week_start_date(),
-            today: now.to_zoned(local).date(),
+            today: now.to_zoned_datetime(local).date(),
             start_hour,
             end_hour,
             days,
@@ -281,7 +281,7 @@ fn place_day(
     let zone = snapshot
         .and_then(|snapshot| zones.get(&snapshot.workday().time_zone_id).ok())
         .unwrap_or_else(|| local.clone());
-    let now_local = now.to_zoned(zone.clone());
+    let now_local = now.to_zoned_datetime(zone.clone());
     let availability = if now_local.date() < day.date {
         Availability::Future
     } else if snapshot.is_none() {
@@ -309,13 +309,13 @@ fn place_day(
         nominal_target: snapshot.nominal_target(),
         projected_departure: snapshot
             .projected_departure()
-            .map(|departure| departure.to_zoned(zone.clone()).time()),
+            .map(|departure| departure.to_zoned_datetime(zone.clone()).time()),
         credit: Credit::of(snapshot),
         corrections: details::corrections(snapshot, offers, &zone),
     });
 
     let midnight = |date: Date| {
-        date.to_zoned(zone.clone())
+        date.to_zoned_datetime(zone.clone())
             .expect("a summary's day exists in its zone")
             .timestamp()
     };
@@ -325,10 +325,10 @@ fn place_day(
         if instant >= day_end {
             24.
         } else {
-            hours(instant.to_zoned(zone.clone()).time())
+            hours(instant.to_zoned_datetime(zone.clone()).time())
         }
     };
-    let local = |instant: Timestamp| instant.to_zoned(zone.clone()).datetime();
+    let local = |instant: Timestamp| instant.to_zoned_datetime(zone.clone()).datetime();
     let lock = |id: &LongLockReviewId| {
         reviews
             .iter()
