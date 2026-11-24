@@ -1,6 +1,14 @@
 //! Reading Windows event logs: the records a query collects and their event XML. The history
 //! readers interpret the records; only the query itself is Windows only.
 
+#![cfg_attr(
+    not(windows),
+    allow(
+        dead_code,
+        reason = "only the Windows history logs read records outside the tests"
+    )
+)]
+
 #[cfg(windows)]
 pub(crate) mod native;
 pub(crate) mod xml;

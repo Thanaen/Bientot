@@ -34,6 +34,7 @@ timestamp. Re-reading the same history is idempotent, including after the System
 log is cleared and record IDs are reused. Both ends of one recovered interval
 are written in one SQLite transaction.
 
-`bientot-windows` implements the reader (`power_history.rs`). Its tests
-replay sanitized event XML and cover the boundary rules above; the native
+`bientot-platform` pairs and records the boundaries (`power_history.rs`), and
+its tests cover the rules above. `bientot-windows` reads them from the System
+log (`power_history.rs`); its tests replay sanitized event XML, and the native
 event log read runs only on Windows (`cargo test -p bientot-windows`).

@@ -2,6 +2,7 @@
 
 #![allow(unsafe_code)]
 
+use bientot_platform::session_history::SessionBoundaryLog;
 use jiff::Timestamp;
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree};
 use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
@@ -10,20 +11,20 @@ use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken}
 
 use crate::event_log::{CollectedRecords, LogUnavailable, native};
 
-use super::WinlogonEventLog;
 use super::event_xml::NOTIFICATION_STARTED;
+use super::{WinlogonBoundaries, WinlogonEventLog};
 
 const CHANNEL: &str = "Microsoft-Windows-Winlogon/Operational";
 
 /// The Winlogon log of this computer, read newest first, for one user.
-pub struct WinlogonLog {
+struct WinlogonLog {
     user_id: String,
 }
 
 impl WinlogonLog {
     /// `None` unless `user_id` is spelled as a security identifier, so that it can stand in the
     /// query as it is.
-    pub fn new(user_id: &str) -> Option<Self> {
+    fn new(user_id: &str) -> Option<Self> {
         let valid = user_id.starts_with("S-")
             && user_id[2..]
                 .bytes()
@@ -53,8 +54,17 @@ impl WinlogonEventLog for WinlogonLog {
     }
 }
 
+/// The session boundaries of the user running this process in the Winlogon log of this
+/// computer; `None` when the user cannot be told.
+pub fn current_user_log() -> Option<impl SessionBoundaryLog> {
+    current_user_id()
+        .as_deref()
+        .and_then(WinlogonLog::new)
+        .map(WinlogonBoundaries)
+}
+
 /// The security identifier of the user running this process, as `S-1-5-21-…`.
-pub fn current_user_id() -> Option<String> {
+fn current_user_id() -> Option<String> {
     let mut token: HANDLE = std::ptr::null_mut();
     // SAFETY: the pseudo handle of the current process needs no closing, and `token` is a live,
     // writable local.
@@ -108,14 +118,16 @@ fn token_user_id(token: HANDLE) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use bientot_domain::intervals::UtcInterval;
+    use bientot_platform::session_history::{
+        RECORD_LIMIT, SessionHistoryRead, SessionHistoryReader,
+    };
 
     use super::*;
-    use crate::session_history::{RECORD_LIMIT, SessionHistoryRead, SessionHistoryReader};
 
     #[test]
     fn the_winlogon_log_of_the_current_user_reads_and_every_matching_record_parses() {
         let user_id = current_user_id().expect("the process has a user");
-        let log = WinlogonLog::new(&user_id).expect("a security identifier");
+        let log = WinlogonBoundaries(WinlogonLog::new(&user_id).expect("a security identifier"));
         let now = Timestamp::now();
         let read = SessionHistoryReader::new(log, RECORD_LIMIT)
             .read(UtcInterval::new(now - jiff::SignedDuration::from_hours(24), now).unwrap());

@@ -544,14 +544,15 @@ mod native {
     use bientot_core::diagnostics::DiagnosticLogLevel;
     use bientot_domain::time::SystemClock;
     use bientot_platform::lifecycle::{LifecycleEventRecorder, LifecycleTransition, probe_within};
+    use bientot_platform::power_history::{PowerHistoryReader, RECORD_LIMIT};
+    use bientot_platform::session_history::{
+        self, SessionHistoryRead, SessionHistoryReader, SessionHistoryUnavailable,
+    };
     use bientot_windows::animation_effects::{self, SettingChanges};
     use bientot_windows::lifecycle::{LifecycleWindow, current_session_state};
     use bientot_windows::notifications::{Sender, Toasts};
-    use bientot_windows::power_history::{PowerHistoryReader, RECORD_LIMIT, SystemLog};
-    use bientot_windows::session_history::{
-        self, SessionHistoryRead, SessionHistoryReader, SessionHistoryUnavailable, WinlogonLog,
-        current_user_id,
-    };
+    use bientot_windows::power_history::system_log;
+    use bientot_windows::session_history::current_user_log;
     use bientot_windows::single_instance::{ActivationListener, PrimaryInstance};
     use futures::StreamExt as _;
     use futures::channel::mpsc;
@@ -581,15 +582,11 @@ mod native {
     /// before the first summary.
     pub fn catch_up(host: &mut LiveHost<'static>, lifecycle: &mut Lifecycle) -> anyhow::Result<()> {
         host.recover_power_history(|window| {
-            PowerHistoryReader::new(SystemLog, RECORD_LIMIT).read(window)
+            PowerHistoryReader::new(system_log(), RECORD_LIMIT).read(window)
         })?;
-        host.recover_session_history(|window| {
-            match current_user_id().as_deref().and_then(WinlogonLog::new) {
-                Some(log) => {
-                    SessionHistoryReader::new(log, session_history::RECORD_LIMIT).read(window)
-                }
-                None => SessionHistoryRead::Unavailable(SessionHistoryUnavailable::LogUnavailable),
-            }
+        host.recover_session_history(|window| match current_user_log() {
+            Some(log) => SessionHistoryReader::new(log, session_history::RECORD_LIMIT).read(window),
+            None => SessionHistoryRead::Unavailable(SessionHistoryUnavailable::LogUnavailable),
         })?;
         host.prepare_lifecycle(
             || {

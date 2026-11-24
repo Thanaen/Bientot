@@ -34,6 +34,8 @@ use bientot_domain::time::{Clock, LocalWorkday, TimeZoneProvider, WorkdayCalenda
 use bientot_platform::PowerState;
 use bientot_platform::activity::{BuiltInActivitySource, LastInputProbe};
 use bientot_platform::lifecycle::{LifecycleEventRecorder, LifecycleHooks, LifecycleTransition};
+use bientot_platform::power_history::{PowerHistoryRead, PowerHistoryRecovery};
+use bientot_platform::session_history::{SessionHistoryRead, SessionHistoryRecovery};
 use bientot_store::activity::{
     ActivityError, ActivitySourceSelectionRepository, ActivitySpanRepository,
 };
@@ -46,8 +48,6 @@ use bientot_store::notifications::NotificationReceiptRepository;
 use bientot_store::reviews::LongLockResolutionRepository;
 use bientot_store::sessions::SessionEventRepository;
 use bientot_store::settings::{LoadedSettings, SaveSettingsError, SettingsSource, SettingsStore};
-use bientot_windows::power_history::{PowerHistoryRead, PowerHistoryRecovery};
-use bientot_windows::session_history::{SessionHistoryRead, SessionHistoryRecovery};
 use jiff::Timestamp;
 use jiff::civil::Date;
 use rusqlite::Connection;

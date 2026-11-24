@@ -61,7 +61,8 @@ menu and the week, and offers no « Terminer la journée » for it. A lock read
 from the log is a lock like any other: it counts as locked work or lunch, and a
 long one asks for a review.
 
-`bientot-windows` implements the reader and the recovery (`session_history.rs`).
-Its tests replay event XML shaped as a real log renders it and account the
-recorded history; the native query runs only on Windows
+`bientot-platform` implements the recovery (`session_history.rs`); its tests
+account the recorded history. `bientot-windows` reads the boundaries from the
+Winlogon log (`session_history.rs`); its tests replay event XML shaped as a real
+log renders it, and the native query runs only on Windows
 (`cargo test -p bientot-windows`).
