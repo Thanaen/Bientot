@@ -44,6 +44,23 @@ fn each_subscriber_logging_one_change_collapses_into_its_first_record() {
     );
 }
 
+#[test]
+fn records_of_one_instant_keep_their_numeric_order_across_a_digit_boundary() {
+    let collapsed = collapse([
+        boundary(Lock, 100_000, at(10, 0, 0)),
+        boundary(Unlock, 99_999, at(10, 0, 0)),
+        boundary(Lock, 100_001, at(10, 0, 0)),
+    ]);
+
+    assert_eq!(
+        collapsed,
+        [
+            boundary(Unlock, 99_999, at(10, 0, 0)),
+            boundary(Lock, 100_000, at(10, 0, 0)),
+        ]
+    );
+}
+
 mod recovery {
     use std::time::Duration;
 
