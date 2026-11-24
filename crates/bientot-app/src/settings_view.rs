@@ -20,7 +20,7 @@ use std::time::Duration;
 use bientot_core::settings::{EditGroup, Pending, SettingsPort};
 use bientot_domain::configuration::{AppointmentProposal, RecurringAppointment, Settings};
 use bientot_domain::usage_ping::{Build, Channel};
-use bientot_platform::startup::{StartupPort, StartupRegistrationState, SystemPage};
+use bientot_platform::startup::{StartupPort, StartupRegistrationState};
 use bientot_store::settings::SaveSettingsError;
 use gpui::{
     Animation, AnimationExt as _, App, AppContext as _, Bounds, Context, Entity, FocusHandle,
@@ -357,6 +357,9 @@ impl SettingsView {
         let startup = cx.try_global::<Startup>().map(|startup| startup.0.clone());
         if startup.is_none() {
             form.show_startup(StartupRegistrationState::Unavailable);
+        }
+        if let Some(page) = startup.as_ref().and_then(|port| port.system_page()) {
+            form.show_startup_page(page);
         }
         let language = cx.try_global::<Language>().copied().unwrap_or_default();
         let focus_handle = cx.focus_handle();
@@ -1003,23 +1006,17 @@ impl SettingsView {
                 view.form.toggle_details()
             })
         });
-        let page = self.startup.as_ref().and_then(|port| port.system_page());
         let details = details.or_else(|| {
             row.startup_apps
-                .zip(page)
-                .map(|(view, page)| startup_apps_callout(view, page, theme))
+                .map(|view| startup_apps_callout(view, theme))
         });
         row_frame((&row).into(), control, details, last, theme)
     }
 }
 
-/// What only the system's page of startup apps can change, and the button that opens `page`.
-pub(crate) fn startup_apps_callout(
-    view: StartupAppsView,
-    page: SystemPage,
-    theme: &Theme,
-) -> gpui::Div {
-    let url = page.uri;
+/// What only the system's page of startup apps can change, and the button that opens it.
+pub(crate) fn startup_apps_callout(view: StartupAppsView, theme: &Theme) -> gpui::Div {
+    let url = view.url;
     div().pt(BASE_08).child(
         widgets::inline_callout_box(Hue::Info, theme)
             .id("startup-apps-callout")

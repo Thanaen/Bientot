@@ -239,8 +239,10 @@ pub struct SystemPage { pub uri: &'static str }
 page implements it: Windows answers `ms-settings:startupapps`
 (`bientot_windows::startup::STARTUP_APPS`), and the in-memory ports of the
 tests need no change.
-The settings and the onboarding show « Open Startup apps » only when it
-answers `Some`, and open that page's `uri`.
+The settings and the onboarding views hand that page to their form when they
+open (`show_startup_page`). The form shows « Open Startup apps » only when it
+has a page, and opens its `uri`; without one, the startup row keeps its status
+text.
 
 Linux never returns `DisabledByUser`, `DisabledByPolicy` or
 `EnabledByPolicy`.

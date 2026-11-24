@@ -9,7 +9,7 @@ use bientot_core::settings::EditError;
 use bientot_core::settings::number::{self, format_target_duration};
 use bientot_domain::configuration::{Settings, SettingsError};
 use bientot_domain::sources::ActivitySourceKind;
-use bientot_platform::startup::{StartupPort, StartupRegistrationState};
+use bientot_platform::startup::{StartupPort, StartupRegistrationState, SystemPage};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
 use jiff::SignedDuration;
@@ -150,6 +150,8 @@ pub struct Onboarding {
     usage_ping: UsagePingFacts,
     /// `None` until the registration has been read.
     startup: Option<StartupRegistrationState>,
+    /// Where the system lets the user manage the apps that start at sign-in, if it has a page.
+    startup_page: Option<SystemPage>,
     ending: Ending,
     /// The import of the first step, on the data folder this PC would use.
     import: Option<DataPage>,
@@ -185,6 +187,7 @@ impl Onboarding {
             details_open: false,
             usage_ping,
             startup: None,
+            startup_page: None,
             ending: Ending::Editing,
             import: directory.map(|directory| DataPage::new(language, Some(directory), None)),
         }
@@ -219,6 +222,11 @@ impl Onboarding {
     /// The registration as read.
     pub fn show_startup(&mut self, state: StartupRegistrationState) {
         self.startup = Some(state);
+    }
+
+    /// The system's page of startup apps, which the startup switch can send the user to.
+    pub fn show_startup_page(&mut self, page: SystemPage) {
+        self.startup_page = Some(page);
     }
 
     /// Ignored while an import is chosen, confirmed or staged, as « Suivant » is.
@@ -499,12 +507,15 @@ impl Onboarding {
         let (startup_on, status) = self.startup_row();
         let mut startup = Setting::Startup.row(language, switch(Switch::Startup, startup_on));
         startup.description = language.text(Key::OnboardingStartupIntroText);
-        match status {
-            Some(Key::StartupDisabledByUser) => {
-                startup.startup_apps =
-                    Some(StartupAppsView::new(Key::StartupDisabledByUser, language));
+        match (status, self.startup_page) {
+            (Some(Key::StartupDisabledByUser), Some(page)) => {
+                startup.startup_apps = Some(StartupAppsView::new(
+                    Key::StartupDisabledByUser,
+                    page,
+                    language,
+                ));
             }
-            status => startup.status = status.map(|key| language.text(key)),
+            (status, _) => startup.status = status.map(|key| language.text(key)),
         }
         let updates = self.usage_ping.checks_updates().then(|| {
             let mut updates = Setting::Updates.row(

@@ -167,6 +167,9 @@ impl OnboardingView {
         if startup.is_none() {
             onboarding.show_startup(StartupRegistrationState::Unavailable);
         }
+        if let Some(page) = startup.as_ref().and_then(|port| port.system_page()) {
+            onboarding.show_startup_page(page);
+        }
         let language = onboarding.language();
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle, cx);
@@ -747,7 +750,6 @@ impl OnboardingView {
 
     fn rows(&mut self, rows: Vec<RowView>, theme: &Theme, cx: &mut Context<Self>) -> gpui::Div {
         let count = rows.len();
-        let page = self.startup.as_ref().and_then(|port| port.system_page());
         let rows = rows.into_iter().enumerate().map(|(index, row)| {
             let control = self.control(row.control.clone(), theme, cx);
             let details = row
@@ -756,8 +758,7 @@ impl OnboardingView {
                 .map(|details| ping_details(details, theme, cx, Self::toggle_details))
                 .or_else(|| {
                     row.startup_apps
-                        .zip(page)
-                        .map(|(view, page)| startup_apps_callout(view, page, theme))
+                        .map(|view| startup_apps_callout(view, theme))
                 });
             row_frame((&row).into(), control, details, index + 1 == count, theme)
         });

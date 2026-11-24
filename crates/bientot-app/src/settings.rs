@@ -26,7 +26,7 @@ use bientot_domain::configuration::{
 };
 use bientot_domain::sources::ActivitySourceKind;
 use bientot_domain::usage_ping::{Build, Channel, usage_ping_due};
-use bientot_platform::startup::StartupRegistrationState;
+use bientot_platform::startup::{StartupRegistrationState, SystemPage};
 use jiff::SignedDuration;
 use jiff::civil::Date;
 
@@ -758,15 +758,17 @@ pub struct RowView {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StartupAppsView {
     pub message: &'static str,
-    /// « Applications de démarrage », which opens the system's page.
+    /// « Applications de démarrage », which opens `url`.
     pub action: &'static str,
+    pub url: &'static str,
 }
 
 impl StartupAppsView {
-    pub fn new(message: Key, language: Language) -> Self {
+    pub fn new(message: Key, page: SystemPage, language: Language) -> Self {
         Self {
             message: language.text(message),
             action: language.text(Key::SettingsStartupAppsAction),
+            url: page.uri,
         }
     }
 }
@@ -878,6 +880,8 @@ pub struct SettingsForm {
     startup_requested: Option<bool>,
     /// Another copy also starts at sign-in, as last read.
     other_copy: bool,
+    /// Where the system lets the user manage the apps that start at sign-in, if it has a page.
+    startup_page: Option<SystemPage>,
     /// Counts the switch's changes, so that a read begun before one is not shown after it.
     startup_changes: u64,
 }
@@ -896,8 +900,14 @@ impl SettingsForm {
             startup: None,
             startup_requested: None,
             other_copy: false,
+            startup_page: None,
             startup_changes: 0,
         }
+    }
+
+    /// The system's page of startup apps, which the startup switch can send the user to.
+    pub fn show_startup_page(&mut self, page: SystemPage) {
+        self.startup_page = Some(page);
     }
 
     /// The registration as read, or as Windows settled on it.
@@ -943,17 +953,20 @@ impl SettingsForm {
         self.other_copy && self.is_on(Switch::Startup)
     }
 
-    /// What sends the user to Startup apps: this copy turned off there, or another copy that
-    /// starts beside this one.
-    fn startup_apps(&self) -> Option<Key> {
-        if self.startup_requested.is_none()
+    /// What sends the user to the system's page of startup apps, where it has one: this copy
+    /// turned off there, or another copy that starts beside this one.
+    fn startup_apps(&self) -> Option<(Key, SystemPage)> {
+        let page = self.startup_page?;
+        let message = if self.startup_requested.is_none()
             && self.startup == Some(StartupRegistrationState::DisabledByUser)
         {
-            Some(Key::StartupDisabledByUser)
+            Key::StartupDisabledByUser
+        } else if self.shows_other_copy() {
+            Key::SettingsStartupOtherCopyMessage
         } else {
-            self.shows_other_copy()
-                .then_some(Key::SettingsStartupOtherCopyMessage)
-        }
+            return None;
+        };
+        Some((message, page))
     }
 
     /// Shows what Windows settled on for `pending`, then saves it if Windows took the change.
@@ -1482,7 +1495,7 @@ impl SettingsForm {
                 .startup
                 .filter(|_| {
                     setting == Setting::Startup
-                        && self.startup_apps() != Some(Key::StartupDisabledByUser)
+                        && !matches!(self.startup_apps(), Some((Key::StartupDisabledByUser, _)))
                 })
                 .map(|state| language.text(startup::status(state))),
             error: error.map(|error| error_text(error, language)),
@@ -1490,7 +1503,7 @@ impl SettingsForm {
             startup_apps: self
                 .startup_apps()
                 .filter(|_| setting == Setting::Startup)
-                .map(|message| StartupAppsView::new(message, language)),
+                .map(|(message, page)| StartupAppsView::new(message, page, language)),
             ..setting.row(language, control)
         };
         if setting == Setting::Updates && !self.usage_ping.checks_updates() {
