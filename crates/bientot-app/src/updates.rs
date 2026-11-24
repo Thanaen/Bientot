@@ -21,7 +21,7 @@ use bientot_domain::time::SystemClock;
 use bientot_domain::usage_ping::Channel;
 use bientot_platform::updates::{
     RECHECK_INTERVAL, StoreUpdateService, UpdateCheckError, UpdateCheckSettings, UpdateOffer,
-    UpdateStore,
+    UpdateSource,
 };
 use bientot_store::settings::SaveSettingsError;
 use gpui::{App, AsyncApp, Global};
@@ -37,7 +37,7 @@ pub const DEMO_ARGUMENT: &str = "--demo-update";
 
 /// The store a launch asks for updates.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UpdateSource {
+pub enum UpdateSourceKind {
     /// The Microsoft Store, for the MSIX build on the user's data.
     Store,
     /// The feed of the build Velopack's `Setup.exe` installed.
@@ -46,7 +46,7 @@ pub enum UpdateSource {
     Demo,
 }
 
-impl UpdateSource {
+impl UpdateSourceKind {
     /// `None` for the ZIP build, which has no store, and for a demo without `--demo-update`.
     pub fn of(launch: &Launch, channel: Channel) -> Option<Self> {
         match (launch.demo, channel) {
@@ -216,7 +216,7 @@ pub struct DemoStore;
 
 pub struct DemoOffer;
 
-impl UpdateStore for DemoStore {
+impl UpdateSource for DemoStore {
     type Offer = DemoOffer;
     type Error = Infallible;
 
@@ -253,24 +253,24 @@ impl StoreError for windows::core::Error {
 }
 
 /// Checks `source` for updates, if any: see [`install`].
-pub fn start(source: Option<UpdateSource>, cx: &mut App) {
+pub fn start(source: Option<UpdateSourceKind>, cx: &mut App) {
     let Some(source) = source else {
         return;
     };
     match source {
-        UpdateSource::Demo => install(DemoStore, cx),
+        UpdateSourceKind::Demo => install(DemoStore, cx),
         #[cfg(windows)]
-        UpdateSource::Store => install_store(cx),
+        UpdateSourceKind::Store => install_store(cx),
         #[cfg(all(windows, feature = "updates"))]
-        UpdateSource::Direct => {
+        UpdateSourceKind::Direct => {
             if let Some(feed) = direct::DirectUpdates::installed() {
                 install(feed, cx);
             }
         }
         #[cfg(not(windows))]
-        UpdateSource::Store => {}
+        UpdateSourceKind::Store => {}
         #[cfg(not(all(windows, feature = "updates")))]
-        UpdateSource::Direct => {}
+        UpdateSourceKind::Direct => {}
     }
 }
 
@@ -322,7 +322,7 @@ impl UpdateCheckSettings for TodaySettings {
 /// finds in the flyout. Call it once, after the day is installed.
 fn install<U>(store: U, cx: &mut App)
 where
-    U: UpdateStore + 'static,
+    U: UpdateSource + 'static,
     U::Offer: UpdateOffer + 'static,
     U::Error: StoreError,
     <U::Offer as UpdateOffer>::Error: Display,

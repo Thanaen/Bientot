@@ -9,7 +9,7 @@ use std::future::Future;
 use std::num::NonZeroIsize;
 use std::pin::Pin;
 
-use bientot_platform::updates::{UpdateOffer, UpdateStore};
+use bientot_platform::updates::{UpdateOffer, UpdateSource};
 use windows::Services::Store::{StoreContext, StorePackageUpdateState};
 use windows::Win32::Foundation::{E_FAIL, HWND};
 use windows::Win32::UI::Shell::IInitializeWithWindow;
@@ -36,7 +36,7 @@ impl StoreUpdates {
     }
 }
 
-impl UpdateStore for StoreUpdates {
+impl UpdateSource for StoreUpdates {
     type Offer = StoreUpdateOffer;
     type Error = Error;
 

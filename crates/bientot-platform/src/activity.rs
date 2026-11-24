@@ -3,6 +3,8 @@
 //! activity spans, and answers reads with settled spans only.
 //! See `specs/001-core-workday-indicator/contracts/built-in-activity-source.md`.
 
+use std::time::Duration;
+
 use bientot_domain::accounting::{
     ActivityCoverage, ActivitySegment, ActivityState, AutomaticOrigin,
 };
@@ -33,6 +35,14 @@ pub fn reading_from_ticks(tick_count64: u64, last_input_tick: u32) -> LastInputR
         tick_count: tick_count64 as u32,
         last_input_tick,
     }
+}
+
+/// The reading for a machine up for `uptime`, excluding sleep, whose last input was `idle` ago,
+/// as [`reading_from_ticks`] would give it. An `idle` longer than `uptime` counts from the boot.
+pub fn reading_from_idle(uptime: Duration, idle: Duration) -> LastInputReading {
+    let uptime_ms = uptime.as_millis() as u64;
+    let idle_ms = idle.min(uptime).as_millis() as u64;
+    reading_from_ticks(uptime_ms, (uptime_ms - idle_ms) as u32)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

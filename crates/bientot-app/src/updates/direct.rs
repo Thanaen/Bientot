@@ -12,12 +12,11 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 
-use bientot_platform::updates::{UpdateOffer, UpdateStore};
+use bientot_platform::updates::{UpdateOffer, UpdateSource};
 use futures::channel::oneshot;
 use ureq::Agent;
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 use velopack::bundle::Manifest;
-use velopack::sources::UpdateSource;
 use velopack::{UpdateCheck, UpdateManager, VelopackAsset, VelopackAssetFeed};
 
 use super::StoreError;
@@ -44,7 +43,7 @@ impl DirectUpdates {
     }
 }
 
-impl UpdateStore for DirectUpdates {
+impl UpdateSource for DirectUpdates {
     type Offer = DirectOffer;
     type Error = velopack::Error;
 
@@ -113,7 +112,7 @@ async fn off_thread<T: Send + 'static>(
 /// The feed at [`FEED_URL`], read without a query string.
 struct Feed;
 
-impl UpdateSource for Feed {
+impl velopack::sources::UpdateSource for Feed {
     fn get_release_feed(
         &self,
         channel: &str,

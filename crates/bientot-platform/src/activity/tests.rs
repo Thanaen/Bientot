@@ -526,3 +526,44 @@ fn idle_duration_ignores_the_high_tick_bits_after_several_wraparounds() {
 
     assert_eq!(reading.idle_duration(), SignedDuration::from_millis(6_000));
 }
+
+#[test]
+fn an_idle_duration_reads_as_the_ticks_of_the_same_instants() {
+    let reading = reading_from_idle(Duration::from_secs(90), Duration::from_secs(60));
+
+    assert_eq!(reading, reading_from_ticks(90_000, 30_000));
+    assert_eq!(reading.idle_duration(), seconds(60));
+}
+
+#[test]
+fn an_idle_duration_wraps_like_the_thirty_two_bit_tick() {
+    let reading = reading_from_idle(
+        Duration::from_millis((1 << 32) + 1_000),
+        Duration::from_millis(2_000),
+    );
+
+    assert_eq!(
+        reading,
+        reading_from_ticks((1 << 32) + 1_000, u32::MAX - 999)
+    );
+    assert_eq!(reading.idle_duration(), SignedDuration::from_millis(2_000));
+}
+
+#[test]
+fn an_idle_duration_keeps_only_the_low_tick_bits_after_several_wraparounds() {
+    let reading = reading_from_idle(
+        Duration::from_millis((5 << 32) + 10_000),
+        Duration::from_millis(6_000),
+    );
+
+    assert_eq!(reading, reading_from_ticks((5 << 32) + 10_000, 4_000));
+    assert_eq!(reading.idle_duration(), SignedDuration::from_millis(6_000));
+}
+
+#[test]
+fn an_idle_duration_longer_than_the_uptime_counts_from_the_boot() {
+    let reading = reading_from_idle(Duration::from_secs(10), Duration::from_secs(60));
+
+    assert_eq!(reading, reading_from_ticks(10_000, 0));
+    assert_eq!(reading.idle_duration(), seconds(10));
+}

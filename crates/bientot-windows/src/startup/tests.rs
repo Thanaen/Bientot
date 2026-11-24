@@ -404,8 +404,8 @@ fn an_unreachable_registry_reads_as_unavailable() {
 #[test]
 fn the_start_with_windows_marker_selects_the_hidden_startup_for_an_ordinary_launch() {
     assert_eq!(
-        LaunchIntent::resolve(true, &Activation::Launch),
-        LaunchIntent::WindowsStartup
+        launch_intent(true, &Activation::Launch),
+        LaunchIntent::SignIn
     );
 }
 
@@ -417,7 +417,7 @@ fn launches_that_windows_did_not_start_remain_visible() {
         Activation::StartupTask("AnotherStartupTask".to_owned()),
     ] {
         assert_eq!(
-            LaunchIntent::resolve(false, &activation),
+            launch_intent(false, &activation),
             LaunchIntent::Manual,
             "{activation:?}"
         );
@@ -427,18 +427,18 @@ fn launches_that_windows_did_not_start_remain_visible() {
 #[test]
 fn the_exact_packaged_task_selects_the_hidden_startup() {
     assert_eq!(
-        LaunchIntent::resolve(
+        launch_intent(
             false,
             &Activation::StartupTask("WorkTimeStartupTask".to_owned())
         ),
-        LaunchIntent::WindowsStartup
+        LaunchIntent::SignIn
     );
 }
 
 #[test]
 fn a_notification_activation_remains_visible_when_the_marker_is_present() {
     assert_eq!(
-        LaunchIntent::resolve(true, &Activation::Other),
+        launch_intent(true, &Activation::Other),
         LaunchIntent::Manual
     );
 }

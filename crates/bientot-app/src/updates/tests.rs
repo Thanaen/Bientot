@@ -66,7 +66,7 @@ struct FakeOffer {
     installs: Rc<Cell<usize>>,
 }
 
-impl UpdateStore for &FakeStore {
+impl UpdateSource for &FakeStore {
     type Offer = FakeOffer;
     type Error = Infallible;
 
@@ -90,7 +90,7 @@ impl UpdateOffer for FakeOffer {
 /// The offer of a daily check of `store`, as the host makes it.
 fn checked<U>(store: U, settings: &Settings) -> Option<Offer>
 where
-    U: UpdateStore<Error = Infallible>,
+    U: UpdateSource<Error = Infallible>,
     U::Offer: UpdateOffer + 'static,
     <U::Offer as UpdateOffer>::Error: Display,
 {
@@ -118,25 +118,25 @@ fn the_store_and_installed_builds_and_a_demo_asked_for_it_check_for_updates() {
         Launch::parse(arguments.iter().map(|argument| argument.to_string())).unwrap()
     };
     for (arguments, channel, expected) in [
-        (&[][..], Channel::Store, Some(UpdateSource::Store)),
-        (&[], Channel::Direct, Some(UpdateSource::Direct)),
+        (&[][..], Channel::Store, Some(UpdateSourceKind::Store)),
+        (&[], Channel::Direct, Some(UpdateSourceKind::Direct)),
         (&[], Channel::Zip, None),
         (&["--demo"], Channel::Direct, None),
         (&["--demo"], Channel::Store, None),
         (
             &["--demo", "--demo-update"],
             Channel::Zip,
-            Some(UpdateSource::Demo),
+            Some(UpdateSourceKind::Demo),
         ),
         (
             &["--demo-update", "--demo", "late"],
             Channel::Store,
-            Some(UpdateSource::Demo),
+            Some(UpdateSourceKind::Demo),
         ),
         (&["--demo-update"], Channel::Zip, None),
     ] {
         assert_eq!(
-            UpdateSource::of(&launch(arguments), channel),
+            UpdateSourceKind::of(&launch(arguments), channel),
             expected,
             "{arguments:?} on {channel:?}"
         );

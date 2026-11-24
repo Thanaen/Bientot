@@ -13,7 +13,7 @@ use std::ffi::OsStr;
 use std::io;
 use std::path::Path;
 
-use bientot_platform::startup::StartupRegistrationState;
+use bientot_platform::startup::{LaunchIntent, StartupRegistrationState};
 use bientot_store::data_directory::upper_invariant;
 
 #[cfg(windows)]
@@ -41,12 +41,6 @@ const HOST_EXECUTABLE_NAMES: [&str; 5] = [
     "devenv.exe",
 ];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum LaunchIntent {
-    Manual,
-    WindowsStartup,
-}
-
 /// What Windows activated this launch for.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Activation {
@@ -58,21 +52,19 @@ pub enum Activation {
     Other,
 }
 
-impl LaunchIntent {
-    /// How a launch started, `windows_startup` when its command line holds
-    /// [`WINDOWS_STARTUP_ARGUMENT`]. Only an ordinary launch honours the marker, so that a click on
-    /// a notification always shows the window.
-    pub fn resolve(windows_startup: bool, activation: &Activation) -> Self {
-        let started_by_windows = match activation {
-            Activation::Launch => windows_startup,
-            Activation::StartupTask(task_id) => task_id == PACKAGED_TASK_ID,
-            Activation::Other => false,
-        };
-        if started_by_windows {
-            Self::WindowsStartup
-        } else {
-            Self::Manual
-        }
+/// How a launch started, `windows_startup` when its command line holds
+/// [`WINDOWS_STARTUP_ARGUMENT`]. Only an ordinary launch honours the marker, so that a click on a
+/// notification always shows the window.
+pub fn launch_intent(windows_startup: bool, activation: &Activation) -> LaunchIntent {
+    let started_by_windows = match activation {
+        Activation::Launch => windows_startup,
+        Activation::StartupTask(task_id) => task_id == PACKAGED_TASK_ID,
+        Activation::Other => false,
+    };
+    if started_by_windows {
+        LaunchIntent::SignIn
+    } else {
+        LaunchIntent::Manual
     }
 }
 

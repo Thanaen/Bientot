@@ -4,7 +4,7 @@
 //! ledger and the services are the real ones, run in the throwaway data directory.
 //!
 //! Not ported here: the argument parsing and the scenario picker (R6), and
-//! `DemoStoreUpdatePort`, which is `bientot_app::updates::DemoStore` beside the `UpdateStore`
+//! `DemoStoreUpdatePort`, which is `bientot_app::updates::DemoStore` beside the `UpdateSource`
 //! trait of `bientot-platform`.
 
 use std::cell::Cell;
