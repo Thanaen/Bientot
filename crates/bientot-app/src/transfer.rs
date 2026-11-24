@@ -12,9 +12,9 @@ use gpui::{App, AsyncApp};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
-use crate::file_dialogs;
 use crate::host::Today;
 use crate::live::Announcement;
+use crate::platform;
 use crate::settings::data::{Backup, Chosen, Exported, Refusal};
 use crate::strings::{Key, Language};
 
@@ -38,7 +38,7 @@ pub fn export(
     let file_type = file_type(cx);
     let suggested = format!("Bientot-{}.{EXTENSION}", jiff::ZonedDateTime::now().date());
     cx.spawn(async move |cx| {
-        let saved = match file_dialogs::pick_save(suggested, file_type, EXTENSION, cx).await {
+        let saved = match platform::pick_save(suggested, file_type, EXTENSION, cx).await {
             Ok(None) => None,
             Ok(Some(destination)) => Some(
                 cx.background_executor()
@@ -72,7 +72,7 @@ pub fn choose_import(
 ) {
     let file_type = file_type(cx);
     cx.spawn(async move |cx| {
-        let read = match file_dialogs::pick_open(file_type, &EXTENSIONS, cx).await {
+        let read = match platform::pick_open(file_type, &EXTENSIONS, cx).await {
             Ok(None) => None,
             Ok(Some(file)) => Some(inspect(directory, file, cx).await),
             Err(error) => {
@@ -197,12 +197,9 @@ pub fn wait_for_restart(restarted_from: Option<u32>) {
     let Some(id) = restarted_from else {
         return;
     };
-    #[cfg(windows)]
-    if !bientot_windows::process::wait_for_exit(id, RESTART_WAIT) {
+    if !platform::wait_for_exit(id, RESTART_WAIT) {
         log::warn!("the WorkTime that restarted this one still runs");
     }
-    #[cfg(not(windows))]
-    let _ = (id, RESTART_WAIT);
 }
 
 /// After a restart for an import that gave up waiting, the WorkTime that started it still owns

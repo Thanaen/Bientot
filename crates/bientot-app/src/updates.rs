@@ -6,9 +6,6 @@
 //! Store at once, without the .NET dialog; the Callout says what the dialog said. The installed
 //! build offers an update it already downloaded, which « Redémarrer WorkTime » installs.
 
-#[cfg(all(windows, feature = "updates"))]
-pub mod direct;
-
 use std::convert::Infallible;
 use std::fmt::Display;
 use std::future::Future;
@@ -30,6 +27,7 @@ use jiff::Timestamp;
 use crate::flyout::InstallUpdate;
 use crate::host::Today;
 use crate::launch::Launch;
+use crate::platform;
 use crate::strings::Key;
 
 /// Has a demo offer an update, as the .NET app's `--demo-update`.
@@ -245,13 +243,6 @@ impl StoreError for Infallible {
     }
 }
 
-#[cfg(windows)]
-impl StoreError for windows::core::Error {
-    fn hresult(&self) -> Option<i32> {
-        Some(self.code().0)
-    }
-}
-
 /// Checks `source` for updates, if any: see [`install`].
 pub fn start(source: Option<UpdateSourceKind>, cx: &mut App) {
     let Some(source) = source else {
@@ -259,30 +250,18 @@ pub fn start(source: Option<UpdateSourceKind>, cx: &mut App) {
     };
     match source {
         UpdateSourceKind::Demo => install(DemoStore, cx),
-        #[cfg(windows)]
         UpdateSourceKind::Store => install_store(cx),
-        #[cfg(all(windows, feature = "updates"))]
         UpdateSourceKind::Direct => {
-            if let Some(feed) = direct::DirectUpdates::installed() {
+            if let Some(feed) = platform::direct_updates() {
                 install(feed, cx);
             }
         }
-        #[cfg(not(windows))]
-        UpdateSourceKind::Store => {}
-        #[cfg(not(all(windows, feature = "updates")))]
-        UpdateSourceKind::Direct => {}
     }
 }
 
-/// Checks the Microsoft Store, whose prompts the notification-area icon's window owns: the
-/// flyout closes when Windows' prompt takes the focus. A build without package identity has
-/// no Store to ask.
-#[cfg(windows)]
+/// Checks the Microsoft Store, when this build has one to ask: see [`platform::store_updates`].
 fn install_store(cx: &mut App) {
-    let Some(owner) = crate::platform::tray_window() else {
-        return;
-    };
-    match bientot_windows::updates::StoreUpdates::for_window(owner) {
+    match platform::store_updates() {
         Ok(Some(store)) => install(store, cx),
         Ok(None) => {}
         Err(error) => {
@@ -315,6 +294,18 @@ impl UpdateCheckSettings for TodaySettings {
     fn record_check(&mut self, at: Timestamp) -> Result<(), SaveSettingsError> {
         self.0
             .update(|cx| cx.global_mut::<Today>().record_update_check(at))
+    }
+}
+
+/// The store of a build that has none of that kind, which the platform never hands out.
+pub struct NoUpdates;
+
+impl UpdateSource for NoUpdates {
+    type Offer = DemoOffer;
+    type Error = Infallible;
+
+    fn find_update(&self) -> impl Future<Output = Result<Option<DemoOffer>, Infallible>> {
+        std::future::ready(Ok(None))
     }
 }
 

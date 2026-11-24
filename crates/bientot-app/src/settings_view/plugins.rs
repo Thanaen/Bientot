@@ -13,7 +13,7 @@ use super::dialog::warning;
 use super::{
     PageStatus, RowText, SettingsView, field_error, group, outlined, row_frame, switch_frame,
 };
-use crate::file_dialogs;
+use crate::platform;
 use crate::plugins;
 use crate::settings::RowTone;
 use crate::settings::plugins::{AddRow, PluginRow, PluginsPage};
@@ -270,7 +270,7 @@ impl SettingsView {
         cx.notify();
         let file_type = self.text(Key::SettingsPluginsFileType).to_owned();
         cx.spawn(async move |view, cx| {
-            let picked = file_dialogs::pick_open(file_type, &EXTENSIONS, cx).await;
+            let picked = platform::pick_open(file_type, &EXTENSIONS, cx).await;
             view.update(cx, |view, cx| {
                 match picked {
                     Ok(Some(file)) => view.read_checked(file, cx),

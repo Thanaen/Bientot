@@ -1,10 +1,10 @@
 //! The text of the reminders `bientot-core::notifications` decides to show, as
-//! `Presentation/Notifications/NotificationTextProvider.cs` writes it, and on Windows the sink
-//! that shows them as toasts.
+//! `Presentation/Notifications/NotificationTextProvider.cs` writes it, and the sink that has the
+//! system show them.
 
-use bientot_core::notifications::{Notification, NotificationBody};
+use bientot_core::notifications::{Notification, NotificationBody, NotificationSink};
 use bientot_domain::time::TimeZoneProvider;
-use bientot_platform::notifications::NotificationRequest;
+use bientot_platform::notifications::{NotificationRequest, Notifier};
 
 use crate::strings::{Key, Language};
 
@@ -40,23 +40,20 @@ pub fn toast(
     }
 }
 
-/// Shows the reminders as toasts in the language of the launch.
-#[cfg(windows)]
+/// Shows the reminders through the system's notifications, in the language of the launch.
 pub struct ToastSink {
-    pub toasts: bientot_windows::notifications::Toasts,
+    pub notifier: Box<dyn Notifier>,
     pub language: Language,
     pub zones: &'static dyn TimeZoneProvider,
 }
 
-#[cfg(windows)]
-impl bientot_core::notifications::NotificationSink for ToastSink {
+impl NotificationSink for ToastSink {
     fn show(
         &self,
         notification: &Notification,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        Ok(self
-            .toasts
-            .show(&toast(notification, self.language, self.zones))?)
+        self.notifier
+            .show(&toast(notification, self.language, self.zones))
     }
 }
 

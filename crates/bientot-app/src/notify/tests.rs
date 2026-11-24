@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use bientot_domain::notifications::NotificationTrigger;
 use bientot_domain::time::FixedTimeZoneProvider;
+use bientot_platform::notifications::InMemoryNotifier;
 use jiff::SignedDuration;
 use jiff::tz::TimeZone;
 
@@ -75,5 +76,23 @@ fn a_completed_day_says_so_without_numbers() {
         )
         .body,
         "Votre objectif quotidien est atteint."
+    );
+}
+
+#[test]
+fn the_sink_has_the_system_show_the_reminder_in_the_language_of_the_launch() {
+    let notifier = InMemoryNotifier::default();
+    let reminder = notification(&[NotificationTrigger::DayComplete], SignedDuration::ZERO);
+    let sink = ToastSink {
+        notifier: Box::new(notifier.clone()),
+        language: Language::English,
+        zones: Box::leak(Box::new(paris())),
+    };
+
+    sink.show(&reminder).unwrap();
+
+    assert_eq!(
+        notifier.shown(),
+        [toast(&reminder, Language::English, &paris())]
     );
 }

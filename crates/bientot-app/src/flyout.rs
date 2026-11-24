@@ -841,9 +841,9 @@ impl Render for Flyout {
         let fitted = self.fitted.clone();
         div()
             .size_full()
-            // GPUI clears the opaque window to white, and Windows rounds its corners a little
-            // outside the panel's rounding: the pixels in between take the border's color.
-            .when(cfg!(windows), |root| root.bg(theme.border))
+            // GPUI clears the opaque window to white, and a system that rounds the window does so
+            // a little outside the panel's rounding: the pixels in between take the border's color.
+            .when(shell::system_draws_frame(cx), |root| root.bg(theme.border))
             .on_children_prepainted(move |bounds, window, cx| {
                 if let Some(content) = bounds.first()
                     && fitted.refit(content.size, window.scale_factor())

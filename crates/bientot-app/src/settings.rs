@@ -750,14 +750,16 @@ pub struct RowView {
     pub startup_apps: Option<StartupAppsView>,
 }
 
-/// What only Windows Settings > Apps > Startup can change: another copy that also starts at
-/// sign-in, or this one turned off there.
+/// What only the system's page of startup apps can change: another copy that also starts at
+/// sign-in, or this one turned off there. Shown only where the system has that page
+/// ([`StartupPort::system_page`](bientot_platform::startup::StartupPort::system_page)). The Store
+/// build cannot delete the other copy's `Run` value itself: the package's writes under
+/// `HKEY_CURRENT_USER` go to a private copy.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StartupAppsView {
     pub message: &'static str,
-    /// « Applications de démarrage », which opens `url`.
+    /// « Applications de démarrage », which opens the system's page.
     pub action: &'static str,
-    pub url: &'static str,
 }
 
 impl StartupAppsView {
@@ -765,7 +767,6 @@ impl StartupAppsView {
         Self {
             message: language.text(message),
             action: language.text(Key::SettingsStartupAppsAction),
-            url: STARTUP_APPS_URL,
         }
     }
 }
@@ -773,11 +774,6 @@ impl StartupAppsView {
 /// A read of the registration, begun while the switch was settled.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StartupRead(u64);
-
-/// Windows Settings > Apps > Startup, where the user turns the other copy off. The Store build
-/// cannot delete its `Run` value: the package's writes under `HKEY_CURRENT_USER` go to a
-/// private copy.
-pub const STARTUP_APPS_URL: &str = bientot_windows::startup::STARTUP_APPS.uri;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RowTone {

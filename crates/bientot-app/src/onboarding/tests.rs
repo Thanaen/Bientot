@@ -895,7 +895,6 @@ fn startup_turned_off_in_windows_offers_startup_apps() {
             message: "Bientôt est désactivé dans les applications de démarrage. \
                       Réactivez-le\u{a0}dans\u{a0}Windows.",
             action: "Applications de démarrage",
-            url: "ms-settings:startupapps",
         })
     );
 }

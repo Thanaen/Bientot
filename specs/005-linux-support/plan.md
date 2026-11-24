@@ -309,7 +309,9 @@ and `cfg_attr` forms may appear only in:
 - the lines listed in `scripts/platform-cfg-allowlist.txt`, each with a
   reason. Initial content: the Unix branch of
   `bientot-core/src/diagnostics/export.rs`, the DPAPI module of
-  `bientot-store`, the memory measure of the hostile-corpus example.
+  `bientot-store`, the memory measure of the hostile-corpus example, the
+  `windows_subsystem` attribute of `crates/bientot-app/src/main.rs`, which
+  only the crate root can carry.
 
 `scripts/check-platform-cfg.sh` greps `crates/` and fails on anything else.
 It runs in the `Rust` job, so it gates every pull request.

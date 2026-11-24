@@ -1,5 +1,8 @@
 //! What the app asks the system to show as a notification, and the clicks on what it showed.
 
+use std::cell::RefCell;
+use std::error::Error;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex, PoisonError};
 
 /// One toast: two lines of text, and the delivery id the receipts recorded it under.
@@ -8,6 +11,30 @@ pub struct NotificationRequest {
     pub delivery_id: String,
     pub title: String,
     pub body: String,
+}
+
+/// Shows the notifications the app wrote, in its language, through the system.
+pub trait Notifier {
+    /// Fails when the system will not show it, such as when the user turned Bientôt's
+    /// notifications off.
+    fn show(&self, request: &NotificationRequest) -> Result<(), Box<dyn Error + Send + Sync>>;
+}
+
+/// Keeps what it is asked to show. A clone shares what it kept.
+#[derive(Clone, Default)]
+pub struct InMemoryNotifier(Rc<RefCell<Vec<NotificationRequest>>>);
+
+impl InMemoryNotifier {
+    pub fn shown(&self) -> Vec<NotificationRequest> {
+        self.0.borrow().clone()
+    }
+}
+
+impl Notifier for InMemoryNotifier {
+    fn show(&self, request: &NotificationRequest) -> Result<(), Box<dyn Error + Send + Sync>> {
+        self.0.borrow_mut().push(request.clone());
+        Ok(())
+    }
 }
 
 /// Called with the delivery id of a clicked notification, when the system gives it.

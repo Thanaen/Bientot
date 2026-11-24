@@ -20,7 +20,7 @@ use std::time::Duration;
 use bientot_core::settings::{EditGroup, Pending, SettingsPort};
 use bientot_domain::configuration::{AppointmentProposal, RecurringAppointment, Settings};
 use bientot_domain::usage_ping::{Build, Channel};
-use bientot_platform::startup::{StartupPort, StartupRegistrationState};
+use bientot_platform::startup::{StartupPort, StartupRegistrationState, SystemPage};
 use bientot_store::settings::SaveSettingsError;
 use gpui::{
     Animation, AnimationExt as _, App, AppContext as _, Bounds, Context, Entity, FocusHandle,
@@ -1003,17 +1003,23 @@ impl SettingsView {
                 view.form.toggle_details()
             })
         });
+        let page = self.startup.as_ref().and_then(|port| port.system_page());
         let details = details.or_else(|| {
             row.startup_apps
-                .map(|view| startup_apps_callout(view, theme))
+                .zip(page)
+                .map(|(view, page)| startup_apps_callout(view, page, theme))
         });
         row_frame((&row).into(), control, details, last, theme)
     }
 }
 
-/// What only Startup apps can change, and the button that opens it.
-pub(crate) fn startup_apps_callout(view: StartupAppsView, theme: &Theme) -> gpui::Div {
-    let url = view.url;
+/// What only the system's page of startup apps can change, and the button that opens `page`.
+pub(crate) fn startup_apps_callout(
+    view: StartupAppsView,
+    page: SystemPage,
+    theme: &Theme,
+) -> gpui::Div {
+    let url = page.uri;
     div().pt(BASE_08).child(
         widgets::inline_callout_box(Hue::Info, theme)
             .id("startup-apps-callout")

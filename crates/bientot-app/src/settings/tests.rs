@@ -334,7 +334,6 @@ fn the_startup_switch_waits_for_the_registration() {
             message: "Bientôt est désactivé dans les applications de démarrage. \
                       Réactivez-le\u{a0}dans\u{a0}Windows.",
             action: "Applications de démarrage",
-            url: "ms-settings:startupapps",
         })
     );
     assert_eq!(form.toggle(Switch::Startup), None);
@@ -498,11 +497,7 @@ fn another_copy_that_also_starts_shows_under_the_startup_switch() {
             form.show_other_copy(true);
             assert_eq!(
                 startup_apps(&form),
-                Some(StartupAppsView {
-                    message,
-                    action,
-                    url: "ms-settings:startupapps",
-                })
+                Some(StartupAppsView { message, action })
             );
         }
 
