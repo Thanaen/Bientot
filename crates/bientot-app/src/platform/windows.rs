@@ -1,8 +1,13 @@
 //! The Windows backend: the ports of `bientot-windows`, the toasts, the « Animation effects »
-//! setting, the tray icon, Velopack's hooks and the message box of last resort.
+//! setting, the notification-area icon and the flyout's corner, Velopack's hooks and the message
+//! box of last resort.
+
+#[path = "windows/tray.rs"]
+mod tray;
 
 use std::io;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use anyhow::Context as _;
@@ -23,7 +28,6 @@ use bientot_windows::notifications::{Sender, Toasts};
 use bientot_windows::power_history::system_log;
 use bientot_windows::session_history::current_user_log;
 use bientot_windows::startup::{StartupRegistration, current_activation, launch_intent};
-use gpui::{App, QuitMode};
 use jiff::Timestamp;
 
 use super::{Platform, PlatformContext};
@@ -38,8 +42,7 @@ pub use crate::updates::direct::{
 };
 pub use bientot_windows::process::wait_for_exit;
 pub use bientot_windows::single_instance::PrimaryInstance as Instance;
-
-pub const QUIT_MODE: QuitMode = QuitMode::Explicit;
+pub use tray::{place_window, tray_window};
 
 pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     let PlatformContext { directory, launch } = *ctx;
@@ -59,6 +62,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         registration.migrate_owned_legacy_registration();
         Arc::new(registration) as Arc<dyn StartupPort>
     });
+    let (tray, tray_events) = tray::NotificationArea::new();
     Ok(Platform {
         launch_intent,
         last_input: Box::new(SystemLastInput),
@@ -72,6 +76,9 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         }),
         notification_clicks: Box::new(clicks),
         startup,
+        tray: Rc::new(tray),
+        tray_events,
+        desktop: Rc::new(tray::TaskbarCorner),
     })
 }
 
@@ -163,12 +170,6 @@ impl ReducedMotion for Motion {
     /// only queue.
     fn watch(&self, on_change: OnChange) -> io::Result<SettingChanges> {
         SettingChanges::watch(on_change)
-    }
-}
-
-pub fn install_tray(cx: &mut App) {
-    if let Err(error) = crate::tray::install(cx) {
-        log::error!("cannot create the notification-area icon: {error:#}");
     }
 }
 

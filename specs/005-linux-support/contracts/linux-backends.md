@@ -35,13 +35,14 @@ rest on an assumption that a task verifies first.
 | Condition | `FlyoutPlacement` | How |
 | --- | --- | --- |
 | Tray host absent | `Window` | `WindowKind::Normal`, title « Bientôt », minimizable |
-| X11 | `At { bounds }` | Monitor under the click from RandR (`GetMonitors`), else the primary. Work area = `_NET_WORKAREA` of the current desktop ∩ that monitor (A-2). Corner of the work area nearest to the click; top right when the position is unknown. 12 px margin. `WindowKind::PopUp` (A-1) |
+| X11 | `At { work_area }` | Monitor under the click from RandR (`GetMonitors`), else the primary. Work area = `_NET_WORKAREA` of the current desktop ∩ that monitor (A-2). Corner of the work area nearest to the click; top right when the position is unknown (a `Corner` added to `At`). 12 px margin, which the app keeps. `WindowKind::PopUp` (A-1) |
 | Wayland, `zwlr_layer_shell_v1` offered | `Layer { corner, margin: 12 }` | `WindowKind::LayerShell`, layer `Top`, keyboard `OnDemand` (A-3), namespace `bientot-flyout`. Corner nearest to the click when known; else bottom right on `kde`, top right elsewhere |
 | Wayland otherwise | `CompositorPlaced` | `WindowKind::Normal` without decorations (A-4) |
 
-`usable_height`: X11, the work area's height minus 24; layer-shell and
-compositor-placed, the output's logical height minus 24 minus 48 for a
-panel that clients cannot measure.
+`usable_height`: X11, the work area's height; layer-shell and
+compositor-placed, the output's logical height minus 48 for a panel that
+clients cannot measure. The app keeps the panel 12 px from both edges, as
+on Windows.
 
 ## Idle
 

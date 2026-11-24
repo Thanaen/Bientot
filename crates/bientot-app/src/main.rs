@@ -1,15 +1,18 @@
 // Release builds on Windows have no console window.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+use std::rc::Rc;
+
 use bientot_app::assets::{self, Assets};
 use bientot_app::demo::DemoHost;
 use bientot_app::host::{self, Source, Today};
 use bientot_app::launch::{Activation, Activations, Launch, Origin};
 use bientot_app::live::{self, Announcement, LiveHost};
-use bientot_app::platform::{self, Platform, PlatformContext};
+use bientot_app::platform::{self, Platform, PlatformContext, TrayEvents};
 use bientot_app::startup_failure::StartupFailure;
 use bientot_app::strings::{Key, Language};
 use bientot_app::theme::ThemeMode;
+use bientot_app::tray_model::MenuCommand;
 use bientot_app::updates::UpdateSourceKind;
 use bientot_app::zones::SystemZones;
 use bientot_app::{
@@ -23,16 +26,18 @@ use bientot_platform::lifecycle::{
     LifecycleEventRecorder, LifecycleListener, LifecycleSource, LifecycleTransition, probe_within,
 };
 use bientot_platform::motion::ReducedMotion;
+use bientot_platform::placement::Desktop;
 use bientot_platform::power_history::{PowerHistoryReader, RECORD_LIMIT};
 use bientot_platform::session_history::{self, SessionHistoryReader};
 use bientot_platform::single_instance::{Acquired, InstanceLock};
 use bientot_platform::startup::LaunchIntent;
+use bientot_platform::tray::{Tray, TrayHost};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::data_migration::{Location, Migration};
 use bientot_store::settings::{LoadedSettings, SettingsSource, SettingsStore};
 use futures::StreamExt as _;
 use futures::channel::mpsc;
-use gpui::{App, Global};
+use gpui::{App, Global, QuitMode};
 
 static CLOCK: SystemClock = SystemClock;
 static ZONES: SystemZones = SystemZones;
@@ -144,8 +149,8 @@ fn run(launch: Launch, may_install: bool) -> Result<(), StartFailure> {
         None => transfer::apply_staged(&directory),
     };
     let theme = launch.theme;
-    let boot = match run_on(launch, &directory, imported, migration) {
-        Ok(boot) => boot,
+    let (quit_mode, boot) = match run_on(launch, &directory, imported, migration) {
+        Ok(started) => started,
         Err(error) => {
             return Err(StartFailure {
                 error,
@@ -154,14 +159,11 @@ fn run(launch: Launch, may_install: bool) -> Result<(), StartFailure> {
             });
         }
     };
-    // A notification-area icon keeps the app running after its flyout, the only window, closes.
-    application()
-        .with_quit_mode(platform::QUIT_MODE)
-        .run(move |cx| {
-            prepare(theme, cx);
-            listen(instance, cx);
-            boot(directory, exportable, cx);
-        });
+    application().with_quit_mode(quit_mode).run(move |cx| {
+        prepare(theme, cx);
+        listen(instance, cx);
+        boot(directory, exportable, cx);
+    });
     Ok(())
 }
 
@@ -197,18 +199,23 @@ fn settle(
 /// Readies WorkTime's start on `directory`. What it hands back starts it once the app runs, on
 /// that same folder: the onboarding on a first run, else the day. A start that fails after the
 /// onboarding offers to export the folder when it is `exportable`. The first flyout tells how
-/// the import staged before a restart went, when there was one.
+/// the import staged before a restart went, when there was one. It also says when the app
+/// quits.
 fn run_on(
     launch: Launch,
     directory: &DataDirectory,
     imported: Option<Announcement>,
     mut migration: Option<Migration>,
-) -> anyhow::Result<impl FnOnce(DataDirectory, bool, &mut App) + 'static> {
+) -> anyhow::Result<(
+    QuitMode,
+    impl FnOnce(DataDirectory, bool, &mut App) + 'static,
+)> {
     // Before any window, the onboarding's included: the notifications must be registered first.
     let mut platform = platform::build(&PlatformContext {
         directory,
         launch: &launch,
     })?;
+    let quit_mode = quit_mode(platform.tray.host());
     // A demo reads its settings as it opens.
     let loaded = match launch.demo {
         Some(_) => None,
@@ -291,7 +298,15 @@ fn run_on(
             cx,
         );
     };
-    Ok(boot)
+    Ok((quit_mode, boot))
+}
+
+/// A tray icon keeps the app running after its flyout, the only window, closes.
+fn quit_mode(tray: TrayHost) -> QuitMode {
+    match tray {
+        TrayHost::Present => QuitMode::Explicit,
+        TrayHost::Absent => QuitMode::Default,
+    }
 }
 
 /// What the app opens on: the day, or on a first run the onboarding, with the settings read and
@@ -309,11 +324,19 @@ enum Opening {
 struct Started {
     today: Today,
     language: Language,
+    ports: ShellPorts,
     /// `false` with `--no-plugins`.
     #[cfg(feature = "plugins")]
     plugins: bool,
     lifecycle: Option<Lifecycle>,
     toast_clicks: Option<mpsc::UnboundedReceiver<Activation>>,
+}
+
+/// The tray the day shows in, and the desktop its flyout opens on.
+struct ShellPorts {
+    tray: Rc<dyn Tray<MenuCommand>>,
+    tray_events: TrayEvents,
+    desktop: Rc<dyn Desktop>,
 }
 
 /// Opens the day on `loaded`, the settings read or just saved by the onboarding. A demo opens
@@ -329,6 +352,11 @@ fn start(
     migration: Option<Migration>,
 ) -> anyhow::Result<Started> {
     let (mut lifecycle, mut toast_clicks) = (None, None);
+    let ports = ShellPorts {
+        tray: platform.tray,
+        tray_events: platform.tray_events,
+        desktop: platform.desktop,
+    };
     let (source, language) = match launch.demo {
         Some(scenario) => {
             let mut host = DemoHost::open(scenario, directory.path())?;
@@ -399,6 +427,7 @@ fn start(
     Ok(Started {
         today: Today::open(source, language)?,
         language,
+        ports,
         #[cfg(feature = "plugins")]
         plugins: !launch.no_plugins,
         lifecycle,
@@ -420,7 +449,7 @@ fn show(
     if may_send {
         usage_ping::install(cx);
     }
-    attach(started.lifecycle, started.toast_clicks, cx);
+    attach(started.ports, started.lifecycle, started.toast_clicks, cx);
     // After the tray: its window owns the Store's prompts.
     updates::start(update_source, cx);
     if open_flyout {
@@ -599,11 +628,17 @@ fn listen(instance: platform::Instance, cx: &mut App) {
 
 /// The tray, the toasts and the lifecycle of the day the shell shows.
 fn attach(
+    ShellPorts {
+        tray,
+        tray_events,
+        desktop,
+    }: ShellPorts,
     lifecycle: Option<Lifecycle>,
     toast_clicks: Option<mpsc::UnboundedReceiver<Activation>>,
     cx: &mut App,
 ) {
-    platform::install_tray(cx);
+    shell::install(desktop, tray.host(), cx);
+    host::install_tray(tray, tray_events, cx);
     if let Some(mut clicked) = toast_clicks {
         cx.spawn(async move |cx| {
             while let Some(activation) = clicked.next().await {

@@ -1,4 +1,4 @@
-//! Where the flyout opens, in plain integers: the platform answers, and the app maps the answer
+//! Where the flyout opens, in plain numbers: the platform answers, and the app maps the answer
 //! to its window options.
 
 use crate::tray::{ScreenPoint, TrayHost};
@@ -20,10 +20,21 @@ pub enum Corner {
     BottomRight,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// The part of a monitor no taskbar or panel covers.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WorkArea {
+    /// The system's id of the monitor, which GPUI names its display by.
+    pub display: u64,
+    /// In physical pixels.
+    pub bounds: Rect,
+    /// Physical pixels per logical pixel on that monitor.
+    pub scale: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FlyoutPlacement {
-    /// The app chooses the bounds (Windows, X11).
-    At { bounds: Rect },
+    /// The app chooses the bounds, in a corner of the work area (Windows, X11).
+    At { work_area: WorkArea },
     /// A layer-shell surface anchored to a corner (KDE, wlroots).
     Layer { corner: Corner, margin: i32 },
     /// The compositor chooses (GNOME on Wayland).
@@ -34,15 +45,11 @@ pub enum FlyoutPlacement {
 
 /// The desktop the flyout opens on.
 pub trait Desktop {
-    /// Where a flyout of `content` size opens after a click at `click` on the tray icon.
-    fn flyout_placement(
-        &self,
-        content: (i32, i32),
-        click: Option<ScreenPoint>,
-        tray: TrayHost,
-    ) -> FlyoutPlacement;
+    /// Where the flyout opens after a click at `click` on the tray icon.
+    fn flyout_placement(&self, click: Option<ScreenPoint>, tray: TrayHost) -> FlyoutPlacement;
 
-    /// The height the flyout may use, to cap it and scroll its body.
+    /// The height of the area the flyout opens in, in physical pixels: the app keeps the panel a
+    /// margin from both edges, and scrolls its body past that.
     fn usable_height(&self, click: Option<ScreenPoint>) -> Option<i32>;
 
     /// Whether the system rounds and shadows the window, or the app draws both.
@@ -50,7 +57,7 @@ pub trait Desktop {
 }
 
 /// A desktop that gives the same answers whatever it is asked.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct InMemoryDesktop {
     pub placement: FlyoutPlacement,
     pub usable_height: Option<i32>,
@@ -58,12 +65,7 @@ pub struct InMemoryDesktop {
 }
 
 impl Desktop for InMemoryDesktop {
-    fn flyout_placement(
-        &self,
-        _content: (i32, i32),
-        _click: Option<ScreenPoint>,
-        _tray: TrayHost,
-    ) -> FlyoutPlacement {
+    fn flyout_placement(&self, _click: Option<ScreenPoint>, _tray: TrayHost) -> FlyoutPlacement {
         self.placement
     }
 

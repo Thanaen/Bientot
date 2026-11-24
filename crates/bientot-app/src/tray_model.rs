@@ -1,6 +1,6 @@
-//! What the notification-area icon shows and offers, apart from the Windows calls of `tray` so
-//! that it is tested everywhere; [`bientot_platform::tray`] names its items to the system and
-//! finds the one chosen. The menu holds the commands of `_baseTrayCommands` in
+//! What the notification-area icon shows and offers, apart from the system calls behind the
+//! `Tray` port, so that it is tested everywhere; [`bientot_platform::tray`] names its items to
+//! the system and finds the one chosen. The menu holds the commands of `_baseTrayCommands` in
 //! `App.xaml.cs` and of `DailySummaryTrayCommandBuilder`, in the order the Designer set for R6:
 //! an unavailable command stays in the menu, greyed out. Unlike the .NET app, each long lock
 //! to review gets a submenu named by its time range, offering the answers of the week view.

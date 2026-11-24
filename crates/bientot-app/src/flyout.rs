@@ -757,7 +757,7 @@ impl Render for Flyout {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = Theme::current(window, cx);
         let max_height = self.max_height.or_else(|| {
-            shell::work_area_height()
+            shell::work_area_height(cx)
                 .map(|height| shell::panel_max_height(height, window.scale_factor()))
         });
         let body = self.body(window, cx, &theme);
@@ -844,11 +844,11 @@ impl Render for Flyout {
             // GPUI clears the opaque window to white, and Windows rounds its corners a little
             // outside the panel's rounding: the pixels in between take the border's color.
             .when(cfg!(windows), |root| root.bg(theme.border))
-            .on_children_prepainted(move |bounds, window, _| {
+            .on_children_prepainted(move |bounds, window, cx| {
                 if let Some(content) = bounds.first()
                     && fitted.refit(content.size, window.scale_factor())
                 {
-                    shell::fit_window(window, content.size);
+                    shell::fit_window(window, content.size, cx);
                 }
             })
             .child(content)

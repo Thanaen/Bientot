@@ -1,7 +1,9 @@
 //! The day the shell shows, from a demo or from the user's data, and what keeps it current:
-//! the 30 s refresh, the built-in source's sampling, F5 and the tracking actions.
+//! the 30 s refresh, the built-in source's sampling, F5 and the tracking actions. It shows the
+//! day in the tray, and runs what the tray's menu offers.
 
 use std::path::Path;
+use std::rc::Rc;
 use std::time::Duration;
 
 use bientot_core::diagnostics::{
@@ -13,8 +15,10 @@ use bientot_domain::configuration::{AppointmentProposal, DismissedProposal, Sett
 use bientot_domain::intervals::UtcInterval;
 use bientot_domain::sources::{ActivitySourceKind, IdleStateTracker};
 use bientot_domain::time::{LocalWorkday, TimeZoneProvider, WorkdayCalendar};
+use bientot_platform::tray::{self, Tray, TrayEvent, TrayIcon, TrayState};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
+use futures::StreamExt as _;
 use gpui::{App, Global};
 use jiff::Timestamp;
 use jiff::civil::Date;
@@ -30,13 +34,15 @@ use crate::flyout::{
     UseBuiltInDetection,
 };
 use crate::live::{Announcement, LiveHost, Tracking, TrackingCommand};
+use crate::platform::TrayEvents;
 use crate::settings::Page;
 use crate::strings::{Key, Language};
 use crate::time_text::minutes_text;
+use crate::tray_art::{self, Taskbar};
 use crate::tray_model::{self, MenuCommand, MenuEntry, MenuState, ReviewCommand};
 use crate::week::{Recorded, WeekCommand, WeekTimeline};
 use crate::widgets::Notice;
-use crate::workday::{DayView, SourceHint};
+use crate::workday::{self, DayView, SourceHint};
 use crate::{settings_view, shell, week_view};
 
 /// The period of `PeriodicRefreshService` in `App.xaml.cs`.
@@ -629,10 +635,135 @@ fn watch_rollover(cx: &mut App) {
     .detach();
 }
 
+/// The tray the day shows in, and what it was last given.
+pub struct ShownTray {
+    tray: Rc<dyn Tray<MenuCommand>>,
+    drawn: Option<Drawn>,
+    menu: Vec<MenuEntry>,
+    /// Each menu shown gets a new generation, which prefixes the ids of its items: a click on an
+    /// item of a menu since replaced runs nothing, see [`tray::item_id`].
+    generation: u64,
+}
+
+impl Global for ShownTray {}
+
+/// The day's icon at the sizes the tray wants and for its panel, which change with the display
+/// scale and the colour mode, and its drawing at each size.
+struct Drawn {
+    icon: workday::TrayIcon,
+    sizes: Vec<u32>,
+    taskbar: Taskbar,
+    pixmaps: Vec<(u32, Vec<u8>)>,
+}
+
+impl Drawn {
+    fn new(icon: workday::TrayIcon, sizes: Vec<u32>, taskbar: Taskbar) -> anyhow::Result<Self> {
+        let pixmaps = sizes
+            .iter()
+            .map(|&size| Ok((size, tray_art::rgba(icon, size, taskbar)?)))
+            .collect::<anyhow::Result<_>>()?;
+        Ok(Self {
+            icon,
+            sizes,
+            taskbar,
+            pixmaps,
+        })
+    }
+
+    fn shows(&self, icon: workday::TrayIcon, sizes: &[u32], taskbar: Taskbar) -> bool {
+        (self.icon, self.sizes.as_slice(), self.taskbar) == (icon, sizes, taskbar)
+    }
+}
+
+impl ShownTray {
+    /// `tray`, which shows `menu` first.
+    pub fn new(tray: Rc<dyn Tray<MenuCommand>>, menu: Vec<MenuEntry>) -> Self {
+        Self {
+            tray,
+            drawn: None,
+            menu,
+            generation: 0,
+        }
+    }
+
+    /// Shows the icon and the tooltip of `day`, and `menu`. Draws the icon again only when it
+    /// changed, and gives the menu a new generation only when it changed.
+    pub fn show(&mut self, day: &DayView, menu: Vec<MenuEntry>) -> anyhow::Result<()> {
+        let (sizes, taskbar) = (self.tray.icon_sizes(), self.taskbar());
+        let drawn = match self.drawn.take() {
+            Some(drawn) if drawn.shows(day.tray_icon, &sizes, taskbar) => drawn,
+            _ => Drawn::new(day.tray_icon, sizes, taskbar)?,
+        };
+        if self.menu != menu {
+            self.menu = menu;
+            self.generation += 1;
+        }
+        let pixmaps: Vec<(u32, &[u8])> = drawn
+            .pixmaps
+            .iter()
+            .map(|(size, rgba)| (*size, rgba.as_slice()))
+            .collect();
+        self.tray.publish(TrayState {
+            icon: TrayIcon { pixmaps: &pixmaps },
+            tooltip: &day.tray_tooltip,
+            menu: &self.menu,
+            generation: self.generation,
+        });
+        self.drawn = Some(drawn);
+        Ok(())
+    }
+
+    /// Dark when the system does not say.
+    fn taskbar(&self) -> Taskbar {
+        match self.tray.panel_is_dark() {
+            Some(false) => Taskbar::Light,
+            Some(true) | None => Taskbar::Dark,
+        }
+    }
+
+    /// What the item `id` of the menu shown runs, when it names an enabled item.
+    pub fn chosen(&self, id: &str) -> Option<MenuCommand> {
+        tray::chosen(&self.menu, self.generation, id)
+    }
+}
+
+/// Shows the day in `tray` from now on: opens the flyout on a click on the icon, and runs the
+/// item chosen in its menu.
+pub fn install_tray(tray: Rc<dyn Tray<MenuCommand>>, mut events: TrayEvents, cx: &mut App) {
+    let menu = cx.global::<Today>().menu();
+    cx.set_global(ShownTray::new(tray, menu));
+    show_tray(cx);
+    cx.spawn(async move |cx| {
+        while let Some(event) = events.next().await {
+            cx.update(|cx| match event {
+                TrayEvent::Activated { at } => shell::tray_clicked(at, cx),
+                TrayEvent::MenuChosen { id } => {
+                    if let Some(command) = cx.global::<ShownTray>().chosen(&id) {
+                        run(&command, cx);
+                    }
+                }
+                TrayEvent::HostChanged(host) => shell::tray_changed(host, cx),
+            });
+        }
+    })
+    .detach();
+}
+
+/// Shows the day in the tray, once it was installed.
+fn show_tray(cx: &mut App) {
+    if !cx.has_global::<ShownTray>() {
+        return;
+    }
+    let today = cx.global::<Today>();
+    let (day, menu) = (today.view().clone(), today.menu());
+    if let Err(error) = cx.global_mut::<ShownTray>().show(&day, menu) {
+        log::error!("cannot update the notification-area icon: {error:#}");
+    }
+}
+
 /// Shows the day in the tray menu, the flyout and the week.
 fn publish(cx: &mut App) {
-    #[cfg(windows)]
-    crate::tray::show(cx);
+    show_tray(cx);
     let today = cx.global::<Today>();
     let (view, tracking, recalculated) = (today.view.clone(), today.tracking(), today.recalculated);
     let refresh_failure = today.refresh_failure();

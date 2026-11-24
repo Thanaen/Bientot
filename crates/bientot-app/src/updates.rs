@@ -279,7 +279,7 @@ pub fn start(source: Option<UpdateSourceKind>, cx: &mut App) {
 /// no Store to ask.
 #[cfg(windows)]
 fn install_store(cx: &mut App) {
-    let Some(owner) = crate::tray::window_handle(cx) else {
+    let Some(owner) = crate::platform::tray_window() else {
         return;
     };
     match bientot_windows::updates::StoreUpdates::for_window(owner) {
