@@ -199,10 +199,15 @@ pub trait StartupPort: Send + Sync {
     fn other_copy_starts(&self) -> bool;
     /// (new) Whether the platform has a system page where the user manages
     /// startup apps, and how to open it. `None` on Linux.
-    fn system_page(&self) -> Option<SystemPage>;
+    fn system_page(&self) -> Option<SystemPage> { None }
 }
 pub struct SystemPage { pub uri: &'static str }
 ```
+
+`system_page` answers `None` by default, so only a platform that has the
+page implements it: Windows answers `ms-settings:startupapps`
+(`bientot_windows::startup::STARTUP_APPS`), and the in-memory ports of the
+tests need no change.
 
 Linux never returns `DisabledByUser`, `DisabledByPolicy` or
 `EnabledByPolicy`.
@@ -255,17 +260,27 @@ it is for the portable ZIP.
 
 ```rust
 // bientot-platform/src/tray.rs
-/// (existing, from bientot-app::tray_model) MenuEntry, item_id, chosen
+/// (existing, from bientot-app::tray_model) Generic over the command an item
+/// runs, which the app defines: `tray_model::MenuEntry` is `MenuEntry<MenuCommand>`.
+pub enum MenuEntry<C> {
+    Item { label: String, command: C, enabled: bool },
+    Submenu { label: String, items: Vec<MenuEntry<C>> },
+    Separator,
+}
+/// (existing)
+pub fn item_id(generation: u64, path: &[usize]) -> String;
+/// (existing)
+pub fn chosen<C: Clone>(entries: &[MenuEntry<C>], generation: u64, id: &str) -> Option<C>;
 
 pub struct TrayIcon<'a> {
     /// Straight RGBA, one buffer per size, as tray_art::rgba draws them.
     pub pixmaps: &'a [(u32 /* px */, &'a [u8])],
 }
 
-pub struct TrayState<'a> {
+pub struct TrayState<'a, C> {
     pub icon: TrayIcon<'a>,
     pub tooltip: &'a str,
-    pub menu: &'a [MenuEntry],
+    pub menu: &'a [MenuEntry<C>],
     pub generation: u64,
 }
 
@@ -280,13 +295,13 @@ pub enum TrayEvent {
     HostChanged(TrayHost),
 }
 
-pub trait Tray {
+pub trait Tray<C> {
     /// Sizes the host wants, in pixels, most wanted first.
     fn icon_sizes(&self) -> Vec<u32>;
     /// Whether the panel is dark, when the platform can tell.
     fn panel_is_dark(&self) -> Option<bool>;
     fn host(&self) -> TrayHost;
-    fn publish(&self, state: TrayState<'_>);
+    fn publish(&self, state: TrayState<'_, C>);
 }
 
 /// Built by the composition root with the channel events arrive on.
@@ -378,7 +393,7 @@ pub struct Platform {
     pub notifications: Arc<dyn NotificationSink + Send + Sync>,
     pub notification_clicks: Box<dyn NotificationClicks>,
     pub startup: Arc<dyn StartupPort>,
-    pub tray: Rc<dyn Tray>,
+    pub tray: Rc<dyn Tray<MenuCommand>>,
     pub tray_events: TrayEvents,
     pub desktop: Rc<dyn Desktop>,
     pub motion: Box<dyn ReducedMotion>,

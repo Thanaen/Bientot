@@ -1,10 +1,12 @@
 //! The notification-area icon and its menu. GPUI has none, so they come from the `tray-icon`
 //! crate and its `muda` menus; their events reach GPUI through channels read on the main thread.
-//! What they show comes from `tray_model`.
+//! What they show comes from `tray_model`, and the ids of its items from
+//! [`bientot_platform::tray`].
 
 use std::num::NonZeroIsize;
 use std::sync::Mutex;
 
+use bientot_platform::tray::item_id;
 use futures::StreamExt;
 use futures::channel::mpsc;
 use gpui::{App, Bounds, DisplayId, Global, Pixels, Size, Window, point};
@@ -32,7 +34,7 @@ use windows::core::w;
 use crate::host::{self, Today};
 use crate::shell::{self, FrameInsets};
 use crate::tray_art::{self, Taskbar};
-use crate::tray_model::{self, MenuEntry};
+use crate::tray_model::MenuEntry;
 use crate::workday;
 
 /// Where the icon was last clicked, in physical pixels, to open the flyout on that monitor.
@@ -40,7 +42,7 @@ static LAST_CLICK: Mutex<Option<(i32, i32)>> = Mutex::new(None);
 
 /// The icon, and the menu it shows. Each menu built gets a new generation, which prefixes the
 /// ids of its items: a click on an item of a menu since replaced is ignored, see
-/// [`tray_model::item_id`].
+/// [`item_id`].
 struct Tray {
     icon: TrayIcon,
     shown: Drawn,
@@ -128,7 +130,7 @@ fn append_entries(
         let path = [path, &[index]].concat();
         match entry {
             MenuEntry::Item { label, enabled, .. } => append(&MenuItem::with_id(
-                tray_model::item_id(generation, &path),
+                item_id(generation, &path),
                 label,
                 *enabled,
                 None,
@@ -232,7 +234,9 @@ pub fn install(cx: &mut App) -> anyhow::Result<()> {
         while let Some(id) = received.next().await {
             cx.update(|cx| {
                 let tray = cx.global::<Tray>();
-                if let Some(command) = tray_model::chosen(&tray.menu, tray.generation, &id) {
+                if let Some(command) =
+                    bientot_platform::tray::chosen(&tray.menu, tray.generation, &id)
+                {
                     host::run(&command, cx);
                 }
             });

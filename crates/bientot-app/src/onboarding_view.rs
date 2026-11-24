@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use bientot_domain::configuration::Settings;
-use bientot_platform::startup::StartupRegistrationState;
+use bientot_platform::startup::{StartupPort, StartupRegistrationState};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
 use gpui::{
@@ -18,7 +18,6 @@ use gpui::{
 use crate::adjust::TimePart;
 use crate::onboarding::{self, Body, ImportOffer, LanguageOption, Onboarding, PageView, Step};
 use crate::settings::data::{Action, Chosen, DataPage, ImportDialog, Refusal};
-use crate::settings::startup::StartupPort;
 use crate::settings::{Clock, Control, Field, LanguageChoice, RowView, Switch, UsagePingFacts};
 use crate::settings_view::{
     self, Startup, TimeKey, field_error, filled, outlined, ping_details, row_frame,

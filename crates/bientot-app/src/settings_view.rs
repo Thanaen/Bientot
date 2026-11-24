@@ -20,7 +20,7 @@ use std::time::Duration;
 use bientot_core::settings::{EditGroup, Pending, SettingsPort};
 use bientot_domain::configuration::{AppointmentProposal, RecurringAppointment, Settings};
 use bientot_domain::usage_ping::{Build, Channel};
-use bientot_platform::startup::StartupRegistrationState;
+use bientot_platform::startup::{StartupPort, StartupRegistrationState};
 use bientot_store::settings::SaveSettingsError;
 use gpui::{
     Animation, AnimationExt as _, App, AppContext as _, Bounds, Context, Entity, FocusHandle,
@@ -33,7 +33,7 @@ use gpui::{
 use crate::adjust::{TimeField, TimePart};
 use crate::host::{self, Today};
 use crate::settings::data::DataPage;
-use crate::settings::startup::{self, StartupPort};
+use crate::settings::startup;
 use crate::settings::{
     CalloutView, Clock, Control, Details, Field, LanguageChoice, Leaving, Link, Page, PingDetails,
     RowTone, RowView, SectionView, SettingsForm, SourceCallout, StartupAppsView, Switch, Tone,
