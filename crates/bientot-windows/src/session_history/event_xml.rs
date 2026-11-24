@@ -1,10 +1,10 @@
-//! The session history boundary an event of the Winlogon log describes.
+//! The session boundary an event of the Winlogon log describes.
 
 use std::num::NonZeroU64;
 
-use crate::event_log::xml::{digits, event_data, instant, parse_document};
+use bientot_platform::session_history::{SessionBoundary, SessionBoundaryKind};
 
-use super::{SessionHistoryBoundary, SessionHistoryBoundaryKind};
+use crate::event_log::xml::{digits, event_data, instant, parse_document};
 
 const PROVIDER: &str = "Microsoft-Windows-Winlogon";
 
@@ -15,7 +15,20 @@ pub(super) const NOTIFICATION_STARTED: u64 = 811;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct Notification {
     pub user_id: String,
-    pub boundary: SessionHistoryBoundary,
+    pub boundary: SessionBoundary,
+}
+
+/// The kind of a Winlogon notification, by the number its `Event` data gives it. A session
+/// disconnected by Switch User reads as locked, and reconnected as unlocked. Screen saver and
+/// system notifications are not boundaries.
+fn kind_of(notification: u64) -> Option<SessionBoundaryKind> {
+    match notification {
+        2 | 12 => Some(SessionBoundaryKind::Logon),
+        3 | 13 => Some(SessionBoundaryKind::Logoff),
+        4 | 8 => Some(SessionBoundaryKind::Lock),
+        5 | 9 => Some(SessionBoundaryKind::Unlock),
+        _ => None,
+    }
 }
 
 /// `None` when the record is malformed; `Some(None)` when it is well formed but describes no
@@ -26,21 +39,22 @@ pub(super) fn parse_notification(xml: &str) -> Option<Option<Notification>> {
     let provider = system.single("Provider")?.attribute("Name")?;
     let event_id = digits(&system.single("EventID")?.value())?;
     let record_id = NonZeroU64::new(digits(&system.single("EventRecordID")?.value())?)?;
-    let occurred_at = instant(system.single("TimeCreated")?.attribute("SystemTime")?)?;
+    let at = instant(system.single("TimeCreated")?.attribute("SystemTime")?)?;
     if provider != PROVIDER || event_id != NOTIFICATION_STARTED {
         return Some(None);
     }
     let notification = digits(event_data(&event, "Event")?.trim())?;
-    let Some(kind) = SessionHistoryBoundaryKind::from_notification(notification) else {
+    let Some(kind) = kind_of(notification) else {
         return Some(None);
     };
     let user_id = system.single("Security")?.attribute("UserID")?.to_owned();
     Some(Some(Notification {
         user_id,
-        boundary: SessionHistoryBoundary {
+        boundary: SessionBoundary {
             kind,
-            record_id,
-            occurred_at,
+            at,
+            // The log reuses record IDs after it is cleared; the recorded key adds the instant.
+            source_key: record_id.to_string(),
         },
     }))
 }

@@ -1,15 +1,12 @@
-use std::num::NonZeroU64;
-
 use bientot_domain::accounting::{RecordedTransition, SessionState};
 use bientot_domain::adjustments::{AdjustmentKind, ManualClassification};
 use bientot_domain::time::{FixedTimeZoneProvider, FrozenClock};
 use bientot_platform::lifecycle::LifecycleChange;
-use bientot_windows::power_history::{
-    PowerHistory, PowerHistoryBoundary, PowerHistoryBoundaryKind, PowerHistoryInterval,
-    PowerHistoryIntervalKind,
+use bientot_platform::power_history::{
+    PowerBoundary, PowerBoundaryKind, PowerHistory, PowerHistoryInterval, PowerHistoryIntervalKind,
 };
-use bientot_windows::session_history::{
-    SessionHistory, SessionHistoryBoundary, SessionHistoryBoundaryKind, SessionHistoryUnavailable,
+use bientot_platform::session_history::{
+    SessionBoundary, SessionBoundaryKind, SessionHistory, SessionHistoryUnavailable,
 };
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp};
@@ -244,20 +241,24 @@ fn unrecorded_time_is_reported_from_five_minutes() {
 fn a_start_shortly_after_a_recovered_boot_reports_no_unrecorded_time() {
     let machine = Machine::new();
     let mut host = machine.start();
-    let boundary = |kind, record_id, at: &str| PowerHistoryBoundary {
+    let boundary = |kind, source_key: &str, at: &str| PowerBoundary {
         kind,
-        record_id: NonZeroU64::new(record_id).unwrap(),
-        occurred_at: at.parse().unwrap(),
+        at: at.parse().unwrap(),
+        source_key: source_key.to_owned(),
     };
-    let boot = boundary(PowerHistoryBoundaryKind::Boot, 2, "2026-10-08T07:58:00Z");
+    let boot = boundary(
+        PowerBoundaryKind::Boot,
+        "microsoft-windows-kernel-general:12:2",
+        "2026-10-08T07:58:00Z",
+    );
     let night = PowerHistoryInterval::new(
         PowerHistoryIntervalKind::PoweredOff,
         boundary(
-            PowerHistoryBoundaryKind::Shutdown,
-            1,
+            PowerBoundaryKind::Shutdown,
+            "microsoft-windows-kernel-general:13:1",
             "2026-10-07T20:00:00Z",
         ),
-        boot,
+        boot.clone(),
     )
     .unwrap();
     host.recover_power_history(move |_| {
@@ -375,10 +376,10 @@ fn a_power_history_that_could_not_be_read_is_logged() {
 fn unlocked_at_six(_: UtcInterval) -> SessionHistoryRead {
     SessionHistoryRead::Complete(SessionHistory {
         before_window: None,
-        in_window: vec![SessionHistoryBoundary {
-            kind: SessionHistoryBoundaryKind::Unlock,
-            record_id: NonZeroU64::new(7).unwrap(),
-            occurred_at: "2026-10-08T06:00:00Z".parse().unwrap(),
+        in_window: vec![SessionBoundary {
+            kind: SessionBoundaryKind::Unlock,
+            at: "2026-10-08T06:00:00Z".parse().unwrap(),
+            source_key: "7".to_owned(),
         }],
     })
 }

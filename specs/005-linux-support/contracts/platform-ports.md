@@ -115,6 +115,8 @@ pub enum HistoryUnavailable {
     AccessDenied,
     /// The source does not exist here (no journal, sandbox).
     NoSource,
+    /// A record of the source could not be decoded.
+    Malformed,
     Failed(String),
 }
 
@@ -134,6 +136,12 @@ pub struct SessionBoundary {
     pub source_key: String,
 }
 pub enum SessionBoundaryKind { Logon, Logoff, Lock, Unlock }
+
+pub struct SessionBoundaries {
+    pub boundaries: Vec<SessionBoundary>,
+    /// False when the source stopped at `record_limit` or lost records.
+    pub complete: bool,
+}
 
 /// (new) Whether a silence in the log means « nothing happened ».
 pub enum LockHistory {

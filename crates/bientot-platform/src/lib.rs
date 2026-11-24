@@ -1,12 +1,15 @@
 //! The platform-independent half of Bientôt's system integration: the built-in activity source,
-//! the recording of session and power changes, the update check, and the types the platform
-//! crates share. `bientot-windows` makes the Windows calls behind them.
+//! the recording of session and power changes, the recovery of power and session history, the
+//! update check, and the types the platform crates share. `bientot-windows` makes the Windows
+//! calls behind them.
 
 #![forbid(unsafe_code)]
 
 pub mod activity;
 pub mod lifecycle;
 pub mod notifications;
+pub mod power_history;
+pub mod session_history;
 pub mod startup;
 pub mod updates;
 
