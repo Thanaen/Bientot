@@ -340,13 +340,20 @@ pub type TrayEvents = futures::channel::mpsc::UnboundedReceiver<TrayEvent>;
 ## Flyout placement
 
 ```rust
-// bientot-platform/src/placement.rs — plain integers, no GPUI type
+// bientot-platform/src/placement.rs — plain numbers, no GPUI type
 pub struct Rect { pub x: i32, pub y: i32, pub width: i32, pub height: i32 }
 pub enum Corner { TopLeft, TopRight, BottomLeft, BottomRight }
 
+/// The part of a monitor no taskbar or panel covers.
+pub struct WorkArea {
+    pub display: u64,   // the system's id of the monitor, GPUI's `DisplayId`
+    pub bounds: Rect,   // physical pixels
+    pub scale: f32,     // physical pixels per logical pixel on that monitor
+}
+
 pub enum FlyoutPlacement {
-    /// The app chooses the bounds (Windows, X11).
-    At { bounds: Rect },
+    /// The app chooses the bounds, in a corner of the work area (Windows, X11).
+    At { work_area: WorkArea },
     /// A layer-shell surface anchored to a corner (KDE, wlroots).
     Layer { corner: Corner, margin: i32 },
     /// The compositor chooses (GNOME on Wayland).
@@ -356,9 +363,9 @@ pub enum FlyoutPlacement {
 }
 
 pub trait Desktop {
-    fn flyout_placement(&self, content: (i32, i32), click: Option<ScreenPoint>,
-                        tray: TrayHost) -> FlyoutPlacement;
-    /// Height the panel may use, to cap it and scroll its body.
+    fn flyout_placement(&self, click: Option<ScreenPoint>, tray: TrayHost) -> FlyoutPlacement;
+    /// Height of the area the flyout opens in, in physical pixels: the app
+    /// keeps the panel 12 px from both edges, then scrolls its body.
     fn usable_height(&self, click: Option<ScreenPoint>) -> Option<i32>;
     /// Whether the system rounds and shadows the window (DWM) or the app draws both.
     fn system_draws_frame(&self) -> bool;
@@ -369,8 +376,21 @@ pub struct InMemoryDesktop { pub placement, pub usable_height, pub system_draws_
 ```
 
 `shell.rs` maps `FlyoutPlacement` to `WindowOptions` (`WindowKind::PopUp`,
-`LayerShell`, `Normal`); that mapping is the only GPUI-facing code and is
-not conditional.
+`Normal`) without a condition. GPUI opens a window on a display by its id
+and takes its bounds in logical pixels at that display's scale, so `At`
+names the monitor and its scale rather than bounds. The corner maths
+(`shell::flyout_bounds`, 12 px from the edges) stays in the app: it fits
+the window again whenever its content or its scale changes, with the
+window's own scale. A corner other than the bottom right adds a `Corner`
+to `At` with T060. `WindowKind::LayerShell` exists only in a GPUI built
+for Wayland; until the Linux backend answers `Layer`, `shell.rs` opens it
+as it opens `CompositorPlaced`.
+
+GPUI resizes a window but cannot move it, and `bientot-platform` cannot
+name a GPUI window: `platform::place_window(window, client)` moves the open
+flyout so that its client area covers `client`, in physical pixels (on
+Windows, `SetWindowPos` past the frame, with DWM's round corners and no
+border).
 
 ## Motion, system, process
 
@@ -430,9 +450,9 @@ pub struct Platform {
     pub notifications: EnableNotifications,   // until T023, see Notifications
     pub notification_clicks: Box<dyn NotificationClicks>,
     pub startup: Option<Arc<dyn StartupPort>>, // None in a demo
-    pub tray: Rc<dyn Tray<MenuCommand>>,       // T022
-    pub tray_events: TrayEvents,               // T022
-    pub desktop: Rc<dyn Desktop>,              // T022
+    pub tray: Rc<dyn Tray<MenuCommand>>,       // shows nothing before its first publish
+    pub tray_events: TrayEvents,
+    pub desktop: Rc<dyn Desktop>,
     pub system: Arc<dyn SystemInfo + Send + Sync>,          // T023
     pub final_paths: Box<dyn FinalPaths + Send + Sync>,     // T023
 }
@@ -456,7 +476,17 @@ pub fn show_fatal(title: &str, body: &str);
 /// Returns when `pid` has exited or `timeout` passed; whether it exited. Runs before the
 /// folder is held, for the restart after an import.
 pub fn wait_for_exit(pid: u32, timeout: Duration) -> bool;
+/// Moves the open flyout's window, see Flyout placement.
+pub fn place_window(window: &mut gpui::Window, client: Bounds<i32>);
+/// Windows only, until the Store's port (T023): the tray icon's window, which owns the
+/// Store's prompts.
+#[cfg(windows)]
+pub fn tray_window() -> Option<NonZeroIsize>;
 ```
+
+`build` runs before GPUI does and before the day is known, so the Windows
+tray makes its icon at the first `publish`. The app quits when its last
+window closes only when `tray.host()` is `Absent`.
 
 Updates, the single-instance lock and the motion are generic rather than
 boxed (their traits have associated types); `platform` exports the concrete

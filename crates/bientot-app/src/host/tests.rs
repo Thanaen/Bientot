@@ -2,6 +2,7 @@ use std::path::Path;
 
 use bientot_domain::accounting::{RecordedTransition, SessionState};
 use bientot_domain::time::{Clock as _, FixedTimeZoneProvider, FrozenClock, WorkdayCalendar};
+use bientot_platform::tray::{InMemoryTray, TrayHost, item_id};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::sessions::SessionEventRepository;
 use jiff::SignedDuration;
@@ -995,4 +996,65 @@ fn plugins_read_the_published_day() {
     assert_eq!(day.computed_at, START.parse::<jiff::Timestamp>().unwrap());
     assert_eq!(day.language, bientot_plugin_api::Language::Fr);
     assert!(day.target > 0, "{day:?}");
+}
+
+/// The id of the item that runs `command` in `menu`, a top-level one.
+fn id_of(menu: &[MenuEntry], generation: u64, command: &MenuCommand) -> String {
+    let index = menu
+        .iter()
+        .position(
+            |entry| matches!(entry, MenuEntry::Item { command: shown, .. } if shown == command),
+        )
+        .unwrap();
+    item_id(generation, &[index])
+}
+
+#[test]
+fn the_tray_shows_the_day_at_each_size_it_asks_for() {
+    let folder = tempfile::tempdir().unwrap();
+    let today = start(folder.path(), clock());
+    let port = Rc::new(InMemoryTray::new(
+        vec![16, 24],
+        Some(false),
+        TrayHost::Present,
+    ));
+    let mut tray = ShownTray::new(port.clone(), today.menu());
+
+    tray.show(today.view(), today.menu()).unwrap();
+
+    let shown = port.published().unwrap();
+    assert_eq!(shown.icon_sizes, [16, 24]);
+    assert_eq!(shown.tooltip, today.view().tray_tooltip);
+    assert_eq!(shown.menu, today.menu());
+}
+
+#[test]
+fn a_click_on_an_item_of_a_replaced_menu_runs_nothing() {
+    let folder = tempfile::tempdir().unwrap();
+    let mut today = start(folder.path(), clock());
+    let port = Rc::new(InMemoryTray::new(vec![16], None, TrayHost::Present));
+    let mut tray = ShownTray::new(port.clone(), today.menu());
+    tray.show(today.view(), today.menu()).unwrap();
+    let before = port.published().unwrap();
+    let pause = id_of(&before.menu, before.generation, &MenuCommand::TogglePause);
+
+    tray.show(today.view(), today.menu()).unwrap();
+    assert_eq!(
+        tray.chosen(&pause),
+        Some(MenuCommand::TogglePause),
+        "a refresh that changes nothing keeps the menu"
+    );
+
+    today.toggle_pause();
+    tray.show(today.view(), today.menu()).unwrap();
+    let after = port.published().unwrap();
+    assert_eq!(tray.chosen(&pause), None);
+    assert_eq!(
+        tray.chosen(&id_of(
+            &after.menu,
+            after.generation,
+            &MenuCommand::TogglePause
+        )),
+        Some(MenuCommand::TogglePause),
+    );
 }

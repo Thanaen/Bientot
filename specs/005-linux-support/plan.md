@@ -218,7 +218,8 @@ crates/
 │   └── src/
 │       ├── platform/
 │       │   ├── mod.rs         # struct Platform, fn build, null platform
-│       │   ├── windows.rs     # today's `mod native` of main.rs + tray.rs
+│       │   ├── windows.rs     # today's `mod native` of main.rs
+│       │   ├── windows/tray.rs # Tray and Desktop over `tray-icon`, DWM
 │       │   └── linux.rs
 │       └── …                  # no platform condition outside platform/
 └── bientot-plugin*/       # unchanged
@@ -260,7 +261,7 @@ tests. `contracts/platform-ports.md` gives the signatures. Summary:
 | `InstanceLock` | functions of `single_instance::native` | named pipe | Unix socket and `flock` |
 | `UpdateSource` | `UpdateStore` | Store, Velopack | Velopack (AppImage); none in Flatpak |
 | `Tray` | functions of `bientot-app::tray` | `tray-icon` | `ksni` |
-| `Desktop` | `tray::work_area`, `clicked_monitor`, `place_above_taskbar` | `SetWindowPos`, DWM | `x11rb`, layer-shell, or compositor |
+| `Desktop` | `tray::work_area`, `clicked_monitor`, `place_above_taskbar` | monitor work area; `platform::place_window` with `SetWindowPos`, DWM | `x11rb`, layer-shell, or compositor |
 | `ReducedMotion` | `animation_effects` | `SPI_GETCLIENTAREAANIMATION` | Settings portal |
 | `SystemInfo` | `diagnostics`, `has_package_identity` | Win32 | `/etc/os-release`, environment |
 | `FinalPaths` | same trait, in `bientot-core` | Win32 | `NoFinalPathCheck` |

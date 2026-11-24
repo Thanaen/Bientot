@@ -30,8 +30,6 @@ pub mod text_input;
 pub mod theme;
 pub mod time_text;
 pub mod transfer;
-#[cfg(windows)]
-pub mod tray;
 pub mod tray_art;
 pub mod tray_model;
 pub mod updates;

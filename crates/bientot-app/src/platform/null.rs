@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use anyhow::Context as _;
 use bientot_platform::startup::LaunchIntent;
-use gpui::{App, QuitMode};
+use gpui::{Bounds, Window, px, size};
 
 use super::{Platform, PlatformContext};
 
@@ -16,8 +16,6 @@ pub use bientot_platform::single_instance::InMemoryInstance as Instance;
 pub fn motion() -> Motion {
     Motion::default()
 }
-
-pub const QUIT_MODE: QuitMode = QuitMode::Default;
 
 pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     // The sign-in marker alone tells a launch at sign-in.
@@ -32,7 +30,14 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     })
 }
 
-pub fn install_tray(_: &mut App) {}
+/// Gives `window` the size of `client`: no desktop here lets the app place it.
+pub fn place_window(window: &mut Window, client: Bounds<i32>) {
+    let scale = window.scale_factor();
+    window.resize(size(
+        px(client.size.width as f32 / scale),
+        px(client.size.height as f32 / scale),
+    ));
+}
 
 pub fn run_update_hooks() -> bool {
     false

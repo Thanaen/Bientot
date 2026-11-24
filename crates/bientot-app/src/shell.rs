@@ -5,17 +5,19 @@ use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use bientot_platform::placement::{Desktop, FlyoutPlacement, Rect};
+use bientot_platform::tray::{ScreenPoint, TrayHost};
 use gpui::{
-    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, Size, WeakEntity,
-    Window, WindowBounds, WindowHandle, WindowKind, WindowOptions, point, px, size,
+    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, Size, TitlebarOptions,
+    WeakEntity, Window, WindowBounds, WindowHandle, WindowKind, WindowOptions, point, px, size,
 };
 
 use crate::flyout::Flyout;
 use crate::host::Today;
 use crate::live::Tracking;
-use crate::theme;
 use crate::widgets::Notice;
 use crate::workday::DayView;
+use crate::{platform, theme};
 
 /// Gap between the flyout's panel and the taskbar or the screen edges, in physical pixels, as
 /// in the Windows 11 flyouts.
@@ -39,6 +41,48 @@ struct FlyoutState {
 }
 
 impl Global for FlyoutState {}
+
+/// Where the flyout opens: the desktop, whether a tray shows the icon, and where the icon was
+/// last clicked.
+struct Placement {
+    desktop: Rc<dyn Desktop>,
+    tray: TrayHost,
+    click: Option<ScreenPoint>,
+}
+
+impl Global for Placement {}
+
+/// Opens the flyouts on `desktop`, from a tray that `tray` says is shown or not.
+pub fn install(desktop: Rc<dyn Desktop>, tray: TrayHost, cx: &mut App) {
+    cx.set_global(Placement {
+        desktop,
+        tray,
+        click: None,
+    });
+}
+
+/// A click on the tray icon, at `at` when the tray tells: opens the flyout on that monitor, or
+/// closes it.
+pub fn tray_clicked(at: Option<ScreenPoint>, cx: &mut App) {
+    cx.global_mut::<Placement>().click = at;
+    toggle_flyout(cx);
+}
+
+/// The next flyout opens for a tray that shows the icon or not.
+pub fn tray_changed(tray: TrayHost, cx: &mut App) {
+    cx.global_mut::<Placement>().tray = tray;
+}
+
+/// Where the flyout opens now. Without a desktop, as in the screenshots, where the system puts
+/// it.
+fn placement(cx: &App) -> FlyoutPlacement {
+    cx.try_global::<Placement>()
+        .map_or(FlyoutPlacement::CompositorPlaced, |placement| {
+            placement
+                .desktop
+                .flyout_placement(placement.click, placement.tray)
+        })
+}
 
 pub fn toggle_flyout(cx: &mut App) {
     let state = cx.default_global::<FlyoutState>();
@@ -92,21 +136,7 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
         today.tracking(),
         today.opening_alerts(),
     );
-    let (display_id, bounds) = opening_bounds();
-    let options = WindowOptions {
-        window_bounds: Some(WindowBounds::Windowed(bounds)),
-        display_id,
-        titlebar: None,
-        focus: true,
-        show: true,
-        kind: WindowKind::PopUp,
-        is_movable: false,
-        is_resizable: false,
-        is_minimizable: false,
-        // Opaque, the default: on Windows, `Transparent` has Windows compose a frosted layer
-        // behind the whole window. The window is the panel, and Windows draws its shadow.
-        ..Default::default()
-    };
+    let options = window_options(placement(cx), last_panel());
     match cx.open_window(options, |window, cx| {
         cx.new(|cx| Flyout::new(day, tracking, notice, window, cx).with_alerts(alerts))
     }) {
@@ -127,28 +157,55 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
     }
 }
 
-/// Where the flyout's window opens, and on which monitor. Windows shows the window as soon as
-/// GPUI creates it, empty until its first frame fits it: opened elsewhere than where that frame
-/// puts it, it would flash there, at the top left of the primary monitor. So it opens in the
-/// corner the frame will fit it in, at the size its panel last had.
-#[cfg(windows)]
-fn opening_bounds() -> (Option<DisplayId>, Bounds<Pixels>) {
-    let panel = last_panel();
-    match crate::tray::clicked_monitor() {
-        Some(monitor) => (
-            Some(monitor.display),
-            logical_bounds(
-                flyout_bounds(monitor.work_area, panel, monitor.scale),
-                monitor.scale,
-            ),
-        ),
-        None => (None, Bounds::new(point(px(0.), px(0.)), panel)),
+/// The window the flyout opens in at `placement`, its panel `panel` large. Windows shows the
+/// window as soon as GPUI creates it, empty until its first frame fits it: opened elsewhere than
+/// where that frame puts it, it would flash there, at the top left of the primary monitor. So in a
+/// work area it opens in the corner the frame will fit it in, at the size its panel last had.
+fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOptions {
+    let popup = WindowOptions {
+        window_bounds: Some(WindowBounds::Windowed(Bounds::new(
+            point(px(0.), px(0.)),
+            panel,
+        ))),
+        titlebar: None,
+        focus: true,
+        show: true,
+        kind: WindowKind::PopUp,
+        is_movable: false,
+        is_resizable: false,
+        is_minimizable: false,
+        // Opaque, the default: on Windows, `Transparent` has Windows compose a frosted layer
+        // behind the whole window. The window is the panel, and Windows draws its shadow.
+        ..Default::default()
+    };
+    match placement {
+        FlyoutPlacement::At { work_area } => {
+            let client = flyout_bounds(bounds(work_area.bounds), panel, work_area.scale);
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(logical_bounds(
+                    client,
+                    work_area.scale,
+                ))),
+                display_id: Some(DisplayId::new(work_area.display)),
+                ..popup
+            }
+        }
+        // GPUI has `WindowKind::LayerShell` only when built for Wayland, and no backend answers
+        // `Layer` yet.
+        FlyoutPlacement::Layer { .. } | FlyoutPlacement::CompositorPlaced => popup,
+        FlyoutPlacement::Window => WindowOptions {
+            titlebar: Some(TitlebarOptions::default()),
+            kind: WindowKind::Normal,
+            is_movable: true,
+            is_minimizable: true,
+            ..popup
+        },
     }
 }
 
-#[cfg(not(windows))]
-fn opening_bounds() -> (Option<DisplayId>, Bounds<Pixels>) {
-    (None, Bounds::new(point(px(0.), px(0.)), last_panel()))
+/// `rect` in GPUI's bounds.
+fn bounds(rect: Rect) -> Bounds<i32> {
+    Bounds::new(point(rect.x, rect.y), size(rect.width, rect.height))
 }
 
 /// The panel's size at the last fitting, or a guess before the first one.
@@ -231,27 +288,27 @@ impl Fitted {
     }
 }
 
-/// Gives the window the measured content size and, on Windows, anchors it above the
-/// notification area like the system flyouts.
-pub fn fit_window(window: &mut Window, content: Size<Pixels>) {
+/// Gives the window the measured content size and, in a work area, puts it in the corner next
+/// to the taskbar, like the Windows 11 flyouts: see [`flyout_bounds`].
+pub fn fit_window(window: &mut Window, content: Size<Pixels>, cx: &App) {
     *LAST_PANEL.lock().unwrap() = Some(content);
-    #[cfg(windows)]
-    crate::tray::place_above_taskbar(window, content);
-    #[cfg(not(windows))]
-    window.resize(content);
+    match placement(cx) {
+        FlyoutPlacement::At { work_area } => {
+            let client = flyout_bounds(bounds(work_area.bounds), content, window.scale_factor());
+            platform::place_window(window, client);
+        }
+        FlyoutPlacement::Layer { .. }
+        | FlyoutPlacement::CompositorPlaced
+        | FlyoutPlacement::Window => window.resize(content),
+    }
 }
 
-/// The height of the work area the flyout opens in, in physical pixels, on Windows: its panel
-/// is no taller than [`panel_max_height`] allows, and its body scrolls past it. Read for each
-/// frame, since a new scale also resizes the taskbar. `None` when Windows does not tell it.
-#[cfg(windows)]
-pub fn work_area_height() -> Option<i32> {
-    crate::tray::work_area().map(|area| area.size.height)
-}
-
-#[cfg(not(windows))]
-pub fn work_area_height() -> Option<i32> {
-    None
+/// The height of the work area the flyout opens in, in physical pixels: its panel is no taller
+/// than [`panel_max_height`] allows, and its body scrolls past it. Read for each frame, since a
+/// new scale also resizes the taskbar. `None` when the desktop does not tell it.
+pub fn work_area_height(cx: &App) -> Option<i32> {
+    let placement = cx.try_global::<Placement>()?;
+    placement.desktop.usable_height(placement.click)
 }
 
 /// The tallest the flyout's panel can be in a work area `height` physical pixels tall at
@@ -295,6 +352,8 @@ pub fn window_bounds(client: Bounds<i32>, frame: FrameInsets) -> Bounds<i32> {
 
 #[cfg(test)]
 mod tests {
+    use bientot_platform::placement::WorkArea;
+
     use super::*;
 
     fn area(left: i32, top: i32, right: i32, bottom: i32) -> Bounds<i32> {
@@ -405,6 +464,57 @@ mod tests {
             window_bounds(Bounds::new(point(-372, 420), size(360, 600)), frame),
             Bounds::new(point(-380, 389), size(376, 639)),
         );
+    }
+
+    #[test]
+    fn a_flyout_in_a_work_area_opens_on_its_monitor_where_its_first_frame_fits_it() {
+        // A monitor at 150 % left of the primary one.
+        let work_area = WorkArea {
+            display: 7,
+            bounds: Rect {
+                x: -2560,
+                y: 0,
+                width: 2560,
+                height: 1392,
+            },
+            scale: 1.5,
+        };
+        let options = window_options(FlyoutPlacement::At { work_area }, panel(613.));
+        assert_eq!(options.display_id, Some(DisplayId::new(7)));
+        assert_eq!(options.kind, WindowKind::PopUp);
+        let Some(WindowBounds::Windowed(bounds)) = options.window_bounds else {
+            panic!("a windowed flyout");
+        };
+        let opening = bounds.to_device_pixels(1.5);
+        assert_eq!(
+            Bounds::new(
+                point(opening.origin.x.0, opening.origin.y.0),
+                size(opening.size.width.0, opening.size.height.0),
+            ),
+            Bounds::new(point(-552, 460), size(540, 920)),
+        );
+    }
+
+    #[test]
+    fn a_flyout_the_system_places_opens_at_its_panel_size() {
+        let options = window_options(FlyoutPlacement::CompositorPlaced, panel(613.));
+        assert_eq!(options.display_id, None);
+        assert_eq!(options.kind, WindowKind::PopUp);
+        assert_eq!(
+            options.window_bounds,
+            Some(WindowBounds::Windowed(Bounds::new(
+                point(px(0.), px(0.)),
+                panel(613.)
+            ))),
+        );
+    }
+
+    #[test]
+    fn without_a_tray_the_flyout_opens_in_an_ordinary_window() {
+        let options = window_options(FlyoutPlacement::Window, panel(613.));
+        assert_eq!(options.kind, WindowKind::Normal);
+        assert!(options.is_minimizable);
+        assert!(options.titlebar.is_some());
     }
 
     #[test]
