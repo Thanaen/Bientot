@@ -14,7 +14,7 @@ use bientot_app::live::{self, Announcement, LiveHost};
 use bientot_app::startup_failure::StartupFailure;
 use bientot_app::strings::{Key, Language};
 use bientot_app::theme::ThemeMode;
-use bientot_app::updates::UpdateSource;
+use bientot_app::updates::UpdateSourceKind;
 use bientot_app::zones::SystemZones;
 use bientot_app::{
     adjust_view, flyout, onboarding, onboarding_view, palette_view, settings_view, shell,
@@ -23,6 +23,7 @@ use bientot_app::{
 use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_domain::configuration::Settings;
 use bientot_domain::time::SystemClock;
+use bientot_platform::startup::LaunchIntent;
 use bientot_store::data_directory::DataDirectory;
 #[cfg(windows)]
 use bientot_store::data_migration::Location;
@@ -30,7 +31,7 @@ use bientot_store::data_migration::Migration;
 use bientot_store::settings::{LoadedSettings, SettingsSource, SettingsStore};
 #[cfg(windows)]
 use bientot_windows::single_instance::{Instance, PrimaryInstance};
-use bientot_windows::startup::LaunchIntent;
+use bientot_windows::startup::launch_intent;
 
 static CLOCK: SystemClock = SystemClock;
 static ZONES: SystemZones = SystemZones;
@@ -256,13 +257,13 @@ fn run_on(
     let activation = bientot_windows::startup::current_activation();
     #[cfg(not(windows))]
     let activation = bientot_windows::startup::Activation::Launch;
-    let intent = LaunchIntent::resolve(launch.windows_startup, &activation);
+    let intent = launch_intent(launch.windows_startup, &activation);
     let open_flyout = launch.open_flyout
         || launch.origin == Origin::ToastActivator
         || intent == LaunchIntent::Manual
         || imported.is_some();
     let may_send = launch.may_send_usage_ping();
-    let update_source = UpdateSource::of(&launch, settings_view::build().channel());
+    let update_source = UpdateSourceKind::of(&launch, settings_view::build().channel());
     // As in .NET, nothing else starts before the onboarding is saved: the day, the tray and
     // the refreshes all begin from its choices.
     let (started, loaded, notifications) = if first_run {
@@ -446,7 +447,7 @@ fn show(
     started: Started,
     open_flyout: bool,
     may_send: bool,
-    update_source: Option<UpdateSource>,
+    update_source: Option<UpdateSourceKind>,
     cx: &mut gpui::App,
 ) {
     cx.set_global(started.language);
@@ -476,7 +477,7 @@ fn show(
         let language = *cx.global::<Language>();
         let daily = matches!(
             update_source,
-            Some(UpdateSource::Store | UpdateSource::Direct)
+            Some(UpdateSourceKind::Store | UpdateSourceKind::Direct)
         );
         bientot_app::plugins::start(&directory, language, daily, cx);
     }

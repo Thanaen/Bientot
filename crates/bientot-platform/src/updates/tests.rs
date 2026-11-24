@@ -144,7 +144,7 @@ impl FakeStore {
     }
 }
 
-impl UpdateStore for &FakeStore {
+impl UpdateSource for &FakeStore {
     type Offer = Offer;
     type Error = StoreFailure;
 

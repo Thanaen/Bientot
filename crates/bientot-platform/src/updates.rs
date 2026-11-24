@@ -26,8 +26,8 @@ pub fn is_due(settings: &UpdateSettings, now: Timestamp) -> bool {
             .is_none_or(|last| last > now || now.duration_since(last) >= CHECK_INTERVAL)
 }
 
-/// The Microsoft Store, asked about this package.
-pub trait UpdateStore {
+/// Where updates of this build come from: the Microsoft Store, or the feed of the installed build.
+pub trait UpdateSource {
     type Offer;
     type Error;
 
@@ -89,7 +89,7 @@ pub struct StoreUpdateService<U, S, C> {
     clock: C,
 }
 
-impl<U: UpdateStore, S: UpdateCheckSettings, C: Clock> StoreUpdateService<U, S, C> {
+impl<U: UpdateSource, S: UpdateCheckSettings, C: Clock> StoreUpdateService<U, S, C> {
     pub fn new(store: Option<U>, settings: S, clock: C) -> Self {
         Self {
             store,
