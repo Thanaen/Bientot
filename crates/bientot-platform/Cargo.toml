@@ -1,6 +1,6 @@
 [package]
 name = "bientot-platform"
-description = "Bientôt's system integration that needs no particular OS: the built-in activity source, the session and power recorder, the update check and the types the platform crates share."
+description = "Bientôt's system integration that needs no particular OS: the built-in activity source, the session and power recorder, the update check, the start-at-sign-in port, the tray menu and the types the platform crates share."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

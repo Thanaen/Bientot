@@ -1,5 +1,6 @@
 //! What the notification-area icon shows and offers, apart from the Windows calls of `tray` so
-//! that it is tested everywhere. The menu holds the commands of `_baseTrayCommands` in
+//! that it is tested everywhere; [`bientot_platform::tray`] names its items to the system and
+//! finds the one chosen. The menu holds the commands of `_baseTrayCommands` in
 //! `App.xaml.cs` and of `DailySummaryTrayCommandBuilder`, in the order the Designer set for R6:
 //! an unavailable command stays in the menu, greyed out. Unlike the .NET app, each long lock
 //! to review gets a submenu named by its time range, offering the answers of the week view.
@@ -103,19 +104,8 @@ pub enum MenuCommand {
     Quit,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum MenuEntry {
-    Item {
-        label: String,
-        command: MenuCommand,
-        enabled: bool,
-    },
-    Submenu {
-        label: String,
-        items: Vec<MenuEntry>,
-    },
-    Separator,
-}
+/// The tray's menu, each item running a [`MenuCommand`].
+pub type MenuEntry = bientot_platform::tray::MenuEntry<MenuCommand>;
 
 /// What the menu depends on.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -243,36 +233,6 @@ pub fn menu(state: &MenuState, language: Language) -> Vec<MenuEntry> {
         item(text(Key::TrayQuitCommand), MenuCommand::Quit, true),
     ]);
     entries
-}
-
-/// The id of the item at `path` in the menu of `generation`: `3:4.1` names the second item of
-/// the submenu of the fifth entry. A new menu gets a new generation, so that a click on an item
-/// of a menu since replaced names no item.
-pub fn item_id(generation: u64, path: &[usize]) -> String {
-    let path: Vec<String> = path.iter().map(usize::to_string).collect();
-    format!("{generation}:{}", path.join("."))
-}
-
-/// What the item `id` does, when it names an enabled item of `entries`, the menu of
-/// `generation`.
-pub fn chosen(entries: &[MenuEntry], generation: u64, id: &str) -> Option<MenuCommand> {
-    let (shown, path) = id.split_once(':')?;
-    if shown != generation.to_string() {
-        return None;
-    }
-    let mut indices = path.split('.').map(|index| index.parse::<usize>().ok());
-    let mut entries = entries;
-    loop {
-        match entries.get(indices.next()??)? {
-            MenuEntry::Submenu { items, .. } => entries = items,
-            MenuEntry::Item {
-                command,
-                enabled: true,
-                ..
-            } => return indices.next().is_none().then(|| command.clone()),
-            MenuEntry::Item { .. } | MenuEntry::Separator => return None,
-        }
-    }
 }
 
 #[cfg(test)]

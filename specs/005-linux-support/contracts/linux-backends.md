@@ -25,7 +25,7 @@ rest on an assumption that a task verifies first.
 - `SecondaryActivate` → ignored (the host shows the menu on a secondary
   click).
 - dbusmenu `Event(clicked)` on item id → `TrayEvent::MenuChosen` with the
-  id of `tray_model::item_id`.
+  id of `bientot_platform::tray::item_id`.
 - `watcher_online` → `HostChanged(Present)`; `watcher_offline` or
   `Error::WontShow` → `HostChanged(Absent)` after 5 s without a host.
 - In Flatpak: `disable_dbus_name(true)` (A-6).

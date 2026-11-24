@@ -13,7 +13,7 @@ use std::ffi::OsStr;
 use std::io;
 use std::path::Path;
 
-use bientot_platform::startup::{LaunchIntent, StartupRegistrationState};
+use bientot_platform::startup::{LaunchIntent, StartupPort, StartupRegistrationState, SystemPage};
 use bientot_store::data_directory::upper_invariant;
 
 #[cfg(windows)]
@@ -27,6 +27,12 @@ pub const REGISTRATION_NAME: &str = "WorkTime";
 /// Marks a launch started by the portable (non-MSIX) build's start-with-Windows `Run` value.
 /// Matched exactly and case-sensitively.
 pub const WINDOWS_STARTUP_ARGUMENT: &str = "--worktime-windows-startup";
+
+/// Windows Settings > Apps > Startup, where the user turns the apps that start at sign-in on
+/// and off.
+pub const STARTUP_APPS: SystemPage = SystemPage {
+    uri: "ms-settings:startupapps",
+};
 
 /// The `TaskId` of the startup task in `packaging/msix/AppxManifest.xml`, which ships it disabled.
 pub const PACKAGED_TASK_ID: &str = "WorkTimeStartupTask";
@@ -413,6 +419,28 @@ impl<K: RunKey, T: PackagedStartupTask> StartupRegistration<K, T> {
         if let Self::Portable(registration) = self {
             registration.migrate_owned_legacy_registration();
         }
+    }
+}
+
+impl<K, T> StartupPort for StartupRegistration<K, T>
+where
+    K: RunKey + Send + Sync,
+    T: PackagedStartupTask + Send + Sync,
+{
+    fn state(&self) -> StartupRegistrationState {
+        StartupRegistration::state(self)
+    }
+
+    fn set_enabled(&self, enabled: bool) -> StartupRegistrationState {
+        StartupRegistration::set_enabled(self, enabled)
+    }
+
+    fn other_copy_starts(&self) -> bool {
+        StartupRegistration::other_copy_starts(self)
+    }
+
+    fn system_page(&self) -> Option<SystemPage> {
+        Some(STARTUP_APPS)
     }
 }
 

@@ -777,7 +777,7 @@ pub struct StartupRead(u64);
 /// Windows Settings > Apps > Startup, where the user turns the other copy off. The Store build
 /// cannot delete its `Run` value: the package's writes under `HKEY_CURRENT_USER` go to a
 /// private copy.
-pub const STARTUP_APPS_URL: &str = "ms-settings:startupapps";
+pub const STARTUP_APPS_URL: &str = bientot_windows::startup::STARTUP_APPS.uri;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RowTone {

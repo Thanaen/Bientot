@@ -212,7 +212,7 @@ not.
 | A window instead of a tray everywhere | Breaks Principle III | Rejected; it is the fallback only |
 
 **Decision.** `ksni` behind the tray port, in `bientot-linux`. The menu
-comes from `tray_model::MenuEntry`, the pixels from `tray_art::rgba`, as on
+comes from `bientot_platform::tray::MenuEntry`, the pixels from `tray_art::rgba`, as on
 Windows. Windows keeps `tray-icon`.
 
 - **Icon.** SNI takes ARGB pixmaps of several sizes; Bientôt sends 16, 22,
