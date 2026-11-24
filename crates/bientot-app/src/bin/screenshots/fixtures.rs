@@ -12,10 +12,10 @@ use bientot_domain::configuration::{RecurringAppointment, Settings};
 use bientot_domain::sources::{ActivitySourceKind, ActivitySourceSelection, IdleSpan, IdleState};
 use bientot_domain::time::{Clock, FixedTimeZoneProvider, FrozenClock};
 use bientot_domain::usage_ping::{Build, Channel};
+use bientot_platform::startup::StartupRegistrationState;
 use bientot_store::activity::{ActivitySourceSelectionRepository, ActivitySpanRepository};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
-use bientot_windows::startup::StartupRegistrationState;
 use jiff::civil::Weekday;
 use jiff::tz::TimeZone;
 

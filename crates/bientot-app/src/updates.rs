@@ -1,6 +1,6 @@
 //! The update the flyout offers, ported from `MainWindow.OfferUpdate`, the update checks of
 //! `App.xaml.cs` and `Services/Demo/DemoStoreUpdatePort.cs`. The checks are
-//! `bientot_windows::updates::StoreUpdateService`'s: at startup, then every
+//! `bientot_platform::updates::StoreUpdateService`'s: at startup, then every
 //! [`RECHECK_INTERVAL`], asking the Store or the feed of the installed build at most once a day
 //! and only while « Rechercher les mises à jour » is on. « Mettre à jour » hands the update to the
 //! Store at once, without the .NET dialog; the Callout says what the dialog said. The installed
@@ -19,11 +19,11 @@ use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
 use bientot_domain::configuration::UpdateSettings;
 use bientot_domain::time::SystemClock;
 use bientot_domain::usage_ping::Channel;
-use bientot_store::settings::SaveSettingsError;
-use bientot_windows::updates::{
+use bientot_platform::updates::{
     RECHECK_INTERVAL, StoreUpdateService, UpdateCheckError, UpdateCheckSettings, UpdateOffer,
     UpdateStore,
 };
+use bientot_store::settings::SaveSettingsError;
 use gpui::{App, AsyncApp, Global};
 use jiff::Timestamp;
 

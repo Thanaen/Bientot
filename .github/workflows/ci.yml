@@ -64,7 +64,7 @@ jobs:
           fi
 
           rust_windows=false
-          if grep -qE '^crates/bientot-(app|windows|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+          if grep -qE '^crates/bientot-(app|platform|windows|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
             rust_windows=true
           fi
 

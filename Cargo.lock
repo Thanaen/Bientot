@@ -439,6 +439,7 @@ dependencies = [
  "anyhow",
  "bientot-core",
  "bientot-domain",
+ "bientot-platform",
  "bientot-plugin-api",
  "bientot-plugins",
  "bientot-store",
@@ -489,6 +490,17 @@ name = "bientot-notices"
 version = "1.0.0"
 dependencies = [
  "serde_json",
+]
+
+[[package]]
+name = "bientot-platform"
+version = "1.0.0"
+dependencies = [
+ "bientot-domain",
+ "bientot-store",
+ "jiff",
+ "rusqlite",
+ "tempfile",
 ]
 
 [[package]]
@@ -565,6 +577,7 @@ name = "bientot-windows"
 version = "1.0.0"
 dependencies = [
  "bientot-domain",
+ "bientot-platform",
  "bientot-store",
  "jiff",
  "rusqlite",

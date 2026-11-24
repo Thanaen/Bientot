@@ -4,7 +4,7 @@
 
 use bientot_core::notifications::{Notification, NotificationBody};
 use bientot_domain::time::TimeZoneProvider;
-use bientot_windows::notifications::NotificationRequest;
+use bientot_platform::notifications::NotificationRequest;
 
 use crate::strings::{Key, Language};
 

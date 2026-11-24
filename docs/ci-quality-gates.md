@@ -15,7 +15,7 @@ A successful `CI` run requires every job that runs to pass.
 
 `Rust` runs for a pull request only when it changes a Rust file (`crates/`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`), `packaging/` (the MSIX manifest and the license texts the tests read) or `.github/workflows/ci.yml`. A pull request that changes only documentation or the web service runs no Rust job.
 
-`Rust on Windows` runs only when a pull request changes `crates/bientot-app/`, `crates/bientot-windows/`, `crates/bientot-store/` (its file handling behaves differently on Windows), `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `packaging/`, `scripts/measure-performance.ps1`, `scripts/package-rust.ps1`, `scripts/verify-package-executables.ps1` or `.github/workflows/ci.yml`, and only after `Rust` passed. Both Rust jobs cache their dependency builds with `Swatinem/rust-cache`; a pull request's cache serves only that pull request's later pushes.
+`Rust on Windows` runs only when a pull request changes `crates/bientot-app/`, `crates/bientot-platform/`, `crates/bientot-windows/`, `crates/bientot-store/` (its file handling behaves differently on Windows), `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `packaging/`, `scripts/measure-performance.ps1`, `scripts/package-rust.ps1`, `scripts/verify-package-executables.ps1` or `.github/workflows/ci.yml`, and only after `Rust` passed. Both Rust jobs cache their dependency builds with `Swatinem/rust-cache`; a pull request's cache serves only that pull request's later pushes.
 
 `GPUI screenshots` renders screenshots, and `Publish screenshots` publishes them, only when a pull request changes `crates/bientot-app/` or `.github/workflows/ci.yml`. Pull requests from forks still render them, but do not publish.
 

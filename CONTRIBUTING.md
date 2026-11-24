@@ -132,10 +132,10 @@ A green Linux run does not prove these:
   release executable and measures its size, startup time and memory. Then
   `scripts/measure-performance.ps1` runs it with the built-in activity source,
   warns above the spec budgets and fails only above 2 % CPU, 200 MiB or 6 s.
-  The job runs only when `crates/bientot-app/`, `crates/bientot-windows/`,
-  the Windows code of `bientot-store`, the Cargo manifests, the toolchain,
-  `scripts/measure-performance.ps1` or `ci.yml` change, and after **Rust**
-  passes.
+  The job runs only when `crates/bientot-app/`, `crates/bientot-platform/`,
+  `crates/bientot-windows/`, the Windows code of `bientot-store`, the Cargo
+  manifests, the toolchain, `scripts/measure-performance.ps1` or `ci.yml`
+  change, and after **Rust** passes.
 
 Keep work out of the Windows job unless it needs Windows, and keep new gates
 conditional on the files they check.

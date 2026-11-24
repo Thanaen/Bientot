@@ -17,6 +17,7 @@ use std::thread::JoinHandle;
 
 use bientot_domain::accounting::SessionState;
 use bientot_domain::time::{Clock, TimeZoneProvider};
+use bientot_platform::lifecycle::LifecycleTransition;
 use windows_sys::Win32::Foundation::{
     ERROR_CLASS_ALREADY_EXISTS, GetLastError, HWND, LPARAM, LRESULT, WPARAM,
 };
@@ -39,7 +40,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 use windows_sys::core::PWSTR;
 
-use super::{LifecycleMessages, LifecycleTransition, WindowMessage, session_state};
+use super::{LifecycleMessages, WindowMessage, session_state};
 
 const _: () = {
     assert!(super::WM_WTSSESSION_CHANGE == WM_WTSSESSION_CHANGE);
@@ -325,12 +326,12 @@ impl Drop for LifecycleWindow {
 #[cfg(test)]
 mod tests {
     use bientot_domain::time::{FixedTimeZoneProvider, FrozenClock};
+    use bientot_platform::PowerState;
+    use bientot_platform::lifecycle::LifecycleChange;
     use jiff::Timestamp;
     use jiff::tz::TimeZone;
 
     use super::*;
-    use crate::PowerState;
-    use crate::lifecycle::LifecycleChange;
 
     fn post(window: &LifecycleWindow, message: u32, w_param: usize, l_param: isize) {
         // SAFETY: posting touches no memory of this process.

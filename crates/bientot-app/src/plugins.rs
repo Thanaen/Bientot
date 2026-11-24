@@ -13,6 +13,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
+use bientot_platform::updates::RECHECK_INTERVAL;
 use bientot_plugin_api::Capability;
 use bientot_plugin_api::manifest::{DEFAULT_MEMORY, Window};
 use bientot_plugin_api::view::PreparedButton;
@@ -28,7 +29,6 @@ use bientot_plugins::state::{StateFile, Status};
 use bientot_plugins::thread::{self, HostUpdate, PluginSpec, PluginThread, Request};
 use bientot_plugins::trust::{self, Trust};
 use bientot_store::data_directory::DataDirectory;
-use bientot_windows::updates::RECHECK_INTERVAL;
 use futures::StreamExt as _;
 use gpui::{App, BorrowAppContext as _, Global, SharedString};
 use jiff::Timestamp;

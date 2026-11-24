@@ -13,6 +13,7 @@ use std::ffi::OsStr;
 use std::io;
 use std::path::Path;
 
+use bientot_platform::startup::StartupRegistrationState;
 use bientot_store::data_directory::upper_invariant;
 
 #[cfg(windows)]
@@ -39,18 +40,6 @@ const HOST_EXECUTABLE_NAMES: [&str; 5] = [
     "msbuild.exe",
     "devenv.exe",
 ];
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum StartupRegistrationState {
-    Unavailable,
-    Disabled,
-    DisabledByUser,
-    DisabledByPolicy,
-    Enabled,
-    EnabledByPolicy,
-    /// The `Run` value starts something other than this executable.
-    RegistrationMismatch,
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LaunchIntent {

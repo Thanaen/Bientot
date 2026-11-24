@@ -7,6 +7,8 @@
 mod native;
 pub mod portable;
 
+use bientot_platform::notifications::NotificationRequest;
+
 #[cfg(windows)]
 pub use native::{Sender, Toasts};
 
@@ -21,14 +23,6 @@ pub const ACTIVATOR_ARGUMENT: &str = "--toast-activated";
 
 /// The flag COM adds after a local server's own arguments when it starts one.
 pub const COM_SERVER_ARGUMENT: &str = "-Embedding";
-
-/// One toast: two lines of text, and the delivery id the receipts recorded it under.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NotificationRequest {
-    pub delivery_id: String,
-    pub title: String,
-    pub body: String,
-}
 
 /// The toast XML `AppNotificationBuilder` writes for `.AddText(title).AddText(body)
 /// .AddArgument("deliveryId", id)`: the argument goes in `launch`, which a click hands back.

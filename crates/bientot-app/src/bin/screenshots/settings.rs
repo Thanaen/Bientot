@@ -14,12 +14,12 @@ use bientot_app::settings_view::{self, SettingsView};
 use bientot_app::strings::Language;
 use bientot_app::theme::motion;
 use bientot_domain::configuration::Settings;
+use bientot_platform::startup::StartupRegistrationState;
 use bientot_plugin_api::{Capability, PluginId};
 use bientot_plugins::state::Status;
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SettingsStore;
 use bientot_store::transfer::Contents;
-use bientot_windows::startup::StartupRegistrationState;
 use gpui::{AppContext as _, HeadlessAppContext, size};
 use jiff::civil::date;
 

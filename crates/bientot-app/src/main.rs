@@ -45,7 +45,7 @@ static INPUT: NoLastInput = NoLastInput;
 struct NoLastInput;
 
 #[cfg(not(windows))]
-impl bientot_windows::activity::LastInputProbe for NoLastInput {
+impl bientot_platform::activity::LastInputProbe for NoLastInput {
     fn read(&self) -> Option<bientot_domain::sources::LastInputReading> {
         None
     }
@@ -542,11 +542,9 @@ mod native {
     use bientot_app::{onboarding_view, shell, startup_failure_view};
     use bientot_core::diagnostics::DiagnosticLogLevel;
     use bientot_domain::time::SystemClock;
+    use bientot_platform::lifecycle::{LifecycleEventRecorder, LifecycleTransition, probe_within};
     use bientot_windows::animation_effects::{self, SettingChanges};
-    use bientot_windows::lifecycle::{
-        LifecycleEventRecorder, LifecycleTransition, LifecycleWindow, current_session_state,
-        probe_within,
-    };
+    use bientot_windows::lifecycle::{LifecycleWindow, current_session_state};
     use bientot_windows::notifications::{Sender, Toasts};
     use bientot_windows::power_history::{PowerHistoryReader, RECORD_LIMIT, SystemLog};
     use bientot_windows::session_history::{

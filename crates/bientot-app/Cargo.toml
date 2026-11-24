@@ -52,6 +52,7 @@ serde_json = "1.0.154"
 ureq = { version = "3.4.2", default-features = false, features = ["native-tls"], optional = true }
 bientot-core = { path = "../bientot-core" }
 bientot-domain = { path = "../bientot-domain" }
+bientot-platform = { path = "../bientot-platform" }
 bientot-plugin-api = { path = "../bientot-plugin-api", optional = true }
 bientot-plugins = { path = "../bientot-plugins", optional = true }
 bientot-store = { path = "../bientot-store" }

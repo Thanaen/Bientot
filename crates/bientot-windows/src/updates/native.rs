@@ -9,12 +9,11 @@ use std::future::Future;
 use std::num::NonZeroIsize;
 use std::pin::Pin;
 
+use bientot_platform::updates::{UpdateOffer, UpdateStore};
 use windows::Services::Store::{StoreContext, StorePackageUpdateState};
 use windows::Win32::Foundation::{E_FAIL, HWND};
 use windows::Win32::UI::Shell::IInitializeWithWindow;
 use windows::core::{Error, Interface};
-
-use super::{UpdateOffer, UpdateStore};
 
 /// The Store, for the MSIX build.
 pub struct StoreUpdates {
