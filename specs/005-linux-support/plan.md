@@ -194,13 +194,13 @@ crates/
 │       ├── session_history.rs # recovery (moved); SessionBoundaryLog (new)
 │       ├── startup.rs         # StartupRegistrationState, LaunchIntent,
 │       │                      # StartupPort (moved from the app)
-│       ├── single_instance.rs # protocol, Activation (moved); InstanceLock (new)
+│       ├── single_instance.rs # Acquired, InstanceLock (new)
 │       ├── notifications.rs   # NotificationRequest, text building (moved)
 │       ├── updates.rs         # UpdateService and its traits (moved, renamed)
 │       ├── tray.rs            # MenuEntry (moved from the app); Tray (new)
 │       ├── placement.rs       # FlyoutPlacement, Desktop (new)
 │       ├── motion.rs          # ReducedMotion (new)
-│       └── system.rs          # SystemInfo, wait_for_exit (new)
+│       └── system.rs          # SystemInfo (new)
 ├── bientot-windows/       # Win32 and WinRT backends only
 ├── bientot-linux/         # NEW: portable half on any OS, `native` on Linux
 │   └── src/

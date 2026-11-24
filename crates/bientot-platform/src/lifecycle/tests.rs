@@ -367,3 +367,47 @@ fn refreshes_and_ticks_between_a_suspend_and_a_short_sleeps_resume_leave_the_sle
         ]
     );
 }
+
+/// Keeps what an [`InMemoryLifecycle`] hands it.
+struct Collected(std::sync::mpsc::Sender<Option<LifecycleTransition>>);
+
+impl LifecycleListener for Collected {
+    fn changed(&mut self, transition: LifecycleTransition) {
+        self.0.send(Some(transition)).unwrap();
+    }
+
+    fn ended(&mut self) {
+        self.0.send(None).unwrap();
+    }
+}
+
+#[test]
+fn an_in_memory_lifecycle_hands_changes_to_the_held_watch_only() {
+    let lifecycle = InMemoryLifecycle::default();
+    let (sender, received) = std::sync::mpsc::channel();
+    let locked = utc(
+        LifecycleChange::Session(SessionState::Locked),
+        at("2026-08-30T09:00:00Z"),
+    );
+    lifecycle.send(locked.clone());
+
+    let watch = lifecycle.watch(Box::new(Collected(sender))).unwrap();
+    lifecycle.send(locked.clone());
+    drop(watch);
+    lifecycle.send(locked.clone());
+
+    assert_eq!(received.try_iter().collect::<Vec<_>>(), vec![Some(locked)]);
+    assert_eq!(lifecycle.snapshot().session, SessionState::Unknown);
+}
+
+#[test]
+fn an_ended_in_memory_lifecycle_tells_its_listener_once() {
+    let lifecycle = InMemoryLifecycle::default();
+    let (sender, received) = std::sync::mpsc::channel();
+    let _watch = lifecycle.watch(Box::new(Collected(sender))).unwrap();
+
+    lifecycle.end();
+    lifecycle.end();
+
+    assert_eq!(received.try_iter().collect::<Vec<_>>(), vec![None]);
+}

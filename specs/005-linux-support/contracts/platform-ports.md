@@ -71,25 +71,31 @@ pub enum LockReporting {
     Unavailable,
 }
 
-/// (new) Receives changes on the source's own thread.
+/// (new) Receives changes on the source's own thread, already stamped.
 pub trait LifecycleListener: Send + 'static {
-    fn changed(&mut self, change: LifecycleChange);
+    fn changed(&mut self, transition: LifecycleTransition);
     /// The source stopped (bus closed, window destroyed). Observation ends cleanly.
     fn ended(&mut self);
 }
 
 /// (new) Replaces the direct calls from main.rs to lifecycle::native.
+/// Object-safe: the app holds it as `Arc<dyn LifecycleSource + Send + Sync>`.
 pub trait LifecycleSource {
-    /// Dropping it stops the watch.
-    type Watch: Send;
+    /// May wait for the system: the app asks through `probe_within`.
     fn snapshot(&self) -> SessionSnapshot;
-    fn watch(self, listener: Box<dyn LifecycleListener>) -> io::Result<Self::Watch>;
+    /// Dropping the returned watch stops it.
+    fn watch(&self, listener: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>>;
 }
+
+/// (new) In-memory: answers its snapshot; `send` and `end` drive the held watch.
+pub struct InMemoryLifecycle { /* … */ }
 ```
 
-`LifecycleEventRecorder` (existing) implements `LifecycleListener` by
-stamping each change with the clock and the zone, as `LifecycleMessages`
-does today for window messages.
+The source stamps each change with the clock and the zone as it arrives,
+as `LifecycleMessages` does for window messages; the Linux source takes a
+clock and a zone the same way. `watch` takes `&self` and the snapshot is
+read after it: the app listens before it reads the state, so that a change
+meanwhile waits for the startup state (`WindowsLifecyclePorts.Attach`).
 
 ## History
 
@@ -173,11 +179,24 @@ pub trait NotificationSink {
 /// (new) Asked once at start and when a show fails.
 pub enum NotificationAvailability { Available, Unavailable }
 
-/// (new) A click on a notification's body, delivered while the app runs.
+/// (new) A click on a notification's body. Clicks that arrive before the
+/// handler (the one that started the process included) reach it first, in
+/// order. The delivery id is `None` when the system gives none.
+pub type ClickHandler = Box<dyn Fn(Option<&str>) + Send + Sync>;
 pub trait NotificationClicks {
-    fn on_click(&self, handler: Box<dyn Fn(/* delivery_id */ &str) + Send + Sync>);
+    fn on_click(&self, handler: ClickHandler);
 }
+
+/// (new) The queue behind every backend's clicks, and their in-memory form.
+pub struct QueuedClicks { /* … */ }
+impl QueuedClicks { pub fn click(&self, delivery_id: Option<String>); }
 ```
+
+The platform cannot hand the app a `NotificationSink`: the sink writes the
+reminder in the language of the settings, which are read after
+`platform::build`. Until the sink's port lands (T023), `Platform` carries
+the step that enables the reminders on the live day
+(`EnableNotifications`).
 
 ## Start at sign-in
 
@@ -216,25 +235,31 @@ Linux never returns `DisabledByUser`, `DisabledByPolicy` or
 
 ```rust
 // bientot-platform/src/single_instance.rs
-/// (existing) What a second launch hands to the first.
-pub struct Activation { /* open_flyout, intent, … as today */ }
-
-/// (new)
+/// (new; the Windows `Instance` enum becomes `Acquired<PrimaryInstance>`)
 pub enum Acquired<L> {
-    /// This process is the instance; `L` listens until dropped.
-    First(L),
-    /// Another process took the activation.
-    HandedOver,
+    /// This launch holds the folder.
+    Primary(L),
+    /// Another process holds it and accepted this launch's request to show itself.
+    Secondary,
 }
 
 pub trait InstanceLock: Sized {
-    fn acquire(
-        key: &InstanceKey,               // from bientot-store, per data folder
-        activation: &Activation,
-        on_activation: Box<dyn Fn(Activation) + Send + Sync>,
-    ) -> io::Result<Acquired<Self>>;
+    /// Holds the folder and receives the later launches until dropped.
+    type Listener;
+    fn acquire(directory: &DataDirectory) -> io::Result<Acquired<Self>>;
+    /// Until then a later launch waits for its answer.
+    fn listen(self, on_activation: impl FnMut() + Send + 'static)
+        -> io::Result<Self::Listener>;
 }
+
+/// (new) In-memory: holds folders within this process only.
+pub struct InMemoryInstance;
 ```
+
+Acquiring and listening stay two steps, as on Windows today: the launch
+claims the old folder before it moves it, and listens only once GPUI runs.
+A later launch hands over nothing but its request; the instance key comes
+from `DataDirectory::instance_key`.
 
 ## Updates
 
@@ -304,6 +329,10 @@ pub trait Tray<C> {
     fn publish(&self, state: TrayState<'_, C>);
 }
 
+/// (new) In-memory: answers what it was given, keeps what it was last given.
+pub struct InMemoryTray<C> { /* … */ }
+
+// crates/bientot-app/src/platform/mod.rs — bientot-platform takes no futures dependency
 /// Built by the composition root with the channel events arrive on.
 pub type TrayEvents = futures::channel::mpsc::UnboundedReceiver<TrayEvent>;
 ```
@@ -334,6 +363,9 @@ pub trait Desktop {
     /// Whether the system rounds and shadows the window (DWM) or the app draws both.
     fn system_draws_frame(&self) -> bool;
 }
+
+/// (new) In-memory: the same answers whatever it is asked.
+pub struct InMemoryDesktop { pub placement, pub usable_height, pub system_draws_frame }
 ```
 
 `shell.rs` maps `FlyoutPlacement` to `WindowOptions` (`WindowKind::PopUp`,
@@ -344,10 +376,17 @@ not conditional.
 
 ```rust
 // bientot-platform/src/motion.rs
+pub type OnChange = Box<dyn Fn() + Send + Sync>;
 pub trait ReducedMotion {
+    /// Stops telling the changes when dropped.
+    type Watch;
     fn current(&self) -> bool;
-    fn watch(&self, on_change: Box<dyn Fn(bool) + Send + Sync>);
+    /// `on_change` only queues; the app reads `current` afterwards, since the
+    /// Windows hook runs inside a window procedure.
+    fn watch(&self, on_change: OnChange) -> io::Result<Self::Watch>;
 }
+/// In-memory: `set` changes it and tells the watchers.
+pub struct InMemoryMotion { /* … */ }
 
 // bientot-platform/src/system.rs
 pub enum InstallKind { Store, Direct, Portable, Flatpak, AppImage, Development }
@@ -366,39 +405,36 @@ pub trait SystemInfo {
     /// Names of the backends in use, for the diagnostic export:
     /// ("idle", "ext-idle-notify-v1"), ("tray", "status-notifier"), …
     fn backends(&self) -> Vec<(&'static str, String)>;
-    /// Last resort when no window can open.
-    fn show_fatal(&self, title: &str, body: &str);
 }
-
-/// Returns when `pid` has exited or `timeout` passed; whether it exited.
-pub fn wait_for_exit(pid: u32, timeout: Duration) -> bool;
+/// In-memory: the answers it was given.
+pub struct InMemorySystem { pub install_kind, pub description, pub backends }
 ```
 
 ## The value the app receives
 
 ```rust
 // crates/bientot-app/src/platform/mod.rs
+/// The folder is held and the update installed before `build` runs, and
+/// the notifications register before any window: `run_on` calls it first.
 pub struct PlatformContext<'a> {
-    pub data_dir: &'a Path,
-    pub instance_key: &'a InstanceKey,
-    pub launch: &'a Launch,
-    pub demo: bool,
+    pub directory: &'a DataDirectory,   // its path and instance key
+    pub launch: &'a Launch,             // demo, --data-dir, origin, sign-in marker
 }
 
 pub struct Platform {
+    pub launch_intent: LaunchIntent,
     pub last_input: Box<dyn LastInputProbe + Send>,
-    pub lifecycle: Box<dyn DynLifecycleSource>,       // object-safe wrapper
+    pub lifecycle: Arc<dyn LifecycleSource + Send + Sync>,
     pub power_log: Box<dyn PowerBoundaryLog + Send>,
     pub session_log: Box<dyn SessionBoundaryLog + Send>,
-    pub notifications: Arc<dyn NotificationSink + Send + Sync>,
+    pub notifications: EnableNotifications,   // until T023, see Notifications
     pub notification_clicks: Box<dyn NotificationClicks>,
-    pub startup: Arc<dyn StartupPort>,
-    pub tray: Rc<dyn Tray<MenuCommand>>,
-    pub tray_events: TrayEvents,
-    pub desktop: Rc<dyn Desktop>,
-    pub motion: Box<dyn ReducedMotion>,
-    pub system: Arc<dyn SystemInfo + Send + Sync>,
-    pub final_paths: Box<dyn FinalPaths + Send + Sync>,
+    pub startup: Option<Arc<dyn StartupPort>>, // None in a demo
+    pub tray: Rc<dyn Tray<MenuCommand>>,       // T022
+    pub tray_events: TrayEvents,               // T022
+    pub desktop: Rc<dyn Desktop>,              // T022
+    pub system: Arc<dyn SystemInfo + Send + Sync>,          // T023
+    pub final_paths: Box<dyn FinalPaths + Send + Sync>,     // T023
 }
 
 impl Platform {
@@ -407,8 +443,23 @@ impl Platform {
 }
 
 pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform>;
+
+/// What a launch needs before `build`, or before it holds its folder: not in `Platform`.
+pub type Instance;                       // impl InstanceLock
+pub type Motion;                         // impl ReducedMotion; the failure window follows it too
+pub fn motion() -> Motion;
+pub fn run_update_hooks() -> bool;       // Velopack's hooks, before anything else
+pub fn install_pending_update();
+pub fn local_app_data() -> anyhow::Result<PathBuf>;
+/// Last resort when no window can open, such as the import that waits for the next start.
+pub fn show_fatal(title: &str, body: &str);
+/// Returns when `pid` has exited or `timeout` passed; whether it exited. Runs before the
+/// folder is held, for the restart after an import.
+pub fn wait_for_exit(pid: u32, timeout: Duration) -> bool;
 ```
 
-Updates and the single-instance lock are generic rather than boxed (their
-traits have associated types); `platform` exports the concrete types under
-neutral aliases (`platform::Updates`, `platform::Instance`).
+Updates, the single-instance lock and the motion are generic rather than
+boxed (their traits have associated types); `platform` exports the concrete
+types under neutral names (`platform::Updates`, `platform::Instance`,
+`platform::Motion`). `wait_for_exit` and `show_fatal` need system calls, so
+they live in the backends rather than in `bientot-platform`.

@@ -19,9 +19,9 @@ it in this table.
 | `bientot-plugins` | any OS | The plugin host: the package reader, signatures and trust, `plugins\state.json`, the WebAssembly runtime (wasmi) with its fuel, memory and time budgets, the host imports, the `plugins` thread, the plugin logs and the revocation list. |
 | `bientot-plugin-sdk` | any OS, and `wasm32-unknown-unknown` | Writes plugins in Rust: the exports, the host calls, card builders and a native test host. Its `examples/` are the four sample plugins. |
 | `bientot-plugin-tool` | any OS | The `bientot-plugin` command for plugin authors and the maintainer: `pack`, `keygen`, `sign`, `check`, `install`, `sign-revocations`. |
-| `bientot-platform` | any OS | The platform-independent half of the system integration: the built-in activity source, the recording of session and power changes, the recovery of power and session history, the update check, the `StartupPort` that registers the app to start at sign-in, the tray menu (`MenuEntry` and its item ids), `PowerState`. |
+| `bientot-platform` | any OS | The platform-independent half of the system integration: the built-in activity source, the recording of session and power changes, the recovery of power and session history, the update check, the `StartupPort` that registers the app to start at sign-in, the tray menu (`MenuEntry` and its item ids), `PowerState`. It defines the ports the app runs on (lifecycle, single instance, tray, flyout placement, reduced motion, system, notification clicks), each with an in-memory implementation. |
 | `bientot-windows` | Windows for its Win32 calls | The last-input query, the session and power message decoding, power and session history from the System and Winlogon event logs, start with Windows (the `Run` key and the MSIX startup task behind `StartupPort`), toast notifications, the single-instance claim, file dialogs, the Microsoft Store `StoreContext` call. |
-| `bientot-app` | Windows to run; tests on any OS | The `worktime.exe` binary: the notification-area icon (`tray-icon`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `bientot-screenshots` tool. |
+| `bientot-app` | Windows to run; tests on any OS | The `worktime.exe` binary: the composition root of the platform ports (`platform/`), the notification-area icon (`tray-icon`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `bientot-screenshots` tool. |
 | `bientot-notices` | any OS | Writes `THIRD-PARTY-NOTICES.txt` for the release executable and fails on a license outside the allowed list. |
 
 The web service behind `bientot.dev` and `worktime.thanaen.dev` (website, usage
@@ -33,7 +33,10 @@ counter, update redirects, download link) is a separate Bun project in
 
 `crates/bientot-app/src/main.rs` parses the command line (`launch.rs`),
 resolves the data directory, then claims the single instance for that
-directory (`bientot_windows::single_instance`). If another copy of Bientôt
+directory (`platform::Instance`). It then builds the platform once
+(`platform::build`): `src/platform/` is the composition root, which picks
+the Windows backend (`windows.rs`) or the null one (`null.rs`) and holds the
+platform conditions of `main.rs`. If another copy of Bientôt
 already holds it, the launch hands its activation over, logs `instance.redirected` and
 exits before it opens the settings, the ledger or the log. A `--data-dir` or a
 `--demo` launch uses another folder, so it runs on its own.
