@@ -5,7 +5,7 @@ mod activator;
 use std::path::Path;
 use std::sync::Arc;
 
-use bientot_platform::notifications::NotificationRequest;
+use bientot_platform::notifications::{NotificationRequest, Notifier};
 use windows::Data::Xml::Dom::XmlDocument;
 use windows::UI::Notifications::{
     NotificationSetting, ToastNotification, ToastNotificationManager, ToastNotifier,
@@ -108,6 +108,15 @@ impl Toasts {
         }
         let toast = ToastNotification::CreateToastNotification(&document(request)?)?;
         self.notifier.Show(&toast)
+    }
+}
+
+impl Notifier for Toasts {
+    fn show(
+        &self,
+        request: &NotificationRequest,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        Ok(Toasts::show(self, request)?)
     }
 }
 

@@ -16,8 +16,8 @@ use bientot_domain::time::SystemClock;
 use gpui::{App, AsyncApp, Global};
 use jiff::Timestamp;
 
-use crate::file_dialogs;
 use crate::host::Today;
+use crate::platform;
 use crate::shell;
 use crate::strings::{Key, Language};
 use crate::widgets::Notice;
@@ -87,7 +87,7 @@ impl Contents {
         &self,
         destination: &Path,
     ) -> Result<DiagnosticExportResult, DiagnosticExportError> {
-        DiagnosticExport::new(&SystemClock, &final_paths::FINAL_PATHS).export(
+        DiagnosticExport::new(&SystemClock, platform::final_paths()).export(
             destination,
             self.logs.as_deref(),
             &self.snapshot,
@@ -132,9 +132,7 @@ pub fn export_with(
     let file_type = language.text(Key::DiagnosticZipFileType).to_owned();
     cx.spawn(async move |cx| {
         let outcome =
-            match file_dialogs::pick_save(SUGGESTED_FILE_NAME.to_owned(), file_type, "zip", cx)
-                .await
-            {
+            match platform::pick_save(SUGGESTED_FILE_NAME.to_owned(), file_type, "zip", cx).await {
                 Ok(Some(destination)) => {
                     let contents = cx.update(|cx| contents(cx));
                     save(destination, contents, cx).await
@@ -179,56 +177,17 @@ fn failed(error: &impl Display, cx: &mut AsyncApp) -> Outcome {
     Outcome::Failed
 }
 
-#[cfg(windows)]
-mod final_paths {
-    use std::fs::File;
-    use std::path::Path;
-
-    use bientot_core::diagnostics::FinalPaths;
-    use bientot_windows::diagnostics::{directory_is_final, file_is_in};
-
-    /// Asks Windows where the log directory and each log file really are.
-    pub struct WindowsFinalPaths;
-
-    pub static FINAL_PATHS: WindowsFinalPaths = WindowsFinalPaths;
-
-    impl FinalPaths for WindowsFinalPaths {
-        fn directory_is_final(&self, directory: &Path) -> bool {
-            directory_is_final(directory)
-        }
-
-        fn file_is_in(&self, file: &File, directory: &Path) -> bool {
-            file_is_in(file, directory)
-        }
-    }
-}
-
-#[cfg(not(windows))]
-mod final_paths {
-    use bientot_core::diagnostics::NoFinalPathCheck;
-
-    pub static FINAL_PATHS: NoFinalPathCheck = NoFinalPathCheck;
-}
-
 /// What `DiagnosticSnapshotFactory` reads of the process and the system. The Rust app runs on
 /// no .NET runtime: its version is all zeros.
 fn runtime() -> DiagnosticRuntimeSnapshot {
     let process_architecture = architecture(std::env::consts::ARCH);
-    #[cfg(windows)]
-    let (operating_system_version, operating_system_architecture) = (
-        numeric_version(bientot_windows::diagnostics::operating_system_version()),
-        bientot_windows::diagnostics::native_machine()
-            .map_or(process_architecture, machine_architecture),
-    );
-    #[cfg(not(windows))]
-    let (operating_system_version, operating_system_architecture) =
-        (numeric_version([0; 4]), process_architecture);
     DiagnosticRuntimeSnapshot {
         application_version: application_version(env!("CARGO_PKG_VERSION")),
-        operating_system_version,
+        operating_system_version: numeric_version(platform::operating_system_version()),
         dot_net_version: numeric_version([0; 4]),
         process_architecture,
-        operating_system_architecture,
+        operating_system_architecture: platform::native_machine()
+            .map_or(process_architecture, machine_architecture),
     }
 }
 
@@ -265,10 +224,6 @@ fn architecture(target: &str) -> DiagnosticArchitecture {
 }
 
 /// The architecture of an `IMAGE_FILE_MACHINE`.
-#[cfg_attr(
-    not(windows),
-    allow(dead_code, reason = "only Windows names its machine outside the tests")
-)]
 fn machine_architecture(machine: u16) -> DiagnosticArchitecture {
     match machine {
         0x014c => DiagnosticArchitecture::X86,

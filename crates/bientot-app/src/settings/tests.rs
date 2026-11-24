@@ -49,12 +49,19 @@ fn built_in() -> Settings {
     }
 }
 
+const STARTUP_APPS: SystemPage = SystemPage {
+    uri: "ms-settings:startupapps",
+};
+
+/// A form on a system that has a page of startup apps, as Windows has.
 fn form(language: Language) -> SettingsForm {
-    SettingsForm::new(
+    let mut form = SettingsForm::new(
         built_in(),
         usage_ping(Some(TODAY), Channel::Store),
         language,
-    )
+    );
+    form.show_startup_page(STARTUP_APPS);
+    form
 }
 
 fn on_page(page: Page, language: Language) -> SettingsForm {
@@ -338,6 +345,32 @@ fn the_startup_switch_waits_for_the_registration() {
         })
     );
     assert_eq!(form.toggle(Switch::Startup), None);
+}
+
+#[test]
+fn without_a_page_of_startup_apps_the_startup_row_says_what_the_system_does() {
+    let mut form = SettingsForm::new(
+        built_in(),
+        usage_ping(Some(TODAY), Channel::Store),
+        Language::French,
+    );
+
+    form.show_startup(StartupRegistrationState::DisabledByUser);
+    assert_eq!(
+        startup_switch(&form),
+        (
+            startup_control(false, false),
+            Some(
+                "Bientôt est désactivé dans les applications de démarrage. \
+                 Réactivez-le\u{a0}dans\u{a0}Windows."
+            )
+        )
+    );
+    assert_eq!(startup_apps(&form), None);
+
+    form.show_startup(StartupRegistrationState::Enabled);
+    form.show_other_copy(true);
+    assert_eq!(startup_apps(&form), None);
 }
 
 #[test]

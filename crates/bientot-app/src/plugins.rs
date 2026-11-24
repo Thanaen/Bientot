@@ -942,8 +942,7 @@ pub fn open_folder(cx: &mut App) {
     if std::fs::create_dir_all(&root).is_err() {
         return;
     }
-    #[cfg(windows)]
-    let root = bientot_windows::diagnostics::final_directory(&root).unwrap_or(root);
+    let root = crate::platform::final_directory(&root).unwrap_or(root);
     cx.open_with_system(&root);
 }
 

@@ -66,8 +66,12 @@ fn import(onboarding: &Onboarding) -> ImportOffer {
 }
 
 /// On the last step, the registration read as `state`.
+/// The last step, on a system that has a page of startup apps, as Windows has.
 fn on_connections(state: Option<StartupRegistrationState>) -> Onboarding {
     let mut onboarding = onboarding(Some(Language::French));
+    onboarding.show_startup_page(SystemPage {
+        uri: "ms-settings:startupapps",
+    });
     onboarding.advance();
     onboarding.advance();
     if let Some(state) = state {
@@ -898,4 +902,22 @@ fn startup_turned_off_in_windows_offers_startup_apps() {
             url: "ms-settings:startupapps",
         })
     );
+}
+
+#[test]
+fn startup_turned_off_without_a_page_of_startup_apps_says_so() {
+    let mut onboarding = onboarding(Some(Language::French));
+    onboarding.advance();
+    onboarding.advance();
+    onboarding.show_startup(StartupRegistrationState::DisabledByUser);
+
+    let startup = row(&onboarding, Setting::Startup);
+    assert_eq!(
+        startup.status,
+        Some(
+            "Bientôt est désactivé dans les applications de démarrage. \
+             Réactivez-le\u{a0}dans\u{a0}Windows."
+        )
+    );
+    assert_eq!(startup.startup_apps, None);
 }

@@ -190,13 +190,25 @@ pub trait NotificationClicks {
 /// (new) The queue behind every backend's clicks, and their in-memory form.
 pub struct QueuedClicks { /* … */ }
 impl QueuedClicks { pub fn click(&self, delivery_id: Option<String>); }
+
+/// (new) Shows a notification the app already wrote.
+pub trait Notifier {
+    fn show(&self, request: &NotificationRequest)
+        -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+}
+/// (new) In-memory: keeps what it was asked to show.
+pub struct InMemoryNotifier { /* … */ }
 ```
 
 The platform cannot hand the app a `NotificationSink`: the sink writes the
 reminder in the language of the settings, which are read after
-`platform::build`. Until the sink's port lands (T023), `Platform` carries
-the step that enables the reminders on the live day
-(`EnableNotifications`).
+`platform::build`. The platform hands a `Notifier` instead, which shows a
+`NotificationRequest` already written; the app's `notify::ToastSink`
+writes the request in the settings' language and hands it over. The
+Windows `Toasts` implement `Notifier` in `bientot-windows`. A refused
+registration reaches the app as `platform::NotificationsRefused`, the
+backend's own error type (`windows::core::Error` on Windows), because the
+diagnostic log names that type.
 
 ## Start at sign-in
 
@@ -227,6 +239,10 @@ pub struct SystemPage { pub uri: &'static str }
 page implements it: Windows answers `ms-settings:startupapps`
 (`bientot_windows::startup::STARTUP_APPS`), and the in-memory ports of the
 tests need no change.
+The settings and the onboarding views hand that page to their form when they
+open (`show_startup_page`). The form shows « Open Startup apps » only when it
+has a page, and opens its `uri`; without one, the startup row keeps its status
+text.
 
 Linux never returns `DisabledByUser`, `DisabledByPolicy` or
 `EnabledByPolicy`.
@@ -386,6 +402,10 @@ to `At` with T060. `WindowKind::LayerShell` exists only in a GPUI built
 for Wayland; until the Linux backend answers `Layer`, `shell.rs` opens it
 as it opens `CompositorPlaced`.
 
+When `system_draws_frame` is true, the flyout paints the border's colour
+behind its panel, where the system's rounding leaves pixels; without a
+desktop, as in the screenshots, it does not.
+
 GPUI resizes a window but cannot move it, and `bientot-platform` cannot
 name a GPUI window: `platform::place_window(window, client)` moves the open
 flyout so that its client area covers `client`, in physical pixels (on
@@ -447,14 +467,13 @@ pub struct Platform {
     pub lifecycle: Arc<dyn LifecycleSource + Send + Sync>,
     pub power_log: Box<dyn PowerBoundaryLog + Send>,
     pub session_log: Box<dyn SessionBoundaryLog + Send>,
-    pub notifications: EnableNotifications,   // until T023, see Notifications
+    /// None in a demo and where no notification shows; Err when the system refused it.
+    pub notifier: Option<Result<Box<dyn Notifier>, NotificationsRefused>>,
     pub notification_clicks: Box<dyn NotificationClicks>,
     pub startup: Option<Arc<dyn StartupPort>>, // None in a demo
     pub tray: Rc<dyn Tray<MenuCommand>>,       // shows nothing before its first publish
     pub tray_events: TrayEvents,
     pub desktop: Rc<dyn Desktop>,
-    pub system: Arc<dyn SystemInfo + Send + Sync>,          // T023
-    pub final_paths: Box<dyn FinalPaths + Send + Sync>,     // T023
 }
 
 impl Platform {
@@ -478,11 +497,40 @@ pub fn show_fatal(title: &str, body: &str);
 pub fn wait_for_exit(pid: u32, timeout: Duration) -> bool;
 /// Moves the open flyout's window, see Flyout placement.
 pub fn place_window(window: &mut gpui::Window, client: Bounds<i32>);
-/// Windows only, until the Store's port (T023): the tray icon's window, which owns the
-/// Store's prompts.
-#[cfg(windows)]
-pub fn tray_window() -> Option<NonZeroIsize>;
+
+/// The backend's error when the system refuses the notifications, see Notifications.
+pub type NotificationsRefused;
+/// The save and open dialogs; `None` once cancelled. Windows runs its blocking dialog on a
+/// thread of its own; elsewhere GPUI's dialogs.
+pub async fn pick_save(suggested: String, file_type: String, extension: &'static str,
+    cx: &mut AsyncApp) -> anyhow::Result<Option<PathBuf>>;
+pub async fn pick_open(file_type: String, extensions: &'static [&'static str],
+    cx: &mut AsyncApp) -> anyhow::Result<Option<PathBuf>>;
+/// The Store (`None` before the tray icon's window, which owns its prompts, exists, or
+/// without package identity) and the Velopack feed. Elsewhere `updates::NoUpdates`, never
+/// returned.
+pub fn store_updates() -> Result<Option<impl UpdateSource>, impl Display>;
+pub fn direct_updates() -> Option<impl UpdateSource>;
+/// The system's own name for its zone when it is not an IANA name: the Windows key.
+pub fn system_zone_id() -> Option<String>;
+/// What the diagnostic snapshot keeps of the system, as .NET wrote it: zeros and `None`
+/// where the system does not tell.
+pub fn operating_system_version() -> [u32; 4];
+pub fn native_machine() -> Option<u16>;            // an IMAGE_FILE_MACHINE
+/// The diagnostic export's checks (`NoFinalPathCheck` off Windows), and where a folder
+/// really is for the file manager (`None`: where its path says).
+pub fn final_paths() -> &'static (dyn FinalPaths + Sync);
+pub fn final_directory(directory: &Path) -> Option<PathBuf>;
+/// Opens the settings file in the editor of its type. Does nothing off Windows, as before.
+pub fn open_in_editor(file: &Path, cx: &App);
 ```
+
+The backend functions after `place_window` are no fields of `Platform`:
+the export of a failed start runs without one, and none of them holds
+state. `SystemInfo` stays unwired until T121 gives it a consumer: its
+`SystemDescription` names the system in words, while the snapshot keeps
+.NET's numeric version, so `diagnostics.rs` reads
+`operating_system_version` and `native_machine` meanwhile.
 
 `build` runs before GPUI does and before the day is known, so the Windows
 tray makes its icon at the first `publish`. The app quits when its last

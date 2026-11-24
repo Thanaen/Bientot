@@ -25,29 +25,9 @@ impl TimeZoneProvider for SystemZones {
     }
 }
 
-#[cfg(windows)]
 fn local_id(zone: &TimeZone) -> String {
-    use windows::Win32::System::Time::{
-        DYNAMIC_TIME_ZONE_INFORMATION, GetDynamicTimeZoneInformation, TIME_ZONE_ID_INVALID,
-    };
-    let mut information = DYNAMIC_TIME_ZONE_INFORMATION::default();
-    // SAFETY: the out pointer is a local for the call.
-    let result = unsafe { GetDynamicTimeZoneInformation(&mut information) };
-    let key = &information.TimeZoneKeyName;
-    let length = key.iter().position(|unit| *unit == 0).unwrap_or(key.len());
-    if result == TIME_ZONE_ID_INVALID || length == 0 {
-        return iana_id(zone);
-    }
-    String::from_utf16_lossy(&key[..length])
-}
-
-#[cfg(not(windows))]
-fn local_id(zone: &TimeZone) -> String {
-    iana_id(zone)
-}
-
-fn iana_id(zone: &TimeZone) -> String {
-    zone.iana_name().unwrap_or("UTC").to_owned()
+    crate::platform::system_zone_id()
+        .unwrap_or_else(|| zone.iana_name().unwrap_or("UTC").to_owned())
 }
 
 #[cfg(test)]

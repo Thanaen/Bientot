@@ -6,7 +6,6 @@ pub mod assets;
 pub mod automatic;
 pub mod demo;
 pub mod diagnostics;
-pub mod file_dialogs;
 pub mod flyout;
 pub mod host;
 pub mod launch;

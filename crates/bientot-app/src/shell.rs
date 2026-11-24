@@ -84,6 +84,13 @@ fn placement(cx: &App) -> FlyoutPlacement {
         })
 }
 
+/// Whether the system rounds and shadows the flyout's window, or the app draws both. Without a
+/// desktop, as in the screenshots, the app does.
+pub fn system_draws_frame(cx: &App) -> bool {
+    cx.try_global::<Placement>()
+        .is_some_and(|placement| placement.desktop.system_draws_frame())
+}
+
 pub fn toggle_flyout(cx: &mut App) {
     let state = cx.default_global::<FlyoutState>();
     if let Some(window) = state.window.take() {

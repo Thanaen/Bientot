@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds the Velopack release of Bientôt: `Setup.exe`, the full and delta packages and the
-# `releases.win.json` feed that installed copies read (crates/bientot-app/src/updates/direct.rs),
-# with the sample plugin `focus.bientot-plugin`.
+# `releases.win.json` feed that installed copies read
+# (crates/bientot-app/src/platform/windows/direct.rs), with the sample plugin
+# `focus.bientot-plugin`.
 # The Release workflow (.github/workflows/release.yml) runs it on Windows and publishes the output
 # folder as a GitHub Release; it also cross-builds from Linux.
 #

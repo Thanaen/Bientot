@@ -5,12 +5,13 @@ use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use gpui::{
-    AnyElement, App, Context, FocusHandle, FontWeight, HighlightStyle, KeyDownEvent, Pixels, Role,
+    AnyElement, Context, FocusHandle, FontWeight, HighlightStyle, KeyDownEvent, Pixels, Role,
     ScrollWheelEvent, StyledText, Window, div, font, prelude::*, px,
 };
 
 use super::{NAV_WIDTH, SettingsView, outlined};
 use crate::assets::MONO_FONT_FAMILY;
+use crate::platform;
 use crate::settings::json::{Token, first_row, lines, rows, tokens_within};
 use crate::strings::{Key, Language};
 use crate::theme::spacing::*;
@@ -171,7 +172,7 @@ impl JsonPage {
                 token::BUTTON_LARGE,
                 theme,
             )
-            .on_click(move |_, _, cx| open(&file, cx))
+            .on_click(move |_, _, cx| platform::open_in_editor(&file, cx))
         });
         let header = div()
             .flex_none()
@@ -251,13 +252,6 @@ fn read(path: &Path) -> Vec<String> {
             log::warn!("cannot read {}: {error}", path.display());
             Vec::new()
         }
-    }
-}
-
-/// Opens the file in the editor Windows associates with `.json`.
-fn open(file: &Path, cx: &App) {
-    if cfg!(windows) {
-        cx.open_with_system(file);
     }
 }
 

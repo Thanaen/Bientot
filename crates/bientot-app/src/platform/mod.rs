@@ -16,7 +16,7 @@ use std::sync::Arc;
 use bientot_domain::sources::LastInputReading;
 use bientot_platform::activity::LastInputProbe;
 use bientot_platform::lifecycle::{InMemoryLifecycle, LifecycleSource};
-use bientot_platform::notifications::{NotificationClicks, QueuedClicks};
+use bientot_platform::notifications::{NotificationClicks, Notifier, QueuedClicks};
 use bientot_platform::placement::{Desktop, FlyoutPlacement, InMemoryDesktop};
 use bientot_platform::power_history::{HistoryUnavailable, PowerBoundaries, PowerBoundaryLog};
 use bientot_platform::session_history::{LockHistory, SessionBoundaries, SessionBoundaryLog};
@@ -27,17 +27,31 @@ use futures::channel::mpsc;
 use jiff::Timestamp;
 
 use crate::launch::Launch;
-use crate::live::LiveHost;
-use crate::strings::Language;
 use crate::tray_model::MenuCommand;
 
 /// Holds the data folder: a later launch on it shows this one.
 pub use backend::Instance;
+/// Why the system refused to show this app's notifications.
+pub use backend::NotificationsRefused;
 pub use backend::build;
+/// Where a folder Bientôt created really is, for the file manager to open: under MSIX, in the
+/// package's `LocalCache`. `None` when it is where its path says.
+pub use backend::final_directory;
+/// Where the user's data really is, once links and mount points are followed: the diagnostic
+/// export checks its log against it.
+pub use backend::final_paths;
 /// Installs the update a check downloaded, if any, and ends the process.
 pub use backend::install_pending_update;
 /// The folder that holds the user's data folder: `%LOCALAPPDATA%`, or the XDG data folder.
 pub use backend::local_app_data;
+/// The machine the system runs on, as an `IMAGE_FILE_MACHINE`: `None` when the system does not
+/// tell, and the process's own architecture then stands for it.
+pub use backend::native_machine;
+/// Opens a file of the user's in the editor the system associates with its type.
+pub use backend::open_in_editor;
+/// The four parts of the system's version, as .NET's `Environment.OSVersion` gives them; zeros
+/// when the system does not tell.
+pub use backend::operating_system_version;
 /// Moves the open flyout's window so that its client area covers the bounds given, in physical
 /// pixels: GPUI only resizes a window, and `bientot-platform` cannot name it.
 pub use backend::place_window;
@@ -46,13 +60,19 @@ pub use backend::place_window;
 pub use backend::run_update_hooks;
 /// Tells the user why Bientôt cannot start when no window can open.
 pub use backend::show_fatal;
-/// The notification-area icon's window, which owns the Store's prompts, once the icon shows.
-#[cfg(windows)]
-pub use backend::tray_window;
+/// The system's name for its own time zone when it is not an IANA name: the Windows key, which
+/// the ledger keeps as .NET's `TimeZoneInfo.Local.Id`.
+pub use backend::system_zone_id;
 /// Waits up to a timeout for a process to exit; whether it did.
 pub use backend::wait_for_exit;
 /// Whether the user asked the system for less motion: [`motion`] reads it.
 pub use backend::{Motion, motion};
+/// The updates of the build Velopack's `Setup.exe` installed, and of the Microsoft Store, whose
+/// prompts the notification-area icon's window owns: `None` when this build has none.
+pub use backend::{direct_updates, store_updates};
+/// The save and open dialogs: `None` once the user cancels. On Windows the dialog blocks until
+/// closed, so it runs on a thread of its own; elsewhere GPUI's own dialogs keep the flow.
+pub use backend::{pick_open, pick_save};
 
 /// What [`build`] knows of the launch.
 pub struct PlatformContext<'a> {
@@ -60,10 +80,6 @@ pub struct PlatformContext<'a> {
     pub directory: &'a DataDirectory,
     pub launch: &'a Launch,
 }
-
-/// Has the live day show its reminders through the system's notifications, in its language, or
-/// tells it that the system refused them. Nothing in a demo.
-pub type EnableNotifications = Box<dyn FnOnce(&mut LiveHost<'static>, Language)>;
 
 /// The clicks on the tray icon and the menu items chosen, in the order they came.
 pub type TrayEvents = mpsc::UnboundedReceiver<TrayEvent>;
@@ -76,7 +92,9 @@ pub struct Platform {
     pub lifecycle: Arc<dyn LifecycleSource + Send + Sync>,
     pub power_log: Box<dyn PowerBoundaryLog + Send>,
     pub session_log: Box<dyn SessionBoundaryLog + Send>,
-    pub notifications: EnableNotifications,
+    /// What shows the live day's reminders, or why the system refused it. `None` in a demo, and
+    /// where the system shows no notifications.
+    pub notifier: Option<Result<Box<dyn Notifier>, NotificationsRefused>>,
     pub notification_clicks: Box<dyn NotificationClicks>,
     /// `None` in a demo, which leaves the user's registration alone, and where the system cannot
     /// start the app at sign-in.
@@ -97,7 +115,7 @@ impl Platform {
             lifecycle: Arc::new(InMemoryLifecycle::default()),
             power_log: Box::new(Unknown),
             session_log: Box::new(Unknown),
-            notifications: Box::new(|_, _| {}),
+            notifier: None,
             notification_clicks: Box::new(QueuedClicks::default()),
             startup: None,
             tray: Rc::new(InMemoryTray::new(Vec::new(), None, TrayHost::Absent)),

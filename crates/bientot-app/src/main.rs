@@ -8,6 +8,7 @@ use bientot_app::demo::DemoHost;
 use bientot_app::host::{self, Source, Today};
 use bientot_app::launch::{Activation, Activations, Launch, Origin};
 use bientot_app::live::{self, Announcement, LiveHost};
+use bientot_app::notify::ToastSink;
 use bientot_app::platform::{self, Platform, PlatformContext, TrayEvents};
 use bientot_app::startup_failure::StartupFailure;
 use bientot_app::strings::{Key, Language};
@@ -26,6 +27,7 @@ use bientot_platform::lifecycle::{
     LifecycleEventRecorder, LifecycleListener, LifecycleSource, LifecycleTransition, probe_within,
 };
 use bientot_platform::motion::ReducedMotion;
+use bientot_platform::notifications::Notifier;
 use bientot_platform::placement::Desktop;
 use bientot_platform::power_history::{PowerHistoryReader, RECORD_LIMIT};
 use bientot_platform::session_history::{self, SessionHistoryReader};
@@ -406,7 +408,7 @@ fn start(
                 lifecycle: source,
                 power_log,
                 session_log,
-                notifications,
+                notifier,
                 notification_clicks,
                 ..
             } = platform;
@@ -418,7 +420,7 @@ fn start(
             })?;
             catch_up(&mut host, source, &mut watching);
             lifecycle = Some(watching);
-            notifications(&mut host, language);
+            enable_notifications(&mut host, notifier, language);
             toast_clicks = Some(take_clicks(&*notification_clicks, launch.origin));
             host.poll();
             (Source::Live(Box::new(host)), language)
@@ -433,6 +435,24 @@ fn start(
         lifecycle,
         toast_clicks,
     })
+}
+
+/// Has `host` show its reminders through `notifier`, in `language`, or tells it that the system
+/// refused them.
+fn enable_notifications(
+    host: &mut LiveHost<'static>,
+    notifier: Option<Result<Box<dyn Notifier>, platform::NotificationsRefused>>,
+    language: Language,
+) {
+    match notifier {
+        Some(Ok(notifier)) => host.enable_notifications(Box::leak(Box::new(ToastSink {
+            notifier,
+            language,
+            zones: &ZONES,
+        }))),
+        Some(Err(error)) => host.notifications_refused(&error),
+        None => {}
+    }
 }
 
 /// Makes `started` the shell's day: the tray, the flyout and the timers act on it from now on.

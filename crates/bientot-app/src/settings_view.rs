@@ -358,6 +358,9 @@ impl SettingsView {
         if startup.is_none() {
             form.show_startup(StartupRegistrationState::Unavailable);
         }
+        if let Some(page) = startup.as_ref().and_then(|port| port.system_page()) {
+            form.show_startup_page(page);
+        }
         let language = cx.try_global::<Language>().copied().unwrap_or_default();
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle, cx);
@@ -1011,7 +1014,7 @@ impl SettingsView {
     }
 }
 
-/// What only Startup apps can change, and the button that opens it.
+/// What only the system's page of startup apps can change, and the button that opens it.
 pub(crate) fn startup_apps_callout(view: StartupAppsView, theme: &Theme) -> gpui::Div {
     let url = view.url;
     div().pt(BASE_08).child(

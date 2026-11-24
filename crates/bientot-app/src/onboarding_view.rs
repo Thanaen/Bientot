@@ -167,6 +167,9 @@ impl OnboardingView {
         if startup.is_none() {
             onboarding.show_startup(StartupRegistrationState::Unavailable);
         }
+        if let Some(page) = startup.as_ref().and_then(|port| port.system_page()) {
+            onboarding.show_startup_page(page);
+        }
         let language = onboarding.language();
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle, cx);

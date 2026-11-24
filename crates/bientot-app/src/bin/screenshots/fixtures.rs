@@ -12,7 +12,7 @@ use bientot_domain::configuration::{RecurringAppointment, Settings};
 use bientot_domain::sources::{ActivitySourceKind, ActivitySourceSelection, IdleSpan, IdleState};
 use bientot_domain::time::{Clock, FixedTimeZoneProvider, FrozenClock};
 use bientot_domain::usage_ping::{Build, Channel};
-use bientot_platform::startup::StartupRegistrationState;
+use bientot_platform::startup::{StartupRegistrationState, SystemPage};
 use bientot_store::activity::{ActivitySourceSelectionRepository, ActivitySpanRepository};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
@@ -325,6 +325,7 @@ impl SettingsState {
             _ => {}
         }
         let form = view.form_mut();
+        form.show_startup_page(STARTUP_APPS);
         form.show_startup(match self {
             Self::Startup(state) => state,
             Self::StartupRefused => StartupRegistrationState::Disabled,
@@ -383,6 +384,11 @@ impl SettingsState {
         }
     }
 }
+
+/// The page the Windows backend opens: the screenshots install no `Startup` global.
+const STARTUP_APPS: SystemPage = SystemPage {
+    uri: "ms-settings:startupapps",
+};
 
 /// A disk that refuses every save.
 struct FailingDisk;

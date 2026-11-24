@@ -19,7 +19,7 @@ use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 use velopack::bundle::Manifest;
 use velopack::{UpdateCheck, UpdateManager, VelopackAsset, VelopackAssetFeed};
 
-use super::StoreError;
+use crate::updates::StoreError;
 
 /// Where `scripts/release-direct.sh` publishes the packages and their `releases.win.json`.
 pub const FEED_URL: &str = "https://worktime.thanaen.dev/updates/";

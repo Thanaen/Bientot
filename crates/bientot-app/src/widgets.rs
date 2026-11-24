@@ -599,7 +599,7 @@ impl ClockFocus {
     }
 }
 
-#[cfg(all(test, feature = "screenshots", target_os = "linux"))]
+#[cfg(all(test, feature = "screenshots"))]
 mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
