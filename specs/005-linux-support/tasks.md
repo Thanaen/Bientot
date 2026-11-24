@@ -68,8 +68,8 @@ No behaviour change. May be split in two pull requests at T012.
 **PR 2** `refactor(app): build the app on platform ports from one composition root`.
 Depends on Lot 1. No behaviour change.
 
-- [ ] T020 [US1] Add `crates/bientot-app/src/platform/mod.rs`: `PlatformContext`, `Platform`, `Platform::null()`, `build` (`contracts/platform-ports.md`); `null.rs` for other systems. Add the remaining ports to `bientot-platform`: `LifecycleSource`, `InstanceLock`, `Tray`, `Desktop`, `ReducedMotion`, `SystemInfo`, `NotificationClicks`, `wait_for_exit`, each with an in-memory implementation.
-- [ ] T021 [US1] Move `mod native` of `crates/bientot-app/src/main.rs` and its 40 conditional lines into `platform/windows.rs`; `main.rs` calls `platform::build` once. Delete `NoLastInput`.
+- [x] T020 [US1] Add `crates/bientot-app/src/platform/mod.rs`: `PlatformContext`, `Platform`, `Platform::null()`, `build` (`contracts/platform-ports.md`); `null.rs` for other systems. Add the remaining ports to `bientot-platform`: `LifecycleSource`, `InstanceLock`, `Tray`, `Desktop`, `ReducedMotion`, `SystemInfo`, `NotificationClicks`, `wait_for_exit`, each with an in-memory implementation.
+- [x] T021 [US1] Move `mod native` of `crates/bientot-app/src/main.rs` and its 40 conditional lines into `platform/windows.rs`; `main.rs` calls `platform::build` once. Delete `NoLastInput`.
 - [ ] T022 [US1] Move `crates/bientot-app/src/tray.rs` into `platform/windows.rs` (or `platform/windows/tray.rs`) behind `Tray` and `Desktop`; `host.rs` publishes through `Tray::publish`; `shell.rs` asks `Desktop::flyout_placement` and maps `FlyoutPlacement` to window options without a condition.
 - [ ] T023 [P] [US1] Remove the conditions of `notify.rs`, `updates.rs`, `file_dialogs.rs`, `zones.rs`, `diagnostics.rs`, `transfer.rs`, `plugins.rs`, `launch.rs`, `lib.rs` and `settings_view.rs` by taking the matching port; « Open Startup apps » shows when `system_page()` is `Some`.
 - [ ] T024 [US8] Add `scripts/check-platform-cfg.sh` and `scripts/platform-cfg-allowlist.txt` (`plan.md`, « No scattered conditions »); run it in the `Rust` job of `.github/workflows/ci.yml`; add a self-test that a seeded violation fails.
@@ -203,7 +203,7 @@ Depends on Lot 3. The spike is `crates/bientot-linux/examples/shell-spike.rs`: a
 - [ ] T114 [US4] [OWNER] Rename the Linux executable to `bientot` (Q11: `[[bin]]` name per target or a second `[[bin]]` entry; Windows keeps `worktime.exe`); data folder `…/bientot` in `launch.rs`; `InstallKind` from the environment.
 - [ ] T115 [US4] [UI] Settings and onboarding: startup texts and states for Linux (`contracts/copy.md`), « Open Startup apps » hidden, `StartupMismatchAppImage.Text` with « Corriger »; mockups, screenshot scenes with `--platform linux`.
 - [ ] T116 [US4] Harness tests: autostart file written and removed under a temporary `XDG_CONFIG_HOME`; two processes on one data folder.
-- [ ] T117 [US4] [UI] Last-resort failure: standard error plus a notification with `NoGraphics.Text` or the existing failure text (`SystemInfo::show_fatal`).
+- [ ] T117 [US4] [UI] Last-resort failure: standard error plus a notification with `NoGraphics.Text` or the existing failure text (`platform::show_fatal`).
 
 ## Phase 12: The rest of the integration (Lot 12) — US4, US6
 

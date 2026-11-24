@@ -1,7 +1,8 @@
 //! Session lock and unlock, suspend and resume, ported from `Services/LifecycleEventRecorder.cs`.
 //! The recording below is platform independent.
 
-use std::sync::mpsc;
+use std::io;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, mpsc};
 use std::time::Duration;
 
 use bientot_domain::accounting::{
@@ -34,6 +35,104 @@ pub trait LifecycleHooks {
 
     /// Called after each change that is new to the ledger.
     fn refresh(&mut self);
+}
+
+/// What the platform knows about the session right now.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SessionSnapshot {
+    /// `Unknown` when the desktop does not report locks.
+    pub session: SessionState,
+    pub lock_reporting: LockReporting,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LockReporting {
+    /// Lock and unlock are reported as they happen.
+    Live,
+    /// This desktop reports no lock state.
+    Unavailable,
+}
+
+/// Receives the changes a [`LifecycleSource`] watches, on the source's own thread.
+pub trait LifecycleListener: Send + 'static {
+    fn changed(&mut self, transition: LifecycleTransition);
+
+    /// The source stopped, its bus closed or its window destroyed: no change follows.
+    fn ended(&mut self);
+}
+
+/// The session lock and unlock and the suspend and resume of this computer.
+pub trait LifecycleSource {
+    /// The session now. The system may be slow to answer: ask through [`probe_within`].
+    fn snapshot(&self) -> SessionSnapshot;
+
+    /// Hands each change to `listener`, stamped with the instant and the zone it arrived in,
+    /// until the watch it returns is dropped.
+    fn watch(&self, listener: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>>;
+}
+
+/// A lifecycle the caller drives: it answers the snapshot it was given, and [`Self::send`]
+/// hands a change to the listener of the watch still held.
+#[derive(Clone)]
+pub struct InMemoryLifecycle {
+    snapshot: SessionSnapshot,
+    listener: Arc<Mutex<Option<Box<dyn LifecycleListener>>>>,
+}
+
+impl InMemoryLifecycle {
+    pub fn new(snapshot: SessionSnapshot) -> Self {
+        Self {
+            snapshot,
+            listener: Arc::default(),
+        }
+    }
+
+    pub fn send(&self, transition: LifecycleTransition) {
+        if let Some(listener) = self.listener().as_mut() {
+            listener.changed(transition);
+        }
+    }
+
+    /// Ends the watch as a closed bus would.
+    pub fn end(&self) {
+        if let Some(mut listener) = self.listener().take() {
+            listener.ended();
+        }
+    }
+
+    fn listener(&self) -> MutexGuard<'_, Option<Box<dyn LifecycleListener>>> {
+        self.listener.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+/// A desktop that reports nothing: the session is unknown.
+impl Default for InMemoryLifecycle {
+    fn default() -> Self {
+        Self::new(SessionSnapshot {
+            session: SessionState::Unknown,
+            lock_reporting: LockReporting::Unavailable,
+        })
+    }
+}
+
+impl LifecycleSource for InMemoryLifecycle {
+    fn snapshot(&self) -> SessionSnapshot {
+        self.snapshot
+    }
+
+    fn watch(&self, listener: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>> {
+        *self.listener() = Some(listener);
+        Ok(Box::new(InMemoryWatch(Arc::clone(&self.listener))))
+    }
+}
+
+/// Drops the listener of an [`InMemoryLifecycle`] when dropped.
+struct InMemoryWatch(Arc<Mutex<Option<Box<dyn LifecycleListener>>>>);
+
+impl Drop for InMemoryWatch {
+    fn drop(&mut self) {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner).take();
+    }
 }
 
 #[derive(Debug)]

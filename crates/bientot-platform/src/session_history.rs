@@ -84,6 +84,24 @@ pub trait SessionBoundaryLog {
     ) -> Result<SessionBoundaries, HistoryUnavailable>;
 }
 
+impl<L: SessionBoundaryLog + ?Sized> SessionBoundaryLog for Box<L> {
+    fn origin(&self) -> &'static str {
+        (**self).origin()
+    }
+
+    fn lock_history(&self) -> LockHistory {
+        (**self).lock_history()
+    }
+
+    fn read(
+        &self,
+        since: Timestamp,
+        record_limit: usize,
+    ) -> Result<SessionBoundaries, HistoryUnavailable> {
+        (**self).read(since, record_limit)
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SessionHistory {
     /// The last boundary within [`LOOKBACK`] before the window, which tells the state of the

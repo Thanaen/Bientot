@@ -1,16 +1,12 @@
 // Release builds on Windows have no console window.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
-use std::path::PathBuf;
-
-use anyhow::Context as _;
 use bientot_app::assets::{self, Assets};
 use bientot_app::demo::DemoHost;
 use bientot_app::host::{self, Source, Today};
-#[cfg(windows)]
-use bientot_app::launch::Activation;
-use bientot_app::launch::{Launch, Origin};
+use bientot_app::launch::{Activation, Activations, Launch, Origin};
 use bientot_app::live::{self, Announcement, LiveHost};
+use bientot_app::platform::{self, Platform, PlatformContext};
 use bientot_app::startup_failure::StartupFailure;
 use bientot_app::strings::{Key, Language};
 use bientot_app::theme::ThemeMode;
@@ -23,59 +19,41 @@ use bientot_app::{
 use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_domain::configuration::Settings;
 use bientot_domain::time::SystemClock;
+use bientot_platform::lifecycle::{
+    LifecycleEventRecorder, LifecycleListener, LifecycleSource, LifecycleTransition, probe_within,
+};
+use bientot_platform::motion::ReducedMotion;
+use bientot_platform::power_history::{PowerHistoryReader, RECORD_LIMIT};
+use bientot_platform::session_history::{self, SessionHistoryReader};
+use bientot_platform::single_instance::{Acquired, InstanceLock};
 use bientot_platform::startup::LaunchIntent;
 use bientot_store::data_directory::DataDirectory;
-#[cfg(windows)]
-use bientot_store::data_migration::Location;
-use bientot_store::data_migration::Migration;
+use bientot_store::data_migration::{Location, Migration};
 use bientot_store::settings::{LoadedSettings, SettingsSource, SettingsStore};
-#[cfg(windows)]
-use bientot_windows::single_instance::{Instance, PrimaryInstance};
-use bientot_windows::startup::launch_intent;
+use futures::StreamExt as _;
+use futures::channel::mpsc;
+use gpui::{App, Global};
 
 static CLOCK: SystemClock = SystemClock;
 static ZONES: SystemZones = SystemZones;
-#[cfg(windows)]
-static INPUT: bientot_windows::activity::SystemLastInput =
-    bientot_windows::activity::SystemLastInput;
-#[cfg(not(windows))]
-static INPUT: NoLastInput = NoLastInput;
-
-/// Only Windows reports the last input.
-#[cfg(not(windows))]
-struct NoLastInput;
-
-#[cfg(not(windows))]
-impl bientot_platform::activity::LastInputProbe for NoLastInput {
-    fn read(&self) -> Option<bientot_domain::sources::LastInputReading> {
-        None
-    }
-}
 
 fn main() -> anyhow::Result<()> {
     // Before anything else: the uninstaller's cleanup, which then ends the process.
-    #[cfg(all(windows, feature = "updates"))]
-    let may_install = updates::direct::run_hooks();
+    let may_install = platform::run_update_hooks();
     let launch = Launch::parse(std::env::args().skip(1))?;
     let Err(StartFailure {
         error,
         directory,
-        #[cfg(windows)]
         instance,
-    }) = run(
-        launch.clone(),
-        #[cfg(all(windows, feature = "updates"))]
-        may_install,
-    )
+    }) = run(launch.clone(), may_install)
     else {
         return Ok(());
     };
     let failure = StartupFailure::new(&error, directory.as_ref(), launch.language);
     application().run(move |cx| {
         prepare(launch.theme, cx);
-        #[cfg(windows)]
         if let Some(instance) = instance {
-            native::listen(instance, cx);
+            listen(instance, cx);
         }
         fail(failure, cx);
     });
@@ -87,8 +65,7 @@ fn main() -> anyhow::Result<()> {
 struct StartFailure {
     error: anyhow::Error,
     directory: Option<DataDirectory>,
-    #[cfg(windows)]
-    instance: Option<PrimaryInstance>,
+    instance: Option<platform::Instance>,
 }
 
 /// WorkTime's app. A process runs only one: `run` builds it once `run_on` succeeded, so a start
@@ -98,10 +75,9 @@ fn application() -> gpui::Application {
 }
 
 /// What every window of the app needs: the theme, the motion, the fonts and the keys.
-fn prepare(theme: ThemeMode, cx: &mut gpui::App) {
+fn prepare(theme: ThemeMode, cx: &mut App) {
     cx.set_global(theme);
-    #[cfg(windows)]
-    native::follow_animation_effects(cx);
+    follow_reduced_motion(platform::motion(), cx);
     if let Err(error) = assets::load_fonts(cx) {
         log::error!("cannot load the fonts: {error:#}");
     }
@@ -117,7 +93,7 @@ fn prepare(theme: ThemeMode, cx: &mut gpui::App) {
 
 /// Shows why WorkTime does not start, in a window that offers the diagnostic ZIP, as the .NET
 /// main window does; a message box when that window cannot open.
-fn fail(failure: StartupFailure, cx: &mut gpui::App) {
+fn fail(failure: StartupFailure, cx: &mut App) {
     let language = failure.language();
     if let Err(error) = startup_failure_view::open(failure, cx) {
         log::error!("cannot show the startup failure: {error:#}");
@@ -126,30 +102,22 @@ fn fail(failure: StartupFailure, cx: &mut gpui::App) {
     }
 }
 
-fn run(
-    launch: Launch,
-    #[cfg(all(windows, feature = "updates"))] may_install: bool,
-) -> Result<(), StartFailure> {
+fn run(launch: Launch, may_install: bool) -> Result<(), StartFailure> {
     let location = launch
-        .location(local_app_data)
+        .location(platform::local_app_data)
         .map_err(|error| StartFailure {
             error,
             directory: None,
-            #[cfg(windows)]
             instance: None,
         })?;
     // A demo writes no log: there is nothing in its folder to export.
     let exportable = launch.demo.is_none();
     // A restart for an import waits for the WorkTime it replaces to give up the folder.
     transfer::wait_for_restart(launch.restarted_from);
-    #[cfg(windows)]
     let (directory, migration, claimed) = settle(location);
-    #[cfg(not(windows))]
-    let (directory, migration) = location.settle(|from, to| std::fs::rename(from, to));
-    #[cfg(windows)]
     let instance = match claimed {
-        Ok(Instance::Primary(instance)) => instance,
-        Ok(Instance::Secondary) => {
+        Ok(Acquired::Primary(instance)) => instance,
+        Ok(Acquired::Secondary) => {
             if let Some(language) =
                 transfer::import_left_waiting(launch.restarted_from, &directory, launch.language)
             {
@@ -167,9 +135,8 @@ fn run(
     };
     // Only the user's own WorkTime installs the update it downloaded: the updater stops every
     // process of the installed build, a demo's or another folder's included.
-    #[cfg(all(windows, feature = "updates"))]
     if may_install && launch.demo.is_none() && launch.data_dir.is_none() {
-        updates::direct::install_pending();
+        platform::install_pending_update();
     }
     // Before anything opens the ledger. A demo's folder is thrown away: nothing is staged there.
     let imported = match launch.demo {
@@ -183,42 +150,44 @@ fn run(
             return Err(StartFailure {
                 error,
                 directory: exportable.then_some(directory),
-                #[cfg(windows)]
                 instance: Some(instance),
             });
         }
     };
-    let app = application();
-    // The notification-area icon keeps the app running after its flyout, the only window, closes.
-    #[cfg(windows)]
-    let app = app.with_quit_mode(gpui::QuitMode::Explicit);
-    app.run(move |cx| {
-        prepare(theme, cx);
-        #[cfg(windows)]
-        native::listen(instance, cx);
-        boot(directory, exportable, cx);
-    });
+    // A notification-area icon keeps the app running after its flyout, the only window, closes.
+    application()
+        .with_quit_mode(platform::QUIT_MODE)
+        .run(move |cx| {
+            prepare(theme, cx);
+            listen(instance, cx);
+            boot(directory, exportable, cx);
+        });
     Ok(())
 }
 
 /// The folder this launch runs on, how the move of the user's folder went, and the claim on the
 /// folder. Before the move this launch claims the old folder: a WorkTime still running on it
 /// keeps it and shows itself, and this launch moves nothing.
-#[cfg(windows)]
-fn settle(location: Location) -> (DataDirectory, Option<Migration>, std::io::Result<Instance>) {
-    use bientot_windows::single_instance::claim;
+fn settle(
+    location: Location,
+) -> (
+    DataDirectory,
+    Option<Migration>,
+    std::io::Result<Acquired<platform::Instance>>,
+) {
+    let claim = platform::Instance::acquire;
     let Some(old) = location.moving_from() else {
         let (directory, migration) = location.settle(|from, to| std::fs::rename(from, to));
         let claimed = claim(&directory);
         return (directory, migration, claimed);
     };
     let held = match claim(&old) {
-        Ok(Instance::Primary(held)) => held,
+        Ok(Acquired::Primary(held)) => held,
         other => return (old, None, other),
     };
     let (directory, migration) = location.settle(|from, to| std::fs::rename(from, to));
     let claimed = if directory == old {
-        Ok(Instance::Primary(held))
+        Ok(Acquired::Primary(held))
     } else {
         claim(&directory)
     };
@@ -234,16 +203,12 @@ fn run_on(
     directory: &DataDirectory,
     imported: Option<Announcement>,
     mut migration: Option<Migration>,
-) -> anyhow::Result<impl FnOnce(DataDirectory, bool, &mut gpui::App) + 'static> {
-    // Before any window, the onboarding's included, as `Toasts::register` requires. A demo shows
-    // no toasts, as in .NET.
-    #[cfg(windows)]
-    let notifications = launch.demo.is_none().then(|| {
-        let data_dir = launch.data_dir.as_ref().map(|_| directory.path());
-        native::Notifications::register(data_dir, launch.origin)
-    });
-    #[cfg(not(windows))]
-    let notifications = None;
+) -> anyhow::Result<impl FnOnce(DataDirectory, bool, &mut App) + 'static> {
+    // Before any window, the onboarding's included: the notifications must be registered first.
+    let mut platform = platform::build(&PlatformContext {
+        directory,
+        launch: &launch,
+    })?;
     // A demo reads its settings as it opens.
     let loaded = match launch.demo {
         Some(_) => None,
@@ -253,53 +218,40 @@ fn run_on(
         .as_ref()
         .is_none_or(|loaded| loaded.source != SettingsSource::Missing);
     let first_run = onboarding::should_show(saved, launch.demo.is_some(), launch.onboarding);
-    #[cfg(windows)]
-    let activation = bientot_windows::startup::current_activation();
-    #[cfg(not(windows))]
-    let activation = bientot_windows::startup::Activation::Launch;
-    let intent = launch_intent(launch.windows_startup, &activation);
     let open_flyout = launch.open_flyout
         || launch.origin == Origin::ToastActivator
-        || intent == LaunchIntent::Manual
+        || platform.launch_intent == LaunchIntent::Manual
         || imported.is_some();
     let may_send = launch.may_send_usage_ping();
     let update_source = UpdateSourceKind::of(&launch, settings_view::build().channel());
+    let startup = platform.startup.take();
     // As in .NET, nothing else starts before the onboarding is saved: the day, the tray and
     // the refreshes all begin from its choices.
-    let (started, loaded, notifications) = if first_run {
-        (None, loaded, notifications)
+    let opening = if first_run {
+        Opening::Onboarding(loaded, platform)
     } else {
-        (
-            Some(start(
-                directory,
-                &launch,
-                loaded,
-                notifications,
-                imported,
-                migration.take(),
-            )?),
-            None,
-            None,
-        )
+        Opening::Day(start(
+            directory,
+            &launch,
+            loaded,
+            platform,
+            imported,
+            migration.take(),
+        )?)
     };
     let store = SettingsStore::new(directory.settings_file())?;
-    // A demo leaves the user's registration alone, as in .NET.
-    #[cfg(windows)]
-    let startup = launch.demo.is_none().then(|| {
-        let registration = bientot_windows::startup::StartupRegistration::for_current_process();
-        registration.migrate_owned_legacy_registration();
-        registration
-    });
 
-    let boot = move |directory: DataDirectory, exportable: bool, cx: &mut gpui::App| {
-        #[cfg(windows)]
+    let boot = move |directory: DataDirectory, exportable: bool, cx: &mut App| {
         if let Some(startup) = startup {
-            cx.set_global(settings_view::Startup(std::sync::Arc::new(startup)));
+            cx.set_global(settings_view::Startup(startup));
         }
-        if let Some(started) = started {
-            show(started, open_flyout, may_send, update_source, cx);
-            return;
-        }
+        let (loaded, platform) = match opening {
+            Opening::Day(started) => {
+                show(started, open_flyout, may_send, update_source, cx);
+                return;
+            }
+            Opening::Onboarding(loaded, platform) => (loaded, platform),
+        };
         let settings = loaded.map_or_else(Settings::default, |loaded| loaded.settings);
         let save: onboarding_view::SaveSettings = match launch.demo {
             Some(_) => std::sync::Arc::new(|_| Ok(())),
@@ -322,7 +274,7 @@ fn run_on(
                     &directory,
                     &launch,
                     Some(loaded),
-                    notifications,
+                    platform,
                     imported,
                     migration,
                 );
@@ -342,36 +294,40 @@ fn run_on(
     Ok(boot)
 }
 
-/// The day opened, and what Windows tells about it until the shell listens.
+/// What the app opens on: the day, or on a first run the onboarding, with the settings read and
+/// the platform the day starts on once it is saved.
+#[allow(
+    clippy::large_enum_variant,
+    reason = "made once per launch and moved once into the app"
+)]
+enum Opening {
+    Day(Started),
+    Onboarding(Option<LoadedSettings>, Platform),
+}
+
+/// The day opened, and what the system tells about it until the shell listens.
 struct Started {
     today: Today,
     language: Language,
     /// `false` with `--no-plugins`.
     #[cfg(feature = "plugins")]
     plugins: bool,
-    #[cfg(windows)]
-    lifecycle: Option<native::Lifecycle>,
-    #[cfg(windows)]
-    toast_clicks: Option<futures::channel::mpsc::UnboundedReceiver<Activation>>,
+    lifecycle: Option<Lifecycle>,
+    toast_clicks: Option<mpsc::UnboundedReceiver<Activation>>,
 }
 
 /// Opens the day on `loaded`, the settings read or just saved by the onboarding. A demo opens
-/// its own settings, replaced by the onboarding's when given. A live day shows its reminders
-/// through `notifications`, registered before any window opened, and its first flyout tells
+/// its own settings, replaced by the onboarding's when given. A live day runs on `platform`,
+/// whose notifications were registered before any window opened, and its first flyout tells
 /// `imported`. Its log tells how the move of the user's folder went.
 fn start(
     directory: &DataDirectory,
     launch: &Launch,
     loaded: Option<LoadedSettings>,
-    #[cfg_attr(
-        not(windows),
-        allow(unused_variables, reason = "only Windows shows toasts")
-    )]
-    notifications: Option<native::Notifications>,
+    platform: Platform,
     imported: Option<Announcement>,
     migration: Option<Migration>,
 ) -> anyhow::Result<Started> {
-    #[cfg(windows)]
     let (mut lifecycle, mut toast_clicks) = (None, None);
     let (source, language) = match launch.demo {
         Some(scenario) => {
@@ -394,13 +350,13 @@ fn start(
                 launch.language,
                 loaded.settings.language_override.as_deref(),
             );
-            // Listens before reading what Windows saw, as `WindowsLifecyclePorts.Attach` does:
-            // a change meanwhile waits for the startup state.
-            #[cfg(windows)]
-            let mut watching = native::Lifecycle::watch();
-            // The ledger lives as long as the process.
+            // Listens before reading what the system saw, as `WindowsLifecyclePorts.Attach`
+            // does: a change meanwhile waits for the startup state.
+            let mut watching = Lifecycle::watch(&*platform.lifecycle);
+            // The ledger and the probe live as long as the process.
             let ledger = Box::leak(Box::new(live::open_ledger(directory)?));
-            let mut host = LiveHost::start(directory, loaded, ledger, &CLOCK, &ZONES, &INPUT)?;
+            let input = Box::leak(platform.last_input);
+            let mut host = LiveHost::start(directory, loaded, ledger, &CLOCK, &ZONES, input)?;
             if let Some(imported) = imported {
                 host.announce(imported);
             }
@@ -418,13 +374,24 @@ fn start(
                 }
                 Some(Migration::Failed(error)) => host.log_failure("data_migration.failed", &error),
             }
-            #[cfg(windows)]
-            {
-                native::catch_up(&mut host, &mut watching)?;
-                lifecycle = Some(watching);
-                toast_clicks =
-                    notifications.map(|notifications| notifications.enable(&mut host, language));
-            }
+            let Platform {
+                lifecycle: source,
+                power_log,
+                session_log,
+                notifications,
+                notification_clicks,
+                ..
+            } = platform;
+            host.recover_power_history(move |window| {
+                PowerHistoryReader::new(power_log, RECORD_LIMIT).read(window)
+            })?;
+            host.recover_session_history(move |window| {
+                SessionHistoryReader::new(session_log, session_history::RECORD_LIMIT).read(window)
+            })?;
+            catch_up(&mut host, source, &mut watching);
+            lifecycle = Some(watching);
+            notifications(&mut host, language);
+            toast_clicks = Some(take_clicks(&*notification_clicks, launch.origin));
             host.poll();
             (Source::Live(Box::new(host)), language)
         }
@@ -434,9 +401,7 @@ fn start(
         language,
         #[cfg(feature = "plugins")]
         plugins: !launch.no_plugins,
-        #[cfg(windows)]
         lifecycle,
-        #[cfg(windows)]
         toast_clicks,
     })
 }
@@ -448,15 +413,14 @@ fn show(
     open_flyout: bool,
     may_send: bool,
     update_source: Option<UpdateSourceKind>,
-    cx: &mut gpui::App,
+    cx: &mut App,
 ) {
     cx.set_global(started.language);
     host::install(started.today, cx);
     if may_send {
         usage_ping::install(cx);
     }
-    #[cfg(windows)]
-    native::attach(started.lifecycle, started.toast_clicks, cx);
+    attach(started.lifecycle, started.toast_clicks, cx);
     // After the tray: its window owns the Store's prompts.
     updates::start(update_source, cx);
     if open_flyout {
@@ -487,283 +451,191 @@ fn show(
     }
 }
 
-/// `%LOCALAPPDATA%`, which holds the user's folder; the XDG data folder elsewhere.
-fn local_app_data() -> anyhow::Result<PathBuf> {
-    let variable = |name| std::env::var_os(name).map(PathBuf::from);
-    if cfg!(windows) {
-        variable("LOCALAPPDATA")
-    } else {
-        variable("XDG_DATA_HOME").or_else(|| variable("HOME").map(|home| home.join(".local/share")))
-    }
-    .context("no folder for the application data")
-}
-
 /// Tells the user why WorkTime does not start. Release builds on Windows have no console.
 fn alert(language: Language, key: Key) {
     let text = language.text(key);
     eprintln!("{text}");
-    #[cfg(windows)]
-    {
-        use windows::Win32::UI::WindowsAndMessaging::{MB_ICONWARNING, MB_OK, MessageBoxW};
-        use windows::core::{HSTRING, PCWSTR};
-        let (text, title) = (
-            HSTRING::from(text),
-            HSTRING::from(language.text(Key::ShellWindowTitle)),
-        );
-        // SAFETY: both strings outlive the modal call.
-        unsafe {
-            MessageBoxW(
-                None,
-                PCWSTR(text.as_ptr()),
-                PCWSTR(title.as_ptr()),
-                MB_OK | MB_ICONWARNING,
-            )
-        };
-    }
+    platform::show_fatal(language.text(Key::ShellWindowTitle), text);
 }
 
-/// Only Windows shows toasts.
-#[cfg(not(windows))]
-mod native {
-    pub enum Notifications {}
+/// The session and power changes of a live day, queued in `arrived` from the moment the watch
+/// starts: the source's own thread receives them, before GPUI runs.
+struct Lifecycle {
+    watch: Option<Box<dyn Send>>,
+    arrived: mpsc::UnboundedReceiver<LifecycleTransition>,
 }
 
-/// The Windows notifications the shell listens to: tray clicks, later launches for the same
-/// folder, the session and power changes of a live day, and the « Animation effects » setting.
-#[cfg(windows)]
-mod native {
-    use std::path::Path;
-
-    use bientot_app::host::{self, Today};
-    use bientot_app::launch::{Activation, Activations, Origin};
-    use bientot_app::live::LiveHost;
-    use bientot_app::notify::ToastSink;
-    use bientot_app::strings::Language;
-    use bientot_app::zones::SystemZones;
-    use bientot_app::{onboarding_view, shell, startup_failure_view};
-    use bientot_core::diagnostics::DiagnosticLogLevel;
-    use bientot_domain::time::SystemClock;
-    use bientot_platform::lifecycle::{LifecycleEventRecorder, LifecycleTransition, probe_within};
-    use bientot_platform::power_history::{PowerHistoryReader, RECORD_LIMIT};
-    use bientot_platform::session_history::{
-        self, SessionHistoryRead, SessionHistoryReader, SessionHistoryUnavailable,
-    };
-    use bientot_windows::animation_effects::{self, SettingChanges};
-    use bientot_windows::lifecycle::{LifecycleWindow, current_session_state};
-    use bientot_windows::notifications::{Sender, Toasts};
-    use bientot_windows::power_history::system_log;
-    use bientot_windows::session_history::current_user_log;
-    use bientot_windows::single_instance::{ActivationListener, PrimaryInstance};
-    use futures::StreamExt as _;
-    use futures::channel::mpsc;
-    use gpui::{App, Global};
-
-    /// The session and power changes of a live day, queued in `arrived` from the moment the
-    /// window opens: its own thread receives them, before GPUI runs.
-    pub struct Lifecycle {
-        window: Option<LifecycleWindow>,
-        arrived: mpsc::UnboundedReceiver<LifecycleTransition>,
-    }
-
-    impl Lifecycle {
-        pub fn watch() -> Self {
-            let (transitions, arrived) = mpsc::unbounded();
-            let window = LifecycleWindow::open(SystemClock, SystemZones, move |transition| {
-                transitions.unbounded_send(transition).ok();
-            })
+impl Lifecycle {
+    fn watch(source: &dyn LifecycleSource) -> Self {
+        let (transitions, arrived) = mpsc::unbounded();
+        let watch = source
+            .watch(Box::new(Queue(transitions)))
             .inspect_err(|error| log::error!("cannot watch the session and power: {error}"))
             .ok();
-            Self { window, arrived }
-        }
+        Self { watch, arrived }
+    }
+}
+
+/// Queues the changes for the shell; closes the queue when the source ends.
+struct Queue(mpsc::UnboundedSender<LifecycleTransition>);
+
+impl LifecycleListener for Queue {
+    fn changed(&mut self, transition: LifecycleTransition) {
+        self.0.unbounded_send(transition).ok();
     }
 
-    /// Records what Windows saw while WorkTime was not running, on a first start the session
-    /// history of the day so far, the session state now, then the changes queued meanwhile,
-    /// before the first summary.
-    pub fn catch_up(host: &mut LiveHost<'static>, lifecycle: &mut Lifecycle) -> anyhow::Result<()> {
-        host.recover_power_history(|window| {
-            PowerHistoryReader::new(system_log(), RECORD_LIMIT).read(window)
-        })?;
-        host.recover_session_history(|window| match current_user_log() {
-            Some(log) => SessionHistoryReader::new(log, session_history::RECORD_LIMIT).read(window),
-            None => SessionHistoryRead::Unavailable(SessionHistoryUnavailable::LogUnavailable),
-        })?;
-        host.prepare_lifecycle(
-            || {
-                probe_within(
-                    LifecycleEventRecorder::PREPARE_TIMEOUT,
-                    current_session_state,
-                )
-            },
-            std::iter::from_fn(|| lifecycle.arrived.try_recv().ok()),
-        );
-        Ok(())
+    fn ended(&mut self) {
+        self.0.close_channel();
     }
+}
 
-    /// WorkTime's toasts, registered with Windows, and the clicks on them as they arrive.
-    pub struct Notifications {
-        toasts: windows::core::Result<Toasts>,
-        clicks: mpsc::UnboundedReceiver<Activation>,
-    }
+/// Records the session state now, then the changes queued meanwhile, before the first summary.
+fn catch_up(
+    host: &mut LiveHost<'static>,
+    source: std::sync::Arc<dyn LifecycleSource + Send + Sync>,
+    lifecycle: &mut Lifecycle,
+) {
+    host.prepare_lifecycle(
+        || {
+            probe_within(LifecycleEventRecorder::PREPARE_TIMEOUT, move || {
+                source.snapshot().session
+            })
+        },
+        std::iter::from_fn(|| lifecycle.arrived.try_recv().ok()),
+    );
+}
 
-    impl Notifications {
-        /// Registers the toasts of this process, which a click starts on `data_dir` when given.
-        /// A click queues until the shell listens, so the one COM started this process for
-        /// waits for the day, after the onboarding on a first run.
-        pub fn register(data_dir: Option<&Path>, origin: Origin) -> Self {
-            let activations = Activations::of(origin);
-            let (arrived, clicks) = mpsc::unbounded();
-            let toasts = Sender::current(data_dir).and_then(|sender| {
-                Toasts::register(sender, move |_| {
-                    arrived.unbounded_send(activations.arrived()).ok();
-                })
-            });
-            Self { toasts, clicks }
-        }
+/// The clicks on the notifications, those that came before the day included, and how each
+/// reached WorkTime.
+fn take_clicks(
+    clicks: &dyn bientot_platform::notifications::NotificationClicks,
+    origin: Origin,
+) -> mpsc::UnboundedReceiver<Activation> {
+    let activations = Activations::of(origin);
+    let (arrived, clicked) = mpsc::unbounded();
+    clicks.on_click(Box::new(move |_| {
+        arrived.unbounded_send(activations.arrived()).ok();
+    }));
+    clicked
+}
 
-        /// Has the host show its reminders through the toasts, as `App.xaml.cs` does outside a
-        /// demo, and hands back the clicks.
-        ///
-        /// Windows shows a toast only for a sender it knows: the MSIX package, or the
-        /// AppUserModelID the portable build registers. A failed registration shows no reminder,
-        /// so that none is reserved in the ledger without being shown, and the flyout says so.
-        pub fn enable(
-            self,
-            host: &mut LiveHost<'static>,
-            language: Language,
-        ) -> mpsc::UnboundedReceiver<Activation> {
-            match self.toasts {
-                Ok(toasts) => host.enable_notifications(Box::leak(Box::new(ToastSink {
-                    toasts,
-                    language,
-                    zones: &SystemZones,
-                }))),
-                Err(error) => host.notifications_refused(&error),
-            }
-            self.clicks
-        }
-    }
+/// Owns the data folder until the app exits.
+struct Listening {
+    _listener: Option<<platform::Instance as InstanceLock>::Listener>,
+}
 
-    /// Owns the data folder until the app exits.
-    struct Listening {
-        _listener: Option<ActivationListener>,
-    }
+impl Global for Listening {}
 
-    impl Global for Listening {}
+/// Owns the lifecycle watch until the app exits.
+struct Held {
+    _lifecycle: Option<Box<dyn Send>>,
+}
 
-    /// Owns the lifecycle window until the app exits.
-    struct Held {
-        _lifecycle: Option<LifecycleWindow>,
-    }
+impl Global for Held {}
 
-    impl Global for Held {}
+/// Owns the settings watch until the app exits.
+struct Watching {
+    _changes: Option<<platform::Motion as ReducedMotion>::Watch>,
+}
 
-    /// Owns the settings watch until the app exits.
-    struct Watching {
-        _changes: Option<SettingChanges>,
-    }
+impl Global for Watching {}
 
-    impl Global for Watching {}
-
-    /// Has GPUI show every animation at rest while the « Animation effects » setting is off,
-    /// from now on and after each change of the system settings.
-    pub fn follow_animation_effects(cx: &mut App) {
-        // The hook runs inside a window procedure, where GPUI may hold the app: it only queues.
-        let (changes, mut changed) = mpsc::unbounded();
-        let watch = SettingChanges::watch(move || {
+/// Has GPUI show every animation at rest while the system asks for less motion, from now on and
+/// after each change of the setting.
+fn follow_reduced_motion(motion: platform::Motion, cx: &mut App) {
+    let (changes, mut changed) = mpsc::unbounded();
+    let watch = motion
+        .watch(Box::new(move || {
             changes.unbounded_send(()).ok();
-        })
+        }))
         .inspect_err(|error| log::error!("cannot watch the system settings: {error}"))
         .ok();
-        // Read after the watch starts, so a change in between is not lost.
-        cx.set_reduce_motion(animation_effects::reduce_motion());
-        cx.spawn(async move |cx| {
-            while changed.next().await.is_some() {
-                cx.update(|cx| cx.set_reduce_motion(animation_effects::reduce_motion()));
-            }
-        })
-        .detach();
-        cx.set_global(Watching { _changes: watch });
-    }
+    // Read after the watch starts, so a change in between is not lost.
+    cx.set_reduce_motion(motion.current());
+    cx.spawn(async move |cx| {
+        while changed.next().await.is_some() {
+            cx.update(|cx| cx.set_reduce_motion(motion.current()));
+        }
+    })
+    .detach();
+    cx.set_global(Watching { _changes: watch });
+}
 
-    /// Brings WorkTime to the front on a later launch for the same folder: the onboarding
-    /// while it shows, as in .NET, or the window of a start that failed, else the flyout.
-    pub fn listen(instance: PrimaryInstance, cx: &mut App) {
-        let (activations, mut activated) = mpsc::unbounded();
-        let listener = instance
-            .listen(move || {
-                activations.unbounded_send(()).ok();
-            })
-            .inspect_err(|error| log::error!("cannot listen for later launches: {error}"))
-            .ok();
+/// Brings WorkTime to the front on a later launch for the same folder: the onboarding while it
+/// shows, as in .NET, or the window of a start that failed, else the flyout.
+fn listen(instance: platform::Instance, cx: &mut App) {
+    let (activations, mut activated) = mpsc::unbounded();
+    let listener = instance
+        .listen(move || {
+            activations.unbounded_send(()).ok();
+        })
+        .inspect_err(|error| log::error!("cannot listen for later launches: {error}"))
+        .ok();
+    cx.spawn(async move |cx| {
+        while activated.next().await.is_some() {
+            cx.update(|cx| {
+                if onboarding_view::activate(cx)
+                    || startup_failure_view::activate(cx)
+                    || !cx.has_global::<Today>()
+                {
+                    return;
+                }
+                shell::open_flyout(cx);
+                if let Some(host) = cx.global_mut::<Today>().live() {
+                    host.log(
+                        DiagnosticLogLevel::Information,
+                        "instance.redirected",
+                        &[("activationKind", "Launch".into())],
+                    );
+                }
+            });
+        }
+    })
+    .detach();
+    cx.set_global(Listening {
+        _listener: listener,
+    });
+}
+
+/// The tray, the toasts and the lifecycle of the day the shell shows.
+fn attach(
+    lifecycle: Option<Lifecycle>,
+    toast_clicks: Option<mpsc::UnboundedReceiver<Activation>>,
+    cx: &mut App,
+) {
+    platform::install_tray(cx);
+    if let Some(mut clicked) = toast_clicks {
         cx.spawn(async move |cx| {
-            while activated.next().await.is_some() {
+            while let Some(activation) = clicked.next().await {
                 cx.update(|cx| {
-                    if onboarding_view::activate(cx)
-                        || startup_failure_view::activate(cx)
-                        || !cx.has_global::<Today>()
-                    {
-                        return;
-                    }
                     shell::open_flyout(cx);
                     if let Some(host) = cx.global_mut::<Today>().live() {
                         host.log(
                             DiagnosticLogLevel::Information,
-                            "instance.redirected",
-                            &[("activationKind", "Launch".into())],
+                            "notification.activated",
+                            &[("origin", activation.name().into())],
                         );
                     }
                 });
             }
         })
         .detach();
-        cx.set_global(Listening {
-            _listener: listener,
-        });
     }
 
-    /// The tray, the toasts and the lifecycle of the day the shell shows.
-    pub fn attach(
-        lifecycle: Option<Lifecycle>,
-        toast_clicks: Option<mpsc::UnboundedReceiver<Activation>>,
-        cx: &mut App,
-    ) {
-        if let Err(error) = bientot_app::tray::install(cx) {
-            log::error!("cannot create the notification-area icon: {error:#}");
-        }
-        if let Some(mut clicked) = toast_clicks {
-            cx.spawn(async move |cx| {
-                while let Some(activation) = clicked.next().await {
-                    cx.update(|cx| {
-                        shell::open_flyout(cx);
-                        if let Some(host) = cx.global_mut::<Today>().live() {
-                            host.log(
-                                DiagnosticLogLevel::Information,
-                                "notification.activated",
-                                &[("origin", activation.name().into())],
-                            );
-                        }
-                    });
-                }
-            })
-            .detach();
-        }
-
-        let mut window = None;
-        if let Some(lifecycle) = lifecycle {
-            let mut arrived = lifecycle.arrived;
-            cx.spawn(async move |cx| {
-                while let Some(transition) = arrived.next().await {
-                    cx.update(|cx| {
-                        host::change(cx, |today| {
-                            today.with_live(|host| host.record_lifecycle(&transition));
-                        })
-                    });
-                }
-            })
-            .detach();
-            window = lifecycle.window;
-        }
-        cx.set_global(Held { _lifecycle: window });
+    let mut watch = None;
+    if let Some(lifecycle) = lifecycle {
+        let mut arrived = lifecycle.arrived;
+        cx.spawn(async move |cx| {
+            while let Some(transition) = arrived.next().await {
+                cx.update(|cx| {
+                    host::change(cx, |today| {
+                        today.with_live(|host| host.record_lifecycle(&transition));
+                    })
+                });
+            }
+        })
+        .detach();
+        watch = lifecycle.watch;
     }
+    cx.set_global(Held { _lifecycle: watch });
 }

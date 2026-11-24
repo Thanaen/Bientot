@@ -71,6 +71,20 @@ pub trait PowerBoundaryLog {
     ) -> Result<PowerBoundaries, HistoryUnavailable>;
 }
 
+impl<L: PowerBoundaryLog + ?Sized> PowerBoundaryLog for Box<L> {
+    fn origin(&self) -> &'static str {
+        (**self).origin()
+    }
+
+    fn read(
+        &self,
+        since: Timestamp,
+        record_limit: usize,
+    ) -> Result<PowerBoundaries, HistoryUnavailable> {
+        (**self).read(since, record_limit)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PowerHistoryIntervalKind {
     PoweredOff,

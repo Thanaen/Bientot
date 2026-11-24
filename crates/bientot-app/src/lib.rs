@@ -17,6 +17,7 @@ pub mod onboarding;
 pub mod onboarding_view;
 pub mod palette;
 pub mod palette_view;
+pub mod platform;
 #[cfg(feature = "plugins")]
 pub mod plugins;
 pub mod settings;

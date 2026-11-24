@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use bientot_platform::single_instance::{Acquired, InstanceLock};
 use bientot_store::data_directory::DataDirectory;
 use windows_sys::Win32::Foundation::{
     ERROR_ACCESS_DENIED, ERROR_FILE_NOT_FOUND, ERROR_IO_PENDING, ERROR_NO_DATA, ERROR_PIPE_BUSY,
@@ -42,13 +43,8 @@ const ACCEPTANCE_TIMEOUT: Duration = Duration::from_secs(5);
 /// looks at the folder again.
 const RETRY: Duration = Duration::from_millis(50);
 
-pub enum Instance {
-    /// This launch owns the folder.
-    Primary(PrimaryInstance),
-    /// Another WorkTime owns the folder and accepted this launch's request to show itself; this
-    /// launch should exit.
-    Secondary,
-}
+/// What a launch got when it claimed its folder.
+pub type Instance = Acquired<PrimaryInstance>;
 
 /// Owns the data directory until dropped: the only instance of the folder's pipe.
 ///
@@ -123,6 +119,21 @@ impl PrimaryInstance {
             pipe,
             thread: Some(thread),
         })
+    }
+}
+
+impl InstanceLock for PrimaryInstance {
+    type Listener = ActivationListener;
+
+    fn acquire(directory: &DataDirectory) -> io::Result<Instance> {
+        claim(directory)
+    }
+
+    fn listen(
+        self,
+        on_activation: impl FnMut() + Send + 'static,
+    ) -> io::Result<ActivationListener> {
+        PrimaryInstance::listen(self, on_activation)
     }
 }
 
