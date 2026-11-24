@@ -8,9 +8,9 @@ use bientot_core::usage_ping::{PingRequest, UsagePingSender, UsagePingTransport}
 use bientot_domain::sources::LastInputReading;
 use bientot_domain::time::{FixedTimeZoneProvider, FrozenClock};
 use bientot_domain::usage_ping::{Build, Channel};
+use bientot_platform::activity::LastInputProbe;
 use bientot_store::app_state::AppStateStore;
 use bientot_store::data_directory::DataDirectory;
-use bientot_windows::activity::LastInputProbe;
 use jiff::SignedDuration;
 use jiff::civil::{DateTime, date};
 use jiff::tz::TimeZone;

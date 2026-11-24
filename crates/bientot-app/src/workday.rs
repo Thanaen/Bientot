@@ -13,7 +13,7 @@ use bientot_domain::intervals::{IntervalSet, UtcInterval};
 use bientot_domain::sources::{SourceFreshness, SourceHealth, SourceIntervalKind, SourceQuality};
 use bientot_domain::summaries::{DailySummary, IndicatorState};
 use bientot_domain::time::LocalWorkday;
-use bientot_windows::activity::BuiltInActivitySource;
+use bientot_platform::activity::BuiltInActivitySource;
 use gpui::SharedString;
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp};

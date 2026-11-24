@@ -3,7 +3,7 @@ use std::num::NonZeroU64;
 use bientot_domain::accounting::{RecordedTransition, SessionState};
 use bientot_domain::adjustments::{AdjustmentKind, ManualClassification};
 use bientot_domain::time::{FixedTimeZoneProvider, FrozenClock};
-use bientot_windows::lifecycle::LifecycleChange;
+use bientot_platform::lifecycle::LifecycleChange;
 use bientot_windows::power_history::{
     PowerHistory, PowerHistoryBoundary, PowerHistoryBoundaryKind, PowerHistoryInterval,
     PowerHistoryIntervalKind,

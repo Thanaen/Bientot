@@ -4,10 +4,10 @@
 use std::path::Path;
 
 use bientot_domain::time::{Clock as _, FrozenClock};
+use bientot_platform::PowerState;
+use bientot_platform::lifecycle::{LifecycleChange, LifecycleTransition};
 use bientot_store::adjustments::ManualAdjustmentRepository;
 use bientot_store::data_directory::DataDirectory;
-use bientot_windows::PowerState;
-use bientot_windows::lifecycle::{LifecycleChange, LifecycleTransition};
 use jiff::SignedDuration;
 
 use super::*;

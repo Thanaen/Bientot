@@ -9,9 +9,9 @@ use bientot_core::settings::EditError;
 use bientot_core::settings::number::{self, format_target_duration};
 use bientot_domain::configuration::{Settings, SettingsError};
 use bientot_domain::sources::ActivitySourceKind;
+use bientot_platform::startup::StartupRegistrationState;
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
-use bientot_windows::startup::StartupRegistrationState;
 use jiff::SignedDuration;
 use jiff::civil::Time;
 

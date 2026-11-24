@@ -3,10 +3,9 @@
 #![allow(unsafe_code)]
 
 use bientot_domain::sources::LastInputReading;
+use bientot_platform::activity::{LastInputProbe, reading_from_ticks};
 use windows_sys::Win32::System::SystemInformation::GetTickCount64;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
-
-use super::{LastInputProbe, reading_from_ticks};
 
 /// `GetLastInputInfo` for the session this process runs in.
 pub struct SystemLastInput;

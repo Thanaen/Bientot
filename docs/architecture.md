@@ -19,7 +19,8 @@ it in this table.
 | `bientot-plugins` | any OS | The plugin host: the package reader, signatures and trust, `plugins\state.json`, the WebAssembly runtime (wasmi) with its fuel, memory and time budgets, the host imports, the `plugins` thread, the plugin logs and the revocation list. |
 | `bientot-plugin-sdk` | any OS, and `wasm32-unknown-unknown` | Writes plugins in Rust: the exports, the host calls, card builders and a native test host. Its `examples/` are the four sample plugins. |
 | `bientot-plugin-tool` | any OS | The `bientot-plugin` command for plugin authors and the maintainer: `pack`, `keygen`, `sign`, `check`, `install`, `sign-revocations`. |
-| `bientot-windows` | Windows for its Win32 calls | The built-in activity source (last-input time), session lock and power events, power history from the System event log, start with Windows, toast notifications, the single-instance claim, file dialogs, Microsoft Store updates. |
+| `bientot-platform` | any OS | The platform-independent half of the system integration: the built-in activity source, the recording of session and power changes, the Store update check, `PowerState`. |
+| `bientot-windows` | Windows for its Win32 calls | The last-input query, the session and power message decoding, power history from the System event log, start with Windows, toast notifications, the single-instance claim, file dialogs, the Microsoft Store `StoreContext` call. |
 | `bientot-app` | Windows to run; tests on any OS | The `worktime.exe` binary: the notification-area icon (`tray-icon`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `bientot-screenshots` tool. |
 | `bientot-notices` | any OS | Writes `THIRD-PARTY-NOTICES.txt` for the release executable and fails on a license outside the allowed list. |
 
@@ -50,7 +51,7 @@ window that says why and offers the diagnostic export
 ## Data flow
 
 1. **Activity.** While the built-in source is selected, `host.rs` samples the
-   last keyboard or mouse input every 5 seconds. `bientot_windows::activity`
+   last keyboard or mouse input every 5 seconds. `bientot_platform::activity`
    turns the samples into active and idle spans with the configured idle
    threshold (180 s by default) and stores the settled ones. Time before
    Bientôt starts and the pending tail after the last input stay unknown. See

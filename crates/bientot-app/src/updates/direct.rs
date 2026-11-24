@@ -12,7 +12,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 
-use bientot_windows::updates::{UpdateOffer, UpdateStore};
+use bientot_platform::updates::{UpdateOffer, UpdateStore};
 use futures::channel::oneshot;
 use ureq::Agent;
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
@@ -200,7 +200,7 @@ pub fn install_pending() {
 fn unregister() {
     let startup = bientot_windows::startup::PortableStartupRegistration::for_current_process();
     let state = startup.set_enabled(false);
-    if state == bientot_windows::startup::StartupRegistrationState::Unavailable {
+    if state == bientot_platform::startup::StartupRegistrationState::Unavailable {
         log::warn!("cannot remove the startup registration");
     }
     if let Err(error) = bientot_windows::notifications::portable::unregister() {

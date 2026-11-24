@@ -5,6 +5,7 @@ mod activator;
 use std::path::Path;
 use std::sync::Arc;
 
+use bientot_platform::notifications::NotificationRequest;
 use windows::Data::Xml::Dom::XmlDocument;
 use windows::UI::Notifications::{
     NotificationSetting, ToastNotification, ToastNotificationManager, ToastNotifier,
@@ -14,7 +15,7 @@ use windows::core::{Error, GUID, HSTRING};
 
 use self::activator::ActivatorRegistration;
 use super::portable::RegistrationPlan;
-use super::{NotificationRequest, PACKAGED_ACTIVATOR, toast_xml};
+use super::{PACKAGED_ACTIVATOR, toast_xml};
 
 /// Who Windows shows the toasts as, and the COM class it hands their clicks to.
 pub enum Sender {

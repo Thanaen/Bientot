@@ -64,7 +64,7 @@ jobs:
           fi
 
           rust_windows=false
-          if grep -qE '^crates/bientot-(app|windows|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+          if grep -qE '^crates/bientot-(app|platform|windows|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
             rust_windows=true
           fi
 
@@ -261,9 +261,10 @@ jobs:
       - name: Test the store
         run: cargo test --locked -p bientot-store
 
-      # The Win32 calls: the last-input query, the Run key, and the single-instance event.
+      # The Win32 calls (the last-input query, the Run key, the single-instance event) and the
+      # platform-independent recorder and services they feed, on the Windows file system.
       - name: Test the Windows integration
-        run: cargo test --locked -p bientot-windows
+        run: cargo test --locked -p bientot-platform -p bientot-windows
 
       # Every hostile plugin of crates/bientot-plugins/tests/hostile on the plugin host built for
       # release (FR-072, SC-004): no abort, the UI never waits, memory comes back.

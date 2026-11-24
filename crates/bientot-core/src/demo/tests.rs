@@ -6,7 +6,7 @@
 //! (`HistoryFormatter` is R6's); its breakdown underneath is asserted instead. The settings
 //! service and its JSON store of `SettingsRecalculateImmediatelyAndSurviveRestart` (R6); its
 //! accounting is ported. `DemoStoreUpdatePort` in `StoreUpdateServiceTests.cs` (R6 wiring over
-//! `bientot-windows::updates`).
+//! `bientot-platform::updates`).
 
 use bientot_domain::accounting::AdjustmentId;
 use bientot_domain::adjustments::ManualAdjustment;

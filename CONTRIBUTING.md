@@ -110,8 +110,9 @@ A failing input lands in `fuzz/artifacts/<target>/`. Turn it into a regular test
 
 A green Linux run does not prove these:
 
-- the Windows tests of `bientot-store` and `bientot-windows` (DPAPI, the Run
-  key, the last-input query, the single-instance event);
+- the Windows tests of `bientot-store`, `bientot-platform` and
+  `bientot-windows` (DPAPI, the Run key, the last-input query, the
+  single-instance event);
 - the release executable and its size, startup time and memory;
 - notifications, the tray icon and anything you see on screen.
 
@@ -128,14 +129,15 @@ A green Linux run does not prove these:
   changes, beside **Rust**. **Publish screenshots** pushes them to the
   `refs/ci-screenshots/<pull request>` ref (not a branch, so Vercel ignores it)
   and links them from the job summary.
-- **Rust on Windows** tests `bientot-store` and `bientot-windows`, builds the
-  release executable and measures its size, startup time and memory. Then
-  `scripts/measure-performance.ps1` runs it with the built-in activity source,
-  warns above the spec budgets and fails only above 2 % CPU, 200 MiB or 6 s.
-  The job runs only when `crates/bientot-app/`, `crates/bientot-windows/`,
-  the Windows code of `bientot-store`, the Cargo manifests, the toolchain,
-  `scripts/measure-performance.ps1` or `ci.yml` change, and after **Rust**
-  passes.
+- **Rust on Windows** tests `bientot-store`, `bientot-platform` and
+  `bientot-windows`, builds the release executable and measures its size,
+  startup time and memory. Then `scripts/measure-performance.ps1` runs it with
+  the built-in activity source, warns above the spec budgets and fails only
+  above 2 % CPU, 200 MiB or 6 s.
+  The job runs only when `crates/bientot-app/`, `crates/bientot-platform/`,
+  `crates/bientot-windows/`, the Windows code of `bientot-store`, the Cargo
+  manifests, the toolchain, `scripts/measure-performance.ps1` or `ci.yml`
+  change, and after **Rust** passes.
 
 Keep work out of the Windows job unless it needs Windows, and keep new gates
 conditional on the files they check.

@@ -31,7 +31,7 @@ checks in [accessibility-checklist.md](accessibility-checklist.md).
   throwaway `--data-dir`; real-data runs used `%LOCALAPPDATA%\Bientot`.
 
 "Automated" names the tests that cover a step; the CI `Rust` job runs them
-on every change, and `Rust on Windows` runs those of `bientot-windows`.
+on every change, and `Rust on Windows` runs those of `bientot-platform` and `bientot-windows`.
 "Live" is what this run observed.
 
 ## Core scenario

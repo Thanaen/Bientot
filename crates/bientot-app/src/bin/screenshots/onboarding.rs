@@ -7,9 +7,9 @@ use bientot_app::onboarding::Onboarding;
 use bientot_app::onboarding_view::{self, OnboardingView};
 use bientot_app::settings::data::{Action, Chosen, Refusal};
 use bientot_app::strings::Language;
+use bientot_platform::startup::StartupRegistrationState;
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::transfer::Contents;
-use bientot_windows::startup::StartupRegistrationState;
 use gpui::{AppContext as _, HeadlessAppContext, size};
 use jiff::civil::date;
 

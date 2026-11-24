@@ -1,9 +1,8 @@
 //! « Démarrage Windows », ported from `Services/StartupSettingsService.cs`: what the switch
 //! shows for each state of the registration, and the change it asks Windows for.
 
-use bientot_windows::startup::{
-    PackagedStartupTask, RunKey, StartupRegistration, StartupRegistrationState,
-};
+use bientot_platform::startup::StartupRegistrationState;
+use bientot_windows::startup::{PackagedStartupTask, RunKey, StartupRegistration};
 
 use crate::strings::Key;
 

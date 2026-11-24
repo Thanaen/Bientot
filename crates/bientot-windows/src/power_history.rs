@@ -21,12 +21,12 @@ use bientot_domain::accounting::{
 };
 use bientot_domain::intervals::UtcInterval;
 use bientot_domain::time::WorkdayWindow;
+use bientot_platform::dotnet_ticks;
+use bientot_platform::lifecycle::probe_within;
 use bientot_store::sessions::{AtomicWorkdayTransition, SessionEventError, SessionEventRepository};
 use jiff::Timestamp;
 
-use crate::dotnet_ticks;
 pub use crate::event_log::{CollectedRecords, collect};
-use crate::lifecycle::probe_within;
 
 #[cfg(windows)]
 pub use native::SystemLog;

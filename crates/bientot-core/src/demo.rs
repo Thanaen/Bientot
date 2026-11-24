@@ -5,7 +5,7 @@
 //!
 //! Not ported here: the argument parsing and the scenario picker (R6), and
 //! `DemoStoreUpdatePort`, which is `bientot_app::updates::DemoStore` beside the `UpdateStore`
-//! trait of `bientot-windows`.
+//! trait of `bientot-platform`.
 
 use std::cell::Cell;
 
@@ -30,7 +30,7 @@ use crate::routing::ACTIVITY_WATCH_ID;
 use crate::sources::{ActivityReadResult, ActivitySource};
 use crate::weekly::{WeeklyError, WeeklyRecalculation, WorkdayRefreshState};
 
-/// The id of the built-in source, `BuiltInActivitySource::SOURCE_ID` in `bientot-windows`, so
+/// The id of the built-in source, `BuiltInActivitySource::SOURCE_ID` in `bientot-platform`, so
 /// a demo source problem gets the built-in source's guidance rather than ActivityWatch's. The
 /// .NET demo reports "demo", which the presenter treats as ActivityWatch.
 const SOURCE_ID: &str = "built-in";

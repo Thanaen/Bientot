@@ -20,8 +20,8 @@ use std::time::Duration;
 use bientot_core::settings::{EditGroup, Pending, SettingsPort};
 use bientot_domain::configuration::{AppointmentProposal, RecurringAppointment, Settings};
 use bientot_domain::usage_ping::{Build, Channel};
+use bientot_platform::startup::StartupRegistrationState;
 use bientot_store::settings::SaveSettingsError;
-use bientot_windows::startup::StartupRegistrationState;
 use gpui::{
     Animation, AnimationExt as _, App, AppContext as _, Bounds, Context, Entity, FocusHandle,
     Focusable as _, FontWeight, Global, HighlightStyle, InteractiveText, KeyBinding, KeyDownEvent,

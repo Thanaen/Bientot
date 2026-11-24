@@ -6,9 +6,9 @@
 use std::sync::Arc;
 
 use bientot_domain::configuration::Settings;
+use bientot_platform::startup::StartupRegistrationState;
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
-use bientot_windows::startup::StartupRegistrationState;
 use gpui::{
     App, AppContext as _, Bounds, Context, Entity, FocusHandle, Focusable as _, Global, KeyBinding,
     KeyDownEvent, Pixels, Role, ScrollHandle, Subscription, Toggled, Window, WindowBounds,

@@ -26,7 +26,7 @@ use bientot_domain::configuration::{
 };
 use bientot_domain::sources::ActivitySourceKind;
 use bientot_domain::usage_ping::{Build, Channel, usage_ping_due};
-use bientot_windows::startup::StartupRegistrationState;
+use bientot_platform::startup::StartupRegistrationState;
 use jiff::SignedDuration;
 use jiff::civil::Date;
 

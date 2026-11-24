@@ -1,0 +1,17 @@
+[package]
+name = "bientot-platform"
+description = "Bientôt's system integration that needs no particular OS: the built-in activity source, the session and power recorder, the update check and the types the platform crates share."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+jiff = "1.0.0"
+bientot-domain = { path = "../bientot-domain" }
+bientot-store = { path = "../bientot-store" }
+
+[dev-dependencies]
+rusqlite = "0.43.0"
+tempfile = "3.27.0"
