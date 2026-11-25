@@ -12,15 +12,11 @@ pub fn fetch() -> Result<Vec<u8>, String> {
 
     use bientot_plugins::revocation::{MAX_BYTES, URL};
     use ureq::Agent;
-    use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
+
+    use crate::platform;
 
     let agent: Agent = Agent::config_builder()
-        .tls_config(
-            TlsConfig::builder()
-                .provider(TlsProvider::NativeTls)
-                .root_certs(RootCerts::PlatformVerifier)
-                .build(),
-        )
+        .tls_config(platform::system_tls())
         .https_only(true)
         .max_redirects(0)
         // The usage signal's, the only other request Bientôt makes on its own.

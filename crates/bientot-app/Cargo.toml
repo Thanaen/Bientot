@@ -46,10 +46,6 @@ log = "0.4"
 resvg = { version = "0.46", default-features = false }
 rusqlite = "0.43.0"
 serde_json = "1.0.154"
-# The system TLS: SChannel on Windows. `native-tls` also brings the Mozilla roots
-# (webpki-root-certs), which `RootCerts::PlatformVerifier` never reads, but ureq 3.4.2 compiles its
-# native-tls connector only with this feature, not with `native-tls-no-default` alone.
-ureq = { version = "3.4.2", default-features = false, features = ["native-tls"], optional = true }
 bientot-core = { path = "../bientot-core" }
 bientot-domain = { path = "../bientot-domain" }
 bientot-platform = { path = "../bientot-platform" }
@@ -65,8 +61,18 @@ gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform", features = 
 # Shapes text in the screenshots: GPUI's headless Linux platform has no text system.
 gpui_wgpu = { version = "=0.3.9", package = "gpui-pre-wgpu", optional = true }
 
+# Elsewhere than Windows, rustls with ring, statically linked, and the system's verifier
+# (`platform::system_tls`): no OpenSSL to link or bundle. `rustls` also brings the Mozilla roots,
+# which `RootCerts::PlatformVerifier` never reads.
+[target.'cfg(not(windows))'.dependencies]
+ureq = { version = "3.4.2", default-features = false, features = ["rustls", "platform-verifier"], optional = true }
+
 [target.'cfg(windows)'.dependencies]
 raw-window-handle = "0.6"
+# SChannel. `native-tls` also brings the Mozilla roots (webpki-root-certs), which
+# `RootCerts::PlatformVerifier` never reads, but ureq 3.4.2 compiles its native-tls connector only
+# with this feature, not with `native-tls-no-default` alone.
+ureq = { version = "3.4.2", default-features = false, features = ["native-tls"], optional = true }
 tray-icon = { version = "0.26", default-features = false }
 # `public-utils` names the manifest an update source receives.
 velopack = { version = "=1.2.161", features = ["public-utils"], optional = true }
@@ -87,3 +93,7 @@ embed-resource = "3.0.12"
 [dev-dependencies]
 roxmltree = "0.21.1"
 tempfile = "3.27.0"
+
+# The usage signal's test names the error that comes out of ureq's rustls.
+[target.'cfg(not(windows))'.dev-dependencies]
+rustls = { version = "0.23", default-features = false }

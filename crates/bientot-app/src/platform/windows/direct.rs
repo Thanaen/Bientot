@@ -15,10 +15,10 @@ use std::time::Duration;
 use bientot_platform::updates::{UpdateOffer, UpdateSource};
 use futures::channel::oneshot;
 use ureq::Agent;
-use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 use velopack::bundle::Manifest;
 use velopack::{UpdateCheck, UpdateManager, VelopackAsset, VelopackAssetFeed};
 
+use crate::platform;
 use crate::updates::StoreError;
 
 /// Where `scripts/release-direct.sh` publishes the packages and their `releases.win.json`.
@@ -145,12 +145,7 @@ impl velopack::sources::UpdateSource for Feed {
 /// An agent that trusts the system's root certificates and fails on an error status.
 fn agent() -> Agent {
     Agent::config_builder()
-        .tls_config(
-            TlsConfig::builder()
-                .provider(TlsProvider::NativeTls)
-                .root_certs(RootCerts::PlatformVerifier)
-                .build(),
-        )
+        .tls_config(platform::system_tls())
         .https_only(true)
         .timeout_global(Some(TIMEOUT))
         .build()

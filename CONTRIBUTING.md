@@ -27,8 +27,8 @@ spec conventions. The code layout is in [docs/architecture.md](docs/architecture
   `Rust on Linux` CI job installs the same list:
 
   ```bash
-  sudo apt-get install build-essential pkg-config libssl-dev libfreetype-dev \
-    libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers
+  sudo apt-get install build-essential pkg-config libfreetype-dev libfontconfig-dev \
+    libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers
   ```
 - To work on the web service in `services/bientot`: [Bun](https://bun.sh).
 - PowerShell 7 (`pwsh`) runs the Windows scripts in `scripts/`.

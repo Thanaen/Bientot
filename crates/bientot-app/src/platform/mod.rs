@@ -74,6 +74,22 @@ pub use backend::{direct_updates, store_updates};
 /// closed, so it runs on a thread of its own; elsewhere GPUI's own dialogs keep the flow.
 pub use backend::{pick_open, pick_save};
 
+/// The TLS of every request Bientôt makes, trusting the system's root certificates: SChannel on
+/// Windows, rustls elsewhere (`Cargo.toml` turns on each one's ureq feature).
+#[cfg(any(feature = "usage-ping", feature = "updates"))]
+pub fn system_tls() -> ureq::tls::TlsConfig {
+    use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
+
+    TlsConfig::builder()
+        .provider(if cfg!(windows) {
+            TlsProvider::NativeTls
+        } else {
+            TlsProvider::Rustls
+        })
+        .root_certs(RootCerts::PlatformVerifier)
+        .build()
+}
+
 /// What [`build`] knows of the launch.
 pub struct PlatformContext<'a> {
     /// The data folder this launch holds.
