@@ -326,7 +326,7 @@ It runs in the `Rust` job, so it gates every pull request.
 | Lint the workspace **for the Windows target** (`cargo clippy --target x86_64-pc-windows-msvc`, clang and `llvm-lib` as `CONTRIBUTING.md` describes) | `Rust` (Ubuntu) | every pull request, new |
 | Platform-condition gate | `Rust` (Ubuntu) | every pull request, new |
 | Tests, release build, size, start, MSIX, Velopack on Windows | `Rust on Windows` | as today |
-| Release build, size, glibc, hostile corpus, headless start, desktop harness on Linux | `Rust on Linux` | same path filter as `Rust on Windows`, new |
+| Release build, size, glibc, hostile corpus, headless start, desktop harness on Linux | `Rust on Linux` | the path filter of `Rust` plus its own scripts, new |
 
 So a pull request that only edits Linux code is still type-checked for
 Windows, and the reverse, before any platform job starts.

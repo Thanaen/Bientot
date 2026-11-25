@@ -18,7 +18,7 @@ A successful `CI` run requires every job that runs to pass.
 
 `Rust on Windows` runs only when a pull request changes `crates/bientot-app/`, `crates/bientot-platform/`, `crates/bientot-windows/`, `crates/bientot-store/` (its file handling behaves differently on Windows), `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `packaging/`, `scripts/measure-performance.ps1`, `scripts/package-rust.ps1`, `scripts/verify-package-executables.ps1` or `.github/workflows/ci.yml`, and only after `Rust` passed. Both Rust jobs cache their dependency builds with `Swatinem/rust-cache`; a pull request's cache serves only that pull request's later pushes.
 
-`Rust on Linux` runs on the files of `Rust on Windows`, with `scripts/measure-performance.sh` and `scripts/linux-desktop-harness.sh` in place of the Windows scripts. It does not wait for `Rust`: Linux minutes are cheap. `Rust` also runs when `scripts/lint-windows.sh` changes.
+`Rust on Linux` runs on the files of `Rust`, and when `scripts/measure-performance.sh` or `scripts/linux-desktop-harness.sh` changes. It does not wait for `Rust`: Linux minutes are cheap. `Rust` also runs when `scripts/lint-windows.sh` changes.
 
 `GPUI screenshots` renders screenshots, and `Publish screenshots` publishes them, only when a pull request changes `crates/bientot-app/` or `.github/workflows/ci.yml`. Pull requests from forks still render them, but do not publish.
 

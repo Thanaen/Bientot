@@ -149,8 +149,8 @@ A green Linux run does not prove these:
   `scripts/measure-performance.sh`, which fails when the app is not ready
   within 10 s or writes to standard error, and reports its start time and
   memory. It uploads the executable and a screenshot of its flyout. It runs
-  on the files of **Rust on Windows**, with the Linux scripts in place of the
-  Windows ones, beside **Rust**.
+  on every change that runs **Rust**, and on changes to its own two scripts,
+  beside **Rust**.
 
 Keep work out of the Windows job unless it needs Windows, and keep new gates
 conditional on the files they check.
