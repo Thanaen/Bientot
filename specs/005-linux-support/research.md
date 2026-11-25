@@ -39,6 +39,35 @@ icon and no window (the root window stays blank), writes nothing to standard
 error, and records no activity. This container has no Vulkan driver, so
 whether the flyout would draw with one is **Assumption A-13** (task T031).
 
+**Run (T031, 2026-11-24).** The missing window does not come from the
+missing Vulkan driver. `gpui-pre-platform` depends on `gpui-pre-linux` with
+`default-features = false` and turns its `x11` and `wayland` features on only
+through features of its own, which `bientot-app` does not set. So a Linux
+build runs GPUI's headless platform, which opens no window anywhere
+(**Code**: `gpui-pre-platform` 0.3.9 `Cargo.toml`, `gpui-pre-linux` 0.3.9
+`linux.rs:38`). Under `Xvfb` and `openbox` with Mesa's software Vulkan, the
+`release` build of `main` writes the ready file after 34 ms, rests at
+16.1 MiB resident and draws nothing.
+
+With `gpui_platform` features `x11` and `wayland` on for Linux, the same
+start draws the flyout: ready after 123 to 187 ms, 141.5 MiB resident
+(Mesa's software renderer, `libgallium`, accounts for most of it) and
+50.8 MiB of private dirty memory. The stripped executable grows from
+15 716 600 to 24 079 368 bytes, and to 23 186 312 bytes with `x11` alone, so
+GPUI's Linux backends alone take the build over the 20 MB budget of R13.
+
+**A-13, measured.** GPUI asks `wgpu` for Vulkan or OpenGL
+(`gpui-pre-wgpu` `wgpu_context.rs:474`). With no Vulkan driver
+(`VK_ICD_FILENAMES` naming no file), `wgpu` falls back to OpenGL through
+Mesa's EGL and the flyout draws the same as with Vulkan. Under `Xvfb`, Mesa's
+EGL writes two warnings to standard error (« DRI3 error: Could not get DRI3
+device »), with or without Vulkan; `EGL_LOG_LEVEL=fatal` silences them. With
+neither Vulkan nor EGL (`__EGL_VENDOR_LIBRARY_FILENAMES` naming no file too),
+the process stays up, writes the ready file, shows no window and writes
+nothing to standard error or to its log: `shell::open_new_flyout` reports
+the failure with `log::error!`, and no logger is installed. That silent
+process is the case T117 must turn into a message.
+
 So a Linux user who built Bientôt today would get a silent process that
 counts nothing: `main.rs` substitutes `NoLastInput`, no lifecycle is watched,
 no notification sink is registered and `tray::install` is never called
@@ -194,6 +223,8 @@ Not verified, to settle in the spike (Lot 4):
 - **A-4**: on GNOME Wayland an undecorated `xdg_toplevel` of the flyout's
   size is placed acceptably by Mutter. Task T044.
 - **A-13**: what GPUI draws on a machine without a Vulkan driver. Task T031.
+  Measured (R1): it draws through OpenGL when Mesa's EGL is there, and
+  nothing at all, silently, when no graphics API is (T117).
 
 ## R4. Tray
 
@@ -582,15 +613,23 @@ AppImage at launch: nothing verifies one at run time, and Velopack checks
 the package hashes of the feed. Flathub signs its own repository; the
 listing is verified through the domain.
 
-**Size budget.** The gate stays 20 MB, the same number as Windows, on the
+**Size budget.** The budget stays 20 MB, the same number as Windows, on the
 stripped ELF executable of the `release` and `direct` builds for x86_64
-(`stat -c %s`), failing the `Rust on Linux` job; the aarch64 executable and
-the AppImage file are reported and gated at 20 MB in the release workflow.
-Measured today without any Linux backend: 15.54 MB (R1). Expected
-additions: `ksni` and the D-Bus proxies (`zbus` is already linked through
-GPUI), `rustls` in place of dynamic OpenSSL, Velopack in `direct`.
-Startup (ready file under 1 s) and memory (under 60 MB) are reported, not
-enforced, as on Windows: hosted runners have no GPU.
+(`stat -c %s`); the aarch64 executable and the AppImage file are reported
+and gated at 20 MB in the release workflow. `Rust on Linux` reports the size
+and warns above 20 MB without failing until the Linux size task, issue #226,
+brings the executable under; from then on the size fails the job.
+Measured without any Linux backend: 15.54 MB (R1). Expected additions:
+`ksni` and the D-Bus proxies (`zbus` is already linked through GPUI),
+`rustls` in place of dynamic OpenSSL, Velopack in `direct`. Startup (ready
+file under 1 s) and memory (under 60 MB) are reported, not enforced, as on
+Windows: hosted runners have no GPU.
+
+**With GPUI's backends (T030, measured 2026-11-24): 24.08 MB.** +8.36 MB, of
+which `wgpu` and `naga` 2.26, X11 and Wayland 1.27, fonts 1.04,
+`accesskit_unix` 0.65. Unused but behind no GPUI feature: `oo7` secret
+storage (1.28 MB) and SVG `<text>` support (1.98 MB). OpenGL stays: it is
+the no-Vulkan fallback (R1, A-13).
 
 ## R14. Plugin runtime
 

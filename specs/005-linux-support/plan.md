@@ -72,7 +72,9 @@ resident at rest. Reported, not enforced, on hosted runners (no GPU).
 
 **Constraints**: stripped executable of the `release` and `direct` builds
 under 20 MB on each platform, enforced in CI (`research.md`, R13 « Size
-budget »). No elevated privilege, no membership of the `input` group, no
+budget »). On Linux, `Rust on Linux` reports the size and warns above 20 MB
+until the Linux size task, issue #226, brings the executable under; it then
+fails the job, as on Windows. No elevated privilege, no membership of the `input` group, no
 read of `/dev/input` (Principle I). No GTK or Qt at run time.
 
 **Scale/Scope**: about 2 400 lines of Win32 code have a Linux counterpart to
@@ -362,8 +364,9 @@ is data that installed copies depend on and stays.
   and one `en:` line. From Lot 15 a file may start with `platforms:
   windows` or `platforms: linux`.
 - **Size.** Every lot that adds a dependency states the Linux executable
-  size before and after in its description; the 20 MB gate is in `Rust on
-  Linux` from Lot 3.
+  size before and after in its description; `Rust on Linux` reports it
+  against 20 MB from Lot 3, and fails above it once the Linux size task,
+  issue #226, lands.
 - **UI and wording.** Tasks marked **[UI]** go through the three-reviewer
   panel (designer critique, UX writing, screenshot review) and update the
   GPUI mockups and the design system in the same pull request.
