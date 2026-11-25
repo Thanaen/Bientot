@@ -28,7 +28,7 @@ spec conventions. The code layout is in [docs/architecture.md](docs/architecture
 
   ```bash
   sudo apt-get install build-essential pkg-config libssl-dev libfreetype-dev \
-    libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers
+    libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers
   ```
 - To work on the web service in `services/bientot`: [Bun](https://bun.sh).
 - PowerShell 7 (`pwsh`) runs the Windows scripts in `scripts/`.

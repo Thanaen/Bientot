@@ -150,12 +150,13 @@ jobs:
       - name: Cache dependency builds
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
-      # GPUI's X11 and Wayland backends link libxkbcommon; clang and llvm serve the Windows lint.
+      # GPUI's X11 and Wayland backends link libxkbcommon, fontconfig and FreeType; clang and llvm
+      # serve the Windows lint.
       - name: Install the system packages
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
-            libxkbcommon-dev libxkbcommon-x11-dev clang llvm
+            libxkbcommon-dev libxkbcommon-x11-dev libfontconfig-dev libfreetype-dev clang llvm
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -207,12 +208,12 @@ jobs:
       - name: Cache dependency builds
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
-      # The software Vulkan driver, and libxkbcommon for GPUI's X11 and Wayland backends.
+      # The software Vulkan driver, and the libraries GPUI's X11 and Wayland backends link.
       - name: Install the system packages
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
-            mesa-vulkan-drivers libxkbcommon-dev libxkbcommon-x11-dev
+            mesa-vulkan-drivers libxkbcommon-dev libxkbcommon-x11-dev libfontconfig-dev libfreetype-dev
 
       # The `screenshots` profile renders one language and theme in 24 s, a debug build in 217 s.
       - name: Build the screenshot tool
@@ -487,7 +488,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
-            build-essential pkg-config libssl-dev libfreetype-dev \
+            build-essential pkg-config libssl-dev libfreetype-dev libfontconfig-dev \
             libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers \
             xvfb openbox x11-utils imagemagick dbus python3-dbusmock
 
