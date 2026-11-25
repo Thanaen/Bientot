@@ -39,7 +39,7 @@ jobs:
       # (read by the tests), the Claude Code skill under `plugins/`, the plugin check scripts or
       # this workflow changes. The Windows Rust job, the costliest minutes,
       # runs only when the app crate, the plugin host, the store's Windows-only code, the dependencies or this
-      # workflow change. The Linux Rust job runs on the same files, with its own scripts.
+      # workflow change. The Linux Rust job runs on every Rust change, with its own scripts.
       - name: Detect pull request changes
         id: pull-request
         if: ${{ github.event_name == 'pull_request' }}
@@ -71,8 +71,9 @@ jobs:
             rust_windows=true
           fi
 
+          # Linux minutes are cheap: the Linux job runs on every Rust change, not only the app's.
           rust_linux=false
-          if grep -qE "${app_files}|^scripts/(measure-performance|linux-desktop-harness)\.sh$" <<< "$files"; then
+          if grep -qE "${rust_files}|^\.github/workflows/ci\.yml$|^scripts/(measure-performance|linux-desktop-harness)\.sh$" <<< "$files"; then
             rust_linux=true
           fi
 
@@ -530,6 +531,8 @@ jobs:
         env:
           VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
           EGL_LOG_LEVEL: fatal
+        # `bash` alone runs with pipefail, so a failed start fails the step despite the `tee`.
+        shell: bash
         run: |
           echo >> "$GITHUB_STEP_SUMMARY"
           scripts/linux-desktop-harness.sh x11 \
