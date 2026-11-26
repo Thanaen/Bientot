@@ -5,6 +5,7 @@
 
 #[cfg(target_os = "linux")]
 mod dbus;
+pub mod idle;
 pub mod logind;
 pub mod placement;
 

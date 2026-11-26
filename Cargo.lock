@@ -608,7 +608,10 @@ dependencies = [
  "ksni",
  "raw-window-handle",
  "rusqlite",
+ "rustix",
  "tempfile",
+ "wayland-client",
+ "wayland-protocols",
  "x11rb",
  "zbus",
 ]
