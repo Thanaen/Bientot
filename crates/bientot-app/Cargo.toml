@@ -55,6 +55,8 @@ bientot-store = { path = "../bientot-store" }
 bientot-windows = { path = "../bientot-windows" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
+# The tray (`platform::linux`); the other Linux ports are not wired yet.
+bientot-linux = { path = "../bientot-linux" }
 # Without these backends GPUI runs its headless platform on Linux and opens no window. They link
 # libxkbcommon and libxkbcommon-x11.
 gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform", features = ["wayland", "x11"] }

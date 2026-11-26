@@ -7,7 +7,8 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use bientot_core::diagnostics::{
-    DiagnosticInitializationState, DiagnosticRuntimeSnapshot, DiagnosticSnapshot, create_snapshot,
+    DiagnosticInitializationState, DiagnosticLogLevel, DiagnosticRuntimeSnapshot,
+    DiagnosticSnapshot, create_snapshot,
 };
 use bientot_domain::accounting::{AdjustmentId, TrackingState};
 use bientot_domain::adjustments::{ManualAdjustment, ManualClassification};
@@ -15,7 +16,7 @@ use bientot_domain::configuration::{AppointmentProposal, DismissedProposal, Sett
 use bientot_domain::intervals::UtcInterval;
 use bientot_domain::sources::{ActivitySourceKind, IdleStateTracker};
 use bientot_domain::time::{LocalWorkday, TimeZoneProvider, WorkdayCalendar};
-use bientot_platform::tray::{self, Tray, TrayEvent, TrayIcon, TrayState};
+use bientot_platform::tray::{self, Tray, TrayEvent, TrayHost, TrayIcon, TrayState};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
 use futures::StreamExt as _;
@@ -728,8 +729,18 @@ impl ShownTray {
 }
 
 /// Shows the day in `tray` from now on: opens the flyout on a click on the icon, and runs the
-/// item chosen in its menu.
-pub fn install_tray(tray: Rc<dyn Tray<MenuCommand>>, mut events: TrayEvents, cx: &mut App) {
+/// item chosen in its menu. The log names the tray's `backend`, when given, and whether a host
+/// shows the icon, then each change of the host.
+pub fn install_tray(
+    tray: Rc<dyn Tray<MenuCommand>>,
+    backend: Option<&'static str>,
+    mut events: TrayEvents,
+    cx: &mut App,
+) {
+    if let Some(backend) = backend {
+        log_tray("tray.backend", ("name", backend), cx);
+        log_tray("tray.host", ("state", host_name(tray.host())), cx);
+    }
     let menu = cx.global::<Today>().menu();
     cx.set_global(ShownTray::new(tray, menu));
     show_tray(cx);
@@ -742,11 +753,32 @@ pub fn install_tray(tray: Rc<dyn Tray<MenuCommand>>, mut events: TrayEvents, cx:
                         run(&command, cx);
                     }
                 }
-                TrayEvent::HostChanged(host) => shell::tray_changed(host, cx),
+                TrayEvent::HostChanged(host) => {
+                    log_tray("tray.host", ("state", host_name(host)), cx);
+                    shell::tray_changed(host, cx);
+                }
             });
         }
     })
     .detach();
+}
+
+fn host_name(host: TrayHost) -> &'static str {
+    match host {
+        TrayHost::Present => "present",
+        TrayHost::Absent => "absent",
+    }
+}
+
+/// Logs `event` with its one property, in the user's own day: a demo has no log.
+fn log_tray(event: &str, (name, value): (&str, &'static str), cx: &mut App) {
+    if let Some(host) = cx.global_mut::<Today>().live() {
+        host.log(
+            DiagnosticLogLevel::Information,
+            event,
+            &[(name, value.into())],
+        );
+    }
 }
 
 /// Shows the day in the tray, once it was installed.
