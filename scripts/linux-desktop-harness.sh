@@ -10,7 +10,8 @@
 # Usage: scripts/linux-desktop-harness.sh {x11|wayland} [command...]
 #
 # Without a command it runs the desktop integration tests: the ignored tests whose name holds
-# `desktop_harness`, marked `#[ignore = "desktop-harness"]`. There are none yet. The mock of
+# `desktop_harness`, marked `#[ignore = "desktop-harness"]`: for now those of logind
+# (crates/bientot-linux/src/logind/native/tests.rs). The mock of
 # Mutter's idle monitor, which python-dbusmock has no template for, comes with the idle tests
 # (Lot 7). CI runs the headless start in the x11 session (scripts/measure-performance.sh).
 #

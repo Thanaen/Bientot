@@ -3,4 +3,5 @@
 
 #![deny(unsafe_code)]
 
+pub mod logind;
 pub mod placement;

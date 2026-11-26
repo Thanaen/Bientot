@@ -339,7 +339,9 @@ accepts it with a justification. Task T136.
 **Source** (`org.freedesktop.login1`): the session object has the properties
 `LockedHint`, `Active`, `State`, `Timestamp`, and the signals `Lock` and
 `Unlock`; the manager has `PrepareForSleep(bool)` and
-`PrepareForShutdown(bool)`. `Lock` and `Unlock` are **requests** sent to the
+`PrepareForShutdown(bool)`, which is not watched: logind sends
+`PrepareForShutdown(false)` after `true` when the shutdown fails, and the
+session goes on. `Lock` and `Unlock` are **requests** sent to the
 session's locker (after `loginctl lock-session`), not reports that the
 screen locked. `LockedHint` is the report, set by the desktop through
 `SetLockedHint`.
@@ -347,10 +349,10 @@ screen locked. `LockedHint` is the report, set by the desktop through
 | Windows event | Linux source | Maps to |
 | --- | --- | --- |
 | `WTS_SESSION_LOCK` / `UNLOCK` | `PropertiesChanged` of `LockedHint` on the own session (system bus). Fallback when a desktop never sets it: `ActiveChanged` of `org.freedesktop.ScreenSaver` or `org.gnome.ScreenSaver` (session bus) | `LifecycleChange::Session(Locked / Unlocked)` |
-| Switch User (disconnect, reconnect) | `Active` false / true on the own session | `Session(Locked / Unlocked)`, as Windows records a disconnect as a lock |
+| Switch User (disconnect, reconnect) | `Active` false / true on the own session | `Session(Locked / Unlocked)`, as Windows records it: it sends `WTS_SESSION_LOCK` before `WTS_CONSOLE_DISCONNECT` and `WTS_SESSION_UNLOCK` after `WTS_CONSOLE_CONNECT`, and the decoder keeps only the lock and the unlock |
 | `PBT_APMSUSPEND` / `PBT_APMRESUMEAUTOMATIC` | `PrepareForSleep(true / false)` | `Power(Suspended / Active)` |
 | Session state at start (`WTSQuerySessionInformation`) | `LockedHint` and `Active` read once | `prepare_lifecycle`'s probe |
-| Logoff | The process is terminated; `PrepareForShutdown(true)` and SIGTERM both end the observation cleanly | `end_observation` |
+| Logoff | The process is terminated. Only the system bus closing ends the lifecycle watch (`ended()`); SIGTERM keeps its default action, since every change is in the ledger as it arrives and a handler in the source would delay the logout | `end_observation` only if the app quits on SIGTERM: no task makes it do so yet |
 
 The own session is found with `GetSessionByPID`, or `XDG_SESSION_ID`, or the
 user's `Display` session when the process runs in the user manager's scope
@@ -361,6 +363,24 @@ while locked; lockers such as `swaylock` and `i3lock` do not, and offer no
 screensaver interface either. On such a desktop the session state is
 `Unknown` and Bientôt says so; the day is then accounted from activity
 alone, as on Windows when the lifecycle window cannot open. Task T082.
+
+**Lot 8, 2026-11-26 (headless, python-dbusmock 0.31.1 logind).** The
+mapping is a reducer, `SessionTracker`, over the session's `Active`, a lock
+signal and the power, that reports a change only when a signal changes what
+is known and the state differs from the one last reported. The lock signal
+starts as `LockedHint` if it is true at start, else the screensaver if one
+answers `GetActive`, else none, and moves to `LockedHint` for good the first
+time it is seen true: a desktop that sets it once is trusted to clear it.
+GNOME announces its lock screen on both, so both arrive and one change is
+recorded. On GNOME with the automatic lock off, `ActiveChanged(true)` may
+mark a blank screen, which the fallback then records as a lock (T082). The
+snapshot is read fresh and knows nothing of the watch, so a desktop that set
+`LockedHint` earlier but answers no screensaver reads `Unavailable` again
+once unlocked; `LifecycleSource` has no way to report `LockReporting`
+changing, which T084 needs. The mock's `GetUser` fails (it adds a number to
+a string) and it has no `GetSessionByPID`; the harness tests give it both.
+A system bus that closes ends the watch, checked once by killing the
+harness's bus (not kept as a test: the bus is shared by every test).
 
 Without systemd-logind or elogind (some distributions), no source exists:
 same degradation. No delay inhibitor is taken: Bientôt has nothing to finish
