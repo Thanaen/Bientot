@@ -12,16 +12,14 @@ impl TimeZoneProvider for SystemZones {
         (local_id(&zone), zone)
     }
 
-    /// The local zone under its own identifier, otherwise an IANA zone. A day recorded under
-    /// another Windows identifier, after a change of zone, is not resolved yet.
+    /// The local zone under its own identifier, otherwise the zone a Windows key or an IANA name
+    /// gives, whichever platform wrote it.
     fn get(&self, id: &str) -> Result<TimeZone, UnknownTimeZone> {
         let (local_id, zone) = self.local();
         if id == local_id {
             return Ok(zone);
         }
-        jiff::tz::db()
-            .get(id)
-            .map_err(|_| UnknownTimeZone(id.to_owned()))
+        bientot_platform::zones::resolve(id)
     }
 }
 
