@@ -17,6 +17,10 @@ pub use bientot_platform::motion::InMemoryMotion as Motion;
 pub use bientot_platform::single_instance::InMemoryInstance as Instance;
 
 /// No notification shows here, so none is refused.
+#[cfg_attr(
+    target_os = "linux",
+    allow(dead_code, reason = "the Linux backend has its own")
+)]
 pub type NotificationsRefused = Infallible;
 
 pub fn motion() -> Motion {
