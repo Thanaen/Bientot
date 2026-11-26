@@ -31,7 +31,7 @@ pub use native::{ActivationListener, PrimaryInstance};
 fn instance_folder(xdg_runtime_dir: Option<OsString>, data_folder: &Path) -> PathBuf {
     xdg_runtime_dir
         .map(PathBuf::from)
-        .filter(|path| path.is_absolute())
+        .filter(|path| crate::is_absolute(path))
         .map_or_else(
             || data_folder.join("run"),
             |runtime| runtime.join("bientot"),

@@ -28,7 +28,7 @@ impl XdgAutostart {
         Self {
             file: config_home.map(|home| home.join("autostart").join(format!("{APP_ID}.desktop"))),
             executable: executable
-                .filter(|path| path.is_absolute())
+                .filter(|path| crate::is_absolute(path))
                 .and_then(Path::to_str)
                 .map(str::to_owned),
         }
@@ -98,7 +98,7 @@ fn config_home(variable: impl Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
     let absolute = |name| {
         variable(name)
             .map(PathBuf::from)
-            .filter(|path| path.is_absolute())
+            .filter(|path| crate::is_absolute(path))
     };
     absolute("XDG_CONFIG_HOME").or_else(|| absolute("HOME").map(|home| home.join(".config")))
 }
@@ -111,7 +111,7 @@ fn installed_executable(
 ) -> Option<PathBuf> {
     appimage
         .map(PathBuf::from)
-        .filter(|path| path.is_absolute())
+        .filter(|path| crate::is_absolute(path))
         .or(current_exe)
 }
 
