@@ -594,13 +594,23 @@ dependencies = [
 name = "bientot-linux"
 version = "1.0.0"
 dependencies = [
+ "async-channel",
+ "async-io",
+ "bientot-domain",
  "bientot-platform",
+ "bientot-store",
+ "bientot-windows",
  "futures",
+ "futures-lite",
  "gpui-pre",
  "gpui-pre-platform",
+ "jiff",
  "ksni",
  "raw-window-handle",
+ "rusqlite",
+ "tempfile",
  "x11rb",
+ "zbus",
 ]
 
 [[package]]

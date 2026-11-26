@@ -152,12 +152,14 @@ jobs:
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       # GPUI's X11 and Wayland backends link libxkbcommon, fontconfig and FreeType; clang and llvm
-      # serve the Windows lint.
+      # serve the Windows lint; the headless desktop (Xvfb, openbox, the D-Bus mocks) the desktop
+      # tests.
       - name: Install the system packages
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
-            libxkbcommon-dev libxkbcommon-x11-dev libfontconfig-dev libfreetype-dev clang llvm
+            libxkbcommon-dev libxkbcommon-x11-dev libfontconfig-dev libfreetype-dev clang llvm \
+            xvfb openbox x11-utils dbus python3-dbusmock
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -168,6 +170,13 @@ jobs:
 
       - name: Test
         run: cargo test --workspace --all-features --locked
+
+      # The ignored tests that need a desktop session and its buses (logind for now), built as the
+      # step above built them.
+      - name: Test in the headless desktop
+        run: |
+          scripts/linux-desktop-harness.sh x11 \
+            cargo test --workspace --all-features --locked -- --ignored desktop_harness
 
       # Every `cfg(windows)` line, type-checked from Linux, so that a pull request that skips
       # `Rust on Windows` still compiles for Windows. The cache above keeps these builds too.
@@ -287,9 +296,10 @@ jobs:
         run: cargo test --locked -p bientot-store
 
       # The Win32 calls (the last-input query, the Run key, the single-instance event) and the
-      # platform-independent recorder and services they feed, on the Windows file system.
+      # platform-independent recorder and services they feed, on the Windows file system; with
+      # the Linux crate's portable half and its golden ledger against the Windows decoder.
       - name: Test the Windows integration
-        run: cargo test --locked -p bientot-platform -p bientot-windows
+        run: cargo test --locked -p bientot-platform -p bientot-windows -p bientot-linux
 
       # Every hostile plugin of crates/bientot-plugins/tests/hostile on the plugin host built for
       # release (FR-072, SC-004): no abort, the UI never waits, memory comes back.

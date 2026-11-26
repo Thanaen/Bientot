@@ -1,6 +1,6 @@
 [package]
 name = "bientot-linux"
-description = "Bientôt's Linux integration. For now the work area of an X11 desktop and the tray and flyout spike of Lot 4 (specs/005-linux-support); the rules stay platform independent and tested on any OS, and only the system calls behind them are Linux only."
+description = "Bientôt's Linux integration. For now the work area of an X11 desktop, the tray and flyout spike of Lot 4, and the session lock and the power from logind (specs/005-linux-support); the rules stay platform independent and tested on any OS, and only the system calls behind them are Linux only."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,15 +8,31 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
+bientot-domain = { path = "../bientot-domain" }
 bientot-platform = { path = "../bientot-platform" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
+# logind and the screensaver (research.md, R7), on the zbus, async-io and futures-lite GPUI and
+# ksni already build: the versions and features of the lock, no package added.
+async-channel = "2.5.0"
+async-io = "2.6.0"
+futures-lite = "2.6.1"
+zbus = { version = "5.19.0", default-features = false, features = ["async-io"] }
 # The StatusNotifierItem tray (research.md, R4), on the zbus and async-io GPUI's portals already
 # build, not on Tokio. `blocking` runs the item on a thread of its own.
 ksni = { version = "0.3.7", default-features = false, features = ["async-io", "blocking"] }
 # The version GPUI builds. `randr` names the monitors for the flyout's work area, `screensaver`
 # reads the idle time on X11 (Lot 7).
 x11rb = { version = "0.13.2", features = ["randr", "screensaver"] }
+
+[dev-dependencies]
+jiff = "1.0.0"
+# The golden ledger test runs the Windows decoder, whose decoding half builds on any OS, beside
+# the logind mapping (tests/golden_ledger.rs).
+bientot-store = { path = "../bientot-store" }
+bientot-windows = { path = "../bientot-windows" }
+rusqlite = "0.43.0"
+tempfile = "3.27.0"
 
 # The spike (examples/shell-spike.rs) opens GPUI windows; nothing it uses is shipped.
 [target.'cfg(target_os = "linux")'.dev-dependencies]
