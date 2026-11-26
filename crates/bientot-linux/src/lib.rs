@@ -8,6 +8,7 @@ mod dbus;
 pub mod idle;
 pub mod logind;
 pub mod placement;
+pub mod tray;
 
 /// The desktop harness tests share one session bus and one logind mock, so they take turns.
 #[cfg(all(test, target_os = "linux"))]
