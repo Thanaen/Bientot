@@ -1,8 +1,8 @@
 //! The platform-independent half of Bientôt's system integration: the built-in activity source,
 //! the recording of session and power changes, the recovery of power and session history, the
-//! update check, the port that registers the app to start at sign-in, the tray menu, and the
-//! types the platform crates share. Each port has an in-memory implementation here;
-//! `bientot-windows` makes the Windows calls behind them.
+//! update check, the port that registers the app to start at sign-in, the tray menu, the names of
+//! time zones on either platform, and the types the platform crates share. Each port has an
+//! in-memory implementation here; `bientot-windows` makes the Windows calls behind them.
 
 #![forbid(unsafe_code)]
 
@@ -18,6 +18,7 @@ pub mod startup;
 pub mod system;
 pub mod tray;
 pub mod updates;
+pub mod zones;
 
 use jiff::Timestamp;
 

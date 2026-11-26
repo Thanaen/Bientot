@@ -554,6 +554,25 @@ folders (R12), so they are two instances, like two `--data-dir` runs.
   names on Linux, so an import from Windows needs the CLDR `windowsZones`
   mapping in `zones.rs`. Task T125 tests it with a real Windows export
   first.
+
+  **Run (T125, 2026-11-26): A-14 holds, on Windows too.** `jiff` maps
+  Windows keys only to find the system zone, in a private table of its
+  Windows backend; `jiff::tz::db()` knows IANA names alone, on Linux and
+  with the database Windows builds bundle. Most reads fall back to the
+  local zone, but replaying a past week in its own zone does not: a Windows
+  export whose week still has credit to expire, imported on Linux, failed
+  every refresh from the next Monday. On Windows, the same replay fails for
+  a week stored under another Windows key after a change of zone (read from
+  the code; no Windows run). `bientot-platform`'s
+  `zones::resolve` now reads both: the Windows key through the CLDR table
+  of `zones/windows.rs`, the zone CLDR gives each key for the world
+  (territory `001`), written by `scripts/windows-zones.sh` from tag
+  `release-49`. The table holds the current IANA name of each zone
+  (`common/bcp47/timezone.xml`), since CLDR still names seven of them by
+  old names (`Asia/Calcutta`, `Europe/Kiev`…) that Ubuntu 24.04 installs
+  only with `tzdata-legacy`. No reverse table: an IANA name already
+  resolves on Windows through the bundled database, which the tests of
+  `bientot-platform` check on both systems.
 - **Fonts.** Bundled; identical glyphs. Rasterization differs (DirectWrite
   on Windows, `font-kit` on Linux), which the screenshots of both platforms
   will show; no token changes.
@@ -955,7 +974,7 @@ window still draws.
 | A-11 | The default user can read the system journal on Ubuntu, Fedora and Mint | T091 |
 | A-12 | Velopack's AppImage update flow works on Tier 1, x86_64 and aarch64 | T140 |
 | A-13 | Behaviour without a Vulkan driver | T031 |
-| A-14 | Windows zone names need a mapping on Linux | T125 |
+| A-14 | Windows zone names need a mapping on Linux: holds, on Windows too | T125 |
 | A-15 | Which Settings portal key carries reduced motion | T123 |
 | A-16 | Orca reads the flyout through AT-SPI | T127 |
 | A-17 | Notification body clicks arrive, directly and through the portal | T101 |
