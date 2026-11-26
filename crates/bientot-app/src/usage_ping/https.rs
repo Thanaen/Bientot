@@ -1,12 +1,13 @@
-//! The usage signal over HTTPS with the system TLS (SChannel on Windows): exactly the request of
-//! [`PingRequest`], with no cookie, no redirect and no header ureq would add on its own.
+//! The usage signal over HTTPS with the system TLS ([`platform::system_tls`]): exactly the
+//! request of [`PingRequest`], with no cookie, no redirect and no header ureq would add on its own.
 
 use std::error::Error;
 
 use bientot_core::usage_ping::{PingRequest, UsagePingTransport};
 use ureq::Agent;
 use ureq::http::Request;
-use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
+
+use crate::platform;
 
 pub struct HttpsTransport;
 
@@ -21,12 +22,7 @@ impl UsagePingTransport for HttpsTransport {
 /// certificates and adds no `User-Agent`, `Accept` or `Accept-Encoding` of its own.
 fn agent(request: &PingRequest) -> Agent {
     Agent::config_builder()
-        .tls_config(
-            TlsConfig::builder()
-                .provider(TlsProvider::NativeTls)
-                .root_certs(RootCerts::PlatformVerifier)
-                .build(),
-        )
+        .tls_config(platform::system_tls())
         .https_only(true)
         .http_status_as_error(false)
         .max_redirects(0)
@@ -130,13 +126,16 @@ mod tests {
         let error = HttpsTransport.post(&request).unwrap_err();
         server.join().unwrap();
 
-        assert!(
-            matches!(
-                error.downcast_ref::<ureq::Error>(),
-                Some(ureq::Error::NativeTls(_))
-            ),
-            "{error:?}"
+        let error = error.downcast_ref::<ureq::Error>();
+        #[cfg(windows)]
+        let from_tls = matches!(error, Some(ureq::Error::NativeTls(_)));
+        // ureq hands rustls's errors over inside I/O errors.
+        #[cfg(not(windows))]
+        let from_tls = matches!(
+            error,
+            Some(ureq::Error::Io(io)) if io.get_ref().is_some_and(|inner| inner.is::<rustls::Error>())
         );
+        assert!(from_tls, "{error:?}");
     }
 
     #[test]

@@ -529,6 +529,15 @@ folders (R12), so they are two instances, like two `--data-dir` runs.
   the lock file. **Assumption A-20**: it costs under 1.5 MB. Task T037
   measures it before anything depends on it.
 
+  **Run (T037, 2026-11-25).** `ureq` takes `rustls` (with `ring`) and
+  `platform-verifier` everywhere except Windows, which keeps `native-tls`;
+  `platform::system_tls` picks the provider. The stripped `release`
+  executable goes from 24 079 368 to 24 993 032 bytes (+913 664, 0.91 MB),
+  and `direct` from 24 079 496 to 24 992 904 (+913 408). `ldd` no longer
+  lists `libssl` or `libcrypto`, and `Rust on Linux` now fails if it does.
+  `ring` over `aws-lc-rs`: it is `ureq`'s own default, already in the lock
+  file, and needs no CMake. The Windows dependency tree is unchanged.
+
 ## R13. Packaging and distribution
 
 What the app needs from a package: a tray (session bus), idle (Wayland
@@ -740,7 +749,7 @@ platform-neutral (T182).
 | A-17 | Notification body clicks arrive, directly and through the portal | T101 |
 | A-18 | The Background portal does not prompt again once granted | T112 |
 | A-19 | `ubuntu-22.04` runners still exist | T141 |
-| A-20 | `rustls` costs under 1.5 MB | T037 |
+| A-20 | `rustls` costs under 1.5 MB: measured, +0.91 MB | T037 |
 
 ## Sources
 

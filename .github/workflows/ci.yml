@@ -489,7 +489,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
-            build-essential pkg-config libssl-dev libfreetype-dev libfontconfig-dev \
+            build-essential pkg-config libfreetype-dev libfontconfig-dev \
             libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers \
             xvfb openbox x11-utils imagemagick dbus python3-dbusmock
 
@@ -505,6 +505,16 @@ jobs:
           cargo build --release --locked -p bientot-app --bin worktime --features release
           mkdir -p artifacts/linux
           cp target/release/worktime artifacts/linux/worktime
+
+      # HTTPS goes through rustls, linked in: a package must not depend on the host's OpenSSL
+      # (specs/005-linux-support/contracts/packaging.md).
+      - name: Check that OpenSSL is not linked
+        run: |
+          libraries=$(ldd artifacts/linux/worktime)
+          if grep -E 'lib(ssl|crypto)\.' <<< "$libraries"; then
+            echo "::error::The executable links OpenSSL."
+            exit 1
+          fi
 
       # The budget of the Windows executable (issue #147), on the stripped executable. GPUI's X11
       # and Wayland backends take it over, so the job warns until the Linux size task (issue #226)
