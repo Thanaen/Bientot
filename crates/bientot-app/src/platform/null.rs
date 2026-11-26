@@ -14,6 +14,10 @@ use super::{Platform, PlatformContext};
 use crate::updates::NoUpdates;
 
 pub use bientot_platform::motion::InMemoryMotion as Motion;
+#[cfg_attr(
+    target_os = "linux",
+    allow(unused_imports, reason = "the Linux backend has its own")
+)]
 pub use bientot_platform::single_instance::InMemoryInstance as Instance;
 
 /// No notification shows here, so none is refused.
@@ -70,6 +74,10 @@ pub fn local_app_data() -> anyhow::Result<PathBuf> {
 pub fn show_fatal(_title: &str, _body: &str) {}
 
 /// Cannot watch a process here: answers at once, as if it had exited.
+#[cfg_attr(
+    target_os = "linux",
+    allow(dead_code, reason = "the Linux backend has its own")
+)]
 pub fn wait_for_exit(_pid: u32, _timeout: Duration) -> bool {
     true
 }

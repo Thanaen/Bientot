@@ -13,8 +13,8 @@
 # `desktop_harness`, marked `#[ignore = "desktop-harness"]`: for now those of logind, of the idle
 # time, of the tray and of the notifications
 # (crates/bientot-linux/src/{logind,idle,tray,notifications}/native/tests.rs), where the app opens
-# its flyout and what it does without a notification server
-# (crates/bientot-app/tests/desktop_harness_{flyout,notifications}.rs). CI runs the headless start
+# its flyout, what it does without a notification server, and how a later launch hands over to it
+# (crates/bientot-app/tests/desktop_harness_{flyout,notifications,instance}.rs). CI runs the headless start
 # in the x11 session (scripts/measure-performance.sh).
 #
 # Needs dbus-run-session, python3-dbusmock, a Vulkan driver (Mesa's software one will do), and

@@ -10,6 +10,8 @@ pub mod idle;
 pub mod logind;
 pub mod notifications;
 pub mod placement;
+pub mod process;
+pub mod single_instance;
 pub mod tray;
 
 /// The application id the desktop files and the Flatpak use, which names the icon too.

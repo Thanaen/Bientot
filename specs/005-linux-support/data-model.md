@@ -84,6 +84,6 @@ assumption A-14).
 | --- | --- | --- |
 | `$XDG_CONFIG_HOME/autostart/dev.bientot.Bientot.desktop` | Startup switch (AppImage) | Turning the switch off |
 | `~/.local/share/applications/dev.bientot.Bientot.desktop`, icons under `~/.local/share/icons/hicolor/` | AppImage first run | « Remove from the app menu » |
-| `$XDG_RUNTIME_DIR/bientot/<key>.sock`, `.lock` | Single instance | Process exit; the directory is cleared at sign-out by the system |
+| `$XDG_RUNTIME_DIR/bientot/<stem>.sock`, `.lock` (stem: the instance key's first 41 characters); `<data folder>/run/` without `$XDG_RUNTIME_DIR` | Single instance | The socket at exit, or by the next owner after a crash; the lock stays; the runtime directory is cleared at sign-out by the system |
 
 `docs/privacy.md` lists them (T183).

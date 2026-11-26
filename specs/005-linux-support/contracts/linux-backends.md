@@ -238,15 +238,34 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
 
 ## Single instance
 
-- Directory `$XDG_RUNTIME_DIR/bientot/` (mode 0700); fallback
-  `<data folder>/run/`.
-- `<instance key>.lock`: `flock(LOCK_EX | LOCK_NB)` held for the life of
-  the first instance.
-- `<instance key>.sock`: stream socket. A second launch that fails the
+- `bientot_linux::single_instance::PrimaryInstance`, `platform::Instance`
+  on Linux. Directory `$XDG_RUNTIME_DIR/bientot/` (mode 0700;
+  `$XDG_RUNTIME_DIR` only when absolute); fallback `<data folder>/run/`
+  (mode 0700, the data folder itself created as usual).
+- The files are named by the instance key's first 41 characters
+  (`WorkTime-` and 128 bits of the hash), the stem: a socket's path must
+  fit the 108 bytes of `sun_path`, which the whole key under a data folder
+  would not.
+- `<stem>.lock`: `flock(LOCK_EX | LOCK_NB)` (`File::try_lock`) held for
+  the life of the first instance; never removed, so that two launches
+  never lock two files of one name.
+- `<stem>.sock`: stream socket, bound as the lock is taken, accepted on a
+  thread of its own once the app listens. A second launch that fails the
   lock connects, writes the activation in the framing of the Windows pipe
-  protocol, waits for the acknowledgement (2 s), exits 0.
+  protocol (one byte; one byte back), waits for the acknowledgement
+  (2 s), exits 0. Refused, missing or closed without an answer, it tries
+  the lock again every 50 ms until then: an owner that left is replaced.
+  Unanswered at 2 s, it exits as if accepted; its byte waits in the socket
+  and the owner shows itself once it listens.
 - A first instance that gets the lock removes a stale socket before
-  binding.
+  binding. One that cannot bind (a path still too long) logs it and keeps
+  the lock: later launches exit after 2 s without showing it.
+- Dropping the listener wakes its thread with a connection of its own,
+  joins it, removes the socket, then releases the lock.
+- A restart for an import waits for the old process
+  (`bientot_linux::process::wait_for_exit`, `/proc/<pid>/stat` polled
+  every 50 ms, a zombie counts as exited) before it takes the lock; the
+  `pidfd_open` half of T122 is still to come.
 
 ## Motion and theme
 

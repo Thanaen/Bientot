@@ -1,7 +1,8 @@
 //! The Linux backend: the tray icon is a StatusNotifierItem of `bientot-linux`, the flyout opens
-//! where `bientot-linux` places it on this session, the reminders are desktop notifications, and an
-//! XDG autostart entry starts the app at sign-in. The other ports answer « unknown » or do
-//! nothing, as on a system without a backend, until their lots wire them.
+//! where `bientot-linux` places it on this session, the reminders are desktop notifications, an
+//! XDG autostart entry starts the app at sign-in, and a lock and a socket keep one instance per
+//! data folder. The other ports answer « unknown » or do nothing, as on a system without a
+//! backend, until their lots wire them.
 
 #[path = "null.rs"]
 mod null;
@@ -22,9 +23,12 @@ use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 use super::{Platform, PlatformContext};
 
-// `build`, `place_window`, `activate_window` and `NotificationsRefused` below take the place of
-// null's.
+// `build`, `place_window`, `activate_window`, `NotificationsRefused`, `Instance` and
+// `wait_for_exit` below take the place of null's.
 pub use null::*;
+
+pub use bientot_linux::process::wait_for_exit;
+pub use bientot_linux::single_instance::PrimaryInstance as Instance;
 
 /// No notification server, or no portal in a Flatpak, answered at start: the app shows no
 /// reminder, so that none is reserved in the ledger without being shown, and the flyout says so.
