@@ -22,6 +22,14 @@ spec conventions. The code layout is in [docs/architecture.md](docs/architecture
   first `cargo` command.
 - To run the app: Windows 11 x64. The code builds and its tests run on Linux
   and macOS too, except the Windows-only parts listed below.
+- On Debian or Ubuntu, the C compiler and the libraries the build links, then
+  a Vulkan driver to draw (Mesa's software one works without a GPU). The
+  `Rust on Linux` CI job installs the same list:
+
+  ```bash
+  sudo apt-get install build-essential pkg-config libssl-dev libfreetype-dev \
+    libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers
+  ```
 - To work on the web service in `services/bientot`: [Bun](https://bun.sh).
 - PowerShell 7 (`pwsh`) runs the Windows scripts in `scripts/`.
 
@@ -36,24 +44,19 @@ cargo test --workspace --all-features --locked
 ```
 
 Then check the Windows-only code from Linux: the DPAPI secret store, the Win32 calls of the
-Windows integration and the notification-area icon of the app. The bundled SQLite of
-`bientot-store`, which `bientot-windows` and `bientot-app` depend on, needs the MSVC C
-compiler to build for Windows. Give the build a stand-in C compiler that writes empty
-objects, since linting links nothing:
+Windows integration and the notification-area icon of the app. The `Rust` CI job runs the
+same script. It needs `clang` and `llvm` (for `llvm-lib` and `llvm-rc`):
 
 ```bash
-cat > /tmp/fake-cl.sh <<'EOF'
-#!/bin/sh
-for arg in "$@"; do
-  case "$arg" in -Fo*) clang --target=x86_64-pc-windows-msvc -c -x c /dev/null -o "${arg#-Fo}" ;; esac
-done
-EOF
-chmod +x /tmp/fake-cl.sh
-CC_x86_64_pc_windows_msvc=/tmp/fake-cl.sh AR_x86_64_pc_windows_msvc=llvm-lib \
-  cargo clippy --workspace --all-targets --target x86_64-pc-windows-msvc --locked -- -D warnings
+scripts/lint-windows.sh
 ```
 
-Its Windows tests run only on Windows.
+It lints the workspace for `x86_64-pc-windows-msvc`, then `bientot-app` with each feature set
+the Windows job builds (`usage-ping`, `release`, `direct`). It never passes `--all-features`,
+whose `screenshots` feature builds only on Linux. The bundled SQLite of `bientot-store` needs
+the MSVC C compiler to build for Windows, so the script gives the build a stand-in C compiler
+that writes empty objects, since linting links nothing. The Windows tests run only on
+Windows.
 
 The first version of the app, then called WorkTime, was a .NET app, removed in October
 2026. The Rust app reads the same data files, so several tests replay what the .NET code
@@ -124,7 +127,8 @@ A green Linux run does not prove these:
 - **Plan** (Ubuntu) decides which jobs a run needs. For a push to `main` it
   looks for a passed pull request run that built the same tree and, if found,
   skips the other jobs.
-- **Rust** (Ubuntu) checks formatting, lints and tests the Cargo workspace.
+- **Rust** (Ubuntu) checks formatting, lints and tests the Cargo workspace,
+  then lints it for Windows with `scripts/lint-windows.sh`.
 - **GPUI screenshots** (Ubuntu) renders the screenshots when the app crate
   changes, beside **Rust**. **Publish screenshots** pushes them to the
   `refs/ci-screenshots/<pull request>` ref (not a branch, so Vercel ignores it)
@@ -138,6 +142,15 @@ A green Linux run does not prove these:
   `crates/bientot-windows/`, the Windows code of `bientot-store`, the Cargo
   manifests, the toolchain, `scripts/measure-performance.ps1` or `ci.yml`
   change, and after **Rust** passes.
+- **Rust on Linux** runs the hostile plugins, builds the Linux release
+  executable, reports its size against 20 000 000 bytes (a warning, not a
+  failure, until issue #226 brings it under), and starts it in a headless X11
+  session (`scripts/linux-desktop-harness.sh x11`) with
+  `scripts/measure-performance.sh`, which fails when the app is not ready
+  within 10 s or writes to standard error, and reports its start time and
+  memory. It uploads the executable and a screenshot of its flyout. It runs
+  on every change that runs **Rust**, and on changes to its own two scripts,
+  beside **Rust**.
 
 Keep work out of the Windows job unless it needs Windows, and keep new gates
 conditional on the files they check.

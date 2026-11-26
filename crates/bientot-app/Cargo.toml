@@ -58,8 +58,11 @@ bientot-plugins = { path = "../bientot-plugins", optional = true }
 bientot-store = { path = "../bientot-store" }
 bientot-windows = { path = "../bientot-windows" }
 
-# Shapes text in the screenshots: GPUI's headless Linux platform has no text system.
 [target.'cfg(target_os = "linux")'.dependencies]
+# Without these backends GPUI runs its headless platform on Linux and opens no window. They link
+# libxkbcommon and libxkbcommon-x11.
+gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform", features = ["wayland", "x11"] }
+# Shapes text in the screenshots: GPUI's headless Linux platform has no text system.
 gpui_wgpu = { version = "=0.3.9", package = "gpui-pre-wgpu", optional = true }
 
 [target.'cfg(windows)'.dependencies]

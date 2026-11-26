@@ -31,6 +31,7 @@ jobs:
       gpui-screenshots: ${{ steps.pull-request.outputs.gpui-screenshots }}
       rust: ${{ steps.pull-request.outputs.rust }}
       rust-windows: ${{ steps.pull-request.outputs.rust-windows }}
+      rust-linux: ${{ steps.pull-request.outputs.rust-linux }}
 
     steps:
       # Screenshots only matter when the pull request can change what the app looks like; the
@@ -38,7 +39,7 @@ jobs:
       # (read by the tests), the Claude Code skill under `plugins/`, the plugin check scripts or
       # this workflow changes. The Windows Rust job, the costliest minutes,
       # runs only when the app crate, the plugin host, the store's Windows-only code, the dependencies or this
-      # workflow change.
+      # workflow change. The Linux Rust job runs on every Rust change, with its own scripts.
       - name: Detect pull request changes
         id: pull-request
         if: ${{ github.event_name == 'pull_request' }}
@@ -56,22 +57,31 @@ jobs:
             gpui_screenshots=true
           fi
 
-          rust_files='^crates/|^packaging/|^plugins/|^scripts/check-(sample-plugins|plugin-skill)\.sh$|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$'
+          rust_files='^crates/|^packaging/|^plugins/|^scripts/(check-sample-plugins|check-plugin-skill|lint-windows)\.sh$|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$'
 
           rust=false
           if grep -qE "${rust_files}|^\.github/workflows/ci\.yml$" <<< "$files"; then
             rust=true
           fi
 
+          app_files='^crates/bientot-(app|platform|windows|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^packaging/|^\.github/workflows/ci\.yml$'
+
           rust_windows=false
-          if grep -qE '^crates/bientot-(app|platform|windows|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$|^packaging/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+          if grep -qE "${app_files}|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$" <<< "$files"; then
             rust_windows=true
+          fi
+
+          # Linux minutes are cheap: the Linux job runs on every Rust change, not only the app's.
+          rust_linux=false
+          if grep -qE "${rust_files}|^\.github/workflows/ci\.yml$|^scripts/(measure-performance|linux-desktop-harness)\.sh$" <<< "$files"; then
+            rust_linux=true
           fi
 
           echo "gpui-screenshots=${gpui_screenshots}" >> "$GITHUB_OUTPUT"
           echo "rust=${rust}" >> "$GITHUB_OUTPUT"
           echo "rust-windows=${rust_windows}" >> "$GITHUB_OUTPUT"
-          echo "GPUI screenshots: ${gpui_screenshots}. Rust: ${rust}. Rust on Windows: ${rust_windows}." >> "$GITHUB_STEP_SUMMARY"
+          echo "rust-linux=${rust_linux}" >> "$GITHUB_OUTPUT"
+          echo "GPUI screenshots: ${gpui_screenshots}. Rust: ${rust}. Rust on Windows: ${rust_windows}. Rust on Linux: ${rust_linux}." >> "$GITHUB_STEP_SUMMARY"
 
       # A merged pull request was already built and tested on its merge ref. When the pushed
       # commit has exactly the tree that a successful pull request run recorded, the push run
@@ -141,6 +151,14 @@ jobs:
       - name: Cache dependency builds
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
+      # GPUI's X11 and Wayland backends link libxkbcommon, fontconfig and FreeType; clang and llvm
+      # serve the Windows lint.
+      - name: Install the system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            libxkbcommon-dev libxkbcommon-x11-dev libfontconfig-dev libfreetype-dev clang llvm
+
       - name: Check formatting
         run: cargo fmt --all --check
 
@@ -150,6 +168,11 @@ jobs:
 
       - name: Test
         run: cargo test --workspace --all-features --locked
+
+      # Every `cfg(windows)` line, type-checked from Linux, so that a pull request that skips
+      # `Rust on Windows` still compiles for Windows. The cache above keeps these builds too.
+      - name: Lint for Windows
+        run: scripts/lint-windows.sh
 
       # Each sample plugin built for WebAssembly must give, in Bientôt's own runtime, the cards
       # its native tests check (crates/bientot-plugin-sdk/examples/*/expected/).
@@ -186,10 +209,12 @@ jobs:
       - name: Cache dependency builds
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
-      - name: Install the software Vulkan driver
+      # The software Vulkan driver, and the libraries GPUI's X11 and Wayland backends link.
+      - name: Install the system packages
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers
+          sudo apt-get install -y -qq --no-install-recommends \
+            mesa-vulkan-drivers libxkbcommon-dev libxkbcommon-x11-dev libfontconfig-dev libfreetype-dev
 
       # The `screenshots` profile renders one language and theme in 24 s, a debug build in 217 s.
       - name: Build the screenshot tool
@@ -432,6 +457,98 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  # Builds the release executable on Linux, measures its size and starts it in a headless X11
+  # session. It runs beside `Rust`: Linux minutes are cheap, and the answer comes sooner.
+  rust-linux:
+    name: Rust on Linux
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.verified != 'true' && needs.plan.outputs.rust-linux != 'false' }}
+    runs-on: ubuntu-latest
+    # A pull request's first run builds without a cache.
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache dependency builds
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      # The list of CONTRIBUTING.md, so that this job proves it, then the headless desktop:
+      # Xvfb, openbox, the D-Bus mocks and ImageMagick for the screenshot.
+      - name: Install the system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            build-essential pkg-config libssl-dev libfreetype-dev libfontconfig-dev \
+            libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers \
+            xvfb openbox x11-utils imagemagick dbus python3-dbusmock
+
+      # Every hostile plugin of crates/bientot-plugins/tests/hostile on the plugin host built for
+      # release (FR-072, SC-004), as `Rust on Windows` runs them.
+      - name: Run the hostile plugins
+        run: cargo run --release --locked -p bientot-plugins --example hostile-corpus
+
+      # The features of the Store package and the ZIP on Windows. `direct` adds nothing on Linux
+      # yet: Velopack and the update code are Windows-only until T143, and T145 builds it then.
+      - name: Build release executable
+        run: |
+          cargo build --release --locked -p bientot-app --bin worktime --features release
+          mkdir -p artifacts/linux
+          cp target/release/worktime artifacts/linux/worktime
+
+      # The budget of the Windows executable (issue #147), on the stripped executable. GPUI's X11
+      # and Wayland backends take it over, so the job warns until the Linux size task (issue #226)
+      # brings it under. OVER_BUDGET: error makes the size a gate again.
+      - name: Measure the size
+        env:
+          BUDGET_BYTES: 20000000
+          OVER_BUDGET: warning
+        run: |
+          bytes=$(stat -c %s artifacts/linux/worktime)
+          megabytes=$(awk -v bytes="$bytes" 'BEGIN { printf "%.2f", bytes / 1000000 }')
+          table=$(printf '## Rust on Linux\n\n| Gate | Measured | Target |\n| --- | --- | --- |\n| Executable size | %s MB (%s bytes) | < %s MB |\n' "$megabytes" "$bytes" "$((BUDGET_BYTES / 1000000))")
+          echo "$table"
+          echo "$table" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$bytes" -ge "$BUDGET_BYTES" ]; then
+            echo "::${OVER_BUDGET}::The executable is ${bytes} bytes, over the ${BUDGET_BYTES} byte budget (issue #226)."
+            if [ "$OVER_BUDGET" = error ]; then exit 1; fi
+          fi
+
+      # Ready within 10 s with nothing on standard error, on a throwaway --data-dir so that the run
+      # sends no usage signal. The time and memory are indications: the runner has no GPU, so Mesa
+      # renders on the CPU. Xvfb has no DRI3, which Mesa's EGL warns about on standard error.
+      - name: Start headless
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
+          EGL_LOG_LEVEL: fatal
+        # `bash` alone runs with pipefail, so a failed start fails the step despite the `tee`.
+        shell: bash
+        run: |
+          echo >> "$GITHUB_STEP_SUMMARY"
+          scripts/linux-desktop-harness.sh x11 \
+            scripts/measure-performance.sh artifacts/linux/worktime --screenshot artifacts/linux/flyout.png \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The executable to try, and the flyout as the headless start drew it.
+      - name: Upload executable and screenshot
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: worktime-rust-linux-${{ github.run_attempt }}
+          path: artifacts/linux/
+          retention-days: 7
+          if-no-files-found: error
+
   # Lets a later push of the same tree to main reuse this run (see the Plan job). Records the
   # tree once every gate this pull request needed has passed, whichever gates those were.
   tested-tree:
@@ -441,6 +558,7 @@ jobs:
       - rust
       - gpui-screenshots
       - rust-windows
+      - rust-linux
     if: ${{ github.event_name == 'pull_request' && !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
