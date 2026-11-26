@@ -62,23 +62,41 @@ Logged once: `idle.backend=<name>`; on change: `idle.backend_changed`.
 
 ## Lock, sleep, session: logind (system bus)
 
+`bientot_linux::logind`: `SessionTracker` is the mapping (any OS, tested),
+`LogindSource` the `LifecycleSource` (Linux).
+
 - Service `org.freedesktop.login1`.
 - Session object: `PropertiesChanged` on `org.freedesktop.login1.Session`
   for `LockedHint` and `Active`.
   - `LockedHint` true → `Session(Locked)`; false → `Session(Unlocked)`.
   - `Active` false → `Session(Locked)`; true → `Session(Unlocked)` unless
-    `LockedHint` is true.
+    the lock signal (below) says locked.
+  - A change carrying both records one change; a property repeated, or a
+    lock announced by two sources, records none.
 - Manager: `PrepareForSleep(true)` → `Power(Suspended)`;
-  `PrepareForSleep(false)` → `Power(Active)`.
-  `PrepareForShutdown(true)` → `ended()`.
-- Snapshot at start: `LockedHint`, `Active` read once.
-- Lock reporting: `Live` when, within the session, `LockedHint` has been
-  seen true at least once **or** the desktop is on the list that task T082
-  establishes (A-9); otherwise the fallback is tried:
-  `org.freedesktop.ScreenSaver` or `org.gnome.ScreenSaver` signal
-  `ActiveChanged(b)` on the session bus → `Locked` / `Unlocked`. With
-  neither: `Unavailable`.
-- No inhibitor lock is taken.
+  `PrepareForSleep(false)` → `Power(Active)`, each once.
+  `PrepareForShutdown(true)` → `ended()`; `PrepareForShutdown(false)` (a
+  shutdown cancelled) → nothing.
+- The system bus closing → `ended()`.
+- The match rules are added before the snapshot is read, and the signals of
+  one bus reach the mapping in the order they arrived.
+- Snapshot at start: `LockedHint`, `Active` read once, and the screensaver's
+  `GetActive` when its name has an owner (a screensaver that is not running
+  is not started for it).
+- Lock signal, which says whether the screen is locked:
+  1. `LockedHint`, from the first time it is seen true (at start or later)
+     **or** when the desktop is on the list that task T082 establishes (A-9;
+     the list is empty until then);
+  2. else `org.freedesktop.ScreenSaver` or `org.gnome.ScreenSaver` signal
+     `ActiveChanged(b)` on the session bus → `Locked` / `Unlocked`, from the
+     snapshot's `GetActive` or the first signal;
+  3. else none: `LockReporting::Unavailable`, and the snapshot's session is
+     `Unknown`. A switch of the session (`Active`) is still recorded.
+- No inhibitor lock is taken. SIGTERM keeps its default action: the
+  process ends, and every change already handed to the listener is in the
+  ledger. Catching it in the source would delay a logout; whether the app
+  quits cleanly on it, and so ends the activity observation, is the app's
+  choice, not the source's.
 
 ## History
 
