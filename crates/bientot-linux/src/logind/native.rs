@@ -21,6 +21,7 @@ use zbus::zvariant::{DynamicType, ObjectPath, OwnedObjectPath, OwnedValue};
 use zbus::{Connection, MatchRule, Message, MessageStream, match_rule};
 
 use super::{SessionReadings, SessionTracker, Signal};
+use crate::dbus::{BUS, BUS_PATH, call, has_owner};
 
 const LOGIN1: &str = "org.freedesktop.login1";
 const MANAGER_PATH: &str = "/org/freedesktop/login1";
@@ -28,8 +29,6 @@ const MANAGER: &str = "org.freedesktop.login1.Manager";
 const SESSION: &str = "org.freedesktop.login1.Session";
 const USER: &str = "org.freedesktop.login1.User";
 const PROPERTIES: &str = "org.freedesktop.DBus.Properties";
-const BUS: &str = "org.freedesktop.DBus";
-const BUS_PATH: &str = "/org/freedesktop/DBus";
 /// The screensaver interfaces, each with its object; each service is named after its interface.
 const SCREENSAVERS: [(&str, &str); 2] = [
     (
@@ -272,9 +271,7 @@ async fn read(
 /// `GetActive` of the first screensaver running. One that is not running is not started for it.
 async fn screensaver_active(bus: &Connection) -> Option<bool> {
     for (interface, path) in SCREENSAVERS {
-        let running: zbus::Result<bool> =
-            call(bus, BUS, BUS_PATH, BUS, "NameHasOwner", &(interface,)).await;
-        if running.unwrap_or(false)
+        if has_owner(bus, interface).await
             && let Ok(active) = call(bus, interface, path, interface, "GetActive", &()).await
         {
             return Some(active);
@@ -345,24 +342,6 @@ where
     B: zbus::export::serde::Serialize + DynamicType,
 {
     call(system, LOGIN1, MANAGER_PATH, MANAGER, method, body).await
-}
-
-async fn call<B, R>(
-    bus: &Connection,
-    destination: &str,
-    path: &str,
-    interface: &str,
-    method: &str,
-    body: &B,
-) -> zbus::Result<R>
-where
-    B: zbus::export::serde::Serialize + DynamicType,
-    R: for<'d> zbus::export::serde::Deserialize<'d> + zbus::zvariant::Type,
-{
-    bus.call_method(Some(destination), path, Some(interface), method, body)
-        .await?
-        .body()
-        .deserialize()
 }
 
 async fn property<T>(

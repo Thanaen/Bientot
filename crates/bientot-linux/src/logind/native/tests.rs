@@ -1,7 +1,7 @@
 //! Against python-dbusmock's logind, which `scripts/linux-desktop-harness.sh` starts on a private
 //! system bus. The mock and the session bus are shared by every test, so the tests take turns.
 
-use std::sync::{Mutex, PoisonError};
+use std::sync::PoisonError;
 use std::time::Duration;
 
 use bientot_domain::time::FixedTimeZoneProvider;
@@ -13,7 +13,6 @@ use zbus::zvariant::Value;
 
 use super::*;
 
-static TURN: Mutex<()> = Mutex::new(());
 const MOCK: &str = "org.freedesktop.DBus.Mock";
 const WAIT: Duration = Duration::from_secs(5);
 
@@ -211,7 +210,9 @@ fn unknown_snapshot() -> SessionSnapshot {
 #[test]
 #[ignore = "desktop-harness"]
 fn desktop_harness_finds_the_session_of_the_process_then_of_xdg_session_id_then_the_display() {
-    let _turn = TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    let _turn = crate::HARNESS_TURN
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     let logind = Logind::connect();
     let locked = |id| {
         let session = logind.add_session(id, true);
@@ -250,7 +251,9 @@ fn desktop_harness_finds_the_session_of_the_process_then_of_xdg_session_id_then_
 #[test]
 #[ignore = "desktop-harness"]
 fn desktop_harness_reports_lock_switch_sleep_and_resume_of_the_session_through_a_failed_shutdown() {
-    let _turn = TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    let _turn = crate::HARNESS_TURN
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     let logind = Logind::connect();
     let session = logind.add_session("w5101", true);
     let other = logind.add_session("o5101", true);
@@ -300,7 +303,9 @@ impl ScreenSaver {
 #[test]
 #[ignore = "desktop-harness"]
 fn desktop_harness_takes_the_lock_from_the_screensaver_until_locked_hint_is_seen() {
-    let _turn = TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    let _turn = crate::HARNESS_TURN
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     let logind = Logind::connect();
     let session = logind.add_session("s6101", true);
     let source = source(6101, Some("s6101"));
@@ -351,7 +356,9 @@ fn desktop_harness_takes_the_lock_from_the_screensaver_until_locked_hint_is_seen
 #[test]
 #[ignore = "desktop-harness"]
 fn desktop_harness_dropping_the_watch_stops_its_thread() {
-    let _turn = TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    let _turn = crate::HARNESS_TURN
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     let logind = Logind::connect();
     logind.add_session("q8101", true);
     let (watch, received) = watch(&source(8101, Some("q8101")));
