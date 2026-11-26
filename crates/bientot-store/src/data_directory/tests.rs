@@ -208,3 +208,18 @@ fn a_path_with_no_existing_ancestor_keys_as_written() {
         key_of(Path::new("no-such-root-for-bientot"))
     );
 }
+
+#[test]
+fn the_case_sensitive_key_tells_apart_folders_that_differ_in_case_only() {
+    let root = tempfile::tempdir().unwrap();
+    let key =
+        |name: &str| DataDirectory::from(root.path().join(name)).case_sensitive_instance_key();
+
+    assert_ne!(key("data"), key("Data"));
+    assert_eq!(key("data"), key("./data"));
+    assert_eq!(
+        DataDirectory::from(root.path().join("data")).instance_key(),
+        DataDirectory::from(root.path().join("Data")).instance_key(),
+        "Windows' key folds case, as .NET's did"
+    );
+}

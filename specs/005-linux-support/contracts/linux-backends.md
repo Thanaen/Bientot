@@ -242,10 +242,11 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
   on Linux. Directory `$XDG_RUNTIME_DIR/bientot/` (mode 0700;
   `$XDG_RUNTIME_DIR` only when absolute); fallback `<data folder>/run/`
   (mode 0700, the data folder itself created as usual).
-- The files are named by the instance key's first 41 characters
-  (`WorkTime-` and 128 bits of the hash), the stem: a socket's path must
-  fit the 108 bytes of `sun_path`, which the whole key under a data folder
-  would not.
+- The files are named by the first 41 characters of the case-sensitive
+  instance key (`WorkTime-` and 128 bits of the hash), the stem: a
+  socket's path must fit the 108 bytes of `sun_path`, which the whole key
+  under a data folder would not. Unlike Windows' key, it keeps the path's
+  case, since `~/data` and `~/Data` are two folders on Linux.
 - `<stem>.lock`: `flock(LOCK_EX | LOCK_NB)` (`File::try_lock`) held for
   the life of the first instance; never removed, so that two launches
   never lock two files of one name.

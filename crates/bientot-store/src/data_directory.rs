@@ -83,6 +83,13 @@ impl DataDirectory {
     pub fn instance_key(&self) -> String {
         key_of(&resolved(&self.0))
     }
+
+    /// [`instance_key`](Self::instance_key) without folding case, for a file system where `Data`
+    /// and `data` are two folders, as on Linux.
+    pub fn case_sensitive_instance_key(&self) -> String {
+        let path = resolved(&self.0);
+        hashed(path.to_string_lossy().trim_end_matches(['\\', '/']))
+    }
 }
 
 /// `WorkTime-` and the lowercase hex SHA-256 of `path`, upper-cased and without trailing
@@ -90,7 +97,11 @@ impl DataDirectory {
 /// so these spellings share a key, the same as the .NET app's.
 fn key_of(path: &Path) -> String {
     let path = path.to_string_lossy();
-    let normalized = upper_invariant(path.trim_end_matches(['\\', '/']));
+    hashed(&upper_invariant(path.trim_end_matches(['\\', '/'])))
+}
+
+/// `WorkTime-` and the lowercase hex SHA-256 of `normalized`.
+fn hashed(normalized: &str) -> String {
     let mut key = String::from("WorkTime-");
     for byte in Sha256::digest(normalized.as_bytes()) {
         let _ = write!(key, "{byte:02x}");

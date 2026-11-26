@@ -93,7 +93,7 @@ impl InstanceLock for PrimaryInstance {
     /// In the folder [`instance_folder`] names for this session.
     fn acquire(directory: &DataDirectory) -> io::Result<Acquired<Self>> {
         let folder = instance_folder(std::env::var_os("XDG_RUNTIME_DIR"), directory.path());
-        Self::claim(&folder, file_stem(&directory.instance_key()))
+        Self::claim(&folder, file_stem(&directory.case_sensitive_instance_key()))
     }
 
     /// Calls `on_activation` on a thread of its own for each request of a later launch. The
