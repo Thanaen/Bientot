@@ -55,8 +55,10 @@ bientot-store = { path = "../bientot-store" }
 bientot-windows = { path = "../bientot-windows" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-# The tray (`platform::linux`); the other Linux ports are not wired yet.
+# The tray and the flyout's placement (`platform::linux`); the other Linux ports are not wired yet.
 bientot-linux = { path = "../bientot-linux" }
+# Names the flyout's X11 window, which `bientot-linux` moves and focuses: the version GPUI builds.
+raw-window-handle = "0.6"
 # Without these backends GPUI runs its headless platform on Linux and opens no window. They link
 # libxkbcommon and libxkbcommon-x11.
 gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform", features = ["wayland", "x11"] }

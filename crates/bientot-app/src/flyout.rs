@@ -846,7 +846,8 @@ impl Render for Flyout {
             .when(shell::system_draws_frame(cx), |root| root.bg(theme.border))
             .on_children_prepainted(move |bounds, window, cx| {
                 if let Some(content) = bounds.first()
-                    && fitted.refit(content.size, window.scale_factor())
+                    && (fitted.refit(content.size, window.scale_factor())
+                        || shell::lost_its_size(window, content.size, cx))
                 {
                     shell::fit_window(window, content.size, cx);
                 }

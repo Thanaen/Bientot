@@ -34,6 +34,9 @@ use crate::tray_model::MenuCommand;
 pub use backend::Instance;
 /// Why the system refused to show this app's notifications.
 pub use backend::NotificationsRefused;
+/// Brings a window of the app to the front with the keyboard, which a window manager does not
+/// give every window GPUI opens.
+pub use backend::activate_window;
 pub use backend::build;
 /// Where a folder Bientôt created really is, for the file manager to open: under MSIX, in the
 /// package's `LocalCache`. `None` when it is where its path says.

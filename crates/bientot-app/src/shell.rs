@@ -33,11 +33,18 @@ static LAST_PANEL: Mutex<Option<Size<Pixels>>> = Mutex::new(None);
 
 #[derive(Default)]
 struct FlyoutState {
-    window: Option<WindowHandle<Flyout>>,
+    open: Option<Open>,
+    closed_at: Option<Instant>,
+}
+
+/// The flyout's open window.
+struct Open {
+    window: WindowHandle<Flyout>,
     /// The flyout the window shows, which an action pressed in it updates while the window is
     /// being updated: no other update of the window can enter then.
     view: Option<WeakEntity<Flyout>>,
-    closed_at: Option<Instant>,
+    /// Where it opened, which a later click or a change of the tray does not move.
+    placement: FlyoutPlacement,
 }
 
 impl Global for FlyoutState {}
@@ -93,9 +100,9 @@ pub fn system_draws_frame(cx: &App) -> bool {
 
 pub fn toggle_flyout(cx: &mut App) {
     let state = cx.default_global::<FlyoutState>();
-    if let Some(window) = state.window.take() {
+    if let Some(open) = state.open.take() {
         state.closed_at = Some(Instant::now());
-        window
+        open.window
             .update(cx, |_, window, _| window.remove_window())
             .ok();
         return;
@@ -111,19 +118,27 @@ pub fn toggle_flyout(cx: &mut App) {
 
 /// Opens the flyout on the current day, or brings an open one to the front.
 pub fn open_flyout(cx: &mut App) {
-    if let Some(window) = cx.default_global::<FlyoutState>().window {
+    if let Some(window) = open_window(cx) {
         window
-            .update(cx, |_, window, _| window.activate_window())
+            .update(cx, |_, window, _| platform::activate_window(window))
             .ok();
         return;
     }
     open_new_flyout(None, cx);
 }
 
+/// The flyout's window, when it is open.
+fn open_window(cx: &mut App) -> Option<WindowHandle<Flyout>> {
+    cx.default_global::<FlyoutState>()
+        .open
+        .as_ref()
+        .map(|open| open.window)
+}
+
 /// Opens the flyout, or brings it to the front, with `notice` above the day. A flyout it opens
 /// shows `notice` from its first frame, at rest; in an open one `notice` comes in.
 pub fn open_flyout_with(notice: Notice, cx: &mut App) {
-    if cx.default_global::<FlyoutState>().window.is_none() {
+    if cx.default_global::<FlyoutState>().open.is_none() {
         open_new_flyout(Some(notice), cx);
         return;
     }
@@ -143,22 +158,36 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
         today.tracking(),
         today.opening_alerts(),
     );
-    let options = window_options(placement(cx), last_panel());
-    match cx.open_window(options, |window, cx| {
-        cx.new(|cx| Flyout::new(day, tracking, notice, window, cx).with_alerts(alerts))
-    }) {
+    let open = |placement, cx: &mut App| {
+        let (day, notice, alerts) = (day.clone(), notice.clone(), alerts.clone());
+        cx.open_window(window_options(placement, last_panel()), |window, cx| {
+            cx.new(|cx| Flyout::new(day, tracking, notice, window, cx).with_alerts(alerts))
+        })
+    };
+    let mut placement = placement(cx);
+    let mut opened = open(placement, cx);
+    // GPUI cannot tell before it tries whether the compositor has layer-shell: Mutter has none,
+    // and then the compositor places the flyout (T044).
+    if let (Err(error), FlyoutPlacement::Layer { .. }) = (&opened, placement) {
+        log::warn!("cannot open the flyout as a layer surface: {error:#}");
+        placement = FlyoutPlacement::CompositorPlaced;
+        opened = open(placement, cx);
+    }
+    match opened {
         Ok(window) => {
             // `focus: true` only shows the window activated, and Windows keeps a window of a
             // background process out of the foreground: the flyout then never learns that a
             // click went elsewhere, and stays open. `activate_window` forces it to the front.
             window
-                .update(cx, |_, window, _| window.activate_window())
+                .update(cx, |_, window, _| platform::activate_window(window))
                 .ok();
             cx.global_mut::<Today>().announced();
             let view = window.entity(cx).ok().map(|view| view.downgrade());
-            let state = cx.default_global::<FlyoutState>();
-            state.window = Some(window);
-            state.view = view;
+            cx.default_global::<FlyoutState>().open = Some(Open {
+                window,
+                view,
+                placement,
+            });
         }
         Err(error) => log::error!("cannot open the flyout: {error:#}"),
     }
@@ -197,9 +226,8 @@ fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOpti
                 ..popup
             }
         }
-        // GPUI has `WindowKind::LayerShell` only when built for Wayland, and no backend answers
-        // `Layer` yet.
-        FlyoutPlacement::Layer { .. } | FlyoutPlacement::CompositorPlaced => popup,
+        FlyoutPlacement::Layer { corner, margin } => layer_shell(popup, corner, margin),
+        FlyoutPlacement::CompositorPlaced => popup,
         FlyoutPlacement::Window => WindowOptions {
             titlebar: Some(TitlebarOptions::default()),
             kind: WindowKind::Normal,
@@ -208,6 +236,39 @@ fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOpti
             ..popup
         },
     }
+}
+
+/// `popup` as a layer-shell surface in `corner` of the output, `margin` logical pixels from both
+/// edges, on the layer above windows, with the keyboard once the user points at it or clicks it
+/// (A-3).
+#[cfg(target_os = "linux")]
+fn layer_shell(popup: WindowOptions, corner: Corner, margin: i32) -> WindowOptions {
+    use gpui::layer_shell::{Anchor, KeyboardInteractivity, Layer, LayerShellOptions};
+
+    let anchor = match corner {
+        Corner::TopLeft => Anchor::TOP | Anchor::LEFT,
+        Corner::TopRight => Anchor::TOP | Anchor::RIGHT,
+        Corner::BottomLeft => Anchor::BOTTOM | Anchor::LEFT,
+        Corner::BottomRight => Anchor::BOTTOM | Anchor::RIGHT,
+    };
+    let margin = px(margin as f32);
+    WindowOptions {
+        kind: WindowKind::LayerShell(LayerShellOptions {
+            namespace: "bientot-flyout".into(),
+            layer: Layer::Top,
+            anchor,
+            margin: Some((margin, margin, margin, margin)),
+            keyboard_interactivity: KeyboardInteractivity::OnDemand,
+            ..Default::default()
+        }),
+        ..popup
+    }
+}
+
+/// GPUI has `WindowKind::LayerShell` only on Linux, and no other backend answers `Layer`.
+#[cfg(not(target_os = "linux"))]
+fn layer_shell(popup: WindowOptions, _corner: Corner, _margin: i32) -> WindowOptions {
+    popup
 }
 
 /// `rect` in GPUI's bounds.
@@ -260,8 +321,12 @@ pub fn show_day(
 /// Runs `update` on the open flyout, if any. Through its view rather than its window: an action
 /// pressed in the flyout reaches the day while its window is being updated.
 fn update_flyout(cx: &mut App, update: impl FnOnce(&mut Flyout, &mut gpui::Context<Flyout>)) {
-    let state = cx.default_global::<FlyoutState>();
-    if let (Some(_), Some(view)) = (state.window, state.view.clone()) {
+    let view = cx
+        .default_global::<FlyoutState>()
+        .open
+        .as_ref()
+        .and_then(|open| open.view.clone());
+    if let Some(view) = view {
         view.update(cx, update).ok();
     }
 }
@@ -269,8 +334,7 @@ fn update_flyout(cx: &mut App, update: impl FnOnce(&mut Flyout, &mut gpui::Conte
 /// Called when the flyout closed itself (focus lost, Esc), so the next tray click reopens it.
 pub fn flyout_closed(cx: &mut App) {
     let state = cx.default_global::<FlyoutState>();
-    state.window = None;
-    state.view = None;
+    state.open = None;
     state.closed_at = Some(Instant::now());
 }
 
@@ -313,6 +377,21 @@ pub fn fit_window(window: &mut Window, content: Size<Pixels>, cx: &App) {
         | FlyoutPlacement::CompositorPlaced
         | FlyoutPlacement::Window => window.resize(content),
     }
+}
+
+/// Whether the window lost the size [`fit_window`] gave it. A layer surface takes the size of the
+/// compositor's first configure, which GPUI applies over a resize asked before it came: the
+/// flyout's first fitting on Wayland, when its panel is not the size it opened at.
+pub fn lost_its_size(window: &Window, content: Size<Pixels>, cx: &App) -> bool {
+    let layer = cx
+        .try_global::<FlyoutState>()
+        .and_then(|state| state.open.as_ref())
+        .is_some_and(|open| matches!(open.placement, FlyoutPlacement::Layer { .. }));
+    let size = window.bounds().size;
+    // GPUI sizes a layer surface in whole logical pixels.
+    layer
+        && ((size.width - content.width).abs() >= px(1.)
+            || (size.height - content.height).abs() >= px(1.))
 }
 
 /// The height of the work area the flyout opens in, in physical pixels: its panel is no taller
