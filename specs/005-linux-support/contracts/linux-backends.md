@@ -264,9 +264,11 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
 - Dropping the listener wakes its thread with a connection of its own,
   joins it, removes the socket, then releases the lock.
 - A restart for an import waits for the old process
-  (`bientot_linux::process::wait_for_exit`, `/proc/<pid>/stat` polled
-  every 50 ms, a zombie counts as exited) before it takes the lock; the
-  `pidfd_open` half of T122 is still to come.
+  (`bientot_linux::process::wait_for_exit`) before it takes the lock: on a
+  pidfd (`pidfd_open`, then `poll` for readable), which the kernel wakes
+  once the process is a zombie or gone; where `pidfd_open` fails with
+  anything but `ESRCH` (before Linux 5.3, or a seccomp filter that refuses
+  it), `/proc/<pid>/stat` polled every 50 ms, a zombie counts as exited.
 
 ## Motion and theme
 
