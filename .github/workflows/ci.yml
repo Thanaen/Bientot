@@ -234,27 +234,31 @@ jobs:
       - name: Build the screenshot tool
         run: cargo build --locked --profile screenshots -p bientot-app --features screenshots --bin bientot-screenshots
 
-      # The four variants render at the same time. Each gets its own temporary directory, because
-      # the tool keeps its demo data there under fixed names.
+      # The four variants of each platform render at the same time; Linux takes only the scenes
+      # that differ there, under `linux/`. Each run gets its own temporary directory, because the
+      # tool keeps its demo data there under fixed names.
       - name: Capture GPUI screenshots
         run: |
-          variants=(fr-dark fr-light en-dark en-light)
+          runs=(fr-dark fr-light en-dark en-light linux/fr-dark linux/fr-light linux/en-dark linux/en-light)
           pids=()
-          for variant in "${variants[@]}"; do
+          for run in "${runs[@]}"; do
+            variant=${run#linux/}
+            case "$run" in linux/*) platform=linux ;; *) platform=windows ;; esac
             case "$variant" in fr-*) language=--french ;; *) language=--english ;; esac
-            mkdir -p "${RUNNER_TEMP}/tmp-${variant}"
-            TMPDIR="${RUNNER_TEMP}/tmp-${variant}" target/screenshots/bientot-screenshots \
-              "artifacts/gpui-screenshots/${variant}" "$language" "--${variant#*-}" \
-              > "${RUNNER_TEMP}/${variant}.log" 2>&1 &
+            name=${run//\//-}
+            mkdir -p "${RUNNER_TEMP}/tmp-${name}"
+            TMPDIR="${RUNNER_TEMP}/tmp-${name}" target/screenshots/bientot-screenshots \
+              "artifacts/gpui-screenshots/${run}" "$language" "--${variant#*-}" --platform "$platform" \
+              > "${RUNNER_TEMP}/${name}.log" 2>&1 &
             pids+=("$!")
           done
 
           status=0
-          for i in "${!variants[@]}"; do
-            variant=${variants[$i]}
+          for i in "${!runs[@]}"; do
+            name=${runs[$i]//\//-}
             if wait "${pids[$i]}"; then result=passed; else result=failed; status=1; fi
-            echo "::group::${variant} (${result})"
-            cat "${RUNNER_TEMP}/${variant}.log"
+            echo "::group::${name} (${result})"
+            cat "${RUNNER_TEMP}/${name}.log"
             echo "::endgroup::"
           done
           exit "$status"
@@ -671,6 +675,21 @@ jobs:
               row="| ${file%.png} |"
               for variant in fr-dark fr-light en-dark en-light; do
                 row="${row} [view](https://github.com/${REPOSITORY}/blob/${commit}/${variant}/${file}) |"
+              done
+              echo "$row"
+            done
+            echo
+            echo "### Linux"
+            echo
+            echo "The windows whose text or frame differs on Linux, beside the same window on Windows."
+            echo
+            echo "| Window | fr-dark | fr-light | en-dark | en-light |"
+            echo "| --- | --- | --- | --- | --- |"
+            for file in $(cd linux/fr-dark 2>/dev/null && ls *.png); do
+              row="| ${file%.png} |"
+              for variant in fr-dark fr-light en-dark en-light; do
+                blob="https://github.com/${REPOSITORY}/blob/${commit}"
+                row="${row} [Windows](${blob}/${variant}/${file}), [Linux](${blob}/linux/${variant}/${file}) |"
               done
               echo "$row"
             done
