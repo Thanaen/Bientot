@@ -66,7 +66,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         let data_dir = launch.data_dir.as_ref().map(|_| directory.path());
         register_toasts(data_dir, clicks.clone())
     });
-    let launch_intent = launch_intent(launch.windows_startup, &current_activation());
+    let launch_intent = launch_intent(launch.sign_in, &current_activation());
     // A demo leaves the user's registration alone, as in .NET.
     let startup = (!demo).then(|| {
         let registration = StartupRegistration::for_current_process();

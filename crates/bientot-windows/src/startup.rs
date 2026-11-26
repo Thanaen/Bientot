@@ -58,12 +58,12 @@ pub enum Activation {
     Other,
 }
 
-/// How a launch started, `windows_startup` when its command line holds
-/// [`WINDOWS_STARTUP_ARGUMENT`]. Only an ordinary launch honours the marker, so that a click on a
-/// notification always shows the window.
-pub fn launch_intent(windows_startup: bool, activation: &Activation) -> LaunchIntent {
+/// How a launch started, `sign_in` when its command line holds a sign-in marker:
+/// [`WINDOWS_STARTUP_ARGUMENT`], or the neutral `--autostart`. Only an ordinary launch honours
+/// the marker, so that a click on a notification always shows the window.
+pub fn launch_intent(sign_in: bool, activation: &Activation) -> LaunchIntent {
     let started_by_windows = match activation {
-        Activation::Launch => windows_startup,
+        Activation::Launch => sign_in,
         Activation::StartupTask(task_id) => task_id == PACKAGED_TASK_ID,
         Activation::Other => false,
     };

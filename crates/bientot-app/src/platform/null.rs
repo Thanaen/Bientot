@@ -29,7 +29,7 @@ pub fn motion() -> Motion {
 
 pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     // The sign-in marker alone tells a launch at sign-in.
-    let launch_intent = if ctx.launch.windows_startup {
+    let launch_intent = if ctx.launch.sign_in {
         LaunchIntent::SignIn
     } else {
         LaunchIntent::Manual

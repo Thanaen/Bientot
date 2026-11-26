@@ -197,7 +197,7 @@ Depends on Lot 3. The spike is `crates/bientot-linux/examples/shell-spike.rs`: a
 **PR 11a** `build(app): start at sign-in and keep one instance on Linux`. **PR 11b** `build(app): name the Linux executable and data folder`. Depend on Lot 3.
 
 - [ ] T110 [US4] `crates/bientot-linux/src/autostart.rs`: desktop-file text and the state table of `contracts/linux-backends.md` (portable, tested with files: absent, hidden, disabled, other path, quoted paths with spaces); `StartupPort` implementation.
-- [ ] T111 [US4] `crates/bientot-app/src/launch.rs`: accept `--autostart` as `LaunchIntent::SignIn` on every platform; Windows keeps writing its own flag.
+- [x] T111 [US4] `crates/bientot-app/src/launch.rs`: accept `--autostart` as `LaunchIntent::SignIn` on every platform; Windows keeps writing its own flag. Done 2026-11-26: `bientot_platform::startup::AUTOSTART_ARGUMENT`; `Launch::windows_startup` became `sign_in`, set by either marker; a restart keeps both only when asked. Windows still writes `--worktime-windows-startup`, and only an ordinary activation honours either marker.
 - [ ] T112 [US4] [DESKTOP] Background portal backend (`ashpd` feature `background`), with `StartupPortalReason` **[UI]**; in a Flatpak test build on GNOME and KDE: does the desktop prompt, once (A-18)? Step 22 of `quickstart.md`.
 - [ ] T113 [US4] `crates/bientot-linux/src/single_instance.rs`: socket and `flock` implementing `InstanceLock`; tests: second launch hands over, stale socket after `kill -9`, `XDG_RUNTIME_DIR` unset.
 - [ ] T114 [US4] [OWNER] Rename the Linux executable to `bientot` (Q11: `[[bin]]` name per target or a second `[[bin]]` entry; Windows keeps `worktime.exe`); data folder `…/bientot` in `launch.rs`; `InstallKind` from the environment.

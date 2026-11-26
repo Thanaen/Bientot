@@ -222,6 +222,9 @@ pub enum StartupRegistrationState {
 
 /// (existing; variant WindowsStartup renamed)
 pub enum LaunchIntent { Manual, SignIn }
+/// (new) The sign-in marker on every platform; Windows registrations keep
+/// writing `--worktime-windows-startup`, which `Launch::sign_in` reads too.
+pub const AUTOSTART_ARGUMENT: &str = "--autostart";
 
 /// (existing, from bientot-app::settings::startup; one method added)
 pub trait StartupPort: Send + Sync {
