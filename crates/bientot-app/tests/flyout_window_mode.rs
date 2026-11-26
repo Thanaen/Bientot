@@ -93,3 +93,16 @@ fn the_flyout_becomes_a_window_when_the_host_leaves_and_the_flyout_again_when_it
     assert_ne!(flyout[0].window_id(), window[0].window_id());
     assert!(!cx.update(|cx| shell::window_mode(cx)));
 }
+
+#[test]
+fn an_action_pressed_in_the_window_keeps_that_window() {
+    let mut cx = started(TrayHost::Absent);
+    cx.update(shell::open_flyout);
+    let window = windows(&mut cx);
+    assert_eq!(window.len(), 1);
+
+    // « Annuler » on a notice or « Compter » on a callout opens the flyout from inside it.
+    cx.update(|cx| window[0].update(cx, |_, _, cx| shell::open_flyout(cx)))
+        .unwrap();
+    assert_eq!(windows(&mut cx), window);
+}

@@ -155,11 +155,18 @@ fn shown(cx: &mut App) -> Shown {
     };
     let window = open.window;
     match open.placement {
-        FlyoutPlacement::Window => Shown::Window {
-            active: window
-                .update(cx, |_, window, _| window.is_window_active())
-                .unwrap_or(false),
-        },
+        FlyoutPlacement::Window => {
+            let active = window.update(cx, |_, window, _| window.is_window_active());
+            Shown::Window {
+                // GPUI holds the window while an action pressed in it runs, and then it cannot be
+                // read: the user is in it.
+                active: active.unwrap_or_else(|_| {
+                    cx.windows()
+                        .iter()
+                        .any(|open| open.window_id() == window.window_id())
+                }),
+            }
+        }
         _ => Shown::Flyout,
     }
 }
