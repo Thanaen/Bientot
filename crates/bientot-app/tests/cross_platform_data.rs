@@ -1,4 +1,4 @@
-//! A `.bientot` file exported on one platform imports on the other
+//! A `.bientot` file exported on one platform imports on the other with the same week
 //! (`specs/005-linux-support`, SC-010). The two exports in `bientot-store/tests/fixtures` hold
 //! the same week, worked in Paris, as each platform writes it: the zone named by its Windows key
 //! or by its IANA name, and the power history read from the System log or from the journal.
@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use bientot_app::demo;
 use bientot_app::live::{self, LiveHost};
-use bientot_app::week::{Availability, WeekTimeline};
+use bientot_app::week::{Availability, SegmentKind, WeekTimeline};
 use bientot_app::zones::SystemZones;
 use bientot_domain::sources::{ActivitySourceKind, ActivitySourceSelection, IdleSpan, IdleState};
 use bientot_domain::time::{
@@ -155,6 +155,25 @@ fn a_windows_export_goes_on_into_the_next_week_on_linux() {
     let monday = week.days.first().unwrap();
     assert_eq!(monday.date, date(2026, 10, 12));
     assert_eq!(monday.availability, Availability::Loaded);
+}
+
+#[test]
+fn exports_from_either_platform_show_the_same_week() {
+    for now in [IMPORTED, NEXT_MONDAY] {
+        let from_windows = week_shown(Platform::Windows, now);
+        let from_linux = week_shown(Platform::Linux, now);
+
+        assert_eq!(from_windows, from_linux, "at {now}");
+    }
+    let (_, week) = week_shown(Platform::Linux, IMPORTED);
+    let wednesday = &week.days[2];
+    assert!(
+        wednesday
+            .segments
+            .iter()
+            .any(|segment| segment.kind == SegmentKind::Sleep),
+        "the suspend the journal logged shows: {wednesday:#?}"
+    );
 }
 
 #[test]
