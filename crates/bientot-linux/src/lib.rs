@@ -3,6 +3,7 @@
 
 #![deny(unsafe_code)]
 
+pub mod autostart;
 #[cfg(target_os = "linux")]
 mod dbus;
 pub mod idle;
@@ -10,6 +11,9 @@ pub mod logind;
 pub mod notifications;
 pub mod placement;
 pub mod tray;
+
+/// The application id the desktop files and the Flatpak use, which names the icon too.
+pub const APP_ID: &str = "dev.bientot.Bientot";
 
 /// The desktop harness tests share one session bus and one logind mock, so they take turns.
 #[cfg(all(test, target_os = "linux"))]

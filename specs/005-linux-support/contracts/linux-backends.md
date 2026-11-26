@@ -199,7 +199,9 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
 
 ## Start at sign-in
 
-- Unsandboxed: file `$XDG_CONFIG_HOME/autostart/dev.bientot.Bientot.desktop`:
+- Unsandboxed: file `$XDG_CONFIG_HOME/autostart/dev.bientot.Bientot.desktop`
+  (`bientot_linux::autostart::XdgAutostart`; `$XDG_CONFIG_HOME` only when
+  absolute, else `~/.config`):
 
   ```ini
   [Desktop Entry]
@@ -210,15 +212,29 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
   X-GNOME-Autostart-enabled=true
   ```
 
+  The path is quoted by the `Exec` rules (`"`, `` ` ``, `$` and `\`
+  escaped, `%` doubled), then written as a string value (`\` doubled).
+  Until T114 the executable is `worktime`, so the entry names
+  `…/worktime`; the file and its id do not depend on that name.
   States: file absent, or `Hidden=true`, or
-  `X-GNOME-Autostart-enabled=false` → `Disabled`; `Exec` is this install →
-  `Enabled`; `Exec` is another path → `RegistrationMismatch`; development
-  build → `Unavailable`. `other_copy_starts` is true when the file of the
-  other install kind's id exists (not visible from the sandbox: false).
+  `X-GNOME-Autostart-enabled=false` → `Disabled`; `Exec`'s program is this
+  install → `Enabled`; `Exec` is another path, has none or cannot be read →
+  `RegistrationMismatch`; no absolute UTF-8 path for the executable, no
+  configuration folder, or the file cannot be read or written →
+  `Unavailable`. A `cargo` build in `target/` registers, as on Windows,
+  where only development hosts are refused. Enabling writes the entry
+  above (through `<file>.partial` and a rename) unless the state is already
+  `Enabled`; disabling removes the file only when its program is this
+  install. `other_copy_starts` is false: the Flatpak's portal writes its
+  entry under the same id, which reads as `RegistrationMismatch` (T132
+  revisits it with `InstallKind`). A demo gets no port, as on Windows.
 - Flatpak: `org.freedesktop.portal.Background.RequestBackground` with
   `autostart = true|false`, `commandline = ["bientot", "--autostart"]`,
   `reason` from `contracts/copy.md`. The answer's `autostart` is stored in
   `app-state.json` (`autostartGranted`) and is the state shown (A-18).
+- `--autostart` (`bientot_platform::startup::AUTOSTART_ARGUMENT`) means
+  `LaunchIntent::SignIn` on every platform; Windows registrations keep
+  writing `--worktime-windows-startup`, which still means the same.
 
 ## Single instance
 
