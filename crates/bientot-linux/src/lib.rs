@@ -7,6 +7,7 @@
 mod dbus;
 pub mod idle;
 pub mod logind;
+pub mod notifications;
 pub mod placement;
 pub mod tray;
 

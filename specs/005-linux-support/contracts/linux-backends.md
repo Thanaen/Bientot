@@ -159,14 +159,43 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
 
 ## Notifications
 
-- Unsandboxed: `org.freedesktop.Notifications.Notify` through
-  `notify-rust`: `app_name = "Bientôt"`, summary, body, icon
-  `dev.bientot.Bientot`, hint `desktop-entry = "dev.bientot.Bientot"`,
-  action `default`. `ActionInvoked(id, "default")` → click with the
-  `delivery_id` kept for that `id`. `GetServerInformation` failing →
-  `Unavailable`.
-- Flatpak: `org.freedesktop.portal.Notification.AddNotification` with id =
-  `delivery_id`, `default-action = "app.open"`; `ActionInvoked` → click.
+`bientot_linux::notifications`: `notify`, `portal_notification` and
+`Delivered` are the mapping (any OS, tested), `DesktopNotifications` the
+`Notifier` (Linux).
+
+- One session-bus connection of Bientôt's own, on a thread of its own,
+  sends every notification and hears every click: servers that address
+  their signals (KDE) send them to the connection that called `Notify`.
+  `show` hands the request to that thread and returns; the UI thread never
+  waits on D-Bus. Calls time out after 5 s.
+- Unsandboxed: `org.freedesktop.Notifications.Notify` with
+  `app_name = "Bientôt"`, `replaces_id = 0`, icon `dev.bientot.Bientot`,
+  summary, body, actions `["default", ""]`, hint
+  `desktop-entry = "dev.bientot.Bientot"`, `expire_timeout = -1`. The match
+  rules for `ActionInvoked` and `NotificationClosed` are added before the
+  first `Notify`. `ActionInvoked(id, "default")` for an id this process was
+  given → click with the `delivery_id` kept for that `id`; other ids are
+  other applications' notifications. `NotificationClosed(id)` forgets the
+  id. `GetServerInformation` failing at start → `Unavailable`. The call is
+  made directly over `zbus` rather than through `notify-rust`, which opens a
+  connection per notification and keeps it until that notification is
+  clicked or closed (GNOME keeps reminders in its list without closing
+  them), and adds its match rule only after `Notify` returns.
+- Flatpak (`/.flatpak-info` or `FLATPAK_ID`, until `InstallKind` tells,
+  T114): `org.freedesktop.portal.Notification.AddNotification` with id =
+  `delivery_id`, `title`, `body` and `default-action = "open"`;
+  `ActionInvoked(id, "open", _)` → click. Not
+  `app.open`: the portal's backends hand an `app.…` action to the
+  application's `org.freedesktop.Application.ActivateAction`, which Bientôt
+  does not serve, and send `ActionInvoked` only for other names. The
+  portal's `version` property unreadable at start → `Unavailable`. Over
+  `zbus` too: through `ashpd`'s `notification` feature these two calls
+  added 213 504 bytes to the stripped executable, over `zbus` 28 928.
+- `Unavailable` is `platform::NotificationsRefused`: the app reserves no
+  reminder (`notification.registration_failed` in the log). A `Notify` or
+  `AddNotification` refused later leaves its reminder reserved, as a toast
+  that fails on Windows; it is logged with `log`, not in the diagnostic log.
+- A demo shows none, as on Windows.
 
 ## Start at sign-in
 

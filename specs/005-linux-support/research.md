@@ -481,8 +481,8 @@ logind and nothing about past sleep.
 | Option | Finding | Outcome |
 | --- | --- | --- |
 | GPUI `show_system_notification` | Exists (R3), but is tied to the GPUI thread and tags | Not used directly: the sink is called from the accounting refresh with a `delivery_id` |
-| **`notify-rust`** behind `NotificationSink`, in `bientot-linux` | Already compiled in. `org.freedesktop.Notifications`: summary, body, icon name, `desktop-entry` hint, `default` action | **Chosen** outside a sandbox |
-| **Notification portal** (`org.freedesktop.portal.Notification`) | The sandboxed path; `ashpd` has a `notification` feature | **Chosen** inside Flatpak |
+| **`notify-rust`** behind `NotificationSink`, in `bientot-linux` | Already compiled in. `org.freedesktop.Notifications`: summary, body, icon name, `desktop-entry` hint, `default` action. But a connection per notification, kept until it is clicked or closed | **Its call chosen** outside a sandbox, made over `zbus` on one connection (T100, `contracts/linux-backends.md`) |
+| **Notification portal** (`org.freedesktop.portal.Notification`) | The sandboxed path; `ashpd` has a `notification` feature, which costs 213 504 bytes of executable for two calls, against 28 928 over `zbus` | **Chosen** inside Flatpak, over `zbus` (T102) |
 
 Differences from Windows, all platform limits:
 
