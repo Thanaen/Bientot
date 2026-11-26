@@ -325,6 +325,19 @@ compositor restarts. The first that answers a probe wins:
 The chosen backend is written to the diagnostic log (`idle.backend`) and
 shown in the diagnostic export.
 
+**Headless, 2026-11-26 (Lot 7).** Ubuntu 24.04's Sway 1.9, headless,
+advertises `ext_idle_notifier_v1` at **version 1** only, so on a Sway older
+than the one the table lists at version 2 the probe falls back to
+`get_idle_notification`, where an app that inhibits idle looks active (Q12).
+This does not settle A-7, which is about KWin. `wtype`, through the virtual keyboard, counts as input
+for it: `resumed` at once, `idled` 5 s after the last key. Between events the
+probe knows less than Windows: after `resumed` only that input went on
+within the timeout, so it reads the idle time as the time since `resumed`,
+at most 5 s. For inputs more than 5 s apart this is the exact age of the
+last input and the ledger is the one Windows writes (`tests/golden_activity.rs`);
+for denser input both readings sit within the 5 s sampling error the Windows
+probe already has, and the idle start, dated by `idled`, is exact.
+
 Rejected: reading `/dev/input` (needs the `input` group, reads every device:
 Principle I); logind's `IdleHint` (set by the desktop after its own timeout,
 minutes late, and not at all by several desktops); the portal (no idle

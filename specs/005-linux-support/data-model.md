@@ -26,7 +26,7 @@ Shown to the user when not available (`spec.md`, FR-009, FR-011, FR-012).
 
 ```text
 Tray          Present ⇄ Absent                (live, from the host)
-Idle          Backend(name) ⇄ None            (re-selected when a bus or compositor returns)
+Idle          Backend(name) ⇄ None            (re-selected when the backend stops answering, and each minute while none)
 Lock          Live ⇄ Unavailable              (per session; may become Live on the first true LockedHint)
 PowerHistory  Journal | BootTimeOnly          (per start)
 Notifications Available ⇄ Unavailable         (re-checked when a show fails)

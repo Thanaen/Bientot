@@ -51,14 +51,22 @@ Each backend yields « idle for d » or nothing; `IdleProbe` turns it into a
 
 | Order | Backend | Probe that selects it | Reading |
 | --- | --- | --- | --- |
-| Wayland 1 | `ext_idle_notifier_v1` on a second Wayland connection | The global is advertised | `get_input_idle_notification` (version ≥ 2) with a 5 000 ms timeout, else `get_idle_notification` and `idle.inhibitor_blind=false` logged. `idled` at T means input stopped at T − 5 s; `resumed` means input now. Between events the idle time is computed from the last event |
+| Wayland 1 | `ext_idle_notifier_v1` on a second Wayland connection | The global and a seat are advertised | `get_input_idle_notification` (version ≥ 2) with a 5 000 ms timeout, else `get_idle_notification` and `idle.inhibitor_blind=false` logged. `idled` at T means input stopped at T − 5 s; `resumed` means input now. Between events the idle time is computed from the last event: now − T + 5 s after `idled`; after `resumed` at R, now − R up to 5 s, since input went on within the timeout but not before R. The notification's creation counts as a `resumed` |
 | Wayland 2 | `org.gnome.Mutter.IdleMonitor`, path `/org/gnome/Mutter/IdleMonitor/Core`, method `GetIdletime` → `t` (ms), session bus | The call answers | Polled every 5 s |
-| Wayland 3 | `org.freedesktop.ScreenSaver`, path `/org/freedesktop/ScreenSaver` or `/ScreenSaver`, `GetSessionIdleTime` | Answers, and passes the unit check (two reads 1 s apart differ by about 1 000 or about 1) | Polled every 5 s |
+| Wayland 3 | `org.freedesktop.ScreenSaver`, path `/org/freedesktop/ScreenSaver` or `/ScreenSaver`, `GetSessionIdleTime` | Its name has an owner (it is not started for this), it answers, and it passes the unit check: 11 reads 100 ms apart, over 1 s. A count that goes down between two reads fails the check, since input reset it. Otherwise the count is in milliseconds when it grew by the elapsed milliseconds ± 250 from the first read to the last, and in seconds when it grew by the elapsed seconds ± 1, at least 1, and never by more than 1 between two reads. Anything else fails the check | Polled every 5 s |
 | X11 1 | `MIT-SCREEN-SAVER` `QueryInfo` on the root window (`x11rb`) | The extension is present | `ms_since_user_input`, polled every 5 s |
 | X11 2 | Mutter IdleMonitor, then `org.cinnamon.Muffin.IdleMonitor` (same shape) | The call answers | Polled every 5 s |
 | — | none | — | `read()` returns `None` |
 
-Logged once: `idle.backend=<name>`; on change: `idle.backend_changed`.
+The selection runs at start, again at once when the backend in use stops
+answering (its bus or compositor went away), and every 60 s while none
+answers. Logged once: `idle.backend=<name>` (`none` when none answers); on
+change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
+`org.gnome.Mutter.IdleMonitor`, `org.cinnamon.Muffin.IdleMonitor`,
+`org.freedesktop.ScreenSaver`, `MIT-SCREEN-SAVER`.
+
+`bientot_linux::idle`: `order` and `select` are the table (any OS, tested),
+`IdleProbe` the `LastInputProbe`, `SystemBackends` the backends (Linux).
 
 ## Lock, sleep, session: logind (system bus)
 

@@ -152,14 +152,14 @@ jobs:
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       # GPUI's X11 and Wayland backends link libxkbcommon, fontconfig and FreeType; clang and llvm
-      # serve the Windows lint; the headless desktop (Xvfb, openbox, the D-Bus mocks) the desktop
-      # tests.
+      # serve the Windows lint; the headless desktop (Xvfb, openbox, the D-Bus mocks, xdotool's
+      # synthetic input) the desktop tests.
       - name: Install the system packages
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
             libxkbcommon-dev libxkbcommon-x11-dev libfontconfig-dev libfreetype-dev clang llvm \
-            xvfb openbox x11-utils dbus python3-dbusmock
+            xvfb openbox x11-utils xdotool dbus python3-dbusmock
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -171,8 +171,8 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-features --locked
 
-      # The ignored tests that need a desktop session and its buses (logind for now), built as the
-      # step above built them.
+      # The ignored tests that need a desktop session and its buses (logind and the idle time),
+      # built as the step above built them.
       - name: Test in the headless desktop
         run: |
           scripts/linux-desktop-harness.sh x11 \

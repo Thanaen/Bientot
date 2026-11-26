@@ -3,5 +3,12 @@
 
 #![deny(unsafe_code)]
 
+#[cfg(target_os = "linux")]
+mod dbus;
+pub mod idle;
 pub mod logind;
 pub mod placement;
+
+/// The desktop harness tests share one session bus and one logind mock, so they take turns.
+#[cfg(all(test, target_os = "linux"))]
+static HARNESS_TURN: std::sync::Mutex<()> = std::sync::Mutex::new(());
