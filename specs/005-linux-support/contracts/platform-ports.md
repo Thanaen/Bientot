@@ -473,6 +473,8 @@ pub struct Platform {
     pub startup: Option<Arc<dyn StartupPort>>, // None in a demo
     pub tray: Rc<dyn Tray<MenuCommand>>,       // shows nothing before its first publish
     pub tray_events: TrayEvents,
+    /// The diagnostic log's name of the tray's backend: `None` where the log names none (Windows).
+    pub tray_backend: Option<&'static str>,
     pub desktop: Rc<dyn Desktop>,
 }
 

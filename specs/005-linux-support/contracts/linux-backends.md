@@ -15,19 +15,40 @@ rest on an assumption that a task verifies first.
 
 ## Tray: StatusNotifierItem (`ksni`)
 
-- Session bus, watcher `org.kde.StatusNotifierWatcher`.
+`bientot_linux::tray`: `menu`, `pixmaps`, `click_position` and `HostWatch`
+are the mapping (any OS, tested), `StatusNotifier` the `Tray` (Linux).
+
+- Session bus, watcher `org.kde.StatusNotifierWatcher`. `ksni` runs with
+  `assume_sni_available(true)`, so an item started before the watcher
+  registers when it appears.
 - Item: `Category = ApplicationStatus`, `Id = "dev.bientot.Bientot"`,
   `Title = "Bientôt"`, `IconPixmap` at 16, 22, 24, 32, 48 px (ARGB32,
-  network byte order, converted from `tray_art::rgba`), `ToolTip`, `Menu`
-  (dbusmenu) built from `MenuEntry`, `ItemIsMenu = false`.
+  network byte order, converted from `tray_art::rgba`), `ToolTip` with the
+  app's tooltip as its title and no description, `Menu` (dbusmenu) built
+  from `MenuEntry`, `ItemIsMenu = false`. `Status = Passive` until the
+  app's first `publish`, then `Active`: hosts hide a passive item.
+- Menu labels double each `_`, which dbusmenu would read as an access key.
+  The dbusmenu ids are `ksni`'s; each item carries its `item_id`.
 - `Activate(x, y)` → `TrayEvent::Activated`; `at` is `None` when
-  `x == 0 && y == 0` or the session is Wayland (A-5).
+  `x == 0 && y == 0`, the host's position otherwise, on Wayland too:
+  waybar sends the pointer's position on the output (A-5, « Spike
+  results »). Several outputs are untried.
 - `SecondaryActivate` → ignored (the host shows the menu on a secondary
   click).
 - dbusmenu `Event(clicked)` on item id → `TrayEvent::MenuChosen` with the
   id of `bientot_platform::tray::item_id`.
-- `watcher_online` → `HostChanged(Present)`; `watcher_offline` or
-  `Error::WontShow` → `HostChanged(Absent)` after 5 s without a host.
+- The host is the watcher: KDE's and GNOME's watchers answer
+  `IsStatusNotifierHostRegistered` with true whether a host runs or not,
+  and `Error::WontShow` cannot come with `assume_sni_available(true)`.
+  `watcher_online` → `HostChanged(Present)` at once; `watcher_offline`
+  → `HostChanged(Absent)` once the watcher stayed away 5 s, nothing if it
+  returns sooner. At start, `host()` is what `spawn` found, without a
+  grace: `Absent` when no watcher owns its name.
+- No session bus, or a watcher that refuses the item: no item, `host()`
+  stays `Absent`, and the backend's name is `none`.
+- Diagnostic log: `tray.backend` (`name`: `status-notifier` or `none`)
+  and `tray.host` (`state`: `present` or `absent`) at start, then
+  `tray.host` at each `HostChanged`. The export holds the log.
 - In Flatpak: `disable_dbus_name(true)` (A-6).
 
 ## Flyout placement
