@@ -368,8 +368,8 @@ pub struct WorkArea {
 }
 
 pub enum FlyoutPlacement {
-    /// The app chooses the bounds, in a corner of the work area (Windows, X11).
-    At { work_area: WorkArea },
+    /// The app chooses the bounds, in `corner` of the work area (Windows, X11).
+    At { work_area: WorkArea, corner: Corner },
     /// A layer-shell surface anchored to a corner (KDE, wlroots).
     Layer { corner: Corner, margin: i32 },
     /// The compositor chooses (GNOME on Wayland).
@@ -397,10 +397,14 @@ and takes its bounds in logical pixels at that display's scale, so `At`
 names the monitor and its scale rather than bounds. The corner maths
 (`shell::flyout_bounds`, 12 px from the edges) stays in the app: it fits
 the window again whenever its content or its scale changes, with the
-window's own scale. A corner other than the bottom right adds a `Corner`
-to `At` with T060. `WindowKind::LayerShell` exists only in a GPUI built
-for Wayland; until the Linux backend answers `Layer`, `shell.rs` opens it
-as it opens `CompositorPlaced`.
+window's own scale. Windows answers the bottom right corner.
+`WindowKind::LayerShell` exists only in a GPUI built for Wayland, so
+`shell.rs` builds a layer surface on Linux only; elsewhere `Layer` opens
+as `CompositorPlaced` does. `Window` is a normal window titled « Bientôt »
+(FR-012), which focus loss minimizes rather than closes; the app quits
+with its last window only without a tray host (`shell::quit_mode`), and
+`shell::tray_changed` switches both on `HostChanged`
+(`contracts/linux-backends.md`).
 
 When `system_draws_frame` is true, the flyout paints the border's colour
 behind its panel, where the system's rounding leaves pixels; without a
@@ -410,7 +414,10 @@ GPUI resizes a window but cannot move it, and `bientot-platform` cannot
 name a GPUI window: `platform::place_window(window, client)` moves the open
 flyout so that its client area covers `client`, in physical pixels (on
 Windows, `SetWindowPos` past the frame, with DWM's round corners and no
-border).
+border; on X11, `ConfigureWindow`; elsewhere a resize).
+`platform::activate_window(window)` brings the flyout to the front with
+the keyboard: GPUI's `activate_window`, and on X11 `SetInputFocus`, which
+no window manager does for a `PopUp` (A-1).
 
 ## Motion, system, process
 
@@ -499,6 +506,8 @@ pub fn show_fatal(title: &str, body: &str);
 pub fn wait_for_exit(pid: u32, timeout: Duration) -> bool;
 /// Moves the open flyout's window, see Flyout placement.
 pub fn place_window(window: &mut gpui::Window, client: Bounds<i32>);
+/// Brings a window of the app to the front with the keyboard, see Flyout placement.
+pub fn activate_window(window: &mut gpui::Window);
 
 /// The backend's error when the system refuses the notifications, see Notifications.
 pub type NotificationsRefused;
@@ -536,7 +545,10 @@ state. `SystemInfo` stays unwired until T121 gives it a consumer: its
 
 `build` runs before GPUI does and before the day is known, so the Windows
 tray makes its icon at the first `publish`. The app quits when its last
-window closes only when `tray.host()` is `Absent`.
+window closes only when `tray.host()` is `Absent`, and from then on only
+while the last `HostChanged` said so. Without a host at start, the app
+shows its window even when started at sign-in, since nothing else would
+show it.
 
 Updates, the single-instance lock and the motion are generic rather than
 boxed (their traits have associated types); `platform` exports the concrete
