@@ -1,4 +1,8 @@
 //! Opens and closes the flyout, and fits its window to its content and to the work area.
+//!
+//! Without a tray host the flyout is an ordinary window (window mode, FR-012): it minimizes where
+//! a flyout closes, so that the app keeps running, and the shell switches between the two as the
+//! host comes and goes.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -8,13 +12,15 @@ use std::time::{Duration, Instant};
 use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Rect};
 use bientot_platform::tray::{ScreenPoint, TrayHost};
 use gpui::{
-    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, Size, TitlebarOptions,
-    WeakEntity, Window, WindowBounds, WindowHandle, WindowKind, WindowOptions, point, px, size,
+    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, QuitMode, Size,
+    TitlebarOptions, WeakEntity, Window, WindowBounds, WindowHandle, WindowKind, WindowOptions,
+    point, px, size,
 };
 
 use crate::flyout::Flyout;
 use crate::host::Today;
 use crate::live::Tracking;
+use crate::strings::{Key, Language};
 use crate::widgets::Notice;
 use crate::workday::DayView;
 use crate::{platform, theme};
@@ -75,9 +81,100 @@ pub fn tray_clicked(at: Option<ScreenPoint>, cx: &mut App) {
     toggle_flyout(cx);
 }
 
-/// The next flyout opens for a tray that shows the icon or not.
+/// When the app quits: with its last window, unless a tray icon keeps it running after its
+/// flyout, the only window, closes.
+pub fn quit_mode(tray: TrayHost) -> QuitMode {
+    match tray {
+        TrayHost::Present => QuitMode::Explicit,
+        TrayHost::Absent => QuitMode::Default,
+    }
+}
+
+/// A tray host appeared or went away: the app switches to the tray or to window mode at once.
 pub fn tray_changed(tray: TrayHost, cx: &mut App) {
     cx.global_mut::<Placement>().tray = tray;
+    // Before a window closes below: an app the host now keeps must outlive it.
+    cx.set_quit_mode(quit_mode(tray));
+    match switch(tray, shown(cx)) {
+        Switch::Keep => {}
+        Switch::Open => open_flyout(cx),
+        Switch::Reopen => reopen(cx),
+        Switch::Close => {
+            if let Some(open) = cx.default_global::<FlyoutState>().open.take() {
+                open.window
+                    .update(cx, |_, window, _| window.remove_window())
+                    .ok();
+            }
+        }
+    }
+}
+
+/// Whether window mode shows the app now: no tray host shows its icon.
+pub fn window_mode(cx: &App) -> bool {
+    cx.try_global::<Placement>()
+        .is_some_and(|placement| placement.tray == TrayHost::Absent)
+}
+
+/// What the shell shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Shown {
+    Nothing,
+    Flyout,
+    /// Window mode's window, `active` when the user is in it rather than elsewhere or minimized.
+    Window {
+        active: bool,
+    },
+}
+
+/// What a change of the tray host does to what the shell shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Switch {
+    Keep,
+    /// Shows the app, which nothing else would show.
+    Open,
+    /// Shows it again in the other form.
+    Reopen,
+    Close,
+}
+
+/// Without a host the app must show itself in a window; with one, the window the user is in
+/// becomes the flyout, and a window they left goes, the icon taking its place.
+fn switch(tray: TrayHost, shown: Shown) -> Switch {
+    match (tray, shown) {
+        (TrayHost::Absent, Shown::Nothing) => Switch::Open,
+        (TrayHost::Absent, Shown::Flyout) => Switch::Reopen,
+        (TrayHost::Present, Shown::Window { active: true }) => Switch::Reopen,
+        (TrayHost::Present, Shown::Window { active: false }) => Switch::Close,
+        (TrayHost::Absent, Shown::Window { .. }) | (TrayHost::Present, _) => Switch::Keep,
+    }
+}
+
+fn shown(cx: &mut App) -> Shown {
+    let Some(open) = cx.default_global::<FlyoutState>().open.as_ref() else {
+        return Shown::Nothing;
+    };
+    let window = open.window;
+    match open.placement {
+        FlyoutPlacement::Window => Shown::Window {
+            active: window
+                .update(cx, |_, window, _| window.is_window_active())
+                .unwrap_or(false),
+        },
+        _ => Shown::Flyout,
+    }
+}
+
+/// Opens the flyout where it opens now, then closes the one open, so that the app never runs
+/// without a window in between.
+fn reopen(cx: &mut App) {
+    let previous = cx.default_global::<FlyoutState>().open.take();
+    open_new_flyout(None, cx);
+    if let Some(previous) = previous {
+        previous
+            .window
+            .update(cx, |_, window, _| window.remove_window())
+            .ok();
+    }
 }
 
 /// Where the flyout opens now. Without a desktop, as in the screenshots, where the system puts
@@ -116,15 +213,20 @@ pub fn toggle_flyout(cx: &mut App) {
     open_flyout(cx);
 }
 
-/// Opens the flyout on the current day, or brings an open one to the front.
+/// Opens the flyout on the current day, or brings an open one to the front. Window mode's window,
+/// once minimized or left, opens again: no compositor has to let the app bring it back.
 pub fn open_flyout(cx: &mut App) {
-    if let Some(window) = open_window(cx) {
-        window
-            .update(cx, |_, window, _| platform::activate_window(window))
-            .ok();
-        return;
+    match shown(cx) {
+        Shown::Nothing => open_new_flyout(None, cx),
+        Shown::Window { active: false } => reopen(cx),
+        Shown::Flyout | Shown::Window { active: true } => {
+            if let Some(window) = open_window(cx) {
+                window
+                    .update(cx, |_, window, _| platform::activate_window(window))
+                    .ok();
+            }
+        }
     }
-    open_new_flyout(None, cx);
 }
 
 /// The flyout's window, when it is open.
@@ -160,9 +262,13 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
     );
     let open = |placement, cx: &mut App| {
         let (day, notice, alerts) = (day.clone(), notice.clone(), alerts.clone());
-        cx.open_window(window_options(placement, last_panel()), |window, cx| {
-            cx.new(|cx| Flyout::new(day, tracking, notice, window, cx).with_alerts(alerts))
-        })
+        let language = cx.try_global::<Language>().copied().unwrap_or_default();
+        cx.open_window(
+            window_options(placement, last_panel(), language),
+            |window, cx| {
+                cx.new(|cx| Flyout::new(day, tracking, notice, window, cx).with_alerts(alerts))
+            },
+        )
     };
     let mut placement = placement(cx);
     let mut opened = open(placement, cx);
@@ -197,7 +303,11 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
 /// window as soon as GPUI creates it, empty until its first frame fits it: opened elsewhere than
 /// where that frame puts it, it would flash there, at the top left of the primary monitor. So in a
 /// work area it opens in the corner the frame will fit it in, at the size its panel last had.
-fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOptions {
+fn window_options(
+    placement: FlyoutPlacement,
+    panel: Size<Pixels>,
+    language: Language,
+) -> WindowOptions {
     let popup = WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(Bounds::new(
             point(px(0.), px(0.)),
@@ -229,7 +339,10 @@ fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOpti
         FlyoutPlacement::Layer { corner, margin } => layer_shell(popup, corner, margin),
         FlyoutPlacement::CompositorPlaced => popup,
         FlyoutPlacement::Window => WindowOptions {
-            titlebar: Some(TitlebarOptions::default()),
+            titlebar: Some(TitlebarOptions {
+                title: Some(language.text(Key::ShellWindowTitle).into()),
+                ..TitlebarOptions::default()
+            }),
             kind: WindowKind::Normal,
             is_movable: true,
             is_minimizable: true,
@@ -331,11 +444,37 @@ fn update_flyout(cx: &mut App, update: impl FnOnce(&mut Flyout, &mut gpui::Conte
     }
 }
 
-/// Called when the flyout closed itself (focus lost, Esc), so the next tray click reopens it.
-pub fn flyout_closed(cx: &mut App) {
+/// Called when `window`, the flyout's, closed, so the next tray click reopens it. A window the
+/// shell already replaced changes nothing.
+pub fn flyout_closed(window: &Window, cx: &mut App) {
     let state = cx.default_global::<FlyoutState>();
-    state.open = None;
-    state.closed_at = Some(Instant::now());
+    if state
+        .open
+        .as_ref()
+        .is_some_and(|open| open.window.window_id() == window.window_handle().window_id())
+    {
+        state.open = None;
+        state.closed_at = Some(Instant::now());
+    }
+}
+
+/// The flyout is done with, on Esc or when the focus went elsewhere: it closes, and window mode's
+/// window minimizes, since closing the app's only window would quit it.
+pub fn dismiss(window: &mut Window, cx: &mut App) {
+    let window_mode = cx
+        .default_global::<FlyoutState>()
+        .open
+        .as_ref()
+        .is_some_and(|open| {
+            open.window.window_id() == window.window_handle().window_id()
+                && open.placement == FlyoutPlacement::Window
+        });
+    if window_mode {
+        window.minimize_window();
+    } else {
+        flyout_closed(window, cx);
+        window.remove_window();
+    }
 }
 
 /// What the flyout's window was last fitted to: its content's logical size, at the window's
@@ -624,6 +763,7 @@ mod tests {
                 corner: Corner::BottomRight,
             },
             panel(613.),
+            Language::French,
         );
         assert_eq!(options.display_id, Some(DisplayId::new(7)));
         assert_eq!(options.kind, WindowKind::PopUp);
@@ -642,7 +782,11 @@ mod tests {
 
     #[test]
     fn a_flyout_the_system_places_opens_at_its_panel_size() {
-        let options = window_options(FlyoutPlacement::CompositorPlaced, panel(613.));
+        let options = window_options(
+            FlyoutPlacement::CompositorPlaced,
+            panel(613.),
+            Language::French,
+        );
         assert_eq!(options.display_id, None);
         assert_eq!(options.kind, WindowKind::PopUp);
         assert_eq!(
@@ -656,10 +800,71 @@ mod tests {
 
     #[test]
     fn without_a_tray_the_flyout_opens_in_an_ordinary_window() {
-        let options = window_options(FlyoutPlacement::Window, panel(613.));
+        let options = window_options(FlyoutPlacement::Window, panel(613.), Language::French);
         assert_eq!(options.kind, WindowKind::Normal);
         assert!(options.is_minimizable);
-        assert!(options.titlebar.is_some());
+        assert_eq!(
+            options.titlebar.and_then(|titlebar| titlebar.title),
+            Some("Bientôt".into())
+        );
+    }
+
+    #[test]
+    fn without_a_tray_host_the_app_shows_itself_in_a_window() {
+        assert_eq!(switch(TrayHost::Absent, Shown::Nothing), Switch::Open);
+        assert_eq!(switch(TrayHost::Absent, Shown::Flyout), Switch::Reopen);
+        for active in [true, false] {
+            assert_eq!(
+                switch(TrayHost::Absent, Shown::Window { active }),
+                Switch::Keep
+            );
+        }
+    }
+
+    #[test]
+    fn a_tray_host_that_appears_turns_the_window_into_the_flyout_or_the_icon() {
+        assert_eq!(
+            switch(TrayHost::Present, Shown::Window { active: true }),
+            Switch::Reopen
+        );
+        assert_eq!(
+            switch(TrayHost::Present, Shown::Window { active: false }),
+            Switch::Close
+        );
+        assert_eq!(switch(TrayHost::Present, Shown::Flyout), Switch::Keep);
+        assert_eq!(switch(TrayHost::Present, Shown::Nothing), Switch::Keep);
+    }
+
+    #[test]
+    fn only_a_tray_icon_keeps_the_app_running_without_a_window() {
+        assert_eq!(quit_mode(TrayHost::Present), QuitMode::Explicit);
+        assert_eq!(quit_mode(TrayHost::Absent), QuitMode::Default);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_layer_surface_is_anchored_to_its_corner_on_the_layer_above_windows() {
+        use gpui::layer_shell::{Anchor, KeyboardInteractivity, Layer};
+
+        let options = window_options(
+            FlyoutPlacement::Layer {
+                corner: Corner::BottomLeft,
+                margin: 12,
+            },
+            panel(613.),
+            Language::French,
+        );
+        let WindowKind::LayerShell(layer) = options.kind else {
+            panic!("a layer surface");
+        };
+        assert_eq!(layer.anchor, Anchor::BOTTOM | Anchor::LEFT);
+        assert_eq!(layer.layer, Layer::Top);
+        assert_eq!(layer.margin, Some((px(12.), px(12.), px(12.), px(12.))));
+        assert_eq!(
+            layer.keyboard_interactivity,
+            KeyboardInteractivity::OnDemand
+        );
+        assert_eq!(layer.namespace, "bientot-flyout");
     }
 
     #[test]

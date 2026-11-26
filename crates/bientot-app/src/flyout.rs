@@ -250,14 +250,13 @@ impl Flyout {
     ) -> Self {
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle, cx);
-        widgets::close_on_request(window, cx, |_, cx| {
-            shell::flyout_closed(cx);
+        widgets::close_on_request(window, cx, |window, cx| {
+            shell::flyout_closed(window, cx);
             true
         });
         let close_on_deactivate = cx.observe_window_activation(window, |_, window, cx| {
             if !window.is_window_active() {
-                shell::flyout_closed(cx);
-                window.remove_window();
+                shell::dismiss(window, cx);
             }
         });
         let show_updates = cx.observe_global::<Updates>(|_, cx| cx.notify());
@@ -449,8 +448,7 @@ impl Flyout {
         if self.close_plugin_menu(window, cx) {
             return;
         }
-        shell::flyout_closed(cx);
-        window.remove_window();
+        shell::dismiss(window, cx);
     }
 
     fn text(&self, key: Key) -> &'static str {
