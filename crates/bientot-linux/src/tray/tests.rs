@@ -1,4 +1,4 @@
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc};
 use std::thread;
 
 use super::*;
@@ -256,4 +256,58 @@ fn following_the_watcher_tells_its_absence_once_the_grace_ran_out_and_its_return
         told.recv_timeout(Duration::from_secs(5)),
         Err(mpsc::RecvTimeoutError::Disconnected)
     );
+}
+
+#[test]
+fn a_take_gets_the_value_handed_last_and_nothing_once_closed() {
+    let latest = Latest::default();
+
+    latest.hand(1);
+    latest.hand(2);
+    latest.hand(3);
+    assert_eq!(latest.take(), Some(3));
+    latest.hand(4);
+    assert_eq!(latest.take(), Some(4));
+
+    latest.close();
+    assert_eq!(latest.take(), None);
+}
+
+#[test]
+fn handing_never_waits_on_a_stalled_taker_which_then_takes_the_last_value_only() {
+    let latest = Arc::new(Latest::default());
+    let (took, taken) = mpsc::channel();
+    let (resume, stalled) = mpsc::channel::<()>();
+    let taker = {
+        let latest = Arc::clone(&latest);
+        thread::spawn(move || {
+            while let Some(value) = latest.take() {
+                took.send(value).unwrap();
+                stalled.recv().ok();
+            }
+        })
+    };
+    latest.hand(1);
+    assert_eq!(taken.recv_timeout(Duration::from_secs(5)), Ok(1));
+
+    let (handed, done) = mpsc::channel();
+    let handing = Arc::clone(&latest);
+    thread::spawn(move || {
+        for value in [2, 3, 4] {
+            handing.hand(value);
+        }
+        handed.send(()).unwrap();
+    });
+    assert_eq!(
+        done.recv_timeout(Duration::from_secs(1)),
+        Ok(()),
+        "handing waited on the stalled taker"
+    );
+
+    resume.send(()).unwrap();
+    assert_eq!(taken.recv_timeout(Duration::from_secs(5)), Ok(4));
+    resume.send(()).unwrap();
+    latest.close();
+    taker.join().unwrap();
+    assert_eq!(taken.try_recv(), Err(mpsc::TryRecvError::Disconnected));
 }

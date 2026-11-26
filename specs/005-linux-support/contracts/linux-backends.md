@@ -27,6 +27,8 @@ are the mapping (any OS, tested), `StatusNotifier` the `Tray` (Linux).
   app's tooltip as its title and no description, `Menu` (dbusmenu) built
   from `MenuEntry`, `ItemIsMenu = false`. `Status = Passive` until the
   app's first `publish`, then `Active`: hosts hide a passive item.
+  `publish` never waits on D-Bus: a thread hands `ksni` the state
+  published last, and a state it has not handed yet gives way to the next.
 - Menu labels double each `_`, which dbusmenu would read as an access key.
   The dbusmenu ids are `ksni`'s; each item carries its `item_id`.
 - `Activate(x, y)` → `TrayEvent::Activated`; `at` is `None` when

@@ -2,15 +2,17 @@
 //!
 //! A host draws the item from what it reads on D-Bus: ARGB32 pixmaps, a tooltip, and a dbusmenu
 //! tree. [`menu`] and [`pixmaps`] turn what the app publishes into those; [`click_position`]
-//! reads the position an `Activate` carries. [`HostWatch`] says whether a host shows the item:
-//! all a client can see of the host is the watcher, `org.kde.StatusNotifierWatcher`, since the
-//! watchers of KDE and GNOME answer « a host is registered » whether one is or not. On Linux,
-//! `StatusNotifier` serves the item with `ksni`.
+//! reads the position an `Activate` carries; [`Latest`] hands `ksni` the state the app published
+//! last. [`HostWatch`] says whether a host shows the item: all a client can see of the host is
+//! the watcher, `org.kde.StatusNotifierWatcher`, since the watchers of KDE and GNOME answer « a
+//! host is registered » whether one is or not. On Linux, `StatusNotifier` serves the item with
+//! `ksni`.
 
 #[cfg(target_os = "linux")]
 mod native;
 
 use std::sync::mpsc::{Receiver, RecvTimeoutError};
+use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
 use bientot_platform::tray::{MenuEntry, ScreenPoint, TrayHost, TrayIcon, item_id};
@@ -205,6 +207,65 @@ pub fn follow(
         if let Some(host) = told {
             changed(host);
         }
+    }
+}
+
+/// The last value one thread hands another, which takes it when it is free: a value not yet
+/// taken gives way to the next, and handing one never waits on the taker.
+pub struct Latest<T> {
+    slot: Mutex<Slot<T>>,
+    handed: Condvar,
+}
+
+struct Slot<T> {
+    value: Option<T>,
+    closed: bool,
+}
+
+impl<T> Default for Latest<T> {
+    fn default() -> Self {
+        Self {
+            slot: Mutex::new(Slot {
+                value: None,
+                closed: false,
+            }),
+            handed: Condvar::new(),
+        }
+    }
+}
+
+impl<T> Latest<T> {
+    /// Hands `value`, in place of any value not yet taken.
+    pub fn hand(&self, value: T) {
+        self.lock().value = Some(value);
+        self.handed.notify_one();
+    }
+
+    /// Waits for the value handed last; `None` once [`Latest::close`] was called.
+    pub fn take(&self) -> Option<T> {
+        let mut slot = self.lock();
+        loop {
+            if slot.closed {
+                return None;
+            }
+            if let Some(value) = slot.value.take() {
+                return Some(value);
+            }
+            slot = self
+                .handed
+                .wait(slot)
+                .unwrap_or_else(PoisonError::into_inner);
+        }
+    }
+
+    /// Ends the takes, the one waiting and those to come.
+    pub fn close(&self) {
+        self.lock().closed = true;
+        self.handed.notify_all();
+    }
+
+    fn lock(&self) -> MutexGuard<'_, Slot<T>> {
+        self.slot.lock().unwrap_or_else(PoisonError::into_inner)
     }
 }
 

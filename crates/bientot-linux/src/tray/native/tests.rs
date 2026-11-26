@@ -243,7 +243,9 @@ fn desktop_harness_shows_the_published_icon_tooltip_and_menu_and_reports_the_cli
         generation: 3,
     });
 
-    assert_eq!(item.text(&bus, "Status"), "Active");
+    eventually("the published item turns active", || {
+        item.text(&bus, "Status") == "Active"
+    });
     assert_eq!(
         item.tooltip_title(&bus),
         "Départ 17:55 · 5 h 04 min/7 h 00 min"
@@ -278,12 +280,14 @@ fn desktop_harness_shows_the_published_icon_tooltip_and_menu_and_reports_the_cli
 }
 
 /// The watcher mock: [`Watcher::leave`] takes its name off the bus, as a shell that restarts
-/// does. Dropped, it gives the name back.
+/// does, and [`Watcher::stall`] makes it hold the registrations. Dropped, it gives the name back
+/// and answers the registrations it holds.
 struct Watcher {
     bus: Connection,
     /// The mock's own connection, which keeps answering while the name is gone.
     unique: String,
     away: bool,
+    stalled: bool,
 }
 
 impl Watcher {
@@ -294,11 +298,15 @@ impl Watcher {
             bus: bus.clone(),
             unique,
             away: false,
+            stalled: false,
         }
     }
 
-    fn mock(&self, method: &str) {
-        async_io::block_on(call::<_, ()>(
+    fn mock<R>(&self, method: &str) -> R
+    where
+        R: for<'d> zbus::export::serde::Deserialize<'d> + zbus::zvariant::Type,
+    {
+        async_io::block_on(call(
             &self.bus,
             &self.unique,
             WATCHER_PATH,
@@ -306,22 +314,40 @@ impl Watcher {
             method,
             &(),
         ))
-        .unwrap_or_else(|error| panic!("the watcher mock refused {method}: {error}"));
+        .unwrap_or_else(|error| panic!("the watcher mock refused {method}: {error}"))
     }
 
     fn leave(&mut self) {
-        self.mock("Leave");
+        self.mock::<()>("Leave");
         self.away = true;
     }
 
     fn come_back(&mut self) {
-        self.mock("Return");
+        self.mock::<()>("Return");
         self.away = false;
+    }
+
+    fn stall(&mut self) {
+        self.mock::<()>("Stall");
+        self.stalled = true;
+    }
+
+    /// How many registrations the watcher holds.
+    fn held(&self) -> u32 {
+        self.mock("Held")
+    }
+
+    fn release(&mut self) {
+        self.mock::<()>("Release");
+        self.stalled = false;
     }
 }
 
 impl Drop for Watcher {
     fn drop(&mut self) {
+        if self.stalled {
+            self.release();
+        }
         if self.away {
             self.come_back();
         }
@@ -353,8 +379,8 @@ fn desktop_harness_tells_the_host_gone_only_after_the_grace_and_back_at_once() {
     );
     assert_eq!(host(&tray), TrayHost::Present);
 
-    watcher.leave();
     let left = Instant::now();
+    watcher.leave();
     assert_eq!(
         events.recv_timeout(HOST_GRACE + WAIT).unwrap(),
         TrayEvent::HostChanged(TrayHost::Absent)
@@ -375,4 +401,47 @@ fn desktop_harness_tells_the_host_gone_only_after_the_grace_and_back_at_once() {
     eventually("the item registers again", || {
         registered(&bus).contains(&item.listed)
     });
+}
+
+#[test]
+#[ignore = "desktop-harness"]
+fn desktop_harness_publishes_at_once_while_the_watcher_holds_the_registration() {
+    let _turn = crate::HARNESS_TURN
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    let bus = session();
+    let mut watcher = Watcher::new(&bus);
+    let before = registered(&bus);
+    let (tray, _events) = served();
+    let item = new_item(&bus, &before);
+
+    watcher.leave();
+    watcher.stall();
+    watcher.come_back();
+    eventually("the watcher holds the item's registration", || {
+        watcher.held() == 1
+    });
+    let (done, returned) = mpsc::channel();
+    let published = thread::scope(|scope| {
+        scope.spawn(|| {
+            for tooltip in ["Départ 17:55", "Départ 17:56"] {
+                tray.publish(TrayState {
+                    icon: TrayIcon { pixmaps: &[] },
+                    tooltip,
+                    menu: &[MenuEntry::<u8>::Separator],
+                    generation: 1,
+                });
+            }
+            done.send(()).unwrap();
+        });
+        let published = returned.recv_timeout(Duration::from_secs(1));
+        watcher.release();
+        published
+    });
+
+    assert_eq!(published, Ok(()), "publish waited on the watcher");
+    eventually("the item shows the last state published", || {
+        item.text(&bus, "Status") == "Active" && item.tooltip_title(&bus) == "Départ 17:56"
+    });
+    assert!(registered(&bus).contains(&item.listed));
 }

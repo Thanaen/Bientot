@@ -1,5 +1,5 @@
-//! The item on the session bus, served by `ksni` on a thread of its own, and the thread that
-//! follows its watcher.
+//! The item on the session bus, served by `ksni` on a thread of its own, the thread that hands
+//! it what the app publishes, and the thread that follows its watcher.
 
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex, PoisonError};
@@ -11,8 +11,8 @@ use ksni::menu::{StandardItem, SubMenu};
 use ksni::{MenuItem, OfflineReason, Status, ToolTip};
 
 use super::{
-    HOST_GRACE, HostWatch, ICON_SIZES, MenuNode, WatcherSignal, click_position, follow, menu,
-    pixmaps,
+    HOST_GRACE, HostWatch, ICON_SIZES, Latest, MenuNode, WatcherSignal, click_position, follow,
+    menu, pixmaps,
 };
 
 /// The item's `Id`: the application id the desktop files and the Flatpak use.
@@ -26,17 +26,23 @@ type Events = Arc<dyn Fn(TrayEvent) + Send + Sync>;
 pub struct StatusNotifier {
     /// `None` when the item could not be served: no session bus, or a watcher that refused it.
     handle: Option<Handle<Item>>,
+    published: Arc<Latest<Shown>>,
     host: Arc<Mutex<TrayHost>>,
 }
 
-/// What the item shows, as `ksni` reads it.
+/// The item as `ksni` reads it.
 struct Item {
-    published: bool,
+    /// `None` before the first [`Tray::publish`].
+    shown: Option<Shown>,
+    events: Events,
+    watcher: Sender<WatcherSignal>,
+}
+
+/// What the app published.
+struct Shown {
     pixmaps: Vec<ksni::Icon>,
     tooltip: String,
     menu: Vec<MenuNode>,
-    events: Events,
-    watcher: Sender<WatcherSignal>,
 }
 
 impl StatusNotifier {
@@ -46,10 +52,7 @@ impl StatusNotifier {
     pub fn new(events: impl Fn(TrayEvent) + Send + Sync + 'static) -> Self {
         let (watcher, signals) = mpsc::channel();
         let item = Item {
-            published: false,
-            pixmaps: Vec::new(),
-            tooltip: String::new(),
-            menu: Vec::new(),
+            shown: None,
             events: Arc::new(events),
             watcher,
         };
@@ -60,9 +63,11 @@ impl StatusNotifier {
             .disable_dbus_name(std::env::var_os("FLATPAK_ID").is_some())
             .assume_sni_available(true)
             .spawn();
+        let published = Arc::new(Latest::default());
         let Ok(handle) = served else {
             return Self {
                 handle: None,
+                published,
                 host: Arc::new(Mutex::new(TrayHost::Absent)),
             };
         };
@@ -82,8 +87,19 @@ impl StatusNotifier {
                 });
             })
             .expect("the system starts a thread");
+        let taken = Arc::clone(&published);
+        let updated = handle.clone();
+        thread::Builder::new()
+            .name("tray-publish".into())
+            .spawn(move || {
+                while let Some(shown) = taken.take() {
+                    updated.update(|item| item.shown = Some(shown));
+                }
+            })
+            .expect("the system starts a thread");
         Self {
             handle: Some(handle),
+            published,
             host: shared,
         }
     }
@@ -102,6 +118,7 @@ impl Drop for StatusNotifier {
     /// Takes the item off the bus, without waiting: a D-Bus call under way could hold the
     /// app's exit for its whole timeout.
     fn drop(&mut self) {
+        self.published.close();
         if let Some(handle) = &self.handle {
             drop(handle.shutdown());
         }
@@ -122,11 +139,14 @@ impl<C> Tray<C> for StatusNotifier {
         *self.host.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// `ksni` sends the host only the properties that changed, and the menu items that changed.
+    /// Returns at once: the `tray-publish` thread hands `state` to `ksni`, whose update waits as
+    /// long as a watcher that came back takes to answer the item's registration. A state not
+    /// handed yet gives way to the next. `ksni` sends the host only the properties that changed,
+    /// and the menu items that changed.
     fn publish(&self, state: TrayState<'_, C>) {
-        let Some(handle) = &self.handle else {
+        if self.handle.is_none() {
             return;
-        };
+        }
         let pixmaps = pixmaps(state.icon)
             .into_iter()
             .map(|pixmap| ksni::Icon {
@@ -135,13 +155,10 @@ impl<C> Tray<C> for StatusNotifier {
                 data: pixmap.argb,
             })
             .collect();
-        let tooltip = state.tooltip.to_owned();
-        let menu = menu(state.menu, state.generation);
-        handle.update(move |item| {
-            item.published = true;
-            item.pixmaps = pixmaps;
-            item.tooltip = tooltip;
-            item.menu = menu;
+        self.published.hand(Shown {
+            pixmaps,
+            tooltip: state.tooltip.to_owned(),
+            menu: menu(state.menu, state.generation),
         });
     }
 }
@@ -157,7 +174,7 @@ impl ksni::Tray for Item {
 
     /// Hosts hide a passive item, so the icon shows only once the app published the day.
     fn status(&self) -> Status {
-        if self.published {
+        if self.shown.is_some() {
             Status::Active
         } else {
             Status::Passive
@@ -165,12 +182,19 @@ impl ksni::Tray for Item {
     }
 
     fn icon_pixmap(&self) -> Vec<ksni::Icon> {
-        self.pixmaps.clone()
+        self.shown
+            .as_ref()
+            .map(|shown| shown.pixmaps.clone())
+            .unwrap_or_default()
     }
 
     fn tool_tip(&self) -> ToolTip {
         ToolTip {
-            title: self.tooltip.clone(),
+            title: self
+                .shown
+                .as_ref()
+                .map(|shown| shown.tooltip.clone())
+                .unwrap_or_default(),
             ..ToolTip::default()
         }
     }
@@ -182,7 +206,11 @@ impl ksni::Tray for Item {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
-        self.menu.iter().map(menu_item).collect()
+        self.shown
+            .iter()
+            .flat_map(|shown| &shown.menu)
+            .map(menu_item)
+            .collect()
     }
 
     fn watcher_online(&self) {
