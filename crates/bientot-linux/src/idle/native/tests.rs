@@ -131,12 +131,10 @@ fn desktop_harness_reads_mutter_s_idle_monitor_where_wayland_has_no_ext_idle() {
         [IdleNote::Selected(Some(Backend::MutterIdleMonitor))]
     );
 
-    set_mutter_idle_time(Duration::from_secs(600));
-    assert_near(
-        idle(&probe),
-        Duration::from_secs(600),
-        Duration::from_millis(500),
-    );
+    // The probe counts back no further than the boot, and a runner may have booted minutes ago.
+    let long = Duration::from_secs((Monotonic.now() / 2).as_secs().min(600));
+    set_mutter_idle_time(long);
+    assert_near(idle(&probe), long, Duration::from_millis(500));
     set_mutter_idle_time(Duration::from_millis(1_250));
     assert_near(
         idle(&probe),
