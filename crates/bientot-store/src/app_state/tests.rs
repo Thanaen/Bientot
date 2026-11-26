@@ -92,6 +92,7 @@ fn the_callouts_closed_today_are_written_beside_the_last_send_and_read_back() {
             counts: vec!["automatic:thursday".into()],
             offers: vec!["thursday-1000".into()],
         },
+        ..AppState::default()
     };
 
     store.save(&state).unwrap();
@@ -109,6 +110,64 @@ fn the_callouts_closed_today_are_written_beside_the_last_send_and_read_back() {
         })
     );
     assert_eq!(store.load().unwrap(), state);
+}
+
+#[test]
+fn the_dismissed_window_mode_notice_is_written_once_closed_and_read_back() {
+    let directory = TempDir::new().unwrap();
+    let store = store(&directory);
+    store
+        .update(|state| state.usage_ping_last_sent = Some(date(2026, 10, 13)))
+        .unwrap();
+    assert!(!store.load().unwrap().window_mode_notice_dismissed);
+    assert!(
+        !fs::read_to_string(store.path())
+            .unwrap()
+            .contains("windowModeNoticeDismissed"),
+        "a file Windows writes keeps its keys"
+    );
+
+    store
+        .update(|state| state.window_mode_notice_dismissed = true)
+        .unwrap();
+
+    let written: Value = serde_json::from_str(&fs::read_to_string(store.path()).unwrap()).unwrap();
+    assert_eq!(
+        written,
+        serde_json::json!({
+            "usagePingLastSent": "2026-10-13",
+            "windowModeNoticeDismissed": true,
+        })
+    );
+    // Another writer, such as the usage signal on Windows, keeps it.
+    store
+        .update(|state| state.usage_ping_last_sent = Some(date(2026, 10, 14)))
+        .unwrap();
+    assert!(store.load().unwrap().window_mode_notice_dismissed);
+}
+
+#[test]
+fn a_window_mode_notice_key_that_is_not_true_reads_as_not_dismissed() {
+    for value in ["false", "null", "1", "\"true\""] {
+        let directory = TempDir::new().unwrap();
+        let store = store(&directory);
+        fs::write(
+            store.path(),
+            format!(
+                r#"{{"usagePingLastSent": "2026-10-13", "windowModeNoticeDismissed": {value}}}"#
+            ),
+        )
+        .unwrap();
+
+        let state = store.load().unwrap();
+
+        assert!(!state.window_mode_notice_dismissed, "{value}");
+        assert_eq!(
+            state.usage_ping_last_sent,
+            Some(date(2026, 10, 13)),
+            "{value}"
+        );
+    }
 }
 
 #[test]

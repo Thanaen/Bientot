@@ -55,17 +55,36 @@ are the mapping (any OS, tested), `StatusNotifier` the `Tray` (Linux).
 
 ## Flyout placement
 
+`LinuxDesktop` (`bientot-linux/src/placement/native.rs`) takes the session
+GPUI takes: Wayland when `WAYLAND_DISPLAY` is set, else X11 when `DISPLAY`
+is, else none (`CompositorPlaced`). The maths is portable
+(`placement.rs`) and tested on every system.
+
 | Condition | `FlyoutPlacement` | How |
 | --- | --- | --- |
-| Tray host absent | `Window` | `WindowKind::Normal`, title « Bientôt », minimizable |
-| X11 | `At { work_area }` | Monitor under the click from RandR (`GetMonitors`), else the primary. Work area = `_NET_WORKAREA` of the current desktop ∩ that monitor (A-2). Corner of the work area nearest to the click; top right when the position is unknown (a `Corner` added to `At`). 12 px margin, which the app keeps. `WindowKind::PopUp` (A-1) |
-| Wayland, `zwlr_layer_shell_v1` offered | `Layer { corner, margin: 12 }` | `WindowKind::LayerShell`, layer `Top`, keyboard `OnDemand` (A-3), namespace `bientot-flyout`. Corner nearest to the click when known; else bottom right on `kde`, top right elsewhere |
-| Wayland otherwise | `CompositorPlaced` | `WindowKind::Normal` without decorations (A-4) |
+| Tray host absent | `Window` | `WindowKind::Normal`, title « Bientôt », movable, minimizable. Focus loss and Esc minimize it instead of closing it; a second launch or `open_flyout` opens it again when it is not active. Closing it quits the app, whose last window it is: the quit mode follows the host (below) |
+| X11 | `At { work_area, corner }` | Read at each opening: RandR `GetMonitors` (the root window when RandR names none) and `_NET_WORKAREA` of the current desktop. Monitor under the click, else the primary, else the first. Work area = that monitor ∩ `_NET_WORKAREA`, or the whole monitor when it misses it (A-2: with two monitors and a panel on one, the other comes out short by the panel). Corner of the work area nearest to the click; top right when the position is unknown. 12 px margin, which the app keeps. `display` is the X screen, GPUI's display id there; `scale` is GPUI's: `GPUI_X11_SCALE_FACTOR`, else `Xft.dpi` / 96, else 1 (GPUI's RandR fallback is left out; the first frame refits). `WindowKind::PopUp`, which GPUI opens override-redirect and cannot move: `platform::place_window` moves it with `ConfigureWindow`, and `platform::activate_window` gives it the input focus with `SetInputFocus`, which no window manager gives an override-redirect window (A-1). No RandR answer: `CompositorPlaced` |
+| Wayland, `zwlr_layer_shell_v1` offered | `Layer { corner, margin: 12 }` | `WindowKind::LayerShell`, layer `Top`, keyboard `OnDemand` (A-3: sway gives it the focus only once the pointer enters it; `Exclusive` would have it at map, which T043 decides), namespace `bientot-flyout`, the margin on every edge. Hosts give the click on the output, not on the layout, so the corner is the nearest one on every output large enough to hold the click when they agree; else, or without a position, bottom right on `kde`, top right elsewhere. A layer surface that fails to open falls back to `CompositorPlaced` |
+| Wayland otherwise | `CompositorPlaced` | `WindowKind::PopUp`, which GPUI's Wayland backend opens as an undecorated toplevel the compositor places (A-4, T044) |
 
-`usable_height`: X11, the work area's height; layer-shell and
-compositor-placed, the output's logical height minus 48 for a panel that
-clients cannot measure. The app keeps the panel 12 px from both edges, as
-on Windows.
+`usable_height`: X11, the height of the work area read at the last
+opening. Wayland, read once at start with `wl_output` (current mode,
+transform) and `xdg_output` (logical position and size): the shortest
+output's height in pixels, less a panel of 48 logical pixels that clients
+cannot measure, since the compositor chooses the output. The app keeps the
+panel 12 px from both edges, as on Windows.
+
+GPUI 0.3.9 answers a layer surface's first `configure` with the size it
+asked for before it, so a flyout whose content changed its height in its
+first frame keeps the old size: `shell::lost_its_size` fits it again.
+
+Window mode follows `HostChanged`: `shell::tray_changed` sets the quit
+mode first (`Explicit` with a host, `Default` without), then without a
+host opens the window when nothing shows and turns an open flyout into it;
+with a host back, turns the window into the flyout when it has the focus
+and closes it otherwise. A window replaces another only once open, so
+that the app never runs without one. `windowModeNoticeDismissed` in
+`app-state.json` is read and written; the notice itself is T064's.
 
 ## Idle
 

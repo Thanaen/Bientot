@@ -161,6 +161,10 @@ impl ReducedMotion for Motion {
     }
 }
 
+pub fn activate_window(window: &mut gpui::Window) {
+    window.activate_window();
+}
+
 #[cfg(not(feature = "updates"))]
 pub fn run_update_hooks() -> bool {
     false

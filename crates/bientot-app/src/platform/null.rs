@@ -45,6 +45,10 @@ pub fn place_window(window: &mut Window, client: Bounds<i32>) {
     ));
 }
 
+pub fn activate_window(window: &mut Window) {
+    window.activate_window();
+}
+
 pub fn run_update_hooks() -> bool {
     false
 }

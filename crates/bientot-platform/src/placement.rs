@@ -33,8 +33,8 @@ pub struct WorkArea {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FlyoutPlacement {
-    /// The app chooses the bounds, in a corner of the work area (Windows, X11).
-    At { work_area: WorkArea },
+    /// The app chooses the bounds, in `corner` of the work area (Windows, X11).
+    At { work_area: WorkArea, corner: Corner },
     /// A layer-shell surface anchored to a corner (KDE, wlroots).
     Layer { corner: Corner, margin: i32 },
     /// The compositor chooses (GNOME on Wayland).

@@ -41,7 +41,7 @@ mod spike {
     use std::sync::OnceLock;
     use std::time::{Duration, Instant};
 
-    use bientot_linux::placement::{X11Desktop, nearest_corner, read_x11_desktop};
+    use bientot_linux::placement::{Layout, X11, nearest_corner};
     use bientot_platform::placement::{Corner, Rect};
     use bientot_platform::tray::ScreenPoint;
     use futures::StreamExt;
@@ -308,7 +308,8 @@ mod spike {
     /// The flyout's rectangle on X11, in physical pixels: the work area of the clicked monitor,
     /// the corner nearest the click, `MARGIN` from both edges.
     fn x11_bounds(click: Option<ScreenPoint>) -> Option<Rect> {
-        let desktop: X11Desktop = read_x11_desktop(None)
+        let desktop: Layout = X11::connect(None)
+            .and_then(|x11| x11.layout())
             .inspect_err(|error| log!("x11.desktop_error error={error}"))
             .ok()?;
         let (monitor, area) = desktop.work_area_at(click)?;

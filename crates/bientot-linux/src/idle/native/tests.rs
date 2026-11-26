@@ -57,13 +57,20 @@ fn desktop_harness_selects_the_first_backend_of_the_session_and_follows_its_inpu
     let session = this_session().expect("the harness runs a display server");
     let (notes, log) = noted();
     let probe = IdleProbe::of_this_session(log);
-    // Headless Sway 1.9 offers version 1 of the protocol only (research.md, R6).
     let expected = match session {
         SessionType::X11 => vec![IdleNote::Selected(Some(Backend::XScreenSaver))],
-        SessionType::Wayland => vec![
-            IdleNote::Selected(Some(Backend::ExtIdleNotify)),
-            IdleNote::InhibitorsCount,
-        ],
+        // Sway 1.9 offers version 1 of the protocol only, which counts inhibitors (research.md,
+        // R6); later Sways offer version 2, which does not.
+        SessionType::Wayland => {
+            let opened = SystemBackends
+                .open(Backend::ExtIdleNotify)
+                .expect("Sway offers ext-idle");
+            let mut notes = vec![IdleNote::Selected(Some(Backend::ExtIdleNotify))];
+            if !opened.inhibitor_blind {
+                notes.push(IdleNote::InhibitorsCount);
+            }
+            notes
+        }
     };
     assert_eq!(notes.try_iter().collect::<Vec<_>>(), expected);
 

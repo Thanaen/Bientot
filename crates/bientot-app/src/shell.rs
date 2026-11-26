@@ -1,20 +1,26 @@
 //! Opens and closes the flyout, and fits its window to its content and to the work area.
+//!
+//! Without a tray host the flyout is an ordinary window (window mode, FR-012): it minimizes where
+//! a flyout closes, so that the app keeps running, and the shell switches between the two as the
+//! host comes and goes.
 
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use bientot_platform::placement::{Desktop, FlyoutPlacement, Rect};
+use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Rect};
 use bientot_platform::tray::{ScreenPoint, TrayHost};
 use gpui::{
-    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, Size, TitlebarOptions,
-    WeakEntity, Window, WindowBounds, WindowHandle, WindowKind, WindowOptions, point, px, size,
+    App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, QuitMode, Size,
+    TitlebarOptions, WeakEntity, Window, WindowBounds, WindowHandle, WindowKind, WindowOptions,
+    point, px, size,
 };
 
 use crate::flyout::Flyout;
 use crate::host::Today;
 use crate::live::Tracking;
+use crate::strings::{Key, Language};
 use crate::widgets::Notice;
 use crate::workday::DayView;
 use crate::{platform, theme};
@@ -33,11 +39,18 @@ static LAST_PANEL: Mutex<Option<Size<Pixels>>> = Mutex::new(None);
 
 #[derive(Default)]
 struct FlyoutState {
-    window: Option<WindowHandle<Flyout>>,
+    open: Option<Open>,
+    closed_at: Option<Instant>,
+}
+
+/// The flyout's open window.
+struct Open {
+    window: WindowHandle<Flyout>,
     /// The flyout the window shows, which an action pressed in it updates while the window is
     /// being updated: no other update of the window can enter then.
     view: Option<WeakEntity<Flyout>>,
-    closed_at: Option<Instant>,
+    /// Where it opened, which a later click or a change of the tray does not move.
+    placement: FlyoutPlacement,
 }
 
 impl Global for FlyoutState {}
@@ -68,9 +81,107 @@ pub fn tray_clicked(at: Option<ScreenPoint>, cx: &mut App) {
     toggle_flyout(cx);
 }
 
-/// The next flyout opens for a tray that shows the icon or not.
+/// When the app quits: with its last window, unless a tray icon keeps it running after its
+/// flyout, the only window, closes.
+pub fn quit_mode(tray: TrayHost) -> QuitMode {
+    match tray {
+        TrayHost::Present => QuitMode::Explicit,
+        TrayHost::Absent => QuitMode::Default,
+    }
+}
+
+/// A tray host appeared or went away: the app switches to the tray or to window mode at once.
 pub fn tray_changed(tray: TrayHost, cx: &mut App) {
     cx.global_mut::<Placement>().tray = tray;
+    // Before a window closes below: an app the host now keeps must outlive it.
+    cx.set_quit_mode(quit_mode(tray));
+    match switch(tray, shown(cx)) {
+        Switch::Keep => {}
+        Switch::Open => open_flyout(cx),
+        Switch::Reopen => reopen(cx),
+        Switch::Close => {
+            if let Some(open) = cx.default_global::<FlyoutState>().open.take() {
+                open.window
+                    .update(cx, |_, window, _| window.remove_window())
+                    .ok();
+            }
+        }
+    }
+}
+
+/// Whether window mode shows the app now: no tray host shows its icon.
+pub fn window_mode(cx: &App) -> bool {
+    cx.try_global::<Placement>()
+        .is_some_and(|placement| placement.tray == TrayHost::Absent)
+}
+
+/// What the shell shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Shown {
+    Nothing,
+    Flyout,
+    /// Window mode's window, `active` when the user is in it rather than elsewhere or minimized.
+    Window {
+        active: bool,
+    },
+}
+
+/// What a change of the tray host does to what the shell shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Switch {
+    Keep,
+    /// Shows the app, which nothing else would show.
+    Open,
+    /// Shows it again in the other form.
+    Reopen,
+    Close,
+}
+
+/// Without a host the app must show itself in a window; with one, the window the user is in
+/// becomes the flyout, and a window they left goes, the icon taking its place.
+fn switch(tray: TrayHost, shown: Shown) -> Switch {
+    match (tray, shown) {
+        (TrayHost::Absent, Shown::Nothing) => Switch::Open,
+        (TrayHost::Absent, Shown::Flyout) => Switch::Reopen,
+        (TrayHost::Present, Shown::Window { active: true }) => Switch::Reopen,
+        (TrayHost::Present, Shown::Window { active: false }) => Switch::Close,
+        (TrayHost::Absent, Shown::Window { .. }) | (TrayHost::Present, _) => Switch::Keep,
+    }
+}
+
+fn shown(cx: &mut App) -> Shown {
+    let Some(open) = cx.default_global::<FlyoutState>().open.as_ref() else {
+        return Shown::Nothing;
+    };
+    let window = open.window;
+    match open.placement {
+        FlyoutPlacement::Window => {
+            let active = window.update(cx, |_, window, _| window.is_window_active());
+            Shown::Window {
+                // GPUI holds the window while an action pressed in it runs, and then it cannot be
+                // read: the user is in it.
+                active: active.unwrap_or_else(|_| {
+                    cx.windows()
+                        .iter()
+                        .any(|open| open.window_id() == window.window_id())
+                }),
+            }
+        }
+        _ => Shown::Flyout,
+    }
+}
+
+/// Opens the flyout where it opens now, then closes the one open, so that the app never runs
+/// without a window in between.
+fn reopen(cx: &mut App) {
+    let previous = cx.default_global::<FlyoutState>().open.take();
+    open_new_flyout(None, cx);
+    if let Some(previous) = previous {
+        previous
+            .window
+            .update(cx, |_, window, _| window.remove_window())
+            .ok();
+    }
 }
 
 /// Where the flyout opens now. Without a desktop, as in the screenshots, where the system puts
@@ -93,9 +204,9 @@ pub fn system_draws_frame(cx: &App) -> bool {
 
 pub fn toggle_flyout(cx: &mut App) {
     let state = cx.default_global::<FlyoutState>();
-    if let Some(window) = state.window.take() {
+    if let Some(open) = state.open.take() {
         state.closed_at = Some(Instant::now());
-        window
+        open.window
             .update(cx, |_, window, _| window.remove_window())
             .ok();
         return;
@@ -109,21 +220,34 @@ pub fn toggle_flyout(cx: &mut App) {
     open_flyout(cx);
 }
 
-/// Opens the flyout on the current day, or brings an open one to the front.
+/// Opens the flyout on the current day, or brings an open one to the front. Window mode's window,
+/// once minimized or left, opens again: no compositor has to let the app bring it back.
 pub fn open_flyout(cx: &mut App) {
-    if let Some(window) = cx.default_global::<FlyoutState>().window {
-        window
-            .update(cx, |_, window, _| window.activate_window())
-            .ok();
-        return;
+    match shown(cx) {
+        Shown::Nothing => open_new_flyout(None, cx),
+        Shown::Window { active: false } => reopen(cx),
+        Shown::Flyout | Shown::Window { active: true } => {
+            if let Some(window) = open_window(cx) {
+                window
+                    .update(cx, |_, window, _| platform::activate_window(window))
+                    .ok();
+            }
+        }
     }
-    open_new_flyout(None, cx);
+}
+
+/// The flyout's window, when it is open.
+fn open_window(cx: &mut App) -> Option<WindowHandle<Flyout>> {
+    cx.default_global::<FlyoutState>()
+        .open
+        .as_ref()
+        .map(|open| open.window)
 }
 
 /// Opens the flyout, or brings it to the front, with `notice` above the day. A flyout it opens
 /// shows `notice` from its first frame, at rest; in an open one `notice` comes in.
 pub fn open_flyout_with(notice: Notice, cx: &mut App) {
-    if cx.default_global::<FlyoutState>().window.is_none() {
+    if cx.default_global::<FlyoutState>().open.is_none() {
         open_new_flyout(Some(notice), cx);
         return;
     }
@@ -143,22 +267,40 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
         today.tracking(),
         today.opening_alerts(),
     );
-    let options = window_options(placement(cx), last_panel());
-    match cx.open_window(options, |window, cx| {
-        cx.new(|cx| Flyout::new(day, tracking, notice, window, cx).with_alerts(alerts))
-    }) {
+    let open = |placement, cx: &mut App| {
+        let (day, notice, alerts) = (day.clone(), notice.clone(), alerts.clone());
+        let language = cx.try_global::<Language>().copied().unwrap_or_default();
+        cx.open_window(
+            window_options(placement, last_panel(), language),
+            |window, cx| {
+                cx.new(|cx| Flyout::new(day, tracking, notice, window, cx).with_alerts(alerts))
+            },
+        )
+    };
+    let mut placement = placement(cx);
+    let mut opened = open(placement, cx);
+    // GPUI cannot tell before it tries whether the compositor has layer-shell: Mutter has none,
+    // and then the compositor places the flyout (T044).
+    if let (Err(error), FlyoutPlacement::Layer { .. }) = (&opened, placement) {
+        log::warn!("cannot open the flyout as a layer surface: {error:#}");
+        placement = FlyoutPlacement::CompositorPlaced;
+        opened = open(placement, cx);
+    }
+    match opened {
         Ok(window) => {
             // `focus: true` only shows the window activated, and Windows keeps a window of a
             // background process out of the foreground: the flyout then never learns that a
             // click went elsewhere, and stays open. `activate_window` forces it to the front.
             window
-                .update(cx, |_, window, _| window.activate_window())
+                .update(cx, |_, window, _| platform::activate_window(window))
                 .ok();
             cx.global_mut::<Today>().announced();
             let view = window.entity(cx).ok().map(|view| view.downgrade());
-            let state = cx.default_global::<FlyoutState>();
-            state.window = Some(window);
-            state.view = view;
+            cx.default_global::<FlyoutState>().open = Some(Open {
+                window,
+                view,
+                placement,
+            });
         }
         Err(error) => log::error!("cannot open the flyout: {error:#}"),
     }
@@ -168,7 +310,11 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
 /// window as soon as GPUI creates it, empty until its first frame fits it: opened elsewhere than
 /// where that frame puts it, it would flash there, at the top left of the primary monitor. So in a
 /// work area it opens in the corner the frame will fit it in, at the size its panel last had.
-fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOptions {
+fn window_options(
+    placement: FlyoutPlacement,
+    panel: Size<Pixels>,
+    language: Language,
+) -> WindowOptions {
     let popup = WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(Bounds::new(
             point(px(0.), px(0.)),
@@ -186,8 +332,8 @@ fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOpti
         ..Default::default()
     };
     match placement {
-        FlyoutPlacement::At { work_area } => {
-            let client = flyout_bounds(bounds(work_area.bounds), panel, work_area.scale);
+        FlyoutPlacement::At { work_area, corner } => {
+            let client = flyout_bounds(bounds(work_area.bounds), corner, panel, work_area.scale);
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(logical_bounds(
                     client,
@@ -197,17 +343,52 @@ fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOpti
                 ..popup
             }
         }
-        // GPUI has `WindowKind::LayerShell` only when built for Wayland, and no backend answers
-        // `Layer` yet.
-        FlyoutPlacement::Layer { .. } | FlyoutPlacement::CompositorPlaced => popup,
+        FlyoutPlacement::Layer { corner, margin } => layer_shell(popup, corner, margin),
+        FlyoutPlacement::CompositorPlaced => popup,
         FlyoutPlacement::Window => WindowOptions {
-            titlebar: Some(TitlebarOptions::default()),
+            titlebar: Some(TitlebarOptions {
+                title: Some(language.text(Key::ShellWindowTitle).into()),
+                ..TitlebarOptions::default()
+            }),
             kind: WindowKind::Normal,
             is_movable: true,
             is_minimizable: true,
             ..popup
         },
     }
+}
+
+/// `popup` as a layer-shell surface in `corner` of the output, `margin` logical pixels from both
+/// edges, on the layer above windows, with the keyboard once the user points at it or clicks it
+/// (A-3).
+#[cfg(target_os = "linux")]
+fn layer_shell(popup: WindowOptions, corner: Corner, margin: i32) -> WindowOptions {
+    use gpui::layer_shell::{Anchor, KeyboardInteractivity, Layer, LayerShellOptions};
+
+    let anchor = match corner {
+        Corner::TopLeft => Anchor::TOP | Anchor::LEFT,
+        Corner::TopRight => Anchor::TOP | Anchor::RIGHT,
+        Corner::BottomLeft => Anchor::BOTTOM | Anchor::LEFT,
+        Corner::BottomRight => Anchor::BOTTOM | Anchor::RIGHT,
+    };
+    let margin = px(margin as f32);
+    WindowOptions {
+        kind: WindowKind::LayerShell(LayerShellOptions {
+            namespace: "bientot-flyout".into(),
+            layer: Layer::Top,
+            anchor,
+            margin: Some((margin, margin, margin, margin)),
+            keyboard_interactivity: KeyboardInteractivity::OnDemand,
+            ..Default::default()
+        }),
+        ..popup
+    }
+}
+
+/// GPUI has `WindowKind::LayerShell` only on Linux, and no other backend answers `Layer`.
+#[cfg(not(target_os = "linux"))]
+fn layer_shell(popup: WindowOptions, _corner: Corner, _margin: i32) -> WindowOptions {
+    popup
 }
 
 /// `rect` in GPUI's bounds.
@@ -260,18 +441,47 @@ pub fn show_day(
 /// Runs `update` on the open flyout, if any. Through its view rather than its window: an action
 /// pressed in the flyout reaches the day while its window is being updated.
 fn update_flyout(cx: &mut App, update: impl FnOnce(&mut Flyout, &mut gpui::Context<Flyout>)) {
-    let state = cx.default_global::<FlyoutState>();
-    if let (Some(_), Some(view)) = (state.window, state.view.clone()) {
+    let view = cx
+        .default_global::<FlyoutState>()
+        .open
+        .as_ref()
+        .and_then(|open| open.view.clone());
+    if let Some(view) = view {
         view.update(cx, update).ok();
     }
 }
 
-/// Called when the flyout closed itself (focus lost, Esc), so the next tray click reopens it.
-pub fn flyout_closed(cx: &mut App) {
+/// Called when `window`, the flyout's, closed, so the next tray click reopens it. A window the
+/// shell already replaced changes nothing.
+pub fn flyout_closed(window: &Window, cx: &mut App) {
     let state = cx.default_global::<FlyoutState>();
-    state.window = None;
-    state.view = None;
-    state.closed_at = Some(Instant::now());
+    if state
+        .open
+        .as_ref()
+        .is_some_and(|open| open.window.window_id() == window.window_handle().window_id())
+    {
+        state.open = None;
+        state.closed_at = Some(Instant::now());
+    }
+}
+
+/// The flyout is done with, on Esc or when the focus went elsewhere: it closes, and window mode's
+/// window minimizes, since closing the app's only window would quit it.
+pub fn dismiss(window: &mut Window, cx: &mut App) {
+    let window_mode = cx
+        .default_global::<FlyoutState>()
+        .open
+        .as_ref()
+        .is_some_and(|open| {
+            open.window.window_id() == window.window_handle().window_id()
+                && open.placement == FlyoutPlacement::Window
+        });
+    if window_mode {
+        window.minimize_window();
+    } else {
+        flyout_closed(window, cx);
+        window.remove_window();
+    }
 }
 
 /// What the flyout's window was last fitted to: its content's logical size, at the window's
@@ -300,14 +510,34 @@ impl Fitted {
 pub fn fit_window(window: &mut Window, content: Size<Pixels>, cx: &App) {
     *LAST_PANEL.lock().unwrap() = Some(content);
     match placement(cx) {
-        FlyoutPlacement::At { work_area } => {
-            let client = flyout_bounds(bounds(work_area.bounds), content, window.scale_factor());
+        FlyoutPlacement::At { work_area, corner } => {
+            let client = flyout_bounds(
+                bounds(work_area.bounds),
+                corner,
+                content,
+                window.scale_factor(),
+            );
             platform::place_window(window, client);
         }
         FlyoutPlacement::Layer { .. }
         | FlyoutPlacement::CompositorPlaced
         | FlyoutPlacement::Window => window.resize(content),
     }
+}
+
+/// Whether the window lost the size [`fit_window`] gave it. A layer surface takes the size of the
+/// compositor's first configure, which GPUI applies over a resize asked before it came: the
+/// flyout's first fitting on Wayland, when its panel is not the size it opened at.
+pub fn lost_its_size(window: &Window, content: Size<Pixels>, cx: &App) -> bool {
+    let layer = cx
+        .try_global::<FlyoutState>()
+        .and_then(|state| state.open.as_ref())
+        .is_some_and(|open| matches!(open.placement, FlyoutPlacement::Layer { .. }));
+    let size = window.bounds().size;
+    // GPUI sizes a layer surface in whole logical pixels.
+    layer
+        && ((size.width - content.width).abs() >= px(1.)
+            || (size.height - content.height).abs() >= px(1.))
 }
 
 /// The height of the work area the flyout opens in, in physical pixels: its panel is no taller
@@ -325,19 +555,26 @@ pub fn panel_max_height(height: i32, scale: f32) -> Pixels {
 }
 
 /// The client rectangle the panel of `panel` logical size fills in `work_area`, in physical
-/// pixels at `scale`: in its bottom right corner, MARGIN from the edges, and no higher than
-/// MARGIN below its top.
-pub fn flyout_bounds(work_area: Bounds<i32>, panel: Size<Pixels>, scale: f32) -> Bounds<i32> {
+/// pixels at `scale`: in its `corner`, MARGIN from the edges, and no taller than the work area
+/// leaves room for with MARGIN at both ends.
+pub fn flyout_bounds(
+    work_area: Bounds<i32>,
+    corner: Corner,
+    panel: Size<Pixels>,
+    scale: f32,
+) -> Bounds<i32> {
     let width = (f32::from(panel.width) * scale).round() as i32;
     let tallest = work_area.size.height - 2 * MARGIN;
     let height = ((f32::from(panel.height) * scale).round() as i32).min(tallest);
-    Bounds::new(
-        point(
-            work_area.right() - width - MARGIN,
-            work_area.bottom() - height - MARGIN,
-        ),
-        size(width, height),
-    )
+    let x = match corner {
+        Corner::TopLeft | Corner::BottomLeft => work_area.left() + MARGIN,
+        Corner::TopRight | Corner::BottomRight => work_area.right() - width - MARGIN,
+    };
+    let y = match corner {
+        Corner::TopLeft | Corner::TopRight => work_area.top() + MARGIN,
+        Corner::BottomLeft | Corner::BottomRight => work_area.bottom() - height - MARGIN,
+    };
+    Bounds::new(point(x, y), size(width, height))
 }
 
 /// How far each edge of a window lies outside its client rectangle, in physical pixels.
@@ -375,7 +612,7 @@ mod tests {
     #[test]
     fn a_flyout_that_fits_sits_in_the_corner_above_the_taskbar() {
         assert_eq!(
-            flyout_bounds(area(0, 0, 1920, 1032), panel(600.), 1.),
+            flyout_bounds(area(0, 0, 1920, 1032), Corner::BottomRight, panel(600.), 1.),
             Bounds::new(point(1548, 420), size(360, 600)),
         );
     }
@@ -383,7 +620,12 @@ mod tests {
     #[test]
     fn a_flyout_taller_than_a_short_work_area_keeps_its_panel_a_margin_below_the_top() {
         // 1366 × 768 at 125 %, above a taskbar of 60 physical pixels.
-        let bounds = flyout_bounds(area(0, 0, 1366, 708), panel(700.), 1.25);
+        let bounds = flyout_bounds(
+            area(0, 0, 1366, 708),
+            Corner::BottomRight,
+            panel(700.),
+            1.25,
+        );
         assert_eq!(bounds, Bounds::new(point(904, 12), size(450, 684)));
         assert_eq!(bounds.bottom(), 708 - 12);
     }
@@ -393,7 +635,12 @@ mod tests {
         let tallest = panel_max_height(708, 1.25);
         assert_eq!(tallest, px(547.2));
         assert_eq!(
-            flyout_bounds(area(0, 0, 1366, 708), panel(f32::from(tallest)), 1.25),
+            flyout_bounds(
+                area(0, 0, 1366, 708),
+                Corner::BottomRight,
+                panel(f32::from(tallest)),
+                1.25
+            ),
             Bounds::new(point(904, 12), size(450, 684)),
         );
     }
@@ -414,13 +661,44 @@ mod tests {
     #[test]
     fn a_taskbar_at_the_top_or_on_the_left_leaves_the_flyout_in_the_bottom_right_corner() {
         assert_eq!(
-            flyout_bounds(area(0, 48, 1920, 1080), panel(2000.), 1.),
+            flyout_bounds(
+                area(0, 48, 1920, 1080),
+                Corner::BottomRight,
+                panel(2000.),
+                1.
+            ),
             Bounds::new(point(1548, 60), size(360, 1008)),
         );
         assert_eq!(
-            flyout_bounds(area(48, 0, 1920, 1080), panel(600.), 1.),
+            flyout_bounds(
+                area(48, 0, 1920, 1080),
+                Corner::BottomRight,
+                panel(600.),
+                1.
+            ),
             Bounds::new(point(1548, 468), size(360, 600)),
         );
+    }
+
+    #[test]
+    fn a_panel_at_the_top_holds_the_flyout_a_margin_below_it_in_the_corner_of_the_click() {
+        // xfce4-panel, 33 px tall at the top of a 1920 × 1080 screen (research.md, A-2).
+        let work_area = area(0, 33, 1920, 1080);
+        assert_eq!(
+            flyout_bounds(work_area, Corner::TopRight, panel(600.), 1.),
+            Bounds::new(point(1548, 45), size(360, 600)),
+        );
+        assert_eq!(
+            flyout_bounds(work_area, Corner::TopLeft, panel(600.), 1.),
+            Bounds::new(point(12, 45), size(360, 600)),
+        );
+        assert_eq!(
+            flyout_bounds(work_area, Corner::BottomLeft, panel(600.), 1.),
+            Bounds::new(point(12, 468), size(360, 600)),
+        );
+        let tall = flyout_bounds(work_area, Corner::TopRight, panel(2000.), 1.);
+        assert_eq!(tall, Bounds::new(point(1548, 45), size(360, 1023)));
+        assert_eq!(tall.bottom(), 1080 - 12);
     }
 
     #[test]
@@ -431,7 +709,7 @@ mod tests {
             (area(-2560, 0, 0, 1392), 1.5),
             (area(0, 0, 1920, 1032), 1.),
         ] {
-            let fitted = flyout_bounds(work_area, panel(613.), scale);
+            let fitted = flyout_bounds(work_area, Corner::BottomRight, panel(613.), scale);
             let opening = logical_bounds(fitted, scale).to_device_pixels(scale);
             assert_eq!(
                 Bounds::new(
@@ -486,7 +764,14 @@ mod tests {
             },
             scale: 1.5,
         };
-        let options = window_options(FlyoutPlacement::At { work_area }, panel(613.));
+        let options = window_options(
+            FlyoutPlacement::At {
+                work_area,
+                corner: Corner::BottomRight,
+            },
+            panel(613.),
+            Language::French,
+        );
         assert_eq!(options.display_id, Some(DisplayId::new(7)));
         assert_eq!(options.kind, WindowKind::PopUp);
         let Some(WindowBounds::Windowed(bounds)) = options.window_bounds else {
@@ -504,7 +789,11 @@ mod tests {
 
     #[test]
     fn a_flyout_the_system_places_opens_at_its_panel_size() {
-        let options = window_options(FlyoutPlacement::CompositorPlaced, panel(613.));
+        let options = window_options(
+            FlyoutPlacement::CompositorPlaced,
+            panel(613.),
+            Language::French,
+        );
         assert_eq!(options.display_id, None);
         assert_eq!(options.kind, WindowKind::PopUp);
         assert_eq!(
@@ -518,10 +807,71 @@ mod tests {
 
     #[test]
     fn without_a_tray_the_flyout_opens_in_an_ordinary_window() {
-        let options = window_options(FlyoutPlacement::Window, panel(613.));
+        let options = window_options(FlyoutPlacement::Window, panel(613.), Language::French);
         assert_eq!(options.kind, WindowKind::Normal);
         assert!(options.is_minimizable);
-        assert!(options.titlebar.is_some());
+        assert_eq!(
+            options.titlebar.and_then(|titlebar| titlebar.title),
+            Some("Bientôt".into())
+        );
+    }
+
+    #[test]
+    fn without_a_tray_host_the_app_shows_itself_in_a_window() {
+        assert_eq!(switch(TrayHost::Absent, Shown::Nothing), Switch::Open);
+        assert_eq!(switch(TrayHost::Absent, Shown::Flyout), Switch::Reopen);
+        for active in [true, false] {
+            assert_eq!(
+                switch(TrayHost::Absent, Shown::Window { active }),
+                Switch::Keep
+            );
+        }
+    }
+
+    #[test]
+    fn a_tray_host_that_appears_turns_the_window_into_the_flyout_or_the_icon() {
+        assert_eq!(
+            switch(TrayHost::Present, Shown::Window { active: true }),
+            Switch::Reopen
+        );
+        assert_eq!(
+            switch(TrayHost::Present, Shown::Window { active: false }),
+            Switch::Close
+        );
+        assert_eq!(switch(TrayHost::Present, Shown::Flyout), Switch::Keep);
+        assert_eq!(switch(TrayHost::Present, Shown::Nothing), Switch::Keep);
+    }
+
+    #[test]
+    fn only_a_tray_icon_keeps_the_app_running_without_a_window() {
+        assert_eq!(quit_mode(TrayHost::Present), QuitMode::Explicit);
+        assert_eq!(quit_mode(TrayHost::Absent), QuitMode::Default);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_layer_surface_is_anchored_to_its_corner_on_the_layer_above_windows() {
+        use gpui::layer_shell::{Anchor, KeyboardInteractivity, Layer};
+
+        let options = window_options(
+            FlyoutPlacement::Layer {
+                corner: Corner::BottomLeft,
+                margin: 12,
+            },
+            panel(613.),
+            Language::French,
+        );
+        let WindowKind::LayerShell(layer) = options.kind else {
+            panic!("a layer surface");
+        };
+        assert_eq!(layer.anchor, Anchor::BOTTOM | Anchor::LEFT);
+        assert_eq!(layer.layer, Layer::Top);
+        assert_eq!(layer.margin, Some((px(12.), px(12.), px(12.), px(12.))));
+        assert_eq!(
+            layer.keyboard_interactivity,
+            KeyboardInteractivity::OnDemand
+        );
+        assert_eq!(layer.namespace, "bientot-flyout");
     }
 
     #[test]

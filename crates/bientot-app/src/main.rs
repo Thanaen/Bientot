@@ -33,7 +33,7 @@ use bientot_platform::power_history::{PowerHistoryReader, RECORD_LIMIT};
 use bientot_platform::session_history::{self, SessionHistoryReader};
 use bientot_platform::single_instance::{Acquired, InstanceLock};
 use bientot_platform::startup::LaunchIntent;
-use bientot_platform::tray::{Tray, TrayHost};
+use bientot_platform::tray::Tray;
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::data_migration::{Location, Migration};
 use bientot_store::settings::{LoadedSettings, SettingsSource, SettingsStore};
@@ -217,7 +217,7 @@ fn run_on(
         directory,
         launch: &launch,
     })?;
-    let quit_mode = quit_mode(platform.tray.host());
+    let quit_mode = shell::quit_mode(platform.tray.host());
     // A demo reads its settings as it opens.
     let loaded = match launch.demo {
         Some(_) => None,
@@ -301,14 +301,6 @@ fn run_on(
         );
     };
     Ok((quit_mode, boot))
-}
-
-/// A tray icon keeps the app running after its flyout, the only window, closes.
-fn quit_mode(tray: TrayHost) -> QuitMode {
-    match tray {
-        TrayHost::Present => QuitMode::Explicit,
-        TrayHost::Absent => QuitMode::Default,
-    }
 }
 
 /// What the app opens on: the day, or on a first run the onboarding, with the settings read and
@@ -474,7 +466,8 @@ fn show(
     attach(started.ports, started.lifecycle, started.toast_clicks, cx);
     // After the tray: its window owns the Store's prompts.
     updates::start(update_source, cx);
-    if open_flyout {
+    // Without a tray icon nothing else shows the app, even started at sign-in.
+    if open_flyout || shell::window_mode(cx) {
         shell::open_flyout(cx);
     }
     if let Some(host) = cx.global_mut::<Today>().live() {

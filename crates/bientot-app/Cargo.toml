@@ -55,8 +55,10 @@ bientot-store = { path = "../bientot-store" }
 bientot-windows = { path = "../bientot-windows" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-# The tray (`platform::linux`); the other Linux ports are not wired yet.
+# The tray and the flyout's placement (`platform::linux`); the other Linux ports are not wired yet.
 bientot-linux = { path = "../bientot-linux" }
+# Names the flyout's X11 window, which `bientot-linux` moves and focuses: the version GPUI builds.
+raw-window-handle = "0.6"
 # Without these backends GPUI runs its headless platform on Linux and opens no window. They link
 # libxkbcommon and libxkbcommon-x11.
 gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform", features = ["wayland", "x11"] }
@@ -99,3 +101,7 @@ tempfile = "3.27.0"
 # The usage signal's test names the error that comes out of ureq's rustls.
 [target.'cfg(not(windows))'.dev-dependencies]
 rustls = { version = "0.23", default-features = false }
+
+# The desktop harness reads where the flyout opens on X11 (tests/desktop_harness_flyout.rs).
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+x11rb = "0.13.2"

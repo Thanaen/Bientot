@@ -1,6 +1,6 @@
 //! `app-state.json`: what WorkTime remembers between launches that is not a setting: the local
-//! date of the last usage signal the service recorded, and the flyout callouts the user closed
-//! today. The .NET app has no such file.
+//! date of the last usage signal the service recorded, the flyout callouts the user closed
+//! today, and whether the user closed the notice of window mode. The .NET app has no such file.
 
 use std::fs;
 use std::io;
@@ -14,12 +14,17 @@ use crate::file;
 
 const USAGE_PING_LAST_SENT: &str = "usagePingLastSent";
 const CLOSED_CALLOUTS: &str = "closedCallouts";
+const WINDOW_MODE_NOTICE_DISMISSED: &str = "windowModeNoticeDismissed";
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AppState {
     /// The local date of the last usage signal the service answered with `204`.
     pub usage_ping_last_sent: Option<Date>,
     pub closed_callouts: ClosedCallouts,
+    /// The user closed the notice that says why Bientôt runs in a window, on a Linux desktop
+    /// without a tray (FR-012). Written only once true, so that Windows, which never sets it,
+    /// writes the file it always wrote and keeps the key it reads.
+    pub window_mode_notice_dismissed: bool,
 }
 
 /// The callouts of the flyout the user closed on `date`: the automatic counts by their
@@ -146,6 +151,9 @@ impl AppStateStore {
                 }),
             );
         }
+        if state.window_mode_notice_dismissed {
+            object.insert(WINDOW_MODE_NOTICE_DISMISSED.to_owned(), Value::Bool(true));
+        }
         let mut text = serde_json::to_string_pretty(&Value::Object(object))?;
         text.push('\n');
         file::replace(&self.path, text.as_bytes())
@@ -161,6 +169,10 @@ fn parse(bytes: &[u8]) -> Option<AppState> {
             .get(CLOSED_CALLOUTS)
             .and_then(closed_callouts)
             .unwrap_or_default(),
+        window_mode_notice_dismissed: object
+            .get(WINDOW_MODE_NOTICE_DISMISSED)
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
     })
 }
 

@@ -128,7 +128,9 @@ A green Linux run does not prove these:
   looks for a passed pull request run that built the same tree and, if found,
   skips the other jobs.
 - **Rust** (Ubuntu) checks formatting, lints and tests the Cargo workspace,
-  then lints it for Windows with `scripts/lint-windows.sh`.
+  runs its desktop tests in headless X11 and Wayland sessions
+  (`scripts/linux-desktop-harness.sh`), then lints it for Windows with
+  `scripts/lint-windows.sh`.
 - **GPUI screenshots** (Ubuntu) renders the screenshots when the app crate
   changes, beside **Rust**. **Publish screenshots** pushes them to the
   `refs/ci-screenshots/<pull request>` ref (not a branch, so Vercel ignores it)
