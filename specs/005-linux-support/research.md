@@ -726,6 +726,158 @@ platform-neutral (T182).
   text reuses `packaging/store/listing.json`. Desktop entry with
   `StartupWMClass` and the app id; icons 64, 128, 256 and scalable.
 
+## Spike results (Lot 4)
+
+### Headless, 26 November 2026
+
+Run on 26 November 2026 on `main` at `3f55a0a` plus Lot 4, with
+`crates/bientot-linux/examples/shell-spike.rs` started in
+`scripts/linux-desktop-harness.sh`. The spike logs to standard error what it
+receives: `Activate` and its coordinates, the bounds asked for and given, the
+window's activation, keys, clicks inside, and why the window closed. A second
+X11 connection reports the window's position on the root window and which
+window holds the input focus. The harness clicks the item with
+`busctl --user call <item> /StatusNotifierItem org.kde.StatusNotifierItem
+Activate ii <x> <y>`, or a real host clicks it.
+
+Every result below is **Run**, in headless sessions only: Xvfb with openbox
+3.6, Mutter 46.2 as an X11 window manager and as a headless Wayland
+compositor (without GNOME Shell), and sway 1.9 headless. The real
+StatusNotifier hosts were xfce4-panel 4.18's systray on X11 and waybar
+0.9.24's tray on sway. Input came from `xdotool` (X11), and on sway from a
+virtual pointer that stays for the whole run and from `wtype`. None of these
+is a Tier 1 desktop. A-1 to A-5 stay assumptions until the desktop passes
+(T041 to T044). The logs and screenshots are kept with the maintainer's
+project files, not in this repository.
+
+**What GPUI 0.3.9 does, seen in the runs** (**Code**, then **Run**):
+
+- X11 `PopUp` asks the X server for the requested origin plus 2 px in x
+  (`x11/window.rs`, `create_window`). Asked for 1548, 668, the window sits
+  at 1550, 668 in every run.
+- `Window::activate_window` on X11 sends `_NET_ACTIVE_WINDOW` to the root
+  window and nothing else (`x11/window.rs`, `activate`). A window manager
+  ignores that message for an override-redirect window, and GPUI never
+  calls `SetInputFocus`.
+- GPUI reports every X11 `FocusOut` as a deactivation, whatever its mode
+  and detail (`x11/client.rs`, `Event::FocusOut`).
+- Without a compositing manager, X11 `WindowDecorations::Client` falls back
+  to server decorations (`request_decorations`). An undecorated window
+  needs `_MOTIF_WM_HINTS` set by the app.
+- No public call moves a window once it is open: `Window` has `resize`
+  only. The X11 window id is reachable through
+  `raw_window_handle::HasWindowHandle` (an XCB handle), so
+  `bientot-linux` can move and focus the window with `x11rb`.
+- On Wayland, `activate_window` asks for an activation token of its own,
+  from the last pointer press in the app. It cannot use a token that a tray
+  host hands over (`ksni::current_xdg_activation_token`).
+- On Wayland, `primary_display()` is always `None`; `displays()` lists the
+  outputs.
+- `open_window` with `WindowKind::LayerShell` fails with « Compositor
+  doesn't support zwlr_layer_shell_v1 » on Mutter.
+
+**A-1, X11 override-redirect flyout.**
+
+- As GPUI opens it, the `PopUp` never gets the keyboard focus. This is the
+  case under openbox and under Mutter, for 5 opens out of 5 on each. The
+  input focus stays on the window that had it, GPUI reports no activation
+  within 500 ms, and Esc and clicks outside do nothing. Only a second click
+  on the tray item closes it.
+- When the spike calls `SetInputFocus` on the window right after
+  `open_window`, GPUI reports the activation at once. Esc then closes the
+  flyout and keys reach it. A click in another window deactivates it, and a
+  click inside does not. A click on the bare root window deactivates it
+  under openbox but not under Mutter.
+- The fallback is an undecorated `Normal` window with skip-taskbar,
+  skip-pager and above, set by the app with `x11rb`. Both window managers
+  focus it on map. Openbox first centres it, then honours a move to the
+  computed bounds exactly, without the 2 px. Esc and a click in another
+  window close it. Under Mutter it got a `FocusIn` and then a `FocusOut`
+  within 3 ms at map on 3 opens out of 5, while the X input focus stayed on
+  it, so GPUI reported a deactivation and the flyout closed at once. A
+  `Normal` window without those properties and without the move had no such
+  flap (0 of 5).
+- Headless conclusion: GPUI's `PopUp` alone fails A-1 under both window
+  managers, and `PopUp` plus `SetInputFocus` from `bientot-linux` passes
+  under both. T041 decides on Cinnamon (Muffin) and Xfce (xfwm4) or GNOME on
+  Xorg. It also checks two cases the harness lacks: a window manager that
+  takes the focus back, and the desktop window that Nemo or Nautilus put
+  over the root.
+
+**A-2, work area on X11.**
+
+- Openbox alone publishes the whole screen as `_NET_WORKAREA`. With
+  xfce4-panel 33 px tall at the bottom, `_NET_WORKAREA` is 0, 0, 1920,
+  1047, and the flyout opens in the bottom right corner, 12 px from both
+  edges. With the panel at the top, it is 0, 33, 1920, 1047, and the flyout
+  opens 12 px below the panel.
+- With two RandR monitors (`xrandr --setmonitor`, 960 px each) and the
+  panel on the left one only, `_NET_WORKAREA` stays one rectangle over the
+  whole root window, minus the panel's height across both monitors. The
+  flyout opens correctly on the left monitor. On the right monitor the clip
+  would give 960 × 1047, 33 px short at the bottom, where no panel is. That
+  is the known limit of `_NET_WORKAREA` with several monitors. A per-monitor
+  work area would need Mutter's `_GTK_WORKAREAS_D<n>` or the panels'
+  `_NET_WM_STRUT_PARTIAL`.
+- Xvfb lists the whole screen as a third monitor next to the two set with
+  `--setmonitor`, and marks no monitor primary. The monitor under the
+  click, first in RandR's order, is the one used.
+- T042 decides on real machines with two monitors.
+
+**A-3, layer-shell `OnDemand` on sway.**
+
+- The surface opens in the corner asked for, with 12 px margins, on layer
+  `Top`. It does not take the keyboard focus at map, even after
+  `activate_window`. It takes it when the pointer enters it (sway focuses
+  under the pointer by default) or when the user clicks it.
+- Once it has the focus, a click in another window or a focus change by
+  `swaymsg` deactivates it, and it closes. If the pointer never entered it,
+  a click elsewhere leaves it open, because it never had the focus to lose
+  (waybar run).
+- With `KeyboardInteractivity::Exclusive`, the surface has the focus at
+  map, keys reach it, and a click in another window still deactivates it on
+  sway 1.9.
+- Esc is not verified. The headless seat has no keyboard of its own: each
+  `wtype` adds a virtual keyboard and removes it, and sway then hands the
+  focus back to the focused toplevel. So no key reaches a layer surface in
+  the harness.
+- On sway, a compositor-placed toplevel is tiled (956 × 1053 next to the
+  terminal), not shown at the flyout's size.
+- Mutter offers no layer-shell. The compositor-placed row must therefore
+  catch the failed `open_window`.
+- T043 decides on KDE Plasma 6, sway on hardware and Hyprland if at hand,
+  and whether `Exclusive` is the better choice there.
+
+**A-4, Mutter's placement.** Not measured. Headless Mutter on Wayland has
+no input device, so no window becomes active, and no Wayland client can
+read its own position. GPUI opens the toplevel at the size asked for. As a
+hint only: Mutter 46 as an X11 window manager, without GNOME Shell, put the
+undecorated `Normal` window at 100, 490, under the only other window and
+against the left edge. It did not centre it. T044 decides.
+
+**A-5, `Activate` coordinates.**
+
+- xfce4-panel on X11 sends the pointer's root-window coordinates of the
+  click: 1909, 1064 for an icon centred there at the bottom, 1909, 16 at
+  the top, and 949, 1064 on the left monitor.
+- waybar on sway sends the pointer's position on the output, not 0, 0:
+  1899, 14 with the bar at the top and 1899, 1064 with the bar at the
+  bottom, so the position is not relative to the bar. With one output at
+  0, 0, the layout and output coordinates are the same. Several outputs
+  were not tried.
+- `contracts/linux-backends.md` sets `at` to `None` for every Wayland
+  session, and so drops a position waybar gives. T043 decides with KWin's
+  host before the contract changes.
+- KDE's and GNOME's watchers always answer `IsStatusNotifierHostRegistered`
+  with true (ksni's comment in `service.rs`). So `Error::WontShow` cannot
+  tell the app that no host exists; a missing watcher can (T051).
+- Both hosts list the item as `<bus name>/StatusNotifierItem`.
+
+Other observations. One cold start under Xvfb took 6.2 s from `Activate` to
+the first frame; later opens took 150 to 350 ms. On sway, Mesa writes
+« MESA: error: ZINK: failed to choose pdev » to standard error, and the
+window still draws.
+
 ## Assumptions and the tasks that settle them
 
 | Id | Assumption | Task |
