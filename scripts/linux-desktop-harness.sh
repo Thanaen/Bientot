@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs a command in a throwaway Linux desktop session, as a hosted runner can offer one: a private
-# D-Bus session bus and system bus, python-dbusmock's logind and notification server, and a display
-# server.
+# D-Bus session bus and system bus, python-dbusmock's logind and notification server, a
+# StatusNotifierWatcher (crates/bientot-linux/tests/support/status_notifier_watcher.py), and a
+# display server.
 #
 #   x11      Xvfb with openbox, which gives a work area and focus.
 #   wayland  sway with WLR_BACKENDS=headless, which offers layer-shell and ext-idle-notify.
@@ -9,10 +10,9 @@
 # Usage: scripts/linux-desktop-harness.sh {x11|wayland} [command...]
 #
 # Without a command it runs the desktop integration tests: the ignored tests whose name holds
-# `desktop_harness`, marked `#[ignore = "desktop-harness"]`. There are none yet. The test
-# StatusNotifier host comes with the Linux crate (Lot 4) and the mock of Mutter's idle monitor,
-# which python-dbusmock has no template for, with the idle tests (Lot 7). CI runs the headless start
-# in the x11 session (scripts/measure-performance.sh).
+# `desktop_harness`, marked `#[ignore = "desktop-harness"]`. There are none yet. The mock of
+# Mutter's idle monitor, which python-dbusmock has no template for, comes with the idle tests
+# (Lot 7). CI runs the headless start in the x11 session (scripts/measure-performance.sh).
 #
 # Needs dbus-run-session, python3-dbusmock, and Xvfb and openbox or sway.
 set -euo pipefail
@@ -77,8 +77,12 @@ python=${HARNESS_PYTHON:-/usr/bin/python3}
 pids+=("$!")
 "$python" -m dbusmock --template notification_daemon > "$work/notifications.log" 2>&1 &
 pids+=("$!")
+"$python" -m dbusmock --template "$(dirname "$0")/../crates/bientot-linux/tests/support/status_notifier_watcher.py" \
+  > "$work/status-notifier-watcher.log" 2>&1 &
+pids+=("$!")
 wait_for "the logind mock" has_name system org.freedesktop.login1
 wait_for "the notification mock" has_name session org.freedesktop.Notifications
+wait_for "the StatusNotifierWatcher mock" has_name session org.kde.StatusNotifierWatcher
 
 case $session in
   x11)

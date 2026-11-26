@@ -1,0 +1,26 @@
+[package]
+name = "bientot-linux"
+description = "Bientôt's Linux integration. For now the work area of an X11 desktop and the tray and flyout spike of Lot 4 (specs/005-linux-support); the rules stay platform independent and tested on any OS, and only the system calls behind them are Linux only."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+bientot-platform = { path = "../bientot-platform" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# The StatusNotifierItem tray (research.md, R4), on the zbus and async-io GPUI's portals already
+# build, not on Tokio. `blocking` runs the item on a thread of its own.
+ksni = { version = "0.3.7", default-features = false, features = ["async-io", "blocking"] }
+# The version GPUI builds. `randr` names the monitors for the flyout's work area, `screensaver`
+# reads the idle time on X11 (Lot 7).
+x11rb = { version = "0.13.2", features = ["randr", "screensaver"] }
+
+# The spike (examples/shell-spike.rs) opens GPUI windows; nothing it uses is shipped.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+futures = "0.3"
+gpui = { version = "=0.3.9", package = "gpui-pre" }
+gpui_platform = { version = "=0.3.9", package = "gpui-pre-platform", features = ["wayland", "x11"] }
+raw-window-handle = "0.6"
