@@ -32,10 +32,14 @@ pub fn read_x11_desktop(display: Option<&str>) -> Result<X11Desktop, Box<dyn Err
     let (connection, screen) = RustConnection::connect(display)?;
     let root_screen = &connection.setup().roots[screen];
     let root = root_screen.root;
-    let mut monitors: Vec<Monitor> = connection
-        .randr_get_monitors(root, true)?
-        .reply()?
-        .monitors
+    // A server without RandR 1.5, as some VNC and XRDP servers are, falls back to the root screen.
+    let randr_monitors = connection
+        .randr_get_monitors(root, true)
+        .ok()
+        .and_then(|cookie| cookie.reply().ok())
+        .map(|reply| reply.monitors)
+        .unwrap_or_default();
+    let mut monitors: Vec<Monitor> = randr_monitors
         .iter()
         .map(|monitor| Monitor {
             bounds: Rect {

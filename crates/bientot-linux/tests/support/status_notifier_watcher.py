@@ -28,8 +28,9 @@ def load(mock, parameters):
 
 @dbus.service.method(MAIN_IFACE, in_signature="s", sender_keyword="sender")
 def RegisterStatusNotifierItem(self, service, sender):
-    # An item names its bus name, or only its object path on its sender's connection.
-    item = service if not service.startswith("/") else sender + service
+    # An item names its bus name, or only its object path on its sender's connection. Like
+    # Plasma's watcher, a bare bus name is listed with the item's standard path.
+    item = sender + service if service.startswith("/") else service + "/StatusNotifierItem"
     items = list(self.Get(MAIN_IFACE, "RegisteredStatusNotifierItems"))
     if item not in items:
         items.append(item)
