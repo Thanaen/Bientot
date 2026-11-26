@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use bientot_platform::placement::{Desktop, FlyoutPlacement, Rect};
+use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Rect};
 use bientot_platform::tray::{ScreenPoint, TrayHost};
 use gpui::{
     App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, Size, TitlebarOptions,
@@ -186,8 +186,8 @@ fn window_options(placement: FlyoutPlacement, panel: Size<Pixels>) -> WindowOpti
         ..Default::default()
     };
     match placement {
-        FlyoutPlacement::At { work_area } => {
-            let client = flyout_bounds(bounds(work_area.bounds), panel, work_area.scale);
+        FlyoutPlacement::At { work_area, corner } => {
+            let client = flyout_bounds(bounds(work_area.bounds), corner, panel, work_area.scale);
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(logical_bounds(
                     client,
@@ -300,8 +300,13 @@ impl Fitted {
 pub fn fit_window(window: &mut Window, content: Size<Pixels>, cx: &App) {
     *LAST_PANEL.lock().unwrap() = Some(content);
     match placement(cx) {
-        FlyoutPlacement::At { work_area } => {
-            let client = flyout_bounds(bounds(work_area.bounds), content, window.scale_factor());
+        FlyoutPlacement::At { work_area, corner } => {
+            let client = flyout_bounds(
+                bounds(work_area.bounds),
+                corner,
+                content,
+                window.scale_factor(),
+            );
             platform::place_window(window, client);
         }
         FlyoutPlacement::Layer { .. }
@@ -325,19 +330,26 @@ pub fn panel_max_height(height: i32, scale: f32) -> Pixels {
 }
 
 /// The client rectangle the panel of `panel` logical size fills in `work_area`, in physical
-/// pixels at `scale`: in its bottom right corner, MARGIN from the edges, and no higher than
-/// MARGIN below its top.
-pub fn flyout_bounds(work_area: Bounds<i32>, panel: Size<Pixels>, scale: f32) -> Bounds<i32> {
+/// pixels at `scale`: in its `corner`, MARGIN from the edges, and no taller than the work area
+/// leaves room for with MARGIN at both ends.
+pub fn flyout_bounds(
+    work_area: Bounds<i32>,
+    corner: Corner,
+    panel: Size<Pixels>,
+    scale: f32,
+) -> Bounds<i32> {
     let width = (f32::from(panel.width) * scale).round() as i32;
     let tallest = work_area.size.height - 2 * MARGIN;
     let height = ((f32::from(panel.height) * scale).round() as i32).min(tallest);
-    Bounds::new(
-        point(
-            work_area.right() - width - MARGIN,
-            work_area.bottom() - height - MARGIN,
-        ),
-        size(width, height),
-    )
+    let x = match corner {
+        Corner::TopLeft | Corner::BottomLeft => work_area.left() + MARGIN,
+        Corner::TopRight | Corner::BottomRight => work_area.right() - width - MARGIN,
+    };
+    let y = match corner {
+        Corner::TopLeft | Corner::TopRight => work_area.top() + MARGIN,
+        Corner::BottomLeft | Corner::BottomRight => work_area.bottom() - height - MARGIN,
+    };
+    Bounds::new(point(x, y), size(width, height))
 }
 
 /// How far each edge of a window lies outside its client rectangle, in physical pixels.
@@ -375,7 +387,7 @@ mod tests {
     #[test]
     fn a_flyout_that_fits_sits_in_the_corner_above_the_taskbar() {
         assert_eq!(
-            flyout_bounds(area(0, 0, 1920, 1032), panel(600.), 1.),
+            flyout_bounds(area(0, 0, 1920, 1032), Corner::BottomRight, panel(600.), 1.),
             Bounds::new(point(1548, 420), size(360, 600)),
         );
     }
@@ -383,7 +395,12 @@ mod tests {
     #[test]
     fn a_flyout_taller_than_a_short_work_area_keeps_its_panel_a_margin_below_the_top() {
         // 1366 × 768 at 125 %, above a taskbar of 60 physical pixels.
-        let bounds = flyout_bounds(area(0, 0, 1366, 708), panel(700.), 1.25);
+        let bounds = flyout_bounds(
+            area(0, 0, 1366, 708),
+            Corner::BottomRight,
+            panel(700.),
+            1.25,
+        );
         assert_eq!(bounds, Bounds::new(point(904, 12), size(450, 684)));
         assert_eq!(bounds.bottom(), 708 - 12);
     }
@@ -393,7 +410,12 @@ mod tests {
         let tallest = panel_max_height(708, 1.25);
         assert_eq!(tallest, px(547.2));
         assert_eq!(
-            flyout_bounds(area(0, 0, 1366, 708), panel(f32::from(tallest)), 1.25),
+            flyout_bounds(
+                area(0, 0, 1366, 708),
+                Corner::BottomRight,
+                panel(f32::from(tallest)),
+                1.25
+            ),
             Bounds::new(point(904, 12), size(450, 684)),
         );
     }
@@ -414,13 +436,44 @@ mod tests {
     #[test]
     fn a_taskbar_at_the_top_or_on_the_left_leaves_the_flyout_in_the_bottom_right_corner() {
         assert_eq!(
-            flyout_bounds(area(0, 48, 1920, 1080), panel(2000.), 1.),
+            flyout_bounds(
+                area(0, 48, 1920, 1080),
+                Corner::BottomRight,
+                panel(2000.),
+                1.
+            ),
             Bounds::new(point(1548, 60), size(360, 1008)),
         );
         assert_eq!(
-            flyout_bounds(area(48, 0, 1920, 1080), panel(600.), 1.),
+            flyout_bounds(
+                area(48, 0, 1920, 1080),
+                Corner::BottomRight,
+                panel(600.),
+                1.
+            ),
             Bounds::new(point(1548, 468), size(360, 600)),
         );
+    }
+
+    #[test]
+    fn a_panel_at_the_top_holds_the_flyout_a_margin_below_it_in_the_corner_of_the_click() {
+        // xfce4-panel, 33 px tall at the top of a 1920 × 1080 screen (research.md, A-2).
+        let work_area = area(0, 33, 1920, 1080);
+        assert_eq!(
+            flyout_bounds(work_area, Corner::TopRight, panel(600.), 1.),
+            Bounds::new(point(1548, 45), size(360, 600)),
+        );
+        assert_eq!(
+            flyout_bounds(work_area, Corner::TopLeft, panel(600.), 1.),
+            Bounds::new(point(12, 45), size(360, 600)),
+        );
+        assert_eq!(
+            flyout_bounds(work_area, Corner::BottomLeft, panel(600.), 1.),
+            Bounds::new(point(12, 468), size(360, 600)),
+        );
+        let tall = flyout_bounds(work_area, Corner::TopRight, panel(2000.), 1.);
+        assert_eq!(tall, Bounds::new(point(1548, 45), size(360, 1023)));
+        assert_eq!(tall.bottom(), 1080 - 12);
     }
 
     #[test]
@@ -431,7 +484,7 @@ mod tests {
             (area(-2560, 0, 0, 1392), 1.5),
             (area(0, 0, 1920, 1032), 1.),
         ] {
-            let fitted = flyout_bounds(work_area, panel(613.), scale);
+            let fitted = flyout_bounds(work_area, Corner::BottomRight, panel(613.), scale);
             let opening = logical_bounds(fitted, scale).to_device_pixels(scale);
             assert_eq!(
                 Bounds::new(
@@ -486,7 +539,13 @@ mod tests {
             },
             scale: 1.5,
         };
-        let options = window_options(FlyoutPlacement::At { work_area }, panel(613.));
+        let options = window_options(
+            FlyoutPlacement::At {
+                work_area,
+                corner: Corner::BottomRight,
+            },
+            panel(613.),
+        );
         assert_eq!(options.display_id, Some(DisplayId::new(7)));
         assert_eq!(options.kind, WindowKind::PopUp);
         let Some(WindowBounds::Windowed(bounds)) = options.window_bounds else {

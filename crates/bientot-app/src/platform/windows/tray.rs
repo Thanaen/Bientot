@@ -7,7 +7,7 @@
 use std::cell::{Cell, RefCell};
 use std::num::NonZeroIsize;
 
-use bientot_platform::placement::{Desktop, FlyoutPlacement, Rect, WorkArea};
+use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Rect, WorkArea};
 use bientot_platform::tray::{
     MenuEntry, ScreenPoint, Tray, TrayEvent, TrayHost, TrayState, item_id,
 };
@@ -268,7 +268,10 @@ impl Desktop for TaskbarCorner {
     /// GPUI puts it. The notification area is always there.
     fn flyout_placement(&self, click: Option<ScreenPoint>, _tray: TrayHost) -> FlyoutPlacement {
         match clicked_monitor(click) {
-            Some(work_area) => FlyoutPlacement::At { work_area },
+            Some(work_area) => FlyoutPlacement::At {
+                work_area,
+                corner: Corner::BottomRight,
+            },
             None => FlyoutPlacement::CompositorPlaced,
         }
     }
