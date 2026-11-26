@@ -1,11 +1,11 @@
 //! Session lock and unlock, suspend and resume, from logind (research.md, R7;
 //! contracts/linux-backends.md, « Lock, sleep, session: logind »).
 //!
-//! logind reports the session's `LockedHint` and `Active` and the manager's `PrepareForSleep`
-//! and `PrepareForShutdown`. A desktop that never sets `LockedHint` may still announce its lock
-//! screen through the screensaver's `ActiveChanged`. [`SessionTracker`] turns these signals into
-//! the four changes Windows records and no other; `LogindSource`, on Linux, receives them on a
-//! thread of its own and finds the session of this process.
+//! logind reports the session's `LockedHint` and `Active` and the manager's `PrepareForSleep`.
+//! A desktop that never sets `LockedHint` may still announce its lock screen through the
+//! screensaver's `ActiveChanged`. [`SessionTracker`] turns these signals into the four changes
+//! Windows records and no other; `LogindSource`, on Linux, receives them on a thread of its own
+//! and finds the session of this process.
 
 #[cfg(target_os = "linux")]
 mod native;
@@ -30,7 +30,6 @@ pub enum Signal {
     /// `ActiveChanged` of `org.freedesktop.ScreenSaver` or `org.gnome.ScreenSaver`.
     ScreenSaverActive(bool),
     PrepareForSleep(bool),
-    PrepareForShutdown(bool),
 }
 
 /// The session as read once, when the observation starts.
@@ -40,14 +39,6 @@ pub struct SessionReadings {
     pub active: bool,
     /// The screensaver's `GetActive`; `None` when no screensaver answers.
     pub screensaver: Option<bool>,
-}
-
-/// What a signal does to the observation.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Step {
-    Changed(LifecycleChange),
-    /// The system is shutting down: no change follows.
-    Ended,
 }
 
 /// Which signal tells whether the screen is locked.
@@ -132,7 +123,7 @@ impl SessionTracker {
         }
     }
 
-    pub fn apply(&mut self, signal: Signal) -> Option<Step> {
+    pub fn apply(&mut self, signal: Signal) -> Option<LifecycleChange> {
         match signal {
             Signal::SessionChanged {
                 locked_hint,
@@ -151,14 +142,12 @@ impl SessionTracker {
                 } else {
                     PowerState::Active
                 };
-                (replace(&mut self.power, power) != power)
-                    .then_some(Step::Changed(LifecycleChange::Power(power)))
+                (replace(&mut self.power, power) != power).then_some(LifecycleChange::Power(power))
             }
-            Signal::PrepareForShutdown(shutting_down) => shutting_down.then_some(Step::Ended),
         }
     }
 
-    fn update_session(&mut self, active: bool, lock: LockSignal) -> Option<Step> {
+    fn update_session(&mut self, active: bool, lock: LockSignal) -> Option<LifecycleChange> {
         if (active, lock) == (self.active, self.lock) {
             return None;
         }
@@ -166,7 +155,7 @@ impl SessionTracker {
         self.lock = lock;
         let session = session_state(active, lock);
         (replace(&mut self.reported, session) != session)
-            .then_some(Step::Changed(LifecycleChange::Session(session)))
+            .then_some(LifecycleChange::Session(session))
     }
 }
 

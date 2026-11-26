@@ -167,10 +167,10 @@ impl LifecycleListener for Ears {
     }
 }
 
-/// What the watch hands its listener until it ends.
-fn heard_until_ended(received: &mpsc::Receiver<Delivery>) -> Vec<Heard> {
+/// The first `count` things the watch hands its listener.
+fn heard(received: &mpsc::Receiver<Delivery>, count: usize) -> Vec<Heard> {
     let mut heard = Vec::new();
-    loop {
+    while heard.len() < count {
         match received.recv_timeout(WAIT) {
             Ok(Some(transition)) => {
                 assert_eq!(
@@ -179,13 +179,11 @@ fn heard_until_ended(received: &mpsc::Receiver<Delivery>) -> Vec<Heard> {
                 );
                 heard.push(Heard::Changed(transition.change));
             }
-            Ok(None) => {
-                heard.push(Heard::Ended);
-                return heard;
-            }
+            Ok(None) => heard.push(Heard::Ended),
             Err(error) => panic!("the watch went quiet after {heard:?}: {error}"),
         }
     }
+    heard
 }
 
 fn watch(
@@ -251,7 +249,7 @@ fn desktop_harness_finds_the_session_of_the_process_then_of_xdg_session_id_then_
 
 #[test]
 #[ignore = "desktop-harness"]
-fn desktop_harness_reports_lock_switch_sleep_and_resume_of_the_session_and_ends_at_shutdown() {
+fn desktop_harness_reports_lock_switch_sleep_and_resume_of_the_session_through_a_failed_shutdown() {
     let _turn = TURN.lock().unwrap_or_else(PoisonError::into_inner);
     let logind = Logind::connect();
     let session = logind.add_session("w5101", true);
@@ -269,25 +267,24 @@ fn desktop_harness_reports_lock_switch_sleep_and_resume_of_the_session_and_ends_
     logind.set(&session, &[("LockedHint", false), ("Active", true)]);
     logind.emit("PrepareForSleep", true);
     logind.emit("PrepareForSleep", false);
-    logind.emit("PrepareForShutdown", false);
     logind.emit("PrepareForShutdown", true);
+    logind.emit("PrepareForShutdown", false);
+    logind.set(&session, &[("LockedHint", true)]);
 
-    use Heard::{Changed, Ended};
+    use Heard::Changed;
     use LifecycleChange::{Power, Session};
-    assert_eq!(
-        heard_until_ended(&received),
-        [
-            Changed(Session(SessionState::Locked)),
-            Changed(Session(SessionState::Unlocked)),
-            Changed(Session(SessionState::Locked)),
-            Changed(Session(SessionState::Unlocked)),
-            Changed(Session(SessionState::Locked)),
-            Changed(Session(SessionState::Unlocked)),
-            Changed(Power(PowerState::Suspended)),
-            Changed(Power(PowerState::Active)),
-            Ended,
-        ]
-    );
+    let expected = [
+        Changed(Session(SessionState::Locked)),
+        Changed(Session(SessionState::Unlocked)),
+        Changed(Session(SessionState::Locked)),
+        Changed(Session(SessionState::Unlocked)),
+        Changed(Session(SessionState::Locked)),
+        Changed(Session(SessionState::Unlocked)),
+        Changed(Power(PowerState::Suspended)),
+        Changed(Power(PowerState::Active)),
+        Changed(Session(SessionState::Locked)),
+    ];
+    assert_eq!(heard(&received, expected.len()), expected);
 }
 
 /// The screensaver of a desktop that never sets `LockedHint`, on the session bus.
@@ -338,20 +335,16 @@ fn desktop_harness_takes_the_lock_from_the_screensaver_until_locked_hint_is_seen
     screensaver_active(false);
     logind.set(&session, &[("LockedHint", false)]);
     screensaver_active(true);
-    logind.emit("PrepareForShutdown", true);
 
-    use Heard::{Changed, Ended};
+    use Heard::Changed;
     use LifecycleChange::Session;
-    assert_eq!(
-        heard_until_ended(&received),
-        [
-            Changed(Session(SessionState::Locked)),
-            Changed(Session(SessionState::Unlocked)),
-            Changed(Session(SessionState::Locked)),
-            Changed(Session(SessionState::Unlocked)),
-            Ended,
-        ]
-    );
+    let expected = [
+        Changed(Session(SessionState::Locked)),
+        Changed(Session(SessionState::Unlocked)),
+        Changed(Session(SessionState::Locked)),
+        Changed(Session(SessionState::Unlocked)),
+    ];
+    assert_eq!(heard(&received, expected.len()), expected);
     assert_eq!(source.snapshot(), live(SessionState::Unlocked));
 }
 

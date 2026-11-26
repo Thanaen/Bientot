@@ -1,13 +1,9 @@
 use super::*;
 
-const LOCKED: Option<Step> = Some(Step::Changed(LifecycleChange::Session(
-    SessionState::Locked,
-)));
-const UNLOCKED: Option<Step> = Some(Step::Changed(LifecycleChange::Session(
-    SessionState::Unlocked,
-)));
-const SUSPENDED: Option<Step> = Some(Step::Changed(LifecycleChange::Power(PowerState::Suspended)));
-const RESUMED: Option<Step> = Some(Step::Changed(LifecycleChange::Power(PowerState::Active)));
+const LOCKED: Option<LifecycleChange> = Some(LifecycleChange::Session(SessionState::Locked));
+const UNLOCKED: Option<LifecycleChange> = Some(LifecycleChange::Session(SessionState::Unlocked));
+const SUSPENDED: Option<LifecycleChange> = Some(LifecycleChange::Power(PowerState::Suspended));
+const RESUMED: Option<LifecycleChange> = Some(LifecycleChange::Power(PowerState::Active));
 
 fn tracker(locked_hint: bool, active: bool, screensaver: Option<bool>) -> SessionTracker {
     SessionTracker::new(SessionReadings {
@@ -38,7 +34,7 @@ fn active(active: bool) -> Signal {
     }
 }
 
-fn apply_all(tracker: &mut SessionTracker, signals: &[Signal]) -> Vec<Option<Step>> {
+fn apply_all(tracker: &mut SessionTracker, signals: &[Signal]) -> Vec<Option<LifecycleChange>> {
     signals
         .iter()
         .map(|&signal| tracker.apply(signal))
@@ -126,20 +122,6 @@ fn a_repeated_signal_records_nothing() {
             ]
         ),
         [None, None, LOCKED, None, None]
-    );
-}
-
-#[test]
-fn only_a_shutdown_under_way_ends_the_observation() {
-    assert_eq!(
-        apply_all(
-            &mut reporting(),
-            &[
-                Signal::PrepareForShutdown(false),
-                Signal::PrepareForShutdown(true)
-            ]
-        ),
-        [None, Some(Step::Ended)]
     );
 }
 

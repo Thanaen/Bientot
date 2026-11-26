@@ -4,7 +4,7 @@
 
 use bientot_domain::accounting::SessionState;
 use bientot_domain::time::{Clock, FixedTimeZoneProvider, FrozenClock, TimeZoneProvider};
-use bientot_linux::logind::{SessionReadings, SessionTracker, Signal, Step};
+use bientot_linux::logind::{SessionReadings, SessionTracker, Signal};
 use bientot_platform::PowerState;
 use bientot_platform::lifecycle::{LifecycleEventRecorder, LifecycleHooks, LifecycleTransition};
 use bientot_store::sessions::SessionEventRepository;
@@ -107,8 +107,6 @@ const TIMELINE: [Moment; 6] = [
 ];
 
 const START: &str = "2026-11-26T08:30:00Z";
-/// The shutdown that ends the Linux observation; Windows ends the process without a message.
-const SHUTDOWN: &str = "2026-11-27T19:00:00Z";
 
 fn at(text: &str) -> Timestamp {
     text.parse().unwrap()
@@ -216,27 +214,18 @@ fn linux_ledger() -> Ledger {
         screensaver: Some(false),
     });
     ledger.prepare(tracker.snapshot().session);
-    let shutdown = TIMELINE
-        .iter()
-        .map(|moment| (moment.at, moment.linux))
-        .chain([(SHUTDOWN, [Signal::PrepareForShutdown(true)].as_slice())]);
-    let mut ended = false;
-    for (instant, signals) in shutdown {
-        ledger.clock.set(at(instant));
-        for &signal in signals {
-            assert!(!ended, "no signal is applied after the observation ended");
-            match tracker.apply(signal) {
-                Some(Step::Changed(change)) => ledger.record(&LifecycleTransition {
+    for moment in &TIMELINE {
+        ledger.clock.set(at(moment.at));
+        for &signal in moment.linux {
+            if let Some(change) = tracker.apply(signal) {
+                ledger.record(&LifecycleTransition {
                     change,
                     occurred_at: ledger.clock.now(),
                     time_zone_id: zones().local().0,
-                }),
-                Some(Step::Ended) => ended = true,
-                None => {}
+                });
             }
         }
     }
-    assert!(ended, "the shutdown ends the Linux observation");
     ledger
 }
 

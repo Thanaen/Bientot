@@ -339,7 +339,9 @@ accepts it with a justification. Task T136.
 **Source** (`org.freedesktop.login1`): the session object has the properties
 `LockedHint`, `Active`, `State`, `Timestamp`, and the signals `Lock` and
 `Unlock`; the manager has `PrepareForSleep(bool)` and
-`PrepareForShutdown(bool)`. `Lock` and `Unlock` are **requests** sent to the
+`PrepareForShutdown(bool)`, which is not watched: logind sends
+`PrepareForShutdown(false)` after `true` when the shutdown fails, and the
+session goes on. `Lock` and `Unlock` are **requests** sent to the
 session's locker (after `loginctl lock-session`), not reports that the
 screen locked. `LockedHint` is the report, set by the desktop through
 `SetLockedHint`.
@@ -350,7 +352,7 @@ screen locked. `LockedHint` is the report, set by the desktop through
 | Switch User (disconnect, reconnect) | `Active` false / true on the own session | `Session(Locked / Unlocked)`, as Windows records it: it sends `WTS_SESSION_LOCK` before `WTS_CONSOLE_DISCONNECT` and `WTS_SESSION_UNLOCK` after `WTS_CONSOLE_CONNECT`, and the decoder keeps only the lock and the unlock |
 | `PBT_APMSUSPEND` / `PBT_APMRESUMEAUTOMATIC` | `PrepareForSleep(true / false)` | `Power(Suspended / Active)` |
 | Session state at start (`WTSQuerySessionInformation`) | `LockedHint` and `Active` read once | `prepare_lifecycle`'s probe |
-| Logoff | The process is terminated. `PrepareForShutdown(true)` and the system bus closing end the lifecycle watch (`ended()`); SIGTERM keeps its default action, since every change is in the ledger as it arrives and a handler in the source would delay the logout | `end_observation` only if the app quits on SIGTERM: no task makes it do so yet |
+| Logoff | The process is terminated. Only the system bus closing ends the lifecycle watch (`ended()`); SIGTERM keeps its default action, since every change is in the ledger as it arrives and a handler in the source would delay the logout | `end_observation` only if the app quits on SIGTERM: no task makes it do so yet |
 
 The own session is found with `GetSessionByPID`, or `XDG_SESSION_ID`, or the
 user's `Display` session when the process runs in the user manager's scope

@@ -75,9 +75,10 @@ Logged once: `idle.backend=<name>`; on change: `idle.backend_changed`.
     lock announced by two sources, records none.
 - Manager: `PrepareForSleep(true)` → `Power(Suspended)`;
   `PrepareForSleep(false)` → `Power(Active)`, each once.
-  `PrepareForShutdown(true)` → `ended()`; `PrepareForShutdown(false)` (a
-  shutdown cancelled) → nothing.
-- The system bus closing → `ended()`.
+  `PrepareForShutdown` is not watched: logind sends `PrepareForShutdown(false)`
+  after `PrepareForShutdown(true)` when the shutdown fails, and the session
+  goes on.
+- The system bus closing → `ended()`: the only end of the observation.
 - The match rules are added before the snapshot is read, and the signals of
   one bus reach the mapping in the order they arrived.
 - Snapshot at start: `LockedHint`, `Active` read once, and the screensaver's

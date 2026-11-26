@@ -20,7 +20,7 @@ use zbus::message::Type;
 use zbus::zvariant::{DynamicType, ObjectPath, OwnedObjectPath, OwnedValue};
 use zbus::{Connection, MatchRule, Message, MessageStream, match_rule};
 
-use super::{SessionReadings, SessionTracker, Signal, Step};
+use super::{SessionReadings, SessionTracker, Signal};
 
 const LOGIN1: &str = "org.freedesktop.login1";
 const MANAGER_PATH: &str = "/org/freedesktop/login1";
@@ -106,19 +106,17 @@ where
                         }
                     };
                     while let Some(event) = events.next().await {
-                        let step = match event {
+                        let change = match event {
                             Event::Signal(signal) => tracker.apply(signal),
-                            Event::SystemBusClosed => Some(Step::Ended),
+                            Event::SystemBusClosed => return listener.ended(),
                             Event::Stop => return,
                         };
-                        match step {
-                            Some(Step::Changed(change)) => listener.changed(LifecycleTransition {
+                        if let Some(change) = change {
+                            listener.changed(LifecycleTransition {
                                 change,
                                 occurred_at: clock.now(),
                                 time_zone_id: zones.local().0,
-                            }),
-                            Some(Step::Ended) => return listener.ended(),
-                            None => {}
+                            });
                         }
                     }
                 })
@@ -153,6 +151,8 @@ impl Drop for LogindWatch {
 
 enum Event {
     Signal(Signal),
+    /// The only end of the observation. `PrepareForShutdown(true)` is not one: logind sends
+    /// `PrepareForShutdown(false)` after it when the shutdown fails.
     SystemBusClosed,
     Stop,
 }
@@ -167,8 +167,6 @@ async fn open(
     let session_bus = Connection::session().await.ok();
     let system_signals = [
         signal_rule(MANAGER, "PrepareForSleep")
-            .and_then(|rule| rule.sender(LOGIN1)?.path(MANAGER_PATH)),
-        signal_rule(MANAGER, "PrepareForShutdown")
             .and_then(|rule| rule.sender(LOGIN1)?.path(MANAGER_PATH)),
         signal_rule(PROPERTIES, "PropertiesChanged")
             .and_then(|rule| rule.sender(LOGIN1)?.path(&session)?.arg(0, SESSION)),
@@ -233,7 +231,6 @@ fn decode(message: &Message) -> Option<Event> {
     let body = message.body();
     let signal = match (header.interface()?.as_str(), header.member()?.as_str()) {
         (MANAGER, "PrepareForSleep") => Signal::PrepareForSleep(body.deserialize().ok()?),
-        (MANAGER, "PrepareForShutdown") => Signal::PrepareForShutdown(body.deserialize().ok()?),
         (PROPERTIES, "PropertiesChanged") => {
             let (interface, changed, _): (String, HashMap<String, OwnedValue>, Vec<String>) =
                 body.deserialize().ok()?;
