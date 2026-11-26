@@ -199,7 +199,9 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
 
 ## Start at sign-in
 
-- Unsandboxed: file `$XDG_CONFIG_HOME/autostart/dev.bientot.Bientot.desktop`:
+- Unsandboxed: file `$XDG_CONFIG_HOME/autostart/dev.bientot.Bientot.desktop`
+  (`bientot_linux::autostart::XdgAutostart`; `$XDG_CONFIG_HOME` only when
+  absolute, else `~/.config`):
 
   ```ini
   [Desktop Entry]
@@ -210,27 +212,61 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
   X-GNOME-Autostart-enabled=true
   ```
 
+  The path is quoted by the `Exec` rules (`"`, `` ` ``, `$` and `\`
+  escaped, `%` doubled), then written as a string value (`\` doubled).
+  Until T114 the executable is `worktime`, so the entry names
+  `…/worktime`; the file and its id do not depend on that name.
   States: file absent, or `Hidden=true`, or
-  `X-GNOME-Autostart-enabled=false` → `Disabled`; `Exec` is this install →
-  `Enabled`; `Exec` is another path → `RegistrationMismatch`; development
-  build → `Unavailable`. `other_copy_starts` is true when the file of the
-  other install kind's id exists (not visible from the sandbox: false).
+  `X-GNOME-Autostart-enabled=false` → `Disabled`; `Exec`'s program is this
+  install → `Enabled`; `Exec` is another path, has none or cannot be read →
+  `RegistrationMismatch`; no absolute UTF-8 path for the executable, no
+  configuration folder, or the file cannot be read or written →
+  `Unavailable`. A `cargo` build in `target/` registers, as on Windows,
+  where only development hosts are refused. Enabling writes the entry
+  above (through `<file>.partial` and a rename) unless the state is already
+  `Enabled`; disabling removes the file only when its program is this
+  install. `other_copy_starts` is false: the Flatpak's portal writes its
+  entry under the same id, which reads as `RegistrationMismatch` (T132
+  revisits it with `InstallKind`). A demo gets no port, as on Windows.
 - Flatpak: `org.freedesktop.portal.Background.RequestBackground` with
   `autostart = true|false`, `commandline = ["bientot", "--autostart"]`,
   `reason` from `contracts/copy.md`. The answer's `autostart` is stored in
   `app-state.json` (`autostartGranted`) and is the state shown (A-18).
+- `--autostart` (`bientot_platform::startup::AUTOSTART_ARGUMENT`) means
+  `LaunchIntent::SignIn` on every platform; Windows registrations keep
+  writing `--worktime-windows-startup`, which still means the same.
 
 ## Single instance
 
-- Directory `$XDG_RUNTIME_DIR/bientot/` (mode 0700); fallback
-  `<data folder>/run/`.
-- `<instance key>.lock`: `flock(LOCK_EX | LOCK_NB)` held for the life of
-  the first instance.
-- `<instance key>.sock`: stream socket. A second launch that fails the
+- `bientot_linux::single_instance::PrimaryInstance`, `platform::Instance`
+  on Linux. Directory `$XDG_RUNTIME_DIR/bientot/` (mode 0700;
+  `$XDG_RUNTIME_DIR` only when absolute); fallback `<data folder>/run/`
+  (mode 0700, the data folder itself created as usual).
+- The files are named by the first 41 characters of the case-sensitive
+  instance key (`WorkTime-` and 128 bits of the hash), the stem: a
+  socket's path must fit the 108 bytes of `sun_path`, which the whole key
+  under a data folder would not. Unlike Windows' key, it keeps the path's
+  case, since `~/data` and `~/Data` are two folders on Linux.
+- `<stem>.lock`: `flock(LOCK_EX | LOCK_NB)` (`File::try_lock`) held for
+  the life of the first instance; never removed, so that two launches
+  never lock two files of one name.
+- `<stem>.sock`: stream socket, bound as the lock is taken, accepted on a
+  thread of its own once the app listens. A second launch that fails the
   lock connects, writes the activation in the framing of the Windows pipe
-  protocol, waits for the acknowledgement (2 s), exits 0.
+  protocol (one byte; one byte back), waits for the acknowledgement
+  (2 s), exits 0. Refused, missing or closed without an answer, it tries
+  the lock again every 50 ms until then: an owner that left is replaced.
+  Unanswered at 2 s, it exits as if accepted; its byte waits in the socket
+  and the owner shows itself once it listens.
 - A first instance that gets the lock removes a stale socket before
-  binding.
+  binding. One that cannot bind (a path still too long) logs it and keeps
+  the lock: later launches exit after 2 s without showing it.
+- Dropping the listener wakes its thread with a connection of its own,
+  joins it, removes the socket, then releases the lock.
+- A restart for an import waits for the old process
+  (`bientot_linux::process::wait_for_exit`, `/proc/<pid>/stat` polled
+  every 50 ms, a zombie counts as exited) before it takes the lock; the
+  `pidfd_open` half of T122 is still to come.
 
 ## Motion and theme
 

@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use bientot_core::demo::DemoScenario;
+use bientot_platform::startup::AUTOSTART_ARGUMENT;
 use bientot_store::data_directory::{self, DataDirectory};
 use bientot_store::data_migration::Location;
 use bientot_windows::notifications::{ACTIVATOR_ARGUMENT, COM_SERVER_ARGUMENT};
@@ -26,8 +27,9 @@ pub struct Launch {
     pub onboarding: bool,
     /// `--demo-update` has a demo offer a Store update; it does nothing without a demo.
     pub demo_update: bool,
-    /// Set when the start-with-Windows marker ([`WINDOWS_STARTUP_ARGUMENT`]) is present.
-    pub windows_startup: bool,
+    /// Set when a sign-in marker is present: [`AUTOSTART_ARGUMENT`], or the start-with-Windows
+    /// one ([`WINDOWS_STARTUP_ARGUMENT`]) that Windows registrations keep writing.
+    pub sign_in: bool,
     /// The WorkTime that restarted this one to apply an import ([`RESTARTED_FROM_ARGUMENT`]),
     /// which this one waits for.
     pub restarted_from: Option<u32>,
@@ -104,7 +106,7 @@ impl Launch {
     /// folder, and `--demo`, `--demo-history-week`, `--demo-problem-periods` and
     /// `--demo-fragmented-day` the demo, `--demo-update` a demo Store update, and `--onboarding`
     /// asks for the onboarding, `--no-plugins` leaves the plugins out. `--demo` may name a scenario, as the R1 prototype's `--demo late`
-    /// did. The start-with-Windows marker sets `windows_startup`, and the toast activator's
+    /// did. Either sign-in marker sets `sign_in`, and the toast activator's
     /// arguments set the [`Origin`]. The last flag of a kind wins.
     pub fn parse(arguments: impl IntoIterator<Item = String>) -> anyhow::Result<Self> {
         let mut launch = Self {
@@ -115,7 +117,7 @@ impl Launch {
             language: None,
             onboarding: false,
             demo_update: false,
-            windows_startup: false,
+            sign_in: false,
             restarted_from: None,
             origin: Origin::Command,
             no_plugins: false,
@@ -142,7 +144,7 @@ impl Launch {
                         .ok_or_else(|| anyhow::anyhow!("--data-dir needs a folder"))?;
                     launch.data_dir = Some(path.into());
                 }
-                WINDOWS_STARTUP_ARGUMENT => launch.windows_startup = true,
+                WINDOWS_STARTUP_ARGUMENT | AUTOSTART_ARGUMENT => launch.sign_in = true,
                 RESTARTED_FROM_ARGUMENT => {
                     let id = arguments
                         .next()
@@ -189,23 +191,21 @@ impl Launch {
 }
 
 /// The arguments of this launch for the WorkTime a restart starts: never the toast activator's,
-/// which no toast would follow, and the start-with-Windows marker only when `windows_startup`
-/// keeps it. A restart the user asked for opens the flyout.
-pub fn restart_arguments(windows_startup: bool) -> Vec<String> {
-    kept_on_restart(std::env::args().skip(1), windows_startup)
+/// which no toast would follow, and the sign-in markers only when `sign_in` keeps them. A
+/// restart the user asked for opens the flyout.
+pub fn restart_arguments(sign_in: bool) -> Vec<String> {
+    kept_on_restart(std::env::args().skip(1), sign_in)
 }
 
-fn kept_on_restart(
-    arguments: impl IntoIterator<Item = String>,
-    windows_startup: bool,
-) -> Vec<String> {
+fn kept_on_restart(arguments: impl IntoIterator<Item = String>, sign_in: bool) -> Vec<String> {
     let mut kept = Vec::new();
     let mut arguments = arguments.into_iter();
     while let Some(argument) = arguments.next() {
         if argument == RESTARTED_FROM_ARGUMENT {
             arguments.next();
         } else if ![ACTIVATOR_ARGUMENT, COM_SERVER_ARGUMENT].contains(&argument.as_str())
-            && (windows_startup || argument != WINDOWS_STARTUP_ARGUMENT)
+            && (sign_in
+                || ![WINDOWS_STARTUP_ARGUMENT, AUTOSTART_ARGUMENT].contains(&argument.as_str()))
         {
             kept.push(argument);
         }
@@ -301,7 +301,7 @@ mod tests {
                 language: None,
                 onboarding: false,
                 demo_update: false,
-                windows_startup: false,
+                sign_in: false,
                 restarted_from: None,
                 origin: Origin::Command,
                 no_plugins: false,
@@ -367,16 +367,32 @@ mod tests {
     }
 
     #[test]
-    fn the_startup_marker_marks_a_start_by_the_run_value() {
-        assert!(!parse(&[]).unwrap().windows_startup);
+    fn either_sign_in_marker_marks_a_start_at_sign_in() {
+        assert!(!parse(&[]).unwrap().sign_in);
         let launch = parse(&["--worktime-windows-startup", "--data-dir", "C:/Temp/wt"]).unwrap();
-        assert!(launch.windows_startup);
+        assert!(launch.sign_in);
         assert_eq!(launch.data_dir, Some(PathBuf::from("C:/Temp/wt")));
+        assert!(parse(&["--autostart", "--dark"]).unwrap().sign_in);
+        for marker in ["--WORKTIME-WINDOWS-STARTUP", "--Autostart"] {
+            assert_eq!(
+                parse(&[marker]).unwrap_err().to_string(),
+                format!("unknown argument {marker:?}")
+            );
+        }
+    }
+
+    #[test]
+    fn a_restart_keeps_the_sign_in_markers_only_when_asked() {
+        let restarted = |sign_in| {
+            kept_on_restart(
+                ["--autostart", "--worktime-windows-startup", "--dark"].map(String::from),
+                sign_in,
+            )
+        };
+        assert_eq!(restarted(false), ["--dark"]);
         assert_eq!(
-            parse(&["--WORKTIME-WINDOWS-STARTUP"])
-                .unwrap_err()
-                .to_string(),
-            "unknown argument \"--WORKTIME-WINDOWS-STARTUP\""
+            restarted(true),
+            ["--autostart", "--worktime-windows-startup", "--dark"]
         );
     }
 
@@ -526,7 +542,7 @@ mod tests {
                 language: None,
                 onboarding: false,
                 demo_update: false,
-                windows_startup: false,
+                sign_in: false,
                 restarted_from: None,
                 origin: Origin::Command,
                 no_plugins: false,

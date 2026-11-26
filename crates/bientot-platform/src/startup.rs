@@ -13,6 +13,10 @@ pub enum StartupRegistrationState {
     RegistrationMismatch,
 }
 
+/// Marks a launch started at sign-in on every system but Windows, whose registrations keep
+/// writing their own marker. Matched exactly and case-sensitively.
+pub const AUTOSTART_ARGUMENT: &str = "--autostart";
+
 /// How a launch started: by the user, or by the system as the user signed in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LaunchIntent {

@@ -15,11 +15,10 @@ use std::hash::Hash;
 
 use bientot_platform::notifications::NotificationRequest;
 
+use crate::APP_ID;
+
 #[cfg(target_os = "linux")]
 pub use native::{DesktopNotifications, Unavailable};
-
-/// The application id the desktop files and the Flatpak use, which names the icon too.
-pub const APP_ID: &str = "dev.bientot.Bientot";
 
 /// What shows the notifications.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

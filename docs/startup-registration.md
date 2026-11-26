@@ -20,6 +20,8 @@ marker `--worktime-windows-startup`. For example:
 The marker tells Bientôt to start accounting, notifications, and the tray
 without opening the flyout. A manual launch still opens it. If hidden
 initialization fails, Bientôt opens the startup failure window.
+Bientôt also reads `--autostart`, the marker its Linux autostart entry
+writes, with the same meaning. Windows registrations keep writing their own.
 
 The Run value is named `WorkTime`, and the marker keeps its `worktime`
 prefix. Both date from before the app was renamed Bientôt, and copies

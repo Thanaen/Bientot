@@ -1,27 +1,34 @@
 //! The Linux backend: the tray icon is a StatusNotifierItem of `bientot-linux`, the flyout opens
-//! where `bientot-linux` places it on this session, and the reminders are desktop notifications.
-//! The other ports answer « unknown » or do nothing, as on a system without a backend, until
-//! their lots wire them.
+//! where `bientot-linux` places it on this session, the reminders are desktop notifications, an
+//! XDG autostart entry starts the app at sign-in, and a lock and a socket keep one instance per
+//! data folder. The other ports answer « unknown » or do nothing, as on a system without a
+//! backend, until their lots wire them.
 
 #[path = "null.rs"]
 mod null;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
+use bientot_linux::autostart::XdgAutostart;
 use bientot_linux::notifications::{DesktopNotifications, Service};
 use bientot_linux::placement::LinuxDesktop;
 use bientot_linux::tray::StatusNotifier;
 use bientot_platform::notifications::{Notifier, QueuedClicks};
+use bientot_platform::startup::StartupPort;
 use futures::channel::mpsc;
 use gpui::{Bounds, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 use super::{Platform, PlatformContext};
 
-// `build`, `place_window`, `activate_window` and `NotificationsRefused` below take the place of
-// null's.
+// `build`, `place_window`, `activate_window`, `NotificationsRefused`, `Instance` and
+// `wait_for_exit` below take the place of null's.
 pub use null::*;
+
+pub use bientot_linux::process::wait_for_exit;
+pub use bientot_linux::single_instance::PrimaryInstance as Instance;
 
 /// No notification server, or no portal in a Flatpak, answered at start: the app shows no
 /// reminder, so that none is reserved in the ledger without being shown, and the flyout says so.
@@ -45,8 +52,15 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     });
     let desktop = Rc::new(LinuxDesktop::of_this_session());
     DESKTOP.with_borrow_mut(|shared| *shared = Some(Rc::clone(&desktop)));
+    // A demo leaves the user's registration alone, as on Windows.
+    let startup = ctx
+        .launch
+        .demo
+        .is_none()
+        .then(|| Arc::new(XdgAutostart::for_this_process()) as Arc<dyn StartupPort>);
     Ok(Platform {
         notifier,
+        startup,
         notification_clicks: Box::new(clicks),
         tray_backend: Some(tray.backend()),
         tray: Rc::new(tray),
