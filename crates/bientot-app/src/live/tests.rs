@@ -663,6 +663,51 @@ fn the_completion_reminder_is_shown_once_the_minute_it_fell_due_has_passed() {
     assert_eq!(machine.log(), "");
 }
 
+/// The reminders the ledger holds as shown, whatever their trigger.
+fn reserved_reminders(machine: &Machine) -> i64 {
+    machine
+        .connection
+        .query_row("SELECT COUNT(*) FROM NotificationReceipt", [], |row| {
+            row.get(0)
+        })
+        .unwrap()
+}
+
+/// Works through the minute the completion reminder falls due in, as the test above does.
+fn work_until_the_completion_reminder_is_shown(machine: &Machine, host: &mut LiveHost) {
+    host.poll();
+    machine.work(host, SignedDuration::from_mins(6 * 60 + 50));
+    host.refresh();
+    machine.work(host, SignedDuration::from_mins(1));
+    host.refresh();
+    host.refresh();
+}
+
+/// A desktop that refused the notifications at start (no server answering on Linux, no
+/// registered sender on Windows) leaves no reminder reserved in the ledger: none was shown.
+#[test]
+fn a_refused_registration_reserves_no_reminder_in_the_ledger() {
+    let shown = Machine::new();
+    let reminders = Reminders::default();
+    let mut host = start_after_a_night_asleep(&shown);
+    host.enable_notifications(&reminders);
+    work_until_the_completion_reminder_is_shown(&shown, &mut host);
+    assert_eq!(reminders.0.borrow().len(), 1);
+    assert_eq!(reserved_reminders(&shown), 1);
+
+    let refused = Machine::new();
+    let mut host = start_after_a_night_asleep(&refused);
+    host.notifications_refused(&"org.freedesktop.Notifications: refused");
+    work_until_the_completion_reminder_is_shown(&refused, &mut host);
+
+    assert_eq!(reserved_reminders(&refused), 0);
+    assert!(
+        refused.log().contains("notification.registration_failed"),
+        "{}",
+        refused.log()
+    );
+}
+
 /// What the week window does with a command: record it, refresh, reload, then report.
 fn run_from_week(host: &mut LiveHost, state: &mut WeekState, command: WeekCommand) {
     let result = host.run_week_command(&command);

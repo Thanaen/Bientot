@@ -11,9 +11,11 @@
 #
 # Without a command it runs the desktop integration tests: the ignored tests whose name holds
 # `desktop_harness`, marked `#[ignore = "desktop-harness"]`: for now those of logind, of the idle
-# time and of the tray (crates/bientot-linux/src/{logind,idle,tray}/native/tests.rs), and where the
-# app opens its flyout (crates/bientot-app/tests/desktop_harness_flyout.rs). CI runs the headless
-# start in the x11 session (scripts/measure-performance.sh).
+# time, of the tray and of the notifications
+# (crates/bientot-linux/src/{logind,idle,tray,notifications}/native/tests.rs), where the app opens
+# its flyout and what it does without a notification server
+# (crates/bientot-app/tests/desktop_harness_{flyout,notifications}.rs). CI runs the headless start
+# in the x11 session (scripts/measure-performance.sh).
 #
 # Needs dbus-run-session, python3-dbusmock, a Vulkan driver (Mesa's software one will do), and
 # Xvfb, openbox and xdotool or sway, wtype and grim.
