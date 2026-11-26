@@ -4,6 +4,7 @@
 //! by the tests themselves, on the shared session bus, so the tests take turns.
 
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{PoisonError, mpsc};
 use std::time::Instant;
 
@@ -143,20 +144,31 @@ fn desktop_harness_reads_mutter_s_idle_monitor_where_wayland_has_no_ext_idle() {
     );
 }
 
-/// A desktop's idle service on the session bus: `GetIdletime` or `GetSessionIdleTime`, which
-/// counts from its start in `unit`, or stands still.
+/// How a desktop's idle service counts.
+#[derive(Clone, Copy)]
+enum Count {
+    /// From its start, in a unit.
+    In(Unit),
+    StandsStill,
+    /// In milliseconds, but input resets the count shortly before every read: 5, then 6, then 7.
+    ResetBeforeEachRead,
+}
+
+/// A desktop's idle service on the session bus: `GetIdletime` or `GetSessionIdleTime`.
 struct Counter {
     since: Instant,
-    unit: Option<Unit>,
+    count: Count,
+    reads: AtomicU64,
 }
 
 impl Counter {
     fn value(&self) -> u64 {
         let elapsed = self.since.elapsed() + Duration::from_secs(90);
-        match self.unit {
-            Some(Unit::Milliseconds) => elapsed.as_millis() as u64,
-            Some(Unit::Seconds) => elapsed.as_secs(),
-            None => 7,
+        match self.count {
+            Count::In(Unit::Milliseconds) => elapsed.as_millis() as u64,
+            Count::In(Unit::Seconds) => elapsed.as_secs(),
+            Count::StandsStill => 7,
+            Count::ResetBeforeEachRead => 5 + self.reads.fetch_add(1, Ordering::Relaxed),
         }
     }
 }
@@ -203,10 +215,11 @@ fn serve<I: zbus::object_server::Interface>(name: &'static str, path: &str, serv
     Served { connection, name }
 }
 
-fn counter(unit: Option<Unit>) -> Counter {
+fn counter(count: Count) -> Counter {
     Counter {
         since: Instant::now(),
-        unit,
+        count,
+        reads: AtomicU64::new(0),
     }
 }
 
@@ -216,20 +229,24 @@ fn desktop_harness_reads_the_screensaver_in_the_unit_it_answers_in() {
     let _turn = crate::HARNESS_TURN
         .lock()
         .unwrap_or_else(PoisonError::into_inner);
-    let open = |path, unit| {
+    let open = |path, count| {
         let _service = serve(
             "org.freedesktop.ScreenSaver",
             path,
-            ScreenSaverService(counter(unit)),
+            ScreenSaverService(counter(count)),
         );
         SystemBackends
             .open(Backend::ScreenSaver)
             .map(|mut opened| opened.reader.idle(Duration::ZERO))
     };
 
-    let milliseconds = open("/org/freedesktop/ScreenSaver", Some(Unit::Milliseconds));
-    let seconds = open("/ScreenSaver", Some(Unit::Seconds));
-    let still = open("/ScreenSaver", None);
+    let milliseconds = open(
+        "/org/freedesktop/ScreenSaver",
+        Count::In(Unit::Milliseconds),
+    );
+    let seconds = open("/ScreenSaver", Count::In(Unit::Seconds));
+    let still = open("/ScreenSaver", Count::StandsStill);
+    let reset = open("/ScreenSaver", Count::ResetBeforeEachRead);
 
     assert_near(
         milliseconds.flatten().unwrap(),
@@ -238,6 +255,7 @@ fn desktop_harness_reads_the_screensaver_in_the_unit_it_answers_in() {
     );
     assert_eq!(seconds, Some(Some(Duration::from_secs(91))));
     assert_eq!(still.map(|_| "opened"), None);
+    assert_eq!(reset.map(|_| "opened"), None);
     assert!(
         SystemBackends.open(Backend::ScreenSaver).is_none(),
         "no screensaver runs"
@@ -254,7 +272,7 @@ fn desktop_harness_reads_muffin_s_idle_monitor() {
     let _service = serve(
         "org.cinnamon.Muffin.IdleMonitor",
         "/org/cinnamon/Muffin/IdleMonitor/Core",
-        MuffinService(counter(Some(Unit::Milliseconds))),
+        MuffinService(counter(Count::In(Unit::Milliseconds))),
     );
 
     let mut opened = SystemBackends
@@ -278,7 +296,7 @@ fn desktop_harness_selects_again_when_the_backend_stops_answering() {
     let service = serve(
         "org.cinnamon.Muffin.IdleMonitor",
         "/org/cinnamon/Muffin/IdleMonitor/Core",
-        MuffinService(counter(Some(Unit::Milliseconds))),
+        MuffinService(counter(Count::In(Unit::Milliseconds))),
     );
     let (notes, log) = noted();
     let probe = IdleProbe::new(

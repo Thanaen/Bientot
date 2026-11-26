@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use zbus::Connection;
 
-use super::{UNIT_CHECK_GAP, Unit, unit};
+use super::{Read, UNIT_CHECK_READS, UNIT_CHECK_STEP, Unit, unit};
 use crate::dbus::{call, has_owner};
 use crate::idle::native::Monotonic;
 use crate::idle::{IdleReader, MonotonicClock};
@@ -13,20 +13,30 @@ const SERVICE: &str = "org.freedesktop.ScreenSaver";
 /// The object, where desktops put it.
 const PATHS: [&str; 2] = ["/org/freedesktop/ScreenSaver", "/ScreenSaver"];
 
-/// The screensaver, once one of its objects answered twice and the answers told the unit. Takes
-/// [`UNIT_CHECK_GAP`].
+/// The screensaver, once one of its objects answered the unit check and the answers told the
+/// unit. Takes a second.
 pub(in crate::idle) fn open() -> Option<ScreenSaver> {
     let bus = async_io::block_on(Connection::session()).ok()?;
     if !async_io::block_on(has_owner(&bus, SERVICE)) {
         return None;
     }
-    let (path, first) = PATHS
+    let (path, value) = PATHS
         .into_iter()
         .find_map(|path| Some((path, idle_time(&bus, path)?)))?;
-    let first_at = Monotonic.now();
-    std::thread::sleep(UNIT_CHECK_GAP);
-    let second = idle_time(&bus, path)?;
-    let unit = unit(first, second, Monotonic.now() - first_at)?;
+    let mut reads = Vec::with_capacity(UNIT_CHECK_READS);
+    reads.push(Read {
+        at: Monotonic.now(),
+        value,
+    });
+    while reads.len() < UNIT_CHECK_READS {
+        std::thread::sleep(UNIT_CHECK_STEP);
+        let value = idle_time(&bus, path)?;
+        reads.push(Read {
+            at: Monotonic.now(),
+            value,
+        });
+    }
+    let unit = unit(&reads)?;
     Some(ScreenSaver { bus, path, unit })
 }
 

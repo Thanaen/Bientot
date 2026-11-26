@@ -4,19 +4,19 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use jiff::SignedDuration;
 
-use super::screensaver::{UNIT_CHECK_GAP, unit};
+use super::screensaver::{Read, UNIT_CHECK_STEP, unit};
 use super::*;
 
 use Backend::*;
 
-/// What a desktop answers to each probe: the backends present, and the two reads of the
-/// screensaver's unit check when it runs.
+/// What a desktop answers to each probe: the backends present, and the answers the screensaver
+/// gives its unit check when it runs.
 #[derive(Clone, Copy, Default)]
 struct Desktop {
     ext_idle: bool,
     mutter: bool,
     muffin: bool,
-    screensaver: Option<(u32, u32)>,
+    screensaver: Option<&'static [u32]>,
     xscreensaver: bool,
 }
 
@@ -26,9 +26,16 @@ impl Desktop {
             ExtIdleNotify => self.ext_idle,
             MutterIdleMonitor => self.mutter,
             MuffinIdleMonitor => self.muffin,
-            ScreenSaver => self
-                .screensaver
-                .is_some_and(|(first, second)| unit(first, second, UNIT_CHECK_GAP).is_some()),
+            ScreenSaver => self.screensaver.is_some_and(|values| {
+                let reads: Vec<Read> = (0..)
+                    .zip(values)
+                    .map(|(index, &value)| Read {
+                        at: UNIT_CHECK_STEP * index,
+                        value,
+                    })
+                    .collect();
+                unit(&reads).is_some()
+            }),
             XScreenSaver => self.xscreensaver,
         }
     }
@@ -46,9 +53,11 @@ fn selected(session: Option<SessionType>, desktop: Desktop) -> (Option<Backend>,
 
 const WAYLAND: Option<SessionType> = Some(SessionType::Wayland);
 const X11: Option<SessionType> = Some(SessionType::X11);
-const SCREENSAVER_IN_MILLISECONDS: Option<(u32, u32)> = Some((60_000, 61_000));
-const SCREENSAVER_IN_SECONDS: Option<(u32, u32)> = Some((60, 61));
-const SCREENSAVER_THAT_STANDS_STILL: Option<(u32, u32)> = Some((0, 0));
+const SCREENSAVER_IN_MILLISECONDS: Option<&[u32]> = Some(&[
+    60_000, 60_100, 60_200, 60_300, 60_400, 60_500, 60_600, 60_700, 60_800, 60_900, 61_000,
+]);
+const SCREENSAVER_IN_SECONDS: Option<&[u32]> = Some(&[60, 60, 60, 61, 61, 61, 61, 61, 61, 61, 61]);
+const SCREENSAVER_THAT_STANDS_STILL: Option<&[u32]> = Some(&[0; 11]);
 
 #[test]
 fn each_session_selects_the_first_backend_of_its_order_that_answers() {
