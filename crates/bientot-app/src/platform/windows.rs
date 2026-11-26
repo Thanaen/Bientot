@@ -85,6 +85,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         startup,
         tray: Rc::new(tray),
         tray_events,
+        tray_backend: None,
         desktop: Rc::new(tray::TaskbarCorner),
     })
 }

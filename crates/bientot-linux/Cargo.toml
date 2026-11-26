@@ -1,6 +1,6 @@
 [package]
 name = "bientot-linux"
-description = "Bientôt's Linux integration. For now the work area of an X11 desktop, the tray and flyout spike of Lot 4, the idle time, and the session lock and the power from logind (specs/005-linux-support); the rules stay platform independent and tested on any OS, and only the system calls behind them are Linux only."
+description = "Bientôt's Linux integration. For now the work area of an X11 desktop, the tray icon and the flyout spike of Lot 4, the idle time, and the session lock and the power from logind (specs/005-linux-support); the rules stay platform independent and tested on any OS, and only the system calls behind them are Linux only."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

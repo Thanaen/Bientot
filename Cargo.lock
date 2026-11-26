@@ -543,6 +543,7 @@ dependencies = [
  "anyhow",
  "bientot-core",
  "bientot-domain",
+ "bientot-linux",
  "bientot-platform",
  "bientot-plugin-api",
  "bientot-plugins",

@@ -7,7 +7,8 @@
 //! below.
 
 #[cfg_attr(windows, path = "windows.rs")]
-#[cfg_attr(not(windows), path = "null.rs")]
+#[cfg_attr(target_os = "linux", path = "linux.rs")]
+#[cfg_attr(not(any(windows, target_os = "linux")), path = "null.rs")]
 mod backend;
 
 use std::rc::Rc;
@@ -118,6 +119,9 @@ pub struct Platform {
     /// Shows nothing until the app first publishes the day to it.
     pub tray: Rc<dyn Tray<MenuCommand>>,
     pub tray_events: TrayEvents,
+    /// The name of the tray's backend, which the diagnostic log gives with whether a host shows
+    /// the icon: `None` where the log names neither.
+    pub tray_backend: Option<&'static str>,
     /// Where the flyout opens.
     pub desktop: Rc<dyn Desktop>,
 }
@@ -136,6 +140,7 @@ impl Platform {
             startup: None,
             tray: Rc::new(InMemoryTray::new(Vec::new(), None, TrayHost::Absent)),
             tray_events: mpsc::unbounded().1,
+            tray_backend: None,
             desktop: Rc::new(InMemoryDesktop {
                 placement: FlyoutPlacement::CompositorPlaced,
                 usable_height: None,

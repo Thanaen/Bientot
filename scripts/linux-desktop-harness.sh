@@ -10,9 +10,9 @@
 # Usage: scripts/linux-desktop-harness.sh {x11|wayland} [command...]
 #
 # Without a command it runs the desktop integration tests: the ignored tests whose name holds
-# `desktop_harness`, marked `#[ignore = "desktop-harness"]`: for now those of logind and of the
-# idle time (crates/bientot-linux/src/{logind,idle}/native/tests.rs). CI runs the headless start in
-# the x11 session (scripts/measure-performance.sh).
+# `desktop_harness`, marked `#[ignore = "desktop-harness"]`: for now those of logind, of the idle
+# time and of the tray (crates/bientot-linux/src/{logind,idle,tray}/native/tests.rs). CI runs the
+# headless start in the x11 session (scripts/measure-performance.sh).
 #
 # Needs dbus-run-session, python3-dbusmock, and Xvfb, openbox and xdotool or sway and wtype.
 set -euo pipefail

@@ -255,8 +255,11 @@ Windows. Windows keeps `tray-icon`.
   as the first menu entry, which already exists.
 - **Click position.** `Activate(x, y)` gives screen coordinates on X11
   hosts; on Wayland hosts it is often `0, 0`. **Assumption A-5**, task T041.
+  Lot 4 found waybar sending the pointer's position on sway, so Lot 5 keeps
+  any position but `0, 0`, on Wayland too.
 - **GNOME without the extension, or no host.** `ksni` reports
-  `WontShow` or `watcher_offline`. Bientôt then runs in **window mode**
+  `watcher_offline`; `WontShow` never comes (Lot 5, below). Bientôt then
+  runs in **window mode**
   (R5): the flyout is an ordinary window that minimizes instead of closing
   on focus loss, a later launch from the app grid brings it back (the
   single-instance hand-over that exists today), and the flyout shows once
@@ -268,6 +271,30 @@ Windows. Windows keeps `tray-icon`.
   `org.kde.StatusNotifierItem-PID-ID` is not required by current hosts, and
   `ksni`'s `disable_dbus_name(true)` avoids it. **Assumption A-6**: this
   works on the Tier 1 desktops. Task T131.
+
+**Lot 5, headless (26 November 2026).** **Run** in
+`scripts/linux-desktop-harness.sh`, x11 and wayland, against the watcher
+mock; **Code** for the rest.
+
+- What a client sees of the host is the watcher. `ksni` 0.3.7 checks
+  `IsStatusNotifierHostRegistered` only without `assume_sni_available`,
+  and then a watcher missing at start fails `spawn` for good. With it, the
+  item registers whenever a watcher appears, and `WontShow` cannot come.
+  KDE's and GNOME's watchers claim a host anyway (`ksni`, `service.rs`).
+  So `TrayHost` follows the watcher's name: `Absent` 5 s after it leaves,
+  `Present` as soon as it returns.
+- **Source** (plasma-workspace): Plasma's watcher is a kded module, apart
+  from `plasmashell`, so `plasmashell --replace` should not take it away
+  and the app should see no change while the host restarts. T055 checks
+  it. GNOME's watcher belongs to the AppIndicator extension: turning the
+  extension off takes it away.
+- The item is `Passive` until the app publishes its first day, so hosts
+  that hide passive items (waybar by default) show nothing during the
+  onboarding, as the Windows icon is made at the first publish.
+- `QuitMode` is read once from `host()` when the platform is built. A
+  watcher present at start keeps the app running when the flyout closes;
+  one that appears later does not change that until window mode (Lot 6)
+  follows `HostChanged`.
 
 ## R5. Flyout placement
 
@@ -898,9 +925,9 @@ against the left edge. It did not centre it. T044 decides.
   bottom, so the position is not relative to the bar. With one output at
   0, 0, the layout and output coordinates are the same. Several outputs
   were not tried.
-- `contracts/linux-backends.md` sets `at` to `None` for every Wayland
-  session, and so drops a position waybar gives. T043 decides with KWin's
-  host before the contract changes.
+- `contracts/linux-backends.md` set `at` to `None` for every Wayland
+  session, and so dropped a position waybar gives. Lot 5 keeps it: `at` is
+  `None` only at `0, 0`. T043 checks KWin's host.
 - KDE's and GNOME's watchers always answer `IsStatusNotifierHostRegistered`
   with true (ksni's comment in `service.rs`). So `Error::WontShow` cannot
   tell the app that no host exists; a missing watcher can (T051).

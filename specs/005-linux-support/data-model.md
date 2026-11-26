@@ -15,7 +15,7 @@ Signatures are in `contracts/platform-ports.md`. Meaning and rules:
 | `PowerBoundary` | `kind`, `at`, `source_key` | `source_key` is unique per boundary and stable across reads; recording is idempotent on it, as on the Event Log record id today |
 | `SessionBoundary` | `kind`, `at`, `source_key` | Linux yields at most one, of kind `Logon` |
 | `LockHistory` | `Recorded`, `NotRecorded` | Property of the log, not of a read. `NotRecorded` switches the recovery to the rule of D-026 |
-| `TrayHost` | `Present`, `Absent` | `Absent` only after 5 s without a host, so a restarting shell does not flip the mode |
+| `TrayHost` | `Present`, `Absent` | `Absent` only after 5 s without a host, so a restarting shell does not flip the mode. On Linux the host is the StatusNotifierWatcher, the only part a client sees; at start, what the watcher answers, without the 5 s |
 | `FlyoutPlacement` | `At`, `Layer`, `CompositorPlaced`, `Window` | Chosen once per opening. `Window` if and only if `TrayHost::Absent` |
 | `InstallKind` | `Store`, `Direct`, `Portable`, `Flatpak`, `AppImage`, `Development` | Decides: update source (`Direct`, `AppImage`: Velopack; `Store`: Store; others: none), startup backend, usage-signal channel (`Development` sends nothing) |
 | `SystemDescription` | `os_name`, `architecture`, `desktop`, `session_type` | Diagnostics only (plus the two optional usage-signal keys if Q3 is accepted) |

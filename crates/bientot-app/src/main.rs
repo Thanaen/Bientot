@@ -338,6 +338,7 @@ struct Started {
 struct ShellPorts {
     tray: Rc<dyn Tray<MenuCommand>>,
     tray_events: TrayEvents,
+    tray_backend: Option<&'static str>,
     desktop: Rc<dyn Desktop>,
 }
 
@@ -357,6 +358,7 @@ fn start(
     let ports = ShellPorts {
         tray: platform.tray,
         tray_events: platform.tray_events,
+        tray_backend: platform.tray_backend,
         desktop: platform.desktop,
     };
     let (source, language) = match launch.demo {
@@ -651,6 +653,7 @@ fn attach(
     ShellPorts {
         tray,
         tray_events,
+        tray_backend,
         desktop,
     }: ShellPorts,
     lifecycle: Option<Lifecycle>,
@@ -658,7 +661,7 @@ fn attach(
     cx: &mut App,
 ) {
     shell::install(desktop, tray.host(), cx);
-    host::install_tray(tray, tray_events, cx);
+    host::install_tray(tray, tray_backend, tray_events, cx);
     if let Some(mut clicked) = toast_clicks {
         cx.spawn(async move |cx| {
             while let Some(activation) = clicked.next().await {
