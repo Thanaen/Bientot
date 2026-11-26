@@ -75,6 +75,9 @@ language and one theme (Linux, with a Vulkan driver such as Mesa's `mesa-vulkan-
 cargo run --profile screenshots --features screenshots --bin bientot-screenshots -p bientot-app -- shots/fr-dark --french --dark
 ```
 
+Add `--platform linux` to render only the windows whose text or frame differs on Linux, as
+Linux shows them; the list is in `crates/bientot-app/src/bin/screenshots/platform.rs`.
+
 The Rust app reads its texts from `crates/bientot-app/strings/fr-FR.resw` and
 `en-US.resw` through a generated table. After adding or changing a string in both files,
 regenerate it and commit `crates/bientot-app/src/strings/table.rs`:
