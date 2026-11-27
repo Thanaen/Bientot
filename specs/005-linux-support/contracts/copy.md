@@ -115,6 +115,6 @@ addresses. « Compris » writes `windowModeNoticeDismissed: true` in
 another. Windows never shows it: its notification area is always there.
 
 Texts of the site (download section, help page « Afficher l’icône de
-Bientôt sur GNOME », FAQ « Mac ou Linux ? ») and of the Flathub listing
-are written in their own tasks (T171 to T173, T130) and reviewed by the
-same panel.
+Bientôt », FAQ « Mac ou Linux ? ») and of the Flathub listing are
+written in their own tasks (T171 to T173, T130) and reviewed by the same
+panel.

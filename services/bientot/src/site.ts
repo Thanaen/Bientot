@@ -18,6 +18,10 @@ export function moved(request: Request): Response | null {
 
 export type Language = "fr" | "en";
 
+// Bientôt for Linux is not out yet (specs/005-linux-support, T186 sets this). Until then, its pages
+// answer, since the app already links to them, but search engines and the sitemap leave them out.
+export const LINUX_LAUNCHED = false;
+
 export interface Page {
   path: string;
   file: URL;
@@ -26,7 +30,21 @@ export interface Page {
   description: string;
   // The image shown when the link is shared: a 1200 × 630 PNG listed in FILES.
   image: { path: string; alt: string };
+  // Kept out of search engines and the sitemap.
+  noindex?: boolean;
 }
+
+// The homepage's share image in each language, which the other pages use too.
+const IMAGES: Record<Language, Page["image"]> = {
+  fr: {
+    path: "/og/home.png",
+    alt: "L’application Bientôt : « À quelle heure pourrez-vous partir aujourd’hui ? », à côté du panneau de la barre des tâches qui indique « Dans les temps », départ prévu à 16:54.",
+  },
+  en: {
+    path: "/og/home-en.png",
+    alt: "“What time can you leave today?” next to the Bientôt taskbar panel showing “On track” and a projected departure of 4:54 PM.",
+  },
+};
 
 // Every page carries `<!-- head -->` in its <head>; head() fills it, and the sitemap lists the page.
 export const PAGES: Page[] = [
@@ -37,10 +55,7 @@ export const PAGES: Page[] = [
     title: "Bientôt · suivi gratuit des heures de travail pour Windows",
     description:
       "Bientôt compte vos heures de travail sous Windows 11, sans rien saisir, et vous dit à quelle heure partir. Gratuit, open source, sans compte et hors ligne.",
-    image: {
-      path: "/og/home.png",
-      alt: "L’application Bientôt : « À quelle heure pourrez-vous partir aujourd’hui ? », à côté du panneau de la barre des tâches qui indique « Dans les temps », départ prévu à 16:54.",
-    },
+    image: IMAGES.fr,
   },
   {
     path: "/en",
@@ -49,16 +64,38 @@ export const PAGES: Page[] = [
     title: "Bientôt · free working hours tracker for Windows",
     description:
       "Bientôt counts your working hours on Windows 11 with nothing to type, and tells you what time you can leave. Free, open source, no account, works offline.",
-    image: {
-      path: "/og/home-en.png",
-      alt: "“What time can you leave today?” next to the Bientôt taskbar panel showing “On track” and a projected departure of 4:54 PM.",
-    },
+    image: IMAGES.en,
+  },
+  // The app opens these two addresses from the notice it shows on a desktop without a tray
+  // (`shell::icon_help_url`): they must not move.
+  {
+    path: "/aide/afficher-l-icone",
+    file: new URL("../site/aide/afficher-l-icone.html", import.meta.url),
+    language: "fr",
+    title: "Afficher l’icône sous Linux · Bientôt",
+    description:
+      "Sous GNOME, l’icône de Bientôt demande l’extension AppIndicator : comment l’ajouter, et comment Bientôt fonctionne en attendant, dans une fenêtre.",
+    image: IMAGES.fr,
+    noindex: !LINUX_LAUNCHED,
+  },
+  {
+    path: "/en/help/show-the-icon",
+    file: new URL("../site/en/help/show-the-icon.html", import.meta.url),
+    language: "en",
+    title: "Show the icon on Linux · Bientôt",
+    description:
+      "On GNOME, the Bientôt icon needs the AppIndicator extension: how to add it, and how Bientôt works in a window until you do.",
+    image: IMAGES.en,
+    noindex: !LINUX_LAUNCHED,
   },
 ];
 
-// The homepage in each language. Search engines show each reader the one in their language, and
-// the English one to everyone else.
-const HOMEPAGES: Record<Language | "x-default", string> = { fr: "/", en: "/en", "x-default": "/en" };
+// Pages that are one another's translation. Search engines show each reader the one in their
+// language, and the English one to everyone else.
+const TRANSLATIONS: Record<Language | "x-default", string>[] = [
+  { fr: "/", en: "/en", "x-default": "/en" },
+  { fr: "/aide/afficher-l-icone", en: "/en/help/show-the-icon", "x-default": "/en/help/show-the-icon" },
+];
 
 // The statistics page is drawn per request from its template (stats-page.ts), with the same head.
 export const STATISTICS: Page = {
@@ -68,7 +105,7 @@ export const STATISTICS: Page = {
   title: "Statistiques · Bientôt",
   description:
     "Combien d’installations de Bientôt sont actives chaque mois, par version et par mode d’installation : les chiffres du signal anonyme, publiés en données ouvertes.",
-  image: PAGES[0]!.image,
+  image: IMAGES.fr,
 };
 
 const DAY = 86400;
@@ -103,19 +140,20 @@ const escape = (text: string) =>
 export function head(page: Page): string {
   const url = ORIGIN + page.path;
   const image = ORIGIN + page.image.path;
-  const translated = Object.values(HOMEPAGES).includes(page.path);
+  const translations = TRANSLATIONS.find((group) => Object.values(group).includes(page.path));
   const locale = (language: Language) => (language === "fr" ? "fr_FR" : "en_US");
   return [
     `<title>${escape(page.title)}</title>`,
     `<meta name="description" content="${escape(page.description)}">`,
+    ...(page.noindex ? [`<meta name="robots" content="noindex">`] : []),
     `<link rel="canonical" href="${url}">`,
-    ...(translated
-      ? Object.entries(HOMEPAGES).map(([language, path]) => `<link rel="alternate" hreflang="${language}" href="${ORIGIN + path}">`)
+    ...(translations
+      ? Object.entries(translations).map(([language, path]) => `<link rel="alternate" hreflang="${language}" href="${ORIGIN + path}">`)
       : []),
     `<meta property="og:type" content="website">`,
     `<meta property="og:site_name" content="Bientôt">`,
     `<meta property="og:locale" content="${locale(page.language)}">`,
-    ...(translated ? [`<meta property="og:locale:alternate" content="${locale(page.language === "fr" ? "en" : "fr")}">`] : []),
+    ...(translations ? [`<meta property="og:locale:alternate" content="${locale(page.language === "fr" ? "en" : "fr")}">`] : []),
     `<meta property="og:url" content="${url}">`,
     `<meta property="og:title" content="${escape(page.title)}">`,
     `<meta property="og:description" content="${escape(page.description)}">`,
@@ -200,7 +238,10 @@ const text = (body: string, type: string) =>
   new Response(body, { headers: { "content-type": `${type}; charset=utf-8`, "cache-control": `public, max-age=${DAY}` } });
 
 export function sitemap(): string {
-  const urls = [...PAGES, STATISTICS].map((page) => `  <url><loc>${ORIGIN}${page.path}</loc></url>`).join("\n");
+  const urls = [...PAGES, STATISTICS]
+    .filter((page) => !page.noindex)
+    .map((page) => `  <url><loc>${ORIGIN}${page.path}</loc></url>`)
+    .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 

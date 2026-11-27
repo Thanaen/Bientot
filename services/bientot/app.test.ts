@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createPublicKey, verify } from "node:crypto";
 import { createApp } from "./src/app";
 import { FONTS } from "./src/fonts";
-import { INDEXNOW_KEY } from "./src/site";
+import { INDEXNOW_KEY, LINUX_LAUNCHED } from "./src/site";
 import { MemoryStore } from "./src/store";
 
 let clock: Date;
@@ -178,10 +178,55 @@ describe("the site", () => {
     expect(page).not.toContain("og:locale:alternate");
   });
 
-  // The two homepages are one design: only the words differ.
-  test("the English page has the same styles as the French one", async () => {
+  // The two homepages are one design, and so are the two help pages: only the words differ.
+  test.each([
+    ["/en", "/"],
+    ["/en/help/show-the-icon", "/aide/afficher-l-icone"],
+  ])("%p has the same styles as %p", async (english, french) => {
     const style = (page: string) => page.match(/<style>[\s\S]*?<\/style>/)![0];
-    expect(style(await html("/en"))).toBe(style(await html("/")));
+    expect(style(await html(english))).toBe(style(await html(french)));
+  });
+
+  // The app opens these two addresses from the notice it shows on a desktop without a tray
+  // (`shell::icon_help_url` in crates/bientot-app), in its language.
+  const HELP = [
+    ["/aide/afficher-l-icone", "fr", "Afficher l’icône de Bientôt", "/en/help/show-the-icon"],
+    ["/en/help/show-the-icon", "en", "Show the Bientôt icon", "/aide/afficher-l-icone"],
+  ] as const;
+
+  test.each(HELP)("the help page %p answers in its language and names its translation", async (path, language, heading, twin) => {
+    const response = (await get(path))!;
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    const page = await response.text();
+    expect(page).toStartWith(`<!doctype html>\n<html lang="${language}">`);
+    expect(page).toContain(`<h1>${heading}</h1>`);
+    expect(page).toContain(`<link rel="canonical" href="https://bientot.dev${path}">`);
+    expect(page).toContain(`<link rel="alternate" hreflang="${language === "fr" ? "en" : "fr"}" href="https://bientot.dev${twin}">`);
+    expect(page).toContain(`<meta property="og:locale" content="${language === "fr" ? "fr_FR" : "en_US"}">`);
+    expect(page).toContain(`<a href="${twin}" hreflang="${language === "fr" ? "en" : "fr"}"`);
+    expect(page).not.toContain("<!-- ");
+  });
+
+  test.each(HELP)("the help page %p stays out of search engines and the sitemap until Linux is out", async (path) => {
+    const page = await html(path);
+    const sitemap = await html("/sitemap.xml");
+    expect(page.includes('<meta name="robots" content="noindex">')).toBe(!LINUX_LAUNCHED);
+    expect(sitemap.includes(`<loc>https://bientot.dev${path}</loc>`)).toBe(LINUX_LAUNCHED);
+    expect(sitemap).toContain("<loc>https://bientot.dev/</loc>");
+  });
+
+  test("the pages that search engines index carry no noindex", async () => {
+    for (const path of ["/", "/en", "/statistiques"]) expect(await html(path)).not.toContain('name="robots"');
+  });
+
+  // T186 decides how the site leads to the help pages once Linux is out.
+  test.skipIf(LINUX_LAUNCHED)("until Linux is out, no page and not llms.txt lead to the help pages", async () => {
+    for (const path of ["/", "/en", "/statistiques", "/llms.txt"]) {
+      const text = await html(path);
+      expect(text, path).not.toContain("/aide/");
+      expect(text, path).not.toContain("/help/");
+    }
   });
 
   test("the page describes itself for search engines and link previews", async () => {
@@ -200,6 +245,8 @@ describe("the site", () => {
     ["/", "/", "L’application s’appelait WorkTime jusqu’en octobre&nbsp;2026."],
     ["/statistiques", "/", "L’application s’appelait WorkTime jusqu’en octobre&nbsp;2026."],
     ["/en", "/en", "The app was called WorkTime until October&nbsp;2026."],
+    ["/aide/afficher-l-icone", "/", "L’application s’appelait WorkTime jusqu’en octobre&nbsp;2026."],
+    ["/en/help/show-the-icon", "/en", "The app was called WorkTime until October&nbsp;2026."],
   ])("%p names the app Bientôt", async (path, home, renamed) => {
     const page = await (await get(path))!.text();
     expect(page).toContain(`<a class="brand" href="${home}">`);
@@ -216,6 +263,8 @@ describe("the site", () => {
   test.each([
     ["/", "/og/home.png"],
     ["/en", "/og/home-en.png"],
+    ["/aide/afficher-l-icone", "/og/home.png"],
+    ["/en/help/show-the-icon", "/og/home-en.png"],
   ])("every local file %p links to is served", async (page, image) => {
     const paths = new Set(
       [...(await html(page)).matchAll(/(?:(?:href|src|content)="|url\(")(?:https:\/\/bientot\.dev)?(\/[\w./-]+\.\w+)"/g)].map(
@@ -516,6 +565,8 @@ describe("the two domains", () => {
     ["/", "https://bientot.dev/"],
     ["/en", "https://bientot.dev/en"],
     ["/statistiques", "https://bientot.dev/statistiques"],
+    ["/aide/afficher-l-icone", "https://bientot.dev/aide/afficher-l-icone"],
+    ["/en/help/show-the-icon", "https://bientot.dev/en/help/show-the-icon"],
     ["/?utm_source=x", "https://bientot.dev/?utm_source=x"],
   ])("the old domain moves the page %p to bientot.dev", async (path, location) => {
     const response = await call("worktime.thanaen.dev", path);
@@ -527,6 +578,8 @@ describe("the two domains", () => {
     ["/", "https://bientot.dev/"],
     ["/en", "https://bientot.dev/en"],
     ["/statistiques", "https://bientot.dev/statistiques"],
+    ["/aide/afficher-l-icone", "https://bientot.dev/aide/afficher-l-icone"],
+    ["/en/help/show-the-icon", "https://bientot.dev/en/help/show-the-icon"],
   ])("bientot.dev serves the page %p", async (path, canonical) => {
     const response = await call("bientot.dev", path);
     expect(response.status).toBe(200);
@@ -545,6 +598,8 @@ describe("HEAD", () => {
     ["/", {}],
     ["/en", {}],
     ["/statistiques", {}],
+    ["/aide/afficher-l-icone", {}],
+    ["/en/help/show-the-icon", {}],
     ["/robots.txt", {}],
     ["/sitemap.xml", {}],
     ["/og/home.png", {}],
