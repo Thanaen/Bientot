@@ -16,7 +16,7 @@ use bientot_app::{adjust_view, settings_view, shell, week_view};
 use bientot_domain::sources::LastInputReading;
 use bientot_domain::time::{FixedTimeZoneProvider, FrozenClock};
 use bientot_platform::activity::LastInputProbe;
-use bientot_platform::placement::{FlyoutPlacement, InMemoryDesktop};
+use bientot_platform::placement::{FlyoutPlacement, Frame, InMemoryDesktop};
 use bientot_platform::tray::TrayHost;
 use bientot_store::data_directory::DataDirectory;
 use gpui::{App, HeadlessAppContext};
@@ -60,7 +60,7 @@ fn a_window_that_cannot_open_is_logged_by_name() {
         let desktop = Rc::new(InMemoryDesktop {
             placement: FlyoutPlacement::CompositorPlaced,
             usable_height: None,
-            system_draws_frame: false,
+            frame: Frame::App,
         });
         shell::install(desktop, TrayHost::Present, cx);
     });

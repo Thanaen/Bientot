@@ -20,7 +20,7 @@ use bientot_platform::activity::LastInputProbe;
 use bientot_platform::launcher::LauncherPort;
 use bientot_platform::lifecycle::{InMemoryLifecycle, LifecycleSource, LockReporting};
 use bientot_platform::notifications::{NotificationClicks, Notifier, QueuedClicks};
-use bientot_platform::placement::{Desktop, FlyoutPlacement, InMemoryDesktop};
+use bientot_platform::placement::{Desktop, FlyoutPlacement, Frame, InMemoryDesktop};
 use bientot_platform::power_history::{HistoryUnavailable, PowerBoundaries, PowerBoundaryLog};
 use bientot_platform::session_history::{LockHistory, SessionBoundaries, SessionBoundaryLog};
 use bientot_platform::startup::{LaunchIntent, StartupPort};
@@ -206,7 +206,7 @@ impl Platform {
             desktop: Rc::new(InMemoryDesktop {
                 placement: FlyoutPlacement::CompositorPlaced,
                 usable_height: None,
-                system_draws_frame: false,
+                frame: Frame::App,
             }),
         }
     }

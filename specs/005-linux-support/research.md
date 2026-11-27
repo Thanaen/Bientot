@@ -329,6 +329,18 @@ Linux the window is transparent around the panel, which draws its own
 radius and shadow (`WindowBackgroundAppearance::Transparent`); X11 without a
 compositing manager shows square corners. Design task T064 (UI).
 
+GPUI 0.3.9 does not say whether a compositing manager runs. Its X11 client
+decides it once at start, for client-side decorations only, and also counts
+`_NET_SUPPORTING_WM_CHECK`, which any EWMH window manager sets: openbox
+alone passes (**Run**, Xvfb, 27 November 2026). `LinuxDesktop::frame` asks
+the X server at each opening whether the selection `_NET_WM_CM_S<screen>`
+has an owner, as EWMH defines it; without one, a 32-bit window's clear
+pixels show black, so the panel is square and fills an opaque window. Every
+Wayland compositor blends, and GPUI already makes a Wayland surface
+transparent while it draws its decorations itself. The headless renderer
+clears to opaque black and ignores the window's background, so a shadow
+shows in the screenshots only over a backdrop the scene paints.
+
 Options rejected: asking the user for a corner in the settings (a setting
 for something every other OS does alone; can come later if A-5 fails
 everywhere); a GNOME Shell extension shipped by Bientôt (a second product to

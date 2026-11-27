@@ -47,6 +47,19 @@ impl X11 {
         )
     }
 
+    /// Whether a compositing manager runs on the screen: EWMH has it own the selection
+    /// `_NET_WM_CM_S<screen>`. Without one, the X server draws a transparent window over black.
+    pub fn compositing(&self) -> Result<bool, Failure> {
+        let name = format!("_NET_WM_CM_S{}", self.screen);
+        let atom = self
+            .connection
+            .intern_atom(false, name.as_bytes())?
+            .reply()?
+            .atom;
+        let owner = self.connection.get_selection_owner(atom)?.reply()?.owner;
+        Ok(owner != x11rb::NONE)
+    }
+
     pub fn layout(&self) -> Result<Layout, Failure> {
         read(&self.connection, self.screen)
     }

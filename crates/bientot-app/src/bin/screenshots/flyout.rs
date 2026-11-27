@@ -17,6 +17,9 @@
 //! - `flyout-<settings-restored|notifications-unavailable|refresh-failed|alerts>.png`;
 //! - `flyout-activity-undetectable[-paused].png`, without an idle backend, on Linux only;
 //! - `flyout-window-mode[-alerts].png`, the notice of a desktop without a tray, on Linux only;
+//! - `flyout-frame-<drawn|square>.png`, the frame the app draws where no system frames the
+//!   window, on Linux only: rounded with its shadow over a backdrop where a compositor blends it,
+//!   square without one;
 //! - `flyout-update-<offered|installing|failed>.png` and `flyout-update-direct-<…>.png`;
 //! - `flyout-alerts-short.png` and `flyout-alerts-short-update.png`;
 //! - `palette-flyout.png`, `palette-flyout-query.png` and `palette-flyout-empty.png`.
@@ -45,9 +48,12 @@ use bientot_domain::accounting::{AdjustmentId, LongLockReviewId, TrackingState};
 use bientot_domain::adjustments::ManualAdjustment;
 use bientot_domain::intervals::UtcInterval;
 use bientot_domain::time::LocalWorkday;
-use bientot_platform::placement::{FlyoutPlacement, InMemoryDesktop};
+use bientot_platform::placement::{FlyoutPlacement, Frame, InMemoryDesktop};
 use bientot_platform::tray::TrayHost;
-use gpui::{AppContext as _, HeadlessAppContext, px, size};
+use gpui::{
+    AppContext as _, Context, Entity, HeadlessAppContext, IntoElement, ParentElement as _, Render,
+    Styled as _, Window, div, hsla, px, size,
+};
 use jiff::SignedDuration;
 
 use super::platform::{Platform, Shots};
@@ -423,8 +429,76 @@ pub fn capture_notices(
         capture(cx, window.into(), &path)?;
         cx.update(|cx| cx.set_global(Backends::default()));
         capture_window_mode(cx, language, output)?;
+        capture_frames(cx, language, output)?;
     }
     Ok(())
+}
+
+/// What lies behind a transparent window in `flyout-frame-drawn`: the renderer clears to black,
+/// which would hide the shadow.
+const BACKDROP: gpui::Hsla = hsla(210. / 360., 0.15, 0.75, 1.);
+
+/// The flyout in a window that shows [`BACKDROP`] where the flyout's leaves it clear, as a
+/// compositor shows what lies behind it.
+struct OverBackdrop(Entity<Flyout>);
+
+impl Render for OverBackdrop {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().bg(BACKDROP).child(self.0.clone())
+    }
+}
+
+/// The frame the app draws on a desktop that does not frame the window: rounded, with the
+/// shadow it casts below the panel, where a compositor blends the window; square and filling it
+/// without one (X11 without a compositing manager).
+fn capture_frames(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    let directory = demo::throwaway_directory();
+    let day = DemoHost::open(DemoScenario::OnTrack, &directory)?.refresh(language);
+    std::fs::remove_dir_all(&directory).ok();
+    let day = day?;
+    let placement = FlyoutPlacement::CompositorPlaced;
+
+    let drawn = shell::panel_frame(Frame::App, placement);
+    // As wide as the flyout's fitting will make it: a headless window resizes without laying out
+    // its views again at the new size, which would leave the backdrop short of the room.
+    let wide = size(FLYOUT_WIDTH + drawn.room() * 2., px(800.));
+    let window = cx.open_window(wide, |window, cx| {
+        let flyout = cx.new(|cx| {
+            Flyout::new(
+                day.clone(),
+                working(TrackingState::Running),
+                None,
+                window,
+                cx,
+            )
+            .framed(drawn)
+        });
+        cx.new(|_| OverBackdrop(flyout))
+    })?;
+    let path = output.join("flyout-frame-drawn.png");
+    capture(cx, window.into(), &path)?;
+    // Halfway down the room below the panel, the shadow is darker than the backdrop at the edge.
+    let scale = cx.update_window(window.into(), |_, window, _| window.scale_factor())?;
+    let image = image::open(&path)?.to_rgba8();
+    let room = (f32::from(drawn.room()) * scale) as u32;
+    let shadow = image.get_pixel(image.width() / 2, image.height() - room / 2);
+    let backdrop = image.get_pixel(image.width() / 2, image.height() - 1);
+    anyhow::ensure!(
+        shadow[0] < backdrop[0],
+        "no shadow below the panel ({shadow:?} over {backdrop:?})"
+    );
+
+    let square = shell::panel_frame(Frame::Square, placement);
+    let window = cx.open_window(size(FLYOUT_WIDTH, px(800.)), |window, cx| {
+        cx.new(|cx| {
+            Flyout::new(day, working(TrackingState::Running), None, window, cx).framed(square)
+        })
+    })?;
+    capture(cx, window.into(), &output.join("flyout-frame-square.png"))
 }
 
 /// No tray host shows the icon, so the flyout is a window that says why: alone, then with what
@@ -439,7 +513,7 @@ fn capture_window_mode(
         Rc::new(InMemoryDesktop {
             placement,
             usable_height: None,
-            system_draws_frame: false,
+            frame: Frame::App,
         })
     };
     cx.update(|cx| shell::install(desktop(FlyoutPlacement::Window), TrayHost::Absent, cx));
@@ -447,12 +521,21 @@ fn capture_window_mode(
     let day = DemoHost::open(DemoScenario::OnTrack, &directory)?.refresh(language);
     std::fs::remove_dir_all(&directory).ok();
     let day = day?;
-    capture_flyout(
-        cx,
-        day.clone(),
-        None,
-        &output.join("flyout-window-mode.png"),
-    )?;
+    // Framed as the shell frames the window: square, in the frame of an ordinary window.
+    let frame = shell::panel_frame(Frame::App, FlyoutPlacement::Window);
+    let window = cx.open_window(size(FLYOUT_WIDTH, px(800.)), |window, cx| {
+        cx.new(|cx| {
+            Flyout::new(
+                day.clone(),
+                working(TrackingState::Running),
+                None,
+                window,
+                cx,
+            )
+            .framed(frame)
+        })
+    })?;
+    capture(cx, window.into(), &output.join("flyout-window-mode.png"))?;
     let alerts = Alerts {
         announcements: vec![Announcement::NotificationsRefused.notice(language)],
         refresh_failure: Some(Notice::refresh_pending(
@@ -461,7 +544,9 @@ fn capture_window_mode(
     };
     let window = cx.open_window(size(FLYOUT_WIDTH, px(800.)), |window, cx| {
         cx.new(|cx| {
-            Flyout::new(day, working(TrackingState::Running), None, window, cx).with_alerts(alerts)
+            Flyout::new(day, working(TrackingState::Running), None, window, cx)
+                .with_alerts(alerts)
+                .framed(frame)
         })
     })?;
     capture(

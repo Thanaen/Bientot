@@ -217,6 +217,8 @@ pub struct Flyout {
     focus_handle: FocusHandle,
     palette: Option<Opened>,
     fitted: shell::Fitted,
+    /// Set by [`Self::framed`].
+    frame: shell::PanelFrame,
     /// Set by [`Self::with_max_height`].
     max_height: Option<Pixels>,
     /// The body, between the header and the actions, scrolls when the panel cannot hold it.
@@ -282,6 +284,7 @@ impl Flyout {
             focus_handle,
             palette: None,
             fitted: shell::Fitted::default(),
+            frame: shell::PanelFrame::UNFRAMED,
             max_height: None,
             body_scroll: ScrollHandle::new(),
             body_parts: Vec::new(),
@@ -301,6 +304,12 @@ impl Flyout {
     /// Opens on `alerts`, at rest.
     pub fn with_alerts(mut self, alerts: Alerts) -> Self {
         self.alerts = alerts;
+        self
+    }
+
+    /// Opens with its panel framed by `frame`, which the window it opens in was made for.
+    pub fn framed(mut self, frame: shell::PanelFrame) -> Self {
+        self.frame = frame;
         self
     }
 
@@ -766,6 +775,11 @@ impl Render for Flyout {
                 .map(|height| shell::panel_max_height(height, window.scale_factor()))
         });
         let body = self.body(window, cx, &theme);
+        let frame = self.frame;
+        let corner = match frame {
+            shell::PanelFrame::Square => px(0.),
+            shell::PanelFrame::System | shell::PanelFrame::Drawn { .. } => radius::LG,
+        };
         let content = div()
             .id("flyout")
             .role(Role::Dialog)
@@ -814,7 +828,11 @@ impl Render for Flyout {
             .bg(theme.surface)
             .border_1()
             .border_color(theme.border)
-            .rounded(radius::LG)
+            .rounded(corner)
+            // A shadow needs room in the window to fall into.
+            .when(frame.room() > px(0.), |content| {
+                content.shadow(theme.shadow_modal())
+            })
             .overflow_hidden()
             .when(self.palette.is_some(), |content| {
                 content.min_h(max_height.map_or(PALETTE_ROOM, |height| PALETTE_ROOM.min(height)))
@@ -842,24 +860,28 @@ impl Render for Flyout {
                     .child(scroll_thumb(self.body_scroll.clone(), &theme)),
             )
             .children(self.actions(&theme))
-            .children(
-                self.palette
-                    .as_ref()
-                    .map(|palette| palette.overlay(&theme).rounded(radius::LG - px(1.))),
-            );
+            .children(self.palette.as_ref().map(|palette| {
+                palette
+                    .overlay(&theme)
+                    .rounded((corner - px(1.)).max(px(0.)))
+            }));
 
         let fitted = self.fitted.clone();
+        let room = frame.room();
         div()
             .size_full()
+            .p(room)
             // GPUI clears the opaque window to white, and a system that rounds the window does so
             // a little outside the panel's rounding: the pixels in between take the border's color.
-            .when(shell::system_draws_frame(cx), |root| root.bg(theme.border))
+            .when(frame == shell::PanelFrame::System, |root| {
+                root.bg(theme.border)
+            })
             .on_children_prepainted(move |bounds, window, cx| {
                 if let Some(content) = bounds.first()
                     && (fitted.refit(content.size, window.scale_factor())
-                        || shell::lost_its_size(window, content.size, cx))
+                        || shell::lost_its_size(window, content.size, room, cx))
                 {
-                    shell::fit_window(window, content.size, cx);
+                    shell::fit_window(window, content.size, room, cx);
                 }
             })
             .child(content)
