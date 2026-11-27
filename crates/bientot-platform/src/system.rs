@@ -11,6 +11,17 @@ pub enum InstallKind {
     Development,
 }
 
+impl InstallKind {
+    pub const ALL: [Self; 6] = [
+        Self::Store,
+        Self::Direct,
+        Self::Portable,
+        Self::Flatpak,
+        Self::AppImage,
+        Self::Development,
+    ];
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SessionType {
     X11,

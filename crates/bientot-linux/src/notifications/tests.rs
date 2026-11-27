@@ -77,3 +77,12 @@ fn a_closed_notification_is_forgotten_so_its_number_may_name_another_application
 
     assert_eq!(delivered.invoked(&7, "default"), None);
 }
+
+#[test]
+fn a_flatpak_shows_them_through_the_portal_and_every_other_install_through_the_server() {
+    let through_the_portal: Vec<_> = InstallKind::ALL
+        .into_iter()
+        .filter(|kind| Service::for_install(*kind) == Service::Portal)
+        .collect();
+    assert_eq!(through_the_portal, [InstallKind::Flatpak]);
+}

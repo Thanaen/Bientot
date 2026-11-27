@@ -19,8 +19,9 @@ the distribution, its version, the desktops, the session type and the
 backend in use for the tray (`status-notifier` or `none`), the
 notifications (`notification-server`, `notification-portal`, or `none`
 when refused or in a demo) and the autostart (`xdg-autostart`, or `none` in
-a demo). Each name the system gives is written only when it is 1 to 64
-characters of `a-z`, `0-9`, `.`, `_` and `-`, as os-release allows in `ID`
+a demo and, until T112, in a Flatpak). Each name the system gives is
+written only when it is 1 to 64 characters of `a-z`, `0-9`, `.`, `_` and
+`-`, as os-release allows in `ID`
 (`bientot_core::diagnostics::DiagnosticName`): free text, which could name
 the user or the computer, never reaches the archive. Idle and lock add
 their backends with T075 and T084. « À propos » names a Flatpak or an
@@ -196,8 +197,8 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
   connection per notification and keeps it until that notification is
   clicked or closed (GNOME keeps reminders in its list without closing
   them), and adds its match rule only after `Notify` returns.
-- Flatpak (`/.flatpak-info` or `FLATPAK_ID`, until `InstallKind` tells,
-  T114): `org.freedesktop.portal.Notification.AddNotification` with id =
+- Flatpak (`InstallKind::Flatpak`):
+  `org.freedesktop.portal.Notification.AddNotification` with id =
   `delivery_id`, `title`, `body` and `default-action = "open"`;
   `ActionInvoked(id, "open", _)` → click. Not
   `app.open`: the portal's backends hand an `app.…` action to the
@@ -241,9 +242,11 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
   above (through `<file>.partial` and a rename) unless the state is already
   `Enabled`; disabling removes the file only when its program is this
   install. `other_copy_starts` is false: the Flatpak's portal writes its
-  entry under the same id, which reads as `RegistrationMismatch` (T132
-  revisits it with `InstallKind`). A demo gets no port, as on Windows.
-- Flatpak: `org.freedesktop.portal.Background.RequestBackground` with
+  entry under the same file name, so the folder starts one copy at most,
+  and the Flatpak's entry reads as `RegistrationMismatch`, which turning
+  the switch on replaces. A demo gets no port, as on Windows.
+- Flatpak (`InstallKind::Flatpak`, `bientot_linux::autostart::Autostart`):
+  `org.freedesktop.portal.Background.RequestBackground` with
   `autostart = true|false`, `commandline = ["bientot", "--autostart"]`,
   `reason` from `contracts/copy.md`. The answer's `autostart` is stored in
   `app-state.json` (`autostartGranted`) and is the state shown (A-18).

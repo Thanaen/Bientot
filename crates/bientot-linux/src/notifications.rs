@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use bientot_platform::notifications::NotificationRequest;
+use bientot_platform::system::InstallKind;
 
 use crate::APP_ID;
 
@@ -30,6 +31,15 @@ pub enum Service {
 }
 
 impl Service {
+    /// The portal in a Flatpak, whose sandbox reaches no notification server, the server
+    /// elsewhere.
+    pub fn for_install(kind: InstallKind) -> Self {
+        match kind {
+            InstallKind::Flatpak => Self::Portal,
+            _ => Self::Server,
+        }
+    }
+
     /// Its name in the diagnostic export.
     pub fn backend(self) -> &'static str {
         match self {

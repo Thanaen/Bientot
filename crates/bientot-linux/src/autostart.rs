@@ -9,9 +9,29 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use bientot_platform::startup::{AUTOSTART_ARGUMENT, StartupPort, StartupRegistrationState};
+use bientot_platform::system::InstallKind;
 
 use crate::APP_ID;
 use crate::desktop_entry::{Entry, base_directory, exec_value, read, write};
+
+/// What registers an install to start at sign-in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Autostart {
+    /// An entry in the user's autostart folder: [`XdgAutostart`].
+    Entry,
+    /// `org.freedesktop.portal.Background`, which writes the entry on the host for a Flatpak:
+    /// the sandbox has an autostart folder of its own, which no desktop reads.
+    BackgroundPortal,
+}
+
+impl Autostart {
+    pub fn for_install(kind: InstallKind) -> Self {
+        match kind {
+            InstallKind::Flatpak => Self::BackgroundPortal,
+            _ => Self::Entry,
+        }
+    }
+}
 
 /// The autostart entry of the executable `executable`, in the folder `config_home` stands for.
 /// Every failure to read or write it reads as [`StartupRegistrationState::Unavailable`], as on
@@ -85,9 +105,8 @@ impl StartupPort for XdgAutostart {
             .unwrap_or(StartupRegistrationState::Unavailable)
     }
 
-    /// No other install kind starts from this folder until the Flatpak and the AppImage have
-    /// ids of their own: the portal names its entry after the same app id, which reads as an
-    /// entry for another path.
+    /// Never: the Flatpak's portal writes its entry under the same file name, so this folder
+    /// starts one copy at most, and an entry of the Flatpak reads as one for another path.
     fn other_copy_starts(&self) -> bool {
         false
     }

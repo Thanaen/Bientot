@@ -5,6 +5,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
 
+use bientot_platform::system::InstallKind;
 use bientot_platform::tray::{Tray, TrayEvent, TrayHost, TrayState};
 use ksni::blocking::{Handle, TrayMethods as _};
 use ksni::menu::{StandardItem, SubMenu};
@@ -12,7 +13,7 @@ use ksni::{MenuItem, OfflineReason, Status, ToolTip};
 
 use super::{
     HOST_GRACE, HostWatch, ICON_SIZES, Latest, MenuNode, WatcherSignal, click_position, follow,
-    menu, pixmaps,
+    menu, owns_a_bus_name, pixmaps,
 };
 
 /// The item's `Id`: the application id the desktop files and the Flatpak use.
@@ -46,10 +47,9 @@ struct Shown {
 }
 
 impl StatusNotifier {
-    /// Serves the item on the session bus. It shows nothing before the first
-    /// [`Tray::publish`]. Outside a Flatpak it owns the well-known name the specification asks
-    /// for; inside, the sandbox forbids it and current hosts do without (A-6).
-    pub fn new(events: impl Fn(TrayEvent) + Send + Sync + 'static) -> Self {
+    /// Serves the item of an install of `kind` on the session bus, with a well-known name when
+    /// [`owns_a_bus_name`] says so. It shows nothing before the first [`Tray::publish`].
+    pub fn new(kind: InstallKind, events: impl Fn(TrayEvent) + Send + Sync + 'static) -> Self {
         let (watcher, signals) = mpsc::channel();
         let item = Item {
             shown: None,
@@ -60,7 +60,7 @@ impl StatusNotifier {
         // Without `assume_sni_available`, a watcher missing at start fails `spawn` for good, and
         // the item would not register when one appears.
         let served = item
-            .disable_dbus_name(std::env::var_os("FLATPAK_ID").is_some())
+            .disable_dbus_name(!owns_a_bus_name(kind))
             .assume_sni_available(true)
             .spawn();
         let published = Arc::new(Latest::default());

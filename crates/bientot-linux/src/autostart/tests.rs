@@ -112,6 +112,20 @@ fn an_entry_of_another_path_is_a_mismatch_that_only_enabling_replaces() {
 }
 
 #[test]
+fn the_flatpaks_entry_is_a_mismatch_and_no_other_copy_that_starts_too() {
+    let flatpak = "[Desktop Entry]\nType=Application\nName=dev.bientot.Bientot\n\
+                   Exec=flatpak run --command=bientot dev.bientot.Bientot --autostart\n\
+                   X-Flatpak=dev.bientot.Bientot\n";
+    let config = Config::new(EXECUTABLE);
+    config.put(flatpak);
+    assert_eq!(config.state(), RegistrationMismatch);
+    assert!(!config.autostart.other_copy_starts());
+
+    assert_eq!(config.autostart.set_enabled(false), RegistrationMismatch);
+    assert_eq!(config.text().unwrap(), flatpak, "the Flatpak's entry stays");
+}
+
+#[test]
 fn an_entry_of_another_path_turned_off_is_disabled_and_left_alone() {
     let other = format!("{}Hidden=true\n", entry_starting("/usr/bin/bientot"));
     let config = Config::new(EXECUTABLE);
@@ -269,4 +283,13 @@ fn an_appimage_registers_its_own_file_not_the_mounted_executable() {
         installed_executable(Some("Bientot.AppImage".into()), mounted.clone()),
         mounted
     );
+}
+
+#[test]
+fn a_flatpak_starts_through_the_background_portal_and_every_other_install_through_an_entry() {
+    let through_the_portal: Vec<_> = InstallKind::ALL
+        .into_iter()
+        .filter(|kind| Autostart::for_install(*kind) == Autostart::BackgroundPortal)
+        .collect();
+    assert_eq!(through_the_portal, [InstallKind::Flatpak]);
 }
