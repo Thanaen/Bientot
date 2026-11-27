@@ -46,7 +46,8 @@ const IMAGES: Record<Language, Page["image"]> = {
   },
 };
 
-// Every page carries `<!-- head -->` in its <head>; head() fills it, and the sitemap lists the page.
+// Every page carries `<!-- head -->` in its <head>; head() fills it, and the sitemap and IndexNow
+// list the page unless it is `noindex`.
 export const PAGES: Page[] = [
   {
     path: "/",

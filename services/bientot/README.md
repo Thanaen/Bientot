@@ -34,8 +34,9 @@ Every `GET` route also answers `HEAD`, with the same status and headers and no b
 
 `site/index.html` is a static page in French, and `site/en.html` the same page in English, in the
 app's WorkTime One theme. The two pages share their styles word for word (a test checks it), so a
-change to one goes to the other. Each names the other with `hreflang` links (`HOMEPAGES` in
-`src/site.ts`), the English one also for readers of any other language. The statistics page is
+change to one goes to the other. Each names the other with `hreflang` links (`TRANSLATIONS` in
+`src/site.ts`, which pairs the help pages the same way), the English one also for readers of any
+other language. The statistics page is
 French only. It sets no
 cookie: the fonts are subsets of the app's IBM Plex fonts (see Fonts below). Its
 only scripts measure the audience and the loading speed with PostHog (see `docs/privacy.md`):

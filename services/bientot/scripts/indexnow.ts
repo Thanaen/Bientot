@@ -10,7 +10,9 @@ const response = await fetch("https://api.indexnow.org/indexnow", {
     host: new URL(ORIGIN).host,
     key: INDEXNOW_KEY,
     keyLocation: `${ORIGIN}/${INDEXNOW_KEY}.txt`,
-    urlList: [...PAGES, STATISTICS].map((page) => ORIGIN + page.path),
+    urlList: [...PAGES, STATISTICS]
+      .filter((page) => !page.noindex)
+      .map((page) => ORIGIN + page.path),
   }),
 });
 console.log(response.status, response.statusText, await response.text());
