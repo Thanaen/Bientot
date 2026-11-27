@@ -8,8 +8,9 @@ The service also answers at `https://worktime.thanaen.dev`, the site's first add
 copies read their update feed and send their usage signal there (`FEED_URL` in
 `crates/bientot-app/src/platform/direct.rs`, `ENDPOINT` in `crates/bientot-core/src/usage_ping.rs`),
 and the usage signal follows no redirect. On that host, every route answers exactly as on
-`bientot.dev`, except the HTML pages, `/`, `/en` and `/statistiques`, which answer `301` to the same
-address on `bientot.dev` (`moved` in `src/site.ts`, decided by the `Host` header). The app's two
+`bientot.dev`, except the HTML pages, `/`, `/en`, `/statistiques` and the two help pages, which
+answer `301` to the same address on `bientot.dev` (`moved` in `src/site.ts`, decided by the `Host`
+header). The app's two
 addresses move to `bientot.dev` in a later release; the old host must keep serving until the
 statistics show no older version.
 
@@ -17,6 +18,7 @@ statistics show no older version.
 | --- | --- |
 | `GET /` | The homepage, `site/index.html`; `301` to `bientot.dev` on the old host |
 | `GET /en` | The homepage in English, `site/en.html`; `301` to `bientot.dev` on the old host |
+| `GET /aide/afficher-l-icone`, `/en/help/show-the-icon` | The help page on showing the icon on a Linux desktop without a tray, `site/aide/afficher-l-icone.html` and `site/en/help/show-the-icon.html`; `301` to `bientot.dev` on the old host |
 | `GET /statistiques` | The public statistics page, built from `site/statistiques.html`; `301` to `bientot.dev` on the old host |
 | `GET /statistiques/<name>.<csv\|json>` | The open data files: `mensuel`, `quotidien`, `details` |
 | `GET /fonts/<file>`, `/og/<page>.png`, `/favicon.*`, `/apple-touch-icon.png`, `/analytics.js` | The files listed in `src/site.ts`; `404` for any other path |
@@ -32,8 +34,9 @@ Every `GET` route also answers `HEAD`, with the same status and headers and no b
 
 `site/index.html` is a static page in French, and `site/en.html` the same page in English, in the
 app's WorkTime One theme. The two pages share their styles word for word (a test checks it), so a
-change to one goes to the other. Each names the other with `hreflang` links (`HOMEPAGES` in
-`src/site.ts`), the English one also for readers of any other language. The statistics page is
+change to one goes to the other. Each names the other with `hreflang` links (`TRANSLATIONS` in
+`src/site.ts`, which pairs the help pages the same way), the English one also for readers of any
+other language. The statistics page is
 French only. It sets no
 cookie: the fonts are subsets of the app's IBM Plex fonts (see Fonts below). Its
 only scripts measure the audience and the loading speed with PostHog (see `docs/privacy.md`):
@@ -48,6 +51,13 @@ Cloudflare) still answers for pages cached before the switch.
 `<head>`; the service fills it with the title, description, canonical URL on `bientot.dev`, link-preview tags
 (Open Graph, `summary_large_image`), icons, theme colours and the two analytics scripts, and adds the page to
 `/sitemap.xml`. A new page or file must be listed there.
+
+The help page « Afficher l’icône de Bientôt » and its English twin are the addresses the app
+opens from the notice it shows on a Linux desktop without a tray (`shell::icon_help_url` in
+`crates/bientot-app`), so they must not move. Until Bientôt for Linux is out, `LINUX_LAUNCHED` in
+`src/site.ts` is false: the two pages answer, but carry `<meta name="robots" content="noindex">`,
+stay out of `/sitemap.xml`, and no other page nor `llms.txt` links to them. Launch (T186 of
+`specs/005-linux-support`) sets it to true and adds them to `llms.txt`.
 
 Browsers keep a page five minutes (`Cache-Control: public, max-age=300`). Vercel's CDN keeps it as
 long, then for 30 more days serves the copy it has at once while it asks the function for a fresh one

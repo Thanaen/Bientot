@@ -1,6 +1,7 @@
 // Every page the site can show, rendered to HTML with the service's own code: the homepage in each
-// language with and without a release version, the OG images' sources, and the statistics page in
-// each of its states, one per month of a made-up year so that every month and weekday name appears.
+// language with and without a release version, the help pages, the OG images' sources, and the
+// statistics page in each of its states, one per month of a made-up year so that every month and
+// weekday name appears.
 // Usage: bun scripts/fonts/pages.ts [service root] <output dir>
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -51,6 +52,8 @@ const noVersion = siteRoutes(async () => null);
 pages["index-sans-version.html"] = await (await noVersion["/"].GET(new Request("https://bientot.dev/"))).text();
 pages["en.html"] = await (await routes["/en"].GET(new Request("https://bientot.dev/en"))).text();
 pages["en-no-version.html"] = await (await noVersion["/en"].GET(new Request("https://bientot.dev/en"))).text();
+pages["aide-afficher-l-icone.html"] = await (await routes["/aide/afficher-l-icone"].GET(new Request("https://bientot.dev/aide/afficher-l-icone"))).text();
+pages["help-show-the-icon.html"] = await (await routes["/en/help/show-the-icon"].GET(new Request("https://bientot.dev/en/help/show-the-icon"))).text();
 pages["statistiques-vide.html"] = await renderPage(publish([], [], `${year}-01-05`));
 pages["statistiques-un-mois-sous-10.html"] = await renderPage(publish(days.slice(31, 59), cells.filter((c) => c.month === `${year}-02`), `${year}-03-02`));
 for (let m = 1; m <= 12; m++) {

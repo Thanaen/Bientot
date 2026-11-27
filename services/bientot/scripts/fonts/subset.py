@@ -36,6 +36,8 @@ TEMPLATES = {
     "site/index.html": (r"index(-.*)?\.html", True),
     "site/en.html": (r"en(-.*)?\.html", True),
     "site/statistiques.html": (r"statistiques-.*\.html", True),
+    "site/aide/afficher-l-icone.html": (r"aide-afficher-l-icone\.html", True),
+    "site/en/help/show-the-icon.html": (r"help-show-the-icon\.html", True),
     "site/og/home.html": (r"og/home\.html", False),
     "site/og/home-en.html": (r"og/home-en\.html", False),
 }

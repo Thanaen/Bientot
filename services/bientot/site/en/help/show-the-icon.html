@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- head -->
+<link rel="preload" href="/fonts/sans-400-core.c66a946d.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/sans-600-core.857b71e3.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/mono-400-core.d5bb6b68.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/mono-500-core.fc127d43.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* Thème WorkTime One, comme la page d’accueil (index.html) : mêmes polices et mêmes tokens. */
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("/fonts/sans-400-core.c66a946d.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E7-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("/fonts/sans-400-ext.7bc15267.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E6, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("/fonts/sans-500-core.c1f1d2c2.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E7-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("/fonts/sans-500-ext.4576aac5.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E6, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("/fonts/sans-600-core.857b71e3.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+C0, U+E0, U+E2, U+E7-EA, U+EE, U+F4, U+F9, U+FB, U+153, U+2011, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F, U+203A, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("/fonts/sans-600-ext.2500db47.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-BF, U+C1-DF, U+E1, U+E3-E6, U+EB-ED, U+EF-F3, U+F5-F8, U+FA, U+FC-152, U+154-17F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("/fonts/mono-400-core.d5bb6b68.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+E0, U+E9, U+FB, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("/fonts/mono-400-ext.5242ecfc.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-DF, U+E1-E8, U+EA-FA, U+FC-17F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("/fonts/mono-500-core.fc127d43.woff2") format("woff2"); unicode-range: U+20-7E, U+A0, U+AB, U+B7, U+BB, U+E0, U+E9, U+FB, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+202F; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("/fonts/mono-500-ext.1ca74e17.woff2") format("woff2"); unicode-range: U+A1-AA, U+AC-B6, U+B8-BA, U+BC-DF, U+E1-E8, U+EA-FA, U+FC-17F; }
+:root {
+  --background: #dcdcdd; --surface: #ebebec; --editor: #fafafa;
+  --border: #c9c9ca; --border-variant: #dfdfe0; --border-focused: #747ae6;
+  --element: #ebebec; --element-hover: #dfdfe0; --element-active: #cacaca;
+  --text: #242529; --text-muted: #58585a; --text-placeholder: #7e8086;
+  --accent: #4560c4; --accent-background: #e2e2fa; --accent-border: #cbcdf6;
+  --success: #3f6e34; --success-background: #dfeadb; --success-border: #c8dcc1;
+  --warning: #7d6400; --warning-background: #faf2e6; --warning-border: #f4e7d1;
+  --error: #ad4234; --hint: #7274a7;
+  --tl-pause: #c9c9ca; --tl-on-fill: #fafafa;
+  --desktop: #c3c8cf; --taskbar: #e6e8eb;
+  --shadow-modal: 0 2px 3px rgba(0,0,0,0.06), 0 3px 6px rgba(0,0,0,0.06), 0 6px 12px rgba(0,0,0,0.04), 0 1px 0 rgba(0,0,0,0.04);
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  --page: 1120px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --background: #3b414d; --surface: #2f343e; --editor: #282c33;
+  --border: #464b57; --border-variant: #363c46; --border-focused: #74ade8;
+  --element: #2e343e; --element-hover: #363c46; --element-active: #454a56;
+  --text: #dce0e5; --text-muted: #a9afbc; --text-placeholder: #878a98;
+  --accent: #74ade8; --accent-background: #74ade81a; --accent-border: #293b5b;
+  --success: #a1c181; --success-background: #a1c1811a; --success-border: #38482f;
+  --warning: #dec184; --warning-background: #dec1841a; --warning-border: #5d4c2f;
+  --error: #e29296; --hint: #788ca6;
+  --tl-pause: #4b5263; --tl-on-fill: #282c33;
+  --desktop: #1f2329; --taskbar: #2a2e35;
+  --shadow-modal: 0 2px 3px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.08), 0 6px 12px rgba(0,0,0,0.04), 0 1px 0 rgba(0,0,0,0.12);
+  color-scheme: dark;
+} }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--editor); color: var(--text); font: 400 16px/1.6 var(--font-sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--border-focused); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; text-wrap: pretty; }
+li { text-wrap: pretty; }
+.mono { font-family: var(--font-mono); }
+.cmd { display: block; white-space: nowrap; overflow-x: auto; margin-block: 8px; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border-variant); border-radius: 4px; }
+.wrap { max-width: var(--page); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.nb { white-space: nowrap; }
+.tray { width: 24px; height: 24px; display: block; flex: none; }
+.nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-block: 20px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 600 18px/26px var(--font-sans); color: var(--text); text-decoration: none; }
+.nav nav { margin-left: auto; display: flex; gap: 20px; font-size: 14px; }
+.nav nav a { color: var(--text-muted); text-decoration: none; }
+.nav nav a:hover { color: var(--text); }
+.eyebrow { font: 500 13px/18px var(--font-mono); color: var(--text-muted); }
+h1 { font: 600 44px/1.1 var(--font-sans); letter-spacing: -0.02em; }
+h2 { font: 600 24px/32px var(--font-sans); letter-spacing: -0.01em; }
+h3 { font: 600 16px/24px var(--font-sans); }
+.lede { font-size: 18px; line-height: 28px; color: var(--text-muted); max-width: 760px; }
+.head { display: grid; gap: 16px; padding-block: 40px 32px; }
+.main { display: grid; gap: 16px; padding-block: 16px 72px; }
+.main > * { max-width: 760px; }
+.card { background: var(--editor); border: 1px solid var(--border); border-radius: 8px; padding: 24px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; min-width: 0; }
+.card h3 + p, .card h3 + ol { margin-top: 4px; }
+.card ul, .card ol { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+footer { border-top: 1px solid var(--border-variant); padding-block: 28px; font-size: 13px; color: var(--text-muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+footer a { color: var(--text-muted); }
+footer .foot-note { flex-basis: 100%; }
+
+@media (max-width: 860px) {
+  .nav nav { margin-left: 0; flex: 1 1 100%; overflow-x: auto; gap: 16px; white-space: nowrap; padding-bottom: 2px; }
+}
+@media (max-width: 600px) {
+  h1 { font-size: 34px; }
+  footer .wrap > span:first-child { flex-basis: 100%; }
+  footer a { padding-block: 4px; }
+  .card { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="t-green" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#15803d"/><path d="M9.875 16.211L14.31 20.646l8.237-8.87" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+  <div class="wrap nav">
+    <a class="brand" href="/en"><svg class="tray" aria-hidden="true"><use href="#t-green"/></svg>Bientôt</a>
+    <nav aria-label="Sections"><a href="/en#how">How it works</a><a href="/en#privacy">Privacy</a><a href="/en#faq">FAQ</a><a href="https://github.com/Thanaen/Bientot">Source code</a><a href="/aide/afficher-l-icone" hreflang="fr" lang="fr">Français</a></nav>
+  </div>
+<main>
+  <div class="wrap head">
+    <p class="eyebrow">Help · Linux</p>
+    <h1>Show the Bientôt icon</h1>
+    <p class="lede">Your desktop doesn’t show app icons in its panel, so Bientôt stays open in a window. You can minimize it; tracking continues.</p>
+  </div>
+  <div class="wrap main">
+    <section class="card" aria-labelledby="gnome">
+      <h2 id="gnome">On GNOME: the&nbsp;AppIndicator extension</h2>
+      <p>GNOME doesn’t show app icons on its own. The “AppIndicator and KStatusNotifierItem Support” extension adds them to its top bar.</p>
+      <p><strong>Ubuntu.</strong> Turn “Ubuntu AppIndicators” back on in your extensions manager. Ubuntu enables it by default, so it was probably disabled.</p>
+      <div>
+        <h3>Fedora and other distributions</h3>
+        <ol>
+          <li>Install the extension. On Fedora, type this command in a terminal:<code class="mono cmd">sudo dnf install gnome-shell-extension-appindicator</code>Other distributions often have a package with the same name. On any of them, you can also install it from&nbsp;<a href="https://extensions.gnome.org/extension/615/appindicator-support/">extensions.gnome.org</a>.</li>
+          <li>Open the Extensions app and turn on “AppIndicator and KStatusNotifierItem Support”. If it isn’t listed yet, log out and back in.</li>
+        </ol>
+      </div>
+      <p>As soon as the extension is on, Bientôt switches to its icon by itself. You don’t need to restart it.</p>
+    </section>
+    <section class="card" aria-labelledby="other">
+      <h2 id="other">On another desktop</h2>
+      <p>KDE Plasma, Cinnamon, Xfce and most other desktops show app icons out of the box. If the system tray was removed from your panel, add it back.</p>
+    </section>
+    <section class="card" aria-labelledby="window">
+      <h2 id="window">Until then: window mode</h2>
+      <ul>
+        <li>Minimize the window rather than close it: tracking continues while it’s minimized, but closing it quits Bientôt. It also minimizes by itself when you switch to another window.</li>
+        <li>To get it back, launch Bientôt again from the app grid. The window that’s already open comes back; no second copy starts.</li>
+        <li>The “This desktop shows no icon for Bientôt” message stays in the window until you choose “Got it”, then never comes back.</li>
+      </ul>
+    </section>
+  </div>
+</main>
+  <footer><div class="wrap"><span>Bientôt · MIT license</span><a href="https://github.com/Thanaen/Bientot">GitHub</a><a href="/statistiques" hreflang="fr">Statistics (in French)</a><a href="/aide/afficher-l-icone" hreflang="fr" lang="fr">Français</a><span class="foot-note">The app was called WorkTime until October&nbsp;2026.</span><span class="foot-note">Site analytics by PostHog, <a href="https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md#the-website">without cookies</a>.</span></div></footer>
+</body>
+</html>
