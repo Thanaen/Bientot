@@ -429,6 +429,16 @@ fn diagnostic_names_the_idle_backend_in_use_and_whether_locks_are_reported() {
             locks: diagnostic_row("Screen lock", "Reported", None),
         })
     );
+    let demo = Backends {
+        idle: Some("none"),
+        activity_undetectable: false,
+        ..backends
+    };
+    assert_eq!(
+        diagnostic(demo, Language::French).and_then(|diagnostic| diagnostic.activity),
+        diagnostic_row("Méthode de détection", "Aucune", None),
+        "a demo reads no input but counts its scenario"
+    );
     let unknown = Backends {
         lock_reporting: None,
         ..backends

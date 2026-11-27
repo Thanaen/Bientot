@@ -1481,7 +1481,9 @@ impl SettingsForm {
             let (value, description) = match backend {
                 NO_BACKEND => (
                     language.text(Key::DiagnosticSectionActivityNone),
-                    Some(language.text(Key::DiagnosticSectionActivityNoneText)),
+                    self.backends
+                        .activity_undetectable
+                        .then(|| language.text(Key::DiagnosticSectionActivityNoneText)),
                 ),
                 name => (name, None),
             };
