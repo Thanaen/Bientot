@@ -34,6 +34,7 @@ use gpui::{
 };
 
 use crate::adjust::{TimeField, TimePart};
+use crate::chrome::{self, Chrome};
 use crate::host::{self, Today};
 use crate::platform::{self, Backends};
 use crate::settings::data::DataPage;
@@ -1944,6 +1945,7 @@ fn switch_id(switch: Switch) -> &'static str {
 impl Render for SettingsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = Theme::current(window, cx);
+        let chrome = Chrome::of(window, cx);
         self.focused_field = Field::ALL
             .into_iter()
             .find(|&field| self.input(field).focus_handle(cx).is_focused(window));
@@ -1981,7 +1983,11 @@ impl Render for SettingsView {
                     window.focus(&self.safe_focus, cx);
                 }
                 let time = self.dialog_entrance.time(motion::DIALOG, window, cx);
-                Some(self.dialog(dialog, time, &theme, cx).into_any_element())
+                let below = chrome.title_bar_height();
+                Some(
+                    self.dialog(dialog, time, below, &theme, cx)
+                        .into_any_element(),
+                )
             }
             None => {
                 self.dialog_entrance.reset();
@@ -2008,7 +2014,9 @@ impl Render for SettingsView {
             .bg(theme.editor)
             .text_color(theme.text)
             .type_style(text::LABEL_MD)
-            .child(self.title_bar(&theme, cx))
+            .when(chrome.draws_title_bar(), |root| {
+                root.child(self.title_bar(&theme, cx))
+            })
             .child(
                 div()
                     .flex_1()
@@ -2018,6 +2026,7 @@ impl Render for SettingsView {
                     .child(body),
             )
             .children(dialog)
+            .map(|root| chrome::framed(root, chrome, window, theme.border))
     }
 }
 

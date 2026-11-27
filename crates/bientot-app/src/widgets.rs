@@ -124,9 +124,7 @@ pub(crate) fn title_bar(
         .border_b_1()
         .border_color(theme.border_variant)
         .child(
-            div()
-                .id("title")
-                .window_control_area(WindowControlArea::Drag)
+            crate::chrome::drag_area(div().id("title"))
                 .flex_1()
                 .h_full()
                 .pl(BASE_08)
