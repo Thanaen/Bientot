@@ -226,10 +226,10 @@ impl Theme {
             ],
             elevation_elevated: [layer(2., 3., 0.12), layer(1., 0., 0.03)],
             elevation_modal: [
-                layer(2., 3., 0.06),
-                layer(3., 6., 0.06),
+                layer(2., 3., 0.12),
+                layer(3., 6., 0.08),
                 layer(6., 12., 0.04),
-                layer(1., 0., 0.04),
+                layer(1., 0., 0.12),
             ],
         }
     }
