@@ -110,10 +110,22 @@ fn main() -> anyhow::Result<()> {
     for (group, scenes) in SCENES {
         if platform.takes_group(group) {
             scenes(&mut cx, language, &output)?;
+            close_windows(&mut cx)?;
         }
     }
     let missed = cx.update(|cx| cx.global::<Shots>().missed());
     anyhow::ensure!(missed.is_empty(), "no scene took {missed:?}");
+    Ok(())
+}
+
+/// Closes the windows a group opened. A scene opens its own and none closes it, so without this
+/// a run holds every window and its textures, about 18 MB a scene, and the parallel runs of the
+/// CI job outgrow the runner's memory.
+fn close_windows(cx: &mut HeadlessAppContext) -> anyhow::Result<()> {
+    for window in cx.update(|cx| cx.windows()) {
+        cx.update_window(window, |_, window, _| window.remove_window())?;
+    }
+    cx.run_until_parked();
     Ok(())
 }
 
