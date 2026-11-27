@@ -91,9 +91,7 @@ fn application() -> gpui::Application {
 fn prepare(theme: ThemeMode, cx: &mut App) {
     cx.set_global(theme);
     follow_reduced_motion(platform::motion(), cx);
-    if let Err(error) = assets::load_fonts(cx) {
-        log::error!("cannot load the fonts: {error:#}");
-    }
+    let _ = assets::load_fonts(cx);
     flyout::bind_keys(cx);
     week_view::bind_keys(cx);
     palette_view::bind_keys(cx);
@@ -109,8 +107,7 @@ fn prepare(theme: ThemeMode, cx: &mut App) {
 /// Windows and a notification on Linux.
 fn fail(failure: StartupFailure, cx: &mut App) {
     let language = failure.language();
-    if let Err(error) = startup_failure_view::open(failure, cx) {
-        log::error!("cannot show the startup failure: {error:#}");
+    if startup_failure_view::open(failure, cx).is_err() {
         shell::alert(language, Key::InitializationFailed);
         shell::quit_once_running(cx);
     }
@@ -245,10 +242,8 @@ fn run_on(
     let launcher = platform.launcher.take();
     // The first run of the user's own folder adds the copy to the menu of applications; a later
     // start only follows a move, so that an entry the user removed stays removed.
-    if let Some(launcher) = launcher.as_ref().filter(|_| launch.data_dir.is_none())
-        && let Err(error) = launcher.settle(!saved)
-    {
-        log::warn!("launcher_entry.failed: {error}");
+    if let Some(launcher) = launcher.as_ref().filter(|_| launch.data_dir.is_none()) {
+        let _ = launcher.settle(!saved);
     }
     let backends = platform.backends;
     // As in .NET, nothing else starts before the onboarding is saved: the day, the tray and
@@ -313,7 +308,6 @@ fn run_on(
                     // As .NET starts on `AppLaunchIntent.Manual` after the onboarding.
                     Ok(started) => show(started, true, may_send, update_source, cx),
                     Err(error) => {
-                        log::error!("cannot start after the onboarding: {error:#}");
                         let exported = exportable.then_some(&directory);
                         fail(StartupFailure::new(&error, exported, languages), cx);
                     }
@@ -403,6 +397,9 @@ fn start(
             let input = Box::leak(platform.last_input);
             let mut host = LiveHost::start(directory, loaded, ledger, &CLOCK, &ZONES, input)?;
             if let Some(imported) = imported {
+                if imported == Announcement::ImportFailed {
+                    host.log(DiagnosticLogLevel::Error, "import.apply_failed", &[]);
+                }
                 host.announce(imported);
             }
             match migration {
@@ -531,10 +528,7 @@ struct Lifecycle {
 impl Lifecycle {
     fn watch(source: &dyn LifecycleSource) -> Self {
         let (transitions, arrived) = mpsc::unbounded();
-        let watch = source
-            .watch(Box::new(Queue(transitions)))
-            .inspect_err(|error| log::error!("cannot watch the session and power: {error}"))
-            .ok();
+        let watch = source.watch(Box::new(Queue(transitions))).ok();
         Self { watch, arrived }
     }
 }
@@ -611,7 +605,6 @@ fn follow_reduced_motion(motion: platform::Motion, cx: &mut App) {
         .watch(Box::new(move || {
             changes.unbounded_send(()).ok();
         }))
-        .inspect_err(|error| log::error!("cannot watch the system settings: {error}"))
         .ok();
     // Read after the watch starts, so a change in between is not lost.
     cx.set_reduce_motion(motion.current());
@@ -632,7 +625,6 @@ fn listen(instance: platform::Instance, cx: &mut App) {
         .listen(move || {
             activations.unbounded_send(()).ok();
         })
-        .inspect_err(|error| log::error!("cannot listen for later launches: {error}"))
         .ok();
     cx.spawn(async move |cx| {
         while activated.next().await.is_some() {

@@ -1064,7 +1064,7 @@ fn a_click_on_an_item_of_a_replaced_menu_runs_nothing() {
 #[test]
 fn the_flyout_declares_time_where_the_week_would() {
     let folder = tempfile::tempdir().unwrap();
-    let today = start(folder.path(), clock());
+    let mut today = start(folder.path(), clock());
     let week = WeekState::new(today.week().unwrap(), Language::English);
     let (_, seed) = week.declare_work().unwrap();
     let Seed::DeclareWork(Some(unrecorded)) = &seed else {

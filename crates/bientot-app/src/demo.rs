@@ -386,9 +386,8 @@ impl DemoHost {
             clock: &self.environment,
             offset: SignedDuration::from_micros(self.corrections.get()),
         };
-        ledger::run(command, &self.connection, &accounting, &clock).map_err(|refusal| {
-            refusal.logged(|error| log::error!("cannot correct the demo week: {error}"))
-        })
+        ledger::run(command, &self.connection, &accounting, &clock)
+            .map_err(|refusal| refusal.message)
     }
 }
 
@@ -398,9 +397,7 @@ impl DemoHost {
         let settings = self.settings.clone();
         let read_settings = move || settings.clone();
         let accounting = self.accounting(&read_settings);
-        ledger::save(adjustment, &self.connection, &accounting).map_err(|refusal| {
-            refusal.logged(|error| log::error!("cannot save the demo correction: {error}"))
-        })
+        ledger::save(adjustment, &self.connection, &accounting).map_err(|refusal| refusal.message)
     }
 
     /// The correction `id` of `workday` in the demo's ledger, unless a later one replaced it.
@@ -412,9 +409,8 @@ impl DemoHost {
         let settings = self.settings.clone();
         let read_settings = move || settings.clone();
         let accounting = self.accounting(&read_settings);
-        ledger::active_adjustment(workday, id, &self.connection, &accounting).map_err(|refusal| {
-            refusal.logged(|error| log::error!("cannot read the demo correction: {error}"))
-        })
+        ledger::active_adjustment(workday, id, &self.connection, &accounting)
+            .map_err(|refusal| refusal.message)
     }
 
     /// The time a new correction is recorded at, after every correction before it: see

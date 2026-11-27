@@ -46,6 +46,7 @@ use gpui::{Bounds, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 use super::{BackendNote, Backends, NO_BACKEND, Platform, PlatformContext, lock_reporting_name};
+use crate::diagnostics::error_kind;
 use crate::zones::SystemZones;
 
 // `build`, `place_window`, `activate_window`, `NotificationsRefused`, `Instance`,
@@ -103,9 +104,7 @@ pub fn system() -> Option<bientot_linux::system::ThisSystem> {
 pub fn show_fatal(title: &str, body: &str) {
     let service = Service::for_install(this_install_kind());
     let request = bientot_linux::notifications::last_resort(title, body);
-    if let Err(error) = bientot_linux::notifications::show_once(service, &request) {
-        log::warn!("cannot show why Bientôt stops: {error}");
-    }
+    let _ = bientot_linux::notifications::show_once(service, &request);
 }
 
 /// No notification server, or no portal in a Flatpak, answered at start: the app shows no
@@ -125,6 +124,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     let (notes, backend_notes) = mpsc::unbounded();
     *NOTES.lock().unwrap_or_else(PoisonError::into_inner) = Some(notes.clone());
     let refusals = notes.clone();
+    let launches = notes.clone();
     let lifecycle = (!demo).then(|| Reported {
         source: LogindSource::new(kind, SystemClock, SystemZones),
         notes: notes.clone(),
@@ -166,7 +166,12 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         .is_none()
         .then(LauncherEntry::for_this_process)
         .flatten()
-        .map(|launcher| Arc::new(launcher) as Arc<dyn LauncherPort>);
+        .map(|entry| {
+            Arc::new(ReportedLauncher {
+                entry,
+                notes: launches,
+            }) as Arc<dyn LauncherPort>
+        });
     let backends = Backends {
         tray: Some(tray.backend()),
         notifications: Some(match &notifier {
@@ -324,6 +329,47 @@ impl<S: LifecycleSource> LifecycleSource for Reported<S> {
     }
 }
 
+/// This copy's entry in the menu of applications, which tells the diagnostic log when it cannot
+/// be written.
+struct ReportedLauncher {
+    entry: LauncherEntry,
+    notes: mpsc::UnboundedSender<BackendNote>,
+}
+
+impl ReportedLauncher {
+    fn reported(&self, written: io::Result<()>) -> io::Result<()> {
+        written.inspect_err(|error| {
+            self.notes.unbounded_send(launcher_failed(error)).ok();
+        })
+    }
+}
+
+impl LauncherPort for ReportedLauncher {
+    fn is_added(&self) -> bool {
+        self.entry.is_added()
+    }
+
+    fn set_added(&self, added: bool) -> io::Result<()> {
+        self.reported(self.entry.set_added(added))
+    }
+
+    fn settle(&self, first_run: bool) -> io::Result<()> {
+        self.reported(self.entry.settle(first_run))
+    }
+}
+
+/// The diagnostic log's line for a menu entry not written. The error's text can name the folder.
+fn launcher_failed(error: &io::Error) -> BackendNote {
+    BackendNote {
+        level: DiagnosticLogLevel::Warning,
+        event: "launcher_entry.failed",
+        properties: vec![("kind", error_kind(error.kind()).into())],
+        idle: None,
+        lifecycle: None,
+        lock_reporting: None,
+    }
+}
+
 /// Hands each change on to `listener`, and tells the log whether the desktop reports locks.
 struct Reporting {
     listener: Box<dyn LifecycleListener>,
@@ -373,18 +419,6 @@ fn watch_failed(error: &io::Error) -> BackendNote {
     }
 }
 
-/// An I/O error's kind as the diagnostic log writes it, from a fixed list: the error's text can
-/// name the user's session, bus or folder.
-fn error_kind(kind: io::ErrorKind) -> &'static str {
-    match kind {
-        io::ErrorKind::NotFound => "not_found",
-        io::ErrorKind::PermissionDenied => "permission_denied",
-        io::ErrorKind::AddrInUse => "address_in_use",
-        io::ErrorKind::InvalidInput => "invalid_input",
-        _ => "other",
-    }
-}
-
 /// Resizes `window` to `client`, and on X11 moves it there: elsewhere the compositor places it.
 pub fn place_window(window: &mut Window, client: Bounds<i32>) {
     null::place_window(window, client);
@@ -412,10 +446,8 @@ fn with_x11_window(
         _ => return,
     };
     DESKTOP.with_borrow(|desktop| {
-        if let Some(x11) = desktop.as_deref().and_then(LinuxDesktop::x11)
-            && let Err(error) = act(x11, id)
-        {
-            log::warn!("cannot place the flyout's X11 window: {error}");
+        if let Some(x11) = desktop.as_deref().and_then(LinuxDesktop::x11) {
+            let _ = act(x11, id);
         }
     });
 }
@@ -470,8 +502,10 @@ mod tests {
     use bientot_core::diagnostics::DiagnosticLogLevel::{Error, Information, Warning};
     use bientot_domain::accounting::SessionState;
     use bientot_linux::idle::{Backend, IdleNote};
+    use bientot_linux::launcher::LauncherEntry;
     use bientot_linux::notifications::Service;
     use bientot_linux::single_instance::InstanceNote;
+    use bientot_platform::launcher::LauncherPort;
     use bientot_platform::lifecycle::{
         InMemoryLifecycle, LifecycleChange, LifecycleListener, LifecycleSource,
         LifecycleTransition, LockReporting, SessionSnapshot,
@@ -479,7 +513,7 @@ mod tests {
     use bientot_platform::notifications::{NotificationRequest, Notifier as _, QueuedClicks};
     use futures::channel::mpsc;
 
-    use super::{BackendNote, Reported, idle_line, instance_line, notifications};
+    use super::{BackendNote, Reported, ReportedLauncher, idle_line, instance_line, notifications};
 
     /// The line of a show the desktop refused, as Windows logs a refused toast.
     fn refused_toast_line() -> BackendNote {
@@ -571,6 +605,37 @@ mod tests {
         };
 
         assert_eq!(note, refused_toast_line());
+    }
+
+    #[test]
+    fn a_menu_entry_that_cannot_be_written_is_logged_with_its_kind() {
+        let not_a_folder = tempfile::NamedTempFile::new().unwrap();
+        let (notes, mut sent) = mpsc::unbounded();
+        let launcher = ReportedLauncher {
+            entry: LauncherEntry::new(
+                not_a_folder.path(),
+                std::path::Path::new("/opt/Bientot.AppImage"),
+                None,
+            )
+            .unwrap(),
+            notes,
+        };
+
+        assert!(launcher.settle(true).is_err());
+        assert!(launcher.set_added(true).is_err());
+
+        let line = BackendNote {
+            level: Warning,
+            event: "launcher_entry.failed",
+            properties: vec![("kind", "other".into())],
+            idle: None,
+            lifecycle: None,
+            lock_reporting: None,
+        };
+        assert_eq!(
+            [sent.try_recv().ok(), sent.try_recv().ok()],
+            [Some(line.clone()), Some(line)]
+        );
     }
 
     #[test]

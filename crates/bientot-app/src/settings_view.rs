@@ -17,6 +17,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_core::settings::{EditGroup, Pending, SettingsPort};
 use bientot_domain::configuration::{AppointmentProposal, RecurringAppointment, Settings};
 use bientot_domain::usage_ping::{Build, Channel};
@@ -152,7 +153,7 @@ pub fn open(cx: &mut App) {
             crate::shell::app_shown();
             cx.default_global::<SettingsWindow>().0 = Some(window);
         }
-        Err(error) => log::error!("cannot open « Paramètres »: {error:#}"),
+        Err(_) => host::log(DiagnosticLogLevel::Error, "settings.open_failed", &[], cx),
     }
 }
 
@@ -518,11 +519,8 @@ impl SettingsView {
             let (made, added) = cx
                 .background_executor()
                 .spawn(async move {
-                    let made = port.set_added(requested);
-                    if let Err(error) = &made {
-                        log::warn!("launcher_entry.failed: {error}");
-                    }
-                    (made.is_ok(), port.is_added())
+                    let made = port.set_added(requested).is_ok();
+                    (made, port.is_added())
                 })
                 .await;
             view.update(cx, |view, cx| {

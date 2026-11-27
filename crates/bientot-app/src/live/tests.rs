@@ -431,6 +431,49 @@ fn a_session_history_that_could_not_be_read_is_logged() {
     assert!(log.contains(r#""Level":"Warning","Event":"session_history.recovery_unavailable","Properties":{"reason":"windows-winlogon-log-unavailable"}"#), "{log}");
 }
 
+/// A save that fails is logged with what kind of failure it was, from a fixed list: the error's
+/// text can name the folder.
+#[test]
+fn a_settings_save_that_fails_is_logged_with_its_kind() {
+    let machine = Machine::new();
+    let mut host = machine.start();
+    let valid = host.settings().clone();
+    let invalid = Settings {
+        lunch_end: jiff::civil::Time::constant(10, 0, 0, 0),
+        ..valid.clone()
+    };
+    std::fs::create_dir(machine.directory().settings_file()).unwrap();
+
+    assert!(host.save_settings(&invalid).is_err());
+    assert!(host.save_settings(&valid).is_err());
+
+    assert_eq!(
+        machine.log(),
+        concat!(
+            r#"{"TimestampUtc":"2026-10-08T08:00:00+00:00","Level":"Error","Event":"settings.save_failed","Properties":{"kind":"invalid"}}"#,
+            "\n",
+            r#"{"TimestampUtc":"2026-10-08T08:00:00+00:00","Level":"Error","Event":"settings.save_failed","Properties":{"kind":"other"}}"#,
+            "\n",
+        )
+    );
+}
+
+#[test]
+fn an_app_state_that_cannot_be_read_at_start_is_logged_with_its_kind() {
+    let machine = Machine::new();
+    std::fs::create_dir(machine.directory().app_state_file()).unwrap();
+
+    machine.start();
+
+    assert_eq!(
+        machine.log(),
+        concat!(
+            r#"{"TimestampUtc":"2026-10-08T08:00:00+00:00","Level":"Warning","Event":"app_state.read_failed","Properties":{"kind":"other"}}"#,
+            "\n",
+        )
+    );
+}
+
 #[test]
 fn a_session_probe_that_gave_up_is_logged() {
     let machine = Machine::new();

@@ -246,13 +246,9 @@ impl JsonPage {
 /// Rust opens a file sharing reading, writing and deleting on Windows, so this read never
 /// blocks a save, which renames a new file over this one.
 fn read(path: &Path) -> Vec<String> {
-    match std::fs::read(path) {
-        Ok(bytes) => lines(&String::from_utf8_lossy(&bytes)),
-        Err(error) => {
-            log::warn!("cannot read {}: {error}", path.display());
-            Vec::new()
-        }
-    }
+    std::fs::read(path)
+        .map(|bytes| lines(&String::from_utf8_lossy(&bytes)))
+        .unwrap_or_default()
 }
 
 /// The characters a row holds: the width of its text over that of a character.

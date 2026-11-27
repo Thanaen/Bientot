@@ -478,6 +478,47 @@ fn keeps_toast_clicks_without_their_properties() {
     assert_eq!(value(&archive.text("manifest.json"), "unknownEvents"), "0");
 }
 
+/// The failures only this app logs reach the export by name, without their kind; the backend
+/// lines it logs stay out.
+#[test]
+fn keeps_the_failures_of_this_app_without_their_properties() {
+    let root = TempDir::new().unwrap();
+    let logs = logs_directory(&root, "logs");
+    let lines = [
+        log_line(now() - minutes(3), "Error", "flyout.open_failed", None),
+        log_line(
+            now() - minutes(2),
+            "Error",
+            "settings.save_failed",
+            Some(r#"{"kind":"permission_denied"}"#),
+        ),
+        log_line(
+            now() - minutes(1),
+            "Warning",
+            "instance.listen_failed",
+            Some(r#"{"kind":"other"}"#),
+        ),
+    ];
+    fs::write(
+        strict_log_path(&logs, now() - minutes(4), 3),
+        lines.join("\n") + "\n",
+    )
+    .unwrap();
+
+    let destination = root.path().join("diagnostics.zip");
+    export(&destination, Some(&logs), &useful_snapshot()).unwrap();
+
+    let archive = Archive::open(&destination);
+    assert_eq!(
+        archive.log_lines(),
+        [
+            r#"{"timestampUtc":"2026-09-10T12:31:00+00:00","level":"Error","event":"flyout.open_failed"}"#,
+            r#"{"timestampUtc":"2026-09-10T12:32:00+00:00","level":"Error","event":"settings.save_failed"}"#,
+        ]
+    );
+    assert_eq!(value(&archive.text("manifest.json"), "unknownEvents"), "1");
+}
+
 #[test]
 fn reads_what_the_logger_writes() {
     struct StepClock(Cell<Timestamp>);

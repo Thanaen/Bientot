@@ -266,7 +266,6 @@ fn install_store(cx: &mut App) {
         Ok(None) => {}
         Err(error) => {
             let message = error.to_string();
-            log::warn!("update_check.unavailable: {message}");
             if let Some(host) = cx.global_mut::<Today>().live() {
                 host.log(
                     DiagnosticLogLevel::Warning,
@@ -364,7 +363,6 @@ fn log_check_failure<E: StoreError>(error: &UpdateCheckError<SaveSettingsError, 
         UpdateCheckError::Store(store) => (std::any::type_name::<E>(), store.hresult()),
     };
     let message = error.to_string();
-    log::warn!("update_check.failed: {message}");
     if let Some(host) = cx.global_mut::<Today>().live() {
         host.log(
             DiagnosticLogLevel::Warning,
@@ -380,7 +378,6 @@ fn log_check_failure<E: StoreError>(error: &UpdateCheckError<SaveSettingsError, 
 
 /// Logs `window_command.failed`, as `MainWindow.OnUpdateNoticeClick` reports a failed install.
 fn log_install_failure(failure: &InstallFailure, cx: &mut App) {
-    log::error!("window_command.failed: {}", failure.message);
     if let Some(host) = cx.global_mut::<Today>().live() {
         host.log(
             DiagnosticLogLevel::Error,

@@ -119,8 +119,7 @@ pub fn open(
             crate::shell::app_shown();
             cx.default_global::<OnboardingWindow>().0 = Some(window);
         }
-        Err(error) => {
-            log::error!("cannot open the onboarding: {error:#}");
+        Err(_) => {
             if crate::platform::NO_WINDOW_MEANS_NO_GRAPHICS {
                 crate::shell::stop_without_graphics(language, cx);
             } else {
@@ -350,10 +349,7 @@ impl OnboardingView {
                 cx.default_global::<OnboardingWindow>().0 = None;
                 window.remove_window();
             }
-            Err(error) => {
-                log::error!("cannot save the onboarding: {error}");
-                cx.notify();
-            }
+            Err(_) => cx.notify(),
         }
     }
 

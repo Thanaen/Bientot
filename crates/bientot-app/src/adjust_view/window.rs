@@ -1,6 +1,7 @@
 //! The one « Corriger le temps… » window: when a request opens it, shows it or leaves it, and
 //! which view shows the correction it saved.
 
+use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_domain::accounting::AdjustmentId;
 use bientot_domain::time::LocalWorkday;
 use gpui::{
@@ -10,7 +11,7 @@ use gpui::{
 use super::{AdjustView, WINDOW_WIDTH, typed};
 use crate::adjust::window::{OpenOutcome, OpenWindow, Opener, WindowRequest};
 use crate::adjust::{AdjustForm, Closed, Seed};
-use crate::host::Today;
+use crate::host::{self, Today};
 use crate::shell;
 use crate::strings::{Key, Language};
 use crate::week_view;
@@ -65,7 +66,6 @@ pub fn open(
         return outcome;
     }
     let Some(form) = form else {
-        log::warn!("no working day to correct");
         return OpenOutcome::Refused;
     };
     let options = WindowOptions {
@@ -93,8 +93,8 @@ pub fn open(
             cx.default_global::<AdjustWindow>().0 = Some(window);
             OpenOutcome::Fresh
         }
-        Err(error) => {
-            log::error!("cannot open « Corriger le temps… »: {error:#}");
+        Err(_) => {
+            host::log(DiagnosticLogLevel::Error, "adjustment.open_failed", &[], cx);
             OpenOutcome::Refused
         }
     }

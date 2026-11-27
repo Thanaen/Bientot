@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use bientot_core::diagnostics::{
     DiagnosticInitializationState, DiagnosticLogLevel, DiagnosticRuntimeSnapshot,
-    DiagnosticSnapshot, create_snapshot,
+    DiagnosticSnapshot, DiagnosticValue, create_snapshot,
 };
 use bientot_domain::accounting::{AdjustmentId, TrackingState};
 use bientot_domain::adjustments::{ManualAdjustment, ManualClassification};
@@ -188,9 +188,8 @@ impl Today {
                 let refreshed = host.refresh(self.language);
                 self.recalculated = refreshed.is_ok();
                 self.refresh_failed = refreshed.is_err();
-                match refreshed {
-                    Ok(view) => self.view = view,
-                    Err(error) => log::error!("cannot refresh the demo day: {error:#}"),
+                if let Ok(view) = refreshed {
+                    self.view = view;
                 }
             }
             Source::Live(host) => host.refresh(),
@@ -278,9 +277,6 @@ impl Today {
             ..self.settings().clone()
         };
         let saved = self.save_settings(&settings);
-        if let Err(error) = &saved {
-            log::error!("cannot switch to the built-in detection: {error}");
-        }
         self.refresh();
         saved.err().map(|_| {
             Notice::source_switch_failed(self.language.text(Key::ActivitySourceSwitchFailed))
@@ -300,9 +296,6 @@ impl Today {
         };
         appointment.automatic = true;
         let saved = self.save_settings(&settings);
-        if let Err(error) = &saved {
-            log::error!("cannot count an appointment automatically: {error}");
-        }
         self.refresh();
         saved.is_ok()
     }
@@ -312,9 +305,7 @@ impl Today {
         let mut settings = self.settings().clone();
         let (today, _) = self.usage_ping_dates();
         settings.appointment_proposals.dismiss(dismissal, today);
-        if let Err(error) = self.save_settings(&settings) {
-            log::error!("cannot record the refusal of a proposal: {error}");
-        }
+        let _ = self.save_settings(&settings);
     }
 
     /// Whether the last refresh recalculated the week, so that the stored week shows every
@@ -329,6 +320,17 @@ impl Today {
             Source::Demo(host) => host.week(),
             Source::Live(host) => host.week(),
         }
+    }
+
+    /// [`Self::week`], or `None` when it cannot be read, which the user's own day logs.
+    pub fn read_week(&mut self) -> Option<WeekTimeline> {
+        let week = self.week();
+        if week.is_err()
+            && let Some(host) = self.live()
+        {
+            host.log(DiagnosticLogLevel::Error, "week.read_failed", &[]);
+        }
+        week.ok()
     }
 
     /// Records a correction of the week, then refreshes so that the week and the day show it.
@@ -415,12 +417,10 @@ impl Today {
 
     /// « Déclarer du temps travaillé » of today, on what the week's « Déclarer du temps
     /// travaillé… » would open it.
-    pub fn declaration(&self) -> Seed {
-        self.week()
-            .inspect_err(|error| log::error!("cannot read the week: {error:#}"))
-            .map_or(Seed::DeclareWork(None), |week| {
-                week.declaration(&self.workday())
-            })
+    pub fn declaration(&mut self) -> Seed {
+        self.read_week().map_or(Seed::DeclareWork(None), |week| {
+            week.declaration(&self.workday())
+        })
     }
 
     /// The time a correction opened now is recorded at.
@@ -549,7 +549,7 @@ pub fn install(today: Today, cx: &mut App) {
         let _ = adjust_view::window::open(None, Seed::Blank, Opener::Flyout, cx);
     });
     cx.on_action(|_: &DeclareTime, cx| {
-        let seed = cx.global::<Today>().declaration();
+        let seed = cx.global_mut::<Today>().declaration();
         let _ = adjust_view::window::open(None, seed, Opener::Flyout, cx);
     });
     cx.on_action(|count: &CountUnrecorded, cx| {
@@ -809,12 +809,26 @@ fn host_name(host: TrayHost) -> &'static str {
 
 /// Logs `event` with its one property, in the user's own day: a demo has no log.
 fn log_tray(event: &str, (name, value): (&str, &'static str), cx: &mut App) {
-    if let Some(host) = cx.global_mut::<Today>().live() {
-        host.log(
-            DiagnosticLogLevel::Information,
-            event,
-            &[(name, value.into())],
-        );
+    log(
+        DiagnosticLogLevel::Information,
+        event,
+        &[(name, value.into())],
+        cx,
+    );
+}
+
+/// Writes `event` to the diagnostic log of the user's own day, once it is open: a demo, the
+/// onboarding and a start that failed have none.
+pub fn log(
+    level: DiagnosticLogLevel,
+    event: &str,
+    properties: &[(&str, DiagnosticValue)],
+    cx: &mut App,
+) {
+    if cx.has_global::<Today>()
+        && let Some(host) = cx.global_mut::<Today>().live()
+    {
+        host.log(level, event, properties);
     }
 }
 
@@ -825,8 +839,8 @@ fn show_tray(cx: &mut App) {
     }
     let today = cx.global::<Today>();
     let (day, menu) = (today.view().clone(), today.menu());
-    if let Err(error) = cx.global_mut::<ShownTray>().show(&day, menu) {
-        log::error!("cannot update the notification-area icon: {error:#}");
+    if cx.global_mut::<ShownTray>().show(&day, menu).is_err() {
+        log(DiagnosticLogLevel::Warning, "tray.update_failed", &[], cx);
     }
 }
 

@@ -556,7 +556,6 @@ dependencies = [
  "gpui-pre-wgpu",
  "image",
  "jiff",
- "log",
  "raw-window-handle",
  "resvg",
  "roxmltree 0.21.2",
