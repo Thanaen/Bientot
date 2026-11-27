@@ -28,7 +28,14 @@ use futures::channel::mpsc;
 use jiff::Timestamp;
 
 use crate::launch::Launch;
+use crate::strings::Wording;
 use crate::tray_model::MenuCommand;
+
+/// Whose words the texts take, unless the screenshots choose another system's.
+#[cfg(target_os = "linux")]
+pub const WORDING: Wording = Wording::Linux;
+#[cfg(not(target_os = "linux"))]
+pub const WORDING: Wording = Wording::Windows;
 
 /// Holds the data folder: a later launch on it shows this one.
 pub use backend::Instance;

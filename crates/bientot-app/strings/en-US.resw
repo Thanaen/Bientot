@@ -303,7 +303,9 @@
   <data name="StartupRegistrationMismatch" xml:space="preserve"><value>Another copy uses the Bientôt startup entry. Turn this setting on to use this copy.</value></data>
   <data name="StartupUnavailable" xml:space="preserve"><value>Startup registration is unavailable for this copy of Bientôt.</value></data>
   <data name="SettingsStartupChangeFailed" xml:space="preserve"><value>Windows did not apply the startup change. Check the status above and try again.</value></data>
+  <data name="SettingsStartupChangeFailed.Linux" xml:space="preserve"><value>Automatic startup could not be changed. Check the status above and try again.</value></data>
   <data name="SettingsStartupOtherCopyMessage" xml:space="preserve"><value>Another copy of Bientôt also starts with Windows. Turn it off. It may be listed as WorkTime or Bientôt.</value></data>
+  <data name="SettingsStartupOtherCopyMessage.Linux" xml:space="preserve"><value>Another copy of Bientôt also starts when you sign in. Turn off automatic startup in one of them.</value></data>
   <data name="SettingsStartupAppsAction" xml:space="preserve"><value>Open Startup apps</value></data>
   <data name="NotificationTitle" xml:space="preserve"><value>Bientôt</value></data>
   <data name="NotificationCompletionBody" xml:space="preserve"><value>{0} minutes remain toward your daily target. Projected departure: {1}.</value></data>
@@ -313,6 +315,7 @@
   <data name="NotificationEstimateQualifier" xml:space="preserve"><value>Based on recorded work.</value></data>
   <data name="NotificationFailed" xml:space="preserve"><value>Bientôt could not show a notification. Workday tracking continues.</value></data>
   <data name="NotificationRegistrationFailed" xml:space="preserve"><value>Windows notifications are unavailable. Workday tracking continues.</value></data>
+  <data name="NotificationRegistrationFailed.Linux" xml:space="preserve"><value>Notifications are unavailable on this desktop. Workday tracking continues.</value></data>
   <data name="NotificationSmokeBody" xml:space="preserve"><value>Notification smoke test. No workday data was used.</value></data>
   <data name="TrayStatusOrange" xml:space="preserve"><value>Departure near limit</value></data>
   <data name="TrayStatusRed" xml:space="preserve"><value>Departure after limit</value></data>
@@ -422,6 +425,7 @@
   <data name="SettingsGeneralTitle" xml:space="preserve"><value>General</value></data>
   <data name="SettingsGeneralDescriptionRealText" xml:space="preserve"><value>Language changes apply after Bientôt restarts.</value></data>
   <data name="SettingsGeneralDescriptionDemoText" xml:space="preserve"><value>Language changes apply after Bientôt restarts. Windows startup is unavailable in demo mode.</value></data>
+  <data name="SettingsGeneralDescriptionDemoText.Linux" xml:space="preserve"><value>Language changes apply after Bientôt restarts. Automatic startup is unavailable in demo mode.</value></data>
   <data name="SettingsLunchStartLabel.Text" xml:space="preserve"><value>Start</value></data>
   <data name="SettingsLunchEndLabel.Text" xml:space="preserve"><value>End</value></data>
   <data name="SettingsLunchStartInput.AutomationProperties.Name" xml:space="preserve"><value>Lunch start time</value></data>
@@ -442,6 +446,7 @@
   <data name="SettingsDayCompleteInput.OffContent" xml:space="preserve"><value>Off</value></data>
   <data name="SettingsLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Application language</value></data>
   <data name="SettingsStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Start Bientôt with Windows</value></data>
+  <data name="SettingsStartupInput.AutomationProperties.Name.Linux" xml:space="preserve"><value>Start Bientôt when you sign in</value></data>
   <data name="SettingsStartupInput.OnContent" xml:space="preserve"><value>On</value></data>
   <data name="SettingsStartupInput.OffContent" xml:space="preserve"><value>Off</value></data>
   <data name="SettingsUpdatesInput.AutomationProperties.Name" xml:space="preserve"><value>Check for updates</value></data>
@@ -464,6 +469,7 @@
   <data name="SettingsLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
   <data name="SettingsLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
   <data name="SettingsStartupCard.Header" xml:space="preserve"><value>Windows startup</value></data>
+  <data name="SettingsStartupCard.Header.Linux" xml:space="preserve"><value>Automatic startup</value></data>
   <data name="SettingsStartupCard.Description" xml:space="preserve"><value>Start Bientôt when you sign in.</value></data>
   <data name="SettingsUpdatesCard.Header" xml:space="preserve"><value>Check for updates</value></data>
   <data name="SettingsUpdatesCard.Description" xml:space="preserve"><value>Checks once a day for a new version.</value></data>
@@ -585,7 +591,6 @@
   <data name="OnboardingActivityWatchEndpointInvalid" xml:space="preserve"><value>Enter an http:// or https:// address without a path, for example http://127.0.0.1:5600.</value></data>
   <data name="OnboardingActivityWatchApiKeyInput.Header" xml:space="preserve"><value>API key (optional)</value></data>
   <data name="OnboardingActivityWatchApiKeyInput.AutomationProperties.Name" xml:space="preserve"><value>ActivityWatch API key, optional</value></data>
-  <data name="OnboardingActivityWatchApiKeyHelp.Text" xml:space="preserve"><value>Only needed when aw-server-rust requires authentication. Bientôt stores the key encrypted for your Windows account and never displays it.</value></data>
   <data name="OnboardingActivityWatchTestButton.Content" xml:space="preserve"><value>Test connection</value></data>
   <data name="OnboardingActivityWatchProgress.AutomationProperties.Name" xml:space="preserve"><value>Testing the connection</value></data>
   <data name="OnboardingActivityWatchInstallLink.Content" xml:space="preserve"><value>Get ActivityWatch</value></data>
@@ -619,10 +624,14 @@
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>Bientôt could not save your setup. Try again.</value></data>
   <data name="OnboardingLanguageTitle.Text" xml:space="preserve"><value>Choose your language</value></data>
   <data name="OnboardingLanguageIntro.Text" xml:space="preserve"><value>Bientôt follows the Windows language by default. You can change it later in Settings.</value></data>
+  <data name="OnboardingLanguageIntro.Text.Linux" xml:space="preserve"><value>Bientôt follows your system language by default. You can change it later in Settings.</value></data>
   <data name="OnboardingLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Language</value></data>
   <data name="OnboardingLanguageSystemFrench" xml:space="preserve"><value>Windows language (French)</value></data>
+  <data name="OnboardingLanguageSystemFrench.Linux" xml:space="preserve"><value>System language (French)</value></data>
   <data name="OnboardingLanguageSystemEnglish" xml:space="preserve"><value>Windows language (English)</value></data>
+  <data name="OnboardingLanguageSystemEnglish.Linux" xml:space="preserve"><value>System language (English)</value></data>
   <data name="OnboardingLanguageSystem" xml:space="preserve"><value>Windows language</value></data>
+  <data name="OnboardingLanguageSystem.Linux" xml:space="preserve"><value>System language</value></data>
   <data name="OnboardingLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
   <data name="OnboardingLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
   <data name="OnboardingLanguageRestartNotice.Text" xml:space="preserve"><value>Bientôt restarts in the chosen language when you finish.</value></data>
@@ -638,10 +647,13 @@
   <data name="OnboardingDepartureInput.Header" xml:space="preserve"><value>Preferred latest departure</value></data>
   <data name="OnboardingDepartureInput.AutomationProperties.Name" xml:space="preserve"><value>Preferred latest departure time</value></data>
   <data name="OnboardingStartupTitle.Text" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="OnboardingStartupTitle.Text.Linux" xml:space="preserve"><value>Start when you sign in</value></data>
   <data name="OnboardingStartupIntro.Text" xml:space="preserve"><value>Bientôt only counts your time while it runs. Starting it when you sign in means you never miss a morning.</value></data>
   <data name="OnboardingStartupCard.Header" xml:space="preserve"><value>Windows startup</value></data>
+  <data name="OnboardingStartupCard.Header.Linux" xml:space="preserve"><value>Automatic startup</value></data>
   <data name="OnboardingStartupCard.Description" xml:space="preserve"><value>Start Bientôt when you sign in.</value></data>
   <data name="OnboardingStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Start Bientôt with Windows</value></data>
+  <data name="OnboardingStartupInput.AutomationProperties.Name.Linux" xml:space="preserve"><value>Start Bientôt when you sign in</value></data>
   <data name="OnboardingStartupInput.OnContent" xml:space="preserve"><value>On</value></data>
   <data name="OnboardingStartupInput.OffContent" xml:space="preserve"><value>Off</value></data>
   <data name="OnboardingStartupFootnote.Text" xml:space="preserve"><value>The icon stays in the notification area. Closing the window does not stop Bientôt.</value></data>
@@ -1118,6 +1130,9 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   </data>
   <data name="FlyoutRebuiltReviewText" xml:space="preserve">
     <value>Your Windows session was open before Bientôt was installed. This time counts as work for now.</value>
+  </data>
+  <data name="FlyoutRebuiltReviewText.Linux" xml:space="preserve">
+    <value>Your session was open before Bientôt was installed, so Bientôt cannot tell whether the screen was locked. This time counts as work for now.</value>
   </data>
   <data name="PluginCardMenuFormat" xml:space="preserve">
     <value>{0} card options</value>

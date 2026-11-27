@@ -303,7 +303,9 @@
   <data name="StartupRegistrationMismatch" xml:space="preserve"><value>Une autre copie utilise l’entrée de démarrage de Bientôt. Activez ce réglage pour utiliser cette copie.</value></data>
   <data name="StartupUnavailable" xml:space="preserve"><value>Le démarrage automatique n’est pas disponible pour cette copie de Bientôt.</value></data>
   <data name="SettingsStartupChangeFailed" xml:space="preserve"><value>Windows n’a pas modifié le démarrage. Vérifiez l’état ci-dessus et réessayez.</value></data>
+  <data name="SettingsStartupChangeFailed.Linux" xml:space="preserve"><value>Le démarrage automatique n’a pas pu être modifié. Vérifiez l’état et réessayez.</value></data>
   <data name="SettingsStartupOtherCopyMessage" xml:space="preserve"><value>Une autre copie de Bientôt démarre aussi avec Windows. Désactivez-la : elle peut s’appeler WorkTime ou Bientôt.</value></data>
+  <data name="SettingsStartupOtherCopyMessage.Linux" xml:space="preserve"><value>Une autre copie de Bientôt démarre aussi à l’ouverture de session. Désactivez le démarrage automatique dans l’une des deux.</value></data>
   <data name="SettingsStartupAppsAction" xml:space="preserve"><value>Applications de démarrage</value></data>
   <data name="NotificationTitle" xml:space="preserve"><value>Bientôt</value></data>
   <data name="NotificationCompletionBody" xml:space="preserve"><value>Il reste {0} minutes avant votre objectif. Départ prévu : {1}.</value></data>
@@ -313,6 +315,7 @@
   <data name="NotificationEstimateQualifier" xml:space="preserve"><value>Selon le travail enregistré.</value></data>
   <data name="NotificationFailed" xml:space="preserve"><value>Bientôt n’a pas pu afficher une notification. Le suivi continue.</value></data>
   <data name="NotificationRegistrationFailed" xml:space="preserve"><value>Les notifications Windows sont indisponibles. Le suivi continue.</value></data>
+  <data name="NotificationRegistrationFailed.Linux" xml:space="preserve"><value>Les notifications sont indisponibles sur ce bureau. Le suivi continue.</value></data>
   <data name="NotificationSmokeBody" xml:space="preserve"><value>Test de notification. Aucune donnée de journée n’a été utilisée.</value></data>
   <data name="TrayStatusOrange" xml:space="preserve"><value>Départ proche de la limite</value></data>
   <data name="TrayStatusRed" xml:space="preserve"><value>Départ après la limite</value></data>
@@ -422,6 +425,7 @@
   <data name="SettingsGeneralTitle" xml:space="preserve"><value>Général</value></data>
   <data name="SettingsGeneralDescriptionRealText" xml:space="preserve"><value>La langue change après le redémarrage de Bientôt.</value></data>
   <data name="SettingsGeneralDescriptionDemoText" xml:space="preserve"><value>La langue change après le redémarrage de Bientôt. Le démarrage Windows est indisponible en mode démo.</value></data>
+  <data name="SettingsGeneralDescriptionDemoText.Linux" xml:space="preserve"><value>La langue change après le redémarrage de Bientôt. Le démarrage automatique est indisponible en mode démo.</value></data>
   <data name="SettingsLunchStartLabel.Text" xml:space="preserve"><value>Début</value></data>
   <data name="SettingsLunchEndLabel.Text" xml:space="preserve"><value>Fin</value></data>
   <data name="SettingsLunchStartInput.AutomationProperties.Name" xml:space="preserve"><value>Heure de début du déjeuner</value></data>
@@ -442,6 +446,7 @@
   <data name="SettingsDayCompleteInput.OffContent" xml:space="preserve"><value>Désactivé</value></data>
   <data name="SettingsLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Langue de l’application</value></data>
   <data name="SettingsStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Démarrer Bientôt avec Windows</value></data>
+  <data name="SettingsStartupInput.AutomationProperties.Name.Linux" xml:space="preserve"><value>Démarrer Bientôt à l’ouverture de session</value></data>
   <data name="SettingsStartupInput.OnContent" xml:space="preserve"><value>Activé</value></data>
   <data name="SettingsStartupInput.OffContent" xml:space="preserve"><value>Désactivé</value></data>
   <data name="SettingsUpdatesInput.AutomationProperties.Name" xml:space="preserve"><value>Rechercher les mises à jour</value></data>
@@ -464,6 +469,7 @@
   <data name="SettingsLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
   <data name="SettingsLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
   <data name="SettingsStartupCard.Header" xml:space="preserve"><value>Démarrage Windows</value></data>
+  <data name="SettingsStartupCard.Header.Linux" xml:space="preserve"><value>Démarrage automatique</value></data>
   <data name="SettingsStartupCard.Description" xml:space="preserve"><value>Démarrer Bientôt à l’ouverture de session.</value></data>
   <data name="SettingsUpdatesCard.Header" xml:space="preserve"><value>Rechercher les mises à jour</value></data>
   <data name="SettingsUpdatesCard.Description" xml:space="preserve"><value>Vérifie une fois par jour si une nouvelle version est disponible.</value></data>
@@ -566,7 +572,6 @@
   <data name="OnboardingActivityWatchEndpointInvalid" xml:space="preserve"><value>Saisissez une adresse http:// ou https:// sans chemin, par exemple http://127.0.0.1:5600.</value></data>
   <data name="OnboardingActivityWatchApiKeyInput.Header" xml:space="preserve"><value>Clé API (facultative)</value></data>
   <data name="OnboardingActivityWatchApiKeyInput.AutomationProperties.Name" xml:space="preserve"><value>Clé API ActivityWatch, facultative</value></data>
-  <data name="OnboardingActivityWatchApiKeyHelp.Text" xml:space="preserve"><value>Nécessaire uniquement si aw-server-rust exige une authentification. Bientôt enregistre la clé chiffrée pour votre compte Windows et ne l’affiche jamais.</value></data>
   <data name="OnboardingActivityWatchTestButton.Content" xml:space="preserve"><value>Tester la connexion</value></data>
   <data name="OnboardingActivityWatchProgress.AutomationProperties.Name" xml:space="preserve"><value>Test de la connexion en cours</value></data>
   <data name="OnboardingActivityWatchInstallLink.Content" xml:space="preserve"><value>Obtenir ActivityWatch</value></data>
@@ -600,10 +605,14 @@
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>Bientôt n’a pas pu enregistrer votre configuration. Réessayez.</value></data>
   <data name="OnboardingLanguageTitle.Text" xml:space="preserve"><value>Choisissez votre langue</value></data>
   <data name="OnboardingLanguageIntro.Text" xml:space="preserve"><value>Bientôt suit la langue de Windows. Vous pourrez la changer dans Paramètres.</value></data>
+  <data name="OnboardingLanguageIntro.Text.Linux" xml:space="preserve"><value>Bientôt suit la langue du système. Vous pourrez la changer dans Paramètres.</value></data>
   <data name="OnboardingLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Langue</value></data>
   <data name="OnboardingLanguageSystemFrench" xml:space="preserve"><value>Langue de Windows (français)</value></data>
+  <data name="OnboardingLanguageSystemFrench.Linux" xml:space="preserve"><value>Langue du système (français)</value></data>
   <data name="OnboardingLanguageSystemEnglish" xml:space="preserve"><value>Langue de Windows (anglais)</value></data>
+  <data name="OnboardingLanguageSystemEnglish.Linux" xml:space="preserve"><value>Langue du système (anglais)</value></data>
   <data name="OnboardingLanguageSystem" xml:space="preserve"><value>Langue de Windows</value></data>
+  <data name="OnboardingLanguageSystem.Linux" xml:space="preserve"><value>Langue du système</value></data>
   <data name="OnboardingLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
   <data name="OnboardingLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
   <data name="OnboardingLanguageRestartNotice.Text" xml:space="preserve"><value>Bientôt redémarrera dans la langue choisie à la fin de la configuration.</value></data>
@@ -619,10 +628,13 @@
   <data name="OnboardingDepartureInput.Header" xml:space="preserve"><value>Heure limite de départ souhaitée</value></data>
   <data name="OnboardingDepartureInput.AutomationProperties.Name" xml:space="preserve"><value>Heure limite de départ souhaitée</value></data>
   <data name="OnboardingStartupTitle.Text" xml:space="preserve"><value>Démarrer avec Windows</value></data>
+  <data name="OnboardingStartupTitle.Text.Linux" xml:space="preserve"><value>Démarrer à l’ouverture de session</value></data>
   <data name="OnboardingStartupIntro.Text" xml:space="preserve"><value>Bientôt compte votre temps seulement quand il tourne. Le lancer à l’ouverture de session évite d’oublier une matinée.</value></data>
   <data name="OnboardingStartupCard.Header" xml:space="preserve"><value>Démarrage Windows</value></data>
+  <data name="OnboardingStartupCard.Header.Linux" xml:space="preserve"><value>Démarrage automatique</value></data>
   <data name="OnboardingStartupCard.Description" xml:space="preserve"><value>Démarrer Bientôt à l’ouverture de session.</value></data>
   <data name="OnboardingStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Démarrer Bientôt avec Windows</value></data>
+  <data name="OnboardingStartupInput.AutomationProperties.Name.Linux" xml:space="preserve"><value>Démarrer Bientôt à l’ouverture de session</value></data>
   <data name="OnboardingStartupInput.OnContent" xml:space="preserve"><value>Activé</value></data>
   <data name="OnboardingStartupInput.OffContent" xml:space="preserve"><value>Désactivé</value></data>
   <data name="OnboardingStartupFootnote.Text" xml:space="preserve"><value>L’icône reste dans la zone de notification. Fermer la fenêtre n’arrête pas Bientôt.</value></data>
@@ -1099,6 +1111,9 @@ Importez le fichier exporté depuis Paramètres › Données sur ce PC-là.</v
   </data>
   <data name="FlyoutRebuiltReviewText" xml:space="preserve">
     <value>Votre session Windows était ouverte avant l’installation de Bientôt. Ce temps est compté provisoirement comme du travail.</value>
+  </data>
+  <data name="FlyoutRebuiltReviewText.Linux" xml:space="preserve">
+    <value>Votre session était ouverte avant l’installation de Bientôt, qui ne peut donc pas savoir si l’écran a été verrouillé. Ce temps est compté provisoirement comme du travail.</value>
   </data>
   <data name="PluginCardMenuFormat" xml:space="preserve">
     <value>Options de la carte {0}</value>

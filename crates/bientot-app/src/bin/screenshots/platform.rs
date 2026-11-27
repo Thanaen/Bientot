@@ -4,6 +4,7 @@
 
 use std::collections::HashSet;
 
+use bientot_app::strings::Wording;
 use bientot_platform::startup::SystemPage;
 use gpui::Global;
 
@@ -19,6 +20,14 @@ impl Platform {
             "windows" => Some(Self::Windows),
             "linux" => Some(Self::Linux),
             _ => None,
+        }
+    }
+
+    /// The words of its texts, whichever system renders them.
+    pub fn wording(self) -> Wording {
+        match self {
+            Self::Windows => Wording::Windows,
+            Self::Linux => Wording::Linux,
         }
     }
 
@@ -84,7 +93,7 @@ const LINUX: &[Scene] = &[
         group: "onboarding::capture_steps",
         name: "onboarding-language",
     },
-    // OnboardingStartupCard.Header.
+    // SettingsStartupCard.Header, the title of the onboarding's startup row.
     Scene {
         group: "onboarding::capture_steps",
         name: "onboarding-connections",
