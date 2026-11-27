@@ -15,7 +15,7 @@
 //! - `flyout-source-switch-failed-motion-<0|8|17|50|100>.png`, its entrance;
 //! - `flyout-diagnostics-<saved|failed>.png`;
 //! - `flyout-<settings-restored|notifications-unavailable|refresh-failed|alerts>.png`;
-//! - `flyout-activity-undetectable.png`, without an idle backend, on Linux only;
+//! - `flyout-activity-undetectable[-paused].png`, without an idle backend, on Linux only;
 //! - `flyout-update-<offered|installing|failed>.png` and `flyout-update-direct-<…>.png`;
 //! - `flyout-alerts-short.png` and `flyout-alerts-short-update.png`;
 //! - `palette-flyout.png`, `palette-flyout-query.png` and `palette-flyout-empty.png`.
@@ -410,8 +410,12 @@ pub fn capture_notices(
                 ..Backends::default()
             })
         });
+        let day = day?;
         let path = output.join("flyout-activity-undetectable.png");
-        capture_flyout(cx, day?, None, &path)?;
+        capture_flyout(cx, day.clone(), None, &path)?;
+        let window = open_flyout(cx, day, working(TrackingState::Paused), None)?;
+        let path = output.join("flyout-activity-undetectable-paused.png");
+        capture(cx, window.into(), &path)?;
         cx.update(|cx| cx.set_global(Backends::default()));
     }
     Ok(())

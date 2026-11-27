@@ -362,11 +362,16 @@
   <data name="LauncherEntry.Input.AutomationProperties.Name" xml:space="preserve"><value>Show Bientôt in the app menu</value></data>
   <data name="LauncherEntry.ChangeFailed" xml:space="preserve"><value>The app menu could not be changed. Try again.</value></data>
   <data name="ActivityUndetectable.Title" xml:space="preserve"><value>Bientôt cannot detect your activity on this desktop</value></data>
-  <data name="ActivityUndetectable.Text" xml:space="preserve"><value>Nothing is counted automatically. You can declare your time by hand.</value></data>
-  <data name="ActivityUndetectable.Action" xml:space="preserve"><value>Declare time</value></data>
+  <data name="ActivityUndetectable.Text" xml:space="preserve"><value>Nothing is counted automatically. You can log your time by hand.</value></data>
+  <data name="ActivityUndetectable.Action" xml:space="preserve"><value>Log time</value></data>
   <data name="DiagnosticSection.Header" xml:space="preserve"><value>Diagnostics</value></data>
   <data name="DiagnosticSection.ActivityNone" xml:space="preserve"><value>None</value></data>
   <data name="DiagnosticSection.Locks" xml:space="preserve"><value>Screen lock</value></data>
+  <data name="ActivityUndetectable.ForecastPaused" xml:space="preserve"><value>No forecast without activity detection</value></data>
+  <data name="DiagnosticSection.Detection" xml:space="preserve"><value>Detection method</value></data>
+  <data name="DiagnosticSection.ActivityNoneText" xml:space="preserve"><value>Nothing is counted automatically.</value></data>
+  <data name="DiagnosticSection.LocksReported" xml:space="preserve"><value>Reported</value></data>
+  <data name="DiagnosticSection.LocksNotReported" xml:space="preserve"><value>Not reported</value></data>
   <data name="LockStateUnknown.Text" xml:space="preserve"><value>This desktop does not report screen locks. Bientôt relies on your activity.</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Send an anonymous usage signal</value></data>

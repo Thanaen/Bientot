@@ -7,6 +7,7 @@ use bientot_app::live::{self, LiveHost};
 use bientot_app::platform::Backends;
 use bientot_app::settings::{Field, Switch, UsagePingFacts};
 use bientot_app::settings_view::SettingsView;
+use bientot_app::strings::Key;
 use bientot_app::theme::motion;
 use bientot_core::settings::{EditGroup, SettingsPort};
 use bientot_domain::configuration::{RecurringAppointment, Settings};
@@ -327,13 +328,11 @@ impl SettingsState {
                 | Self::ZipDetailsOpen
                 | Self::DirectDetailsOpen
         );
-        if details
-            || matches!(
-                self,
-                Self::End | Self::Zip | Self::Diagnostic | Self::DiagnosticUndetectable
-            )
-        {
+        if details || matches!(self, Self::End | Self::Zip) {
             view.scroll_to_end();
+        }
+        if matches!(self, Self::Diagnostic | Self::DiagnosticUndetectable) {
+            view.scroll_to_group(Key::SettingsDetectionGroup);
         }
         match self {
             Self::AppointmentNew | Self::AppointmentHoursError => {

@@ -31,9 +31,11 @@ written only when it is 1 to 64 characters of `a-z`, `0-9`, `.`, `_` and
 (`bientot_core::diagnostics::DiagnosticName`): free text, which could name
 the user or the computer, never reaches the archive. « À propos » names
 a Flatpak or an AppImage under the version. « Diagnostic », under it, names
-the idle backend in use (« Aucune » for `none`) and, while the desktop does
-not report locks, says so with `LockStateUnknown.Text`; both follow the
-backends' notes while the window is open. Windows shows no such group.
+the idle backend in use under « Méthode de détection » (« Aucune » for
+`none`, with « Rien n’est compté automatiquement. ») and, once lock
+reporting is known, whether locks are « Signalé » or « Non signalé », the
+latter with `LockStateUnknown.Text`; both follow the backends' notes while
+the window is open. Windows shows no such group.
 
 ## Tray: StatusNotifierItem (`ksni`)
 
@@ -137,7 +139,8 @@ none: as on Windows, a demo does not read the input. While the last note
 names no backend, the flyout shows `ActivityUndetectable.*` in place of the
 built-in source's failure, whose refresh and settings would change nothing,
 with « Déclarer du temps », which opens « Déclarer du temps travaillé » on
-today; a demo's `none` comes from no note and shows the scenario's day.
+today as the week does, and without the promise that the forecast comes back;
+a demo's `none` comes from no note and shows the scenario's day.
 
 The app reads the probe through `IdleWatch`, whose thread makes the probe,
 then reads it every second and keeps the monotonic instant of the last

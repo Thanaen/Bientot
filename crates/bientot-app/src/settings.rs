@@ -654,22 +654,24 @@ pub struct AboutView {
     pub install: Option<AboutRow>,
 }
 
-/// « Diagnostic »: the idle backend in use, by its name or « Aucune », and a row that says so
-/// when the desktop does not report screen locks.
+/// « Diagnostic »: the idle backend in use, by its name or « Aucune », and whether the desktop
+/// reports screen locks.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiagnosticView {
     pub heading: &'static str,
-    /// « Détection de l’activité » and the backend's name.
-    pub activity: Option<AboutRow>,
-    /// « Verrouillage de l’écran » and why the day rests on activity alone.
+    /// « Méthode de détection » and the backend's name.
+    pub activity: Option<DiagnosticRow>,
+    /// « Verrouillage de l’écran », « Signalé » or « Non signalé ».
     pub locks: Option<DiagnosticRow>,
 }
 
-/// A row of « Diagnostic » that tells a fact in a sentence under its title.
+/// A row of « Diagnostic »: its title, its value at the end, and what the value means for the
+/// day under the title, where it changes what Bientôt counts.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiagnosticRow {
     pub title: &'static str,
-    pub description: &'static str,
+    pub value: &'static str,
+    pub description: Option<&'static str>,
 }
 
 /// A row of « À propos »: its title, and its value where a row has its control.
@@ -1475,17 +1477,32 @@ impl SettingsForm {
 
     fn diagnostic(&self) -> Option<DiagnosticView> {
         let language = self.language;
-        let activity = self.backends.idle.map(|backend| AboutRow {
-            title: language.text(Key::SettingsDetectionGroup),
-            value: match backend {
-                NO_BACKEND => language.text(Key::DiagnosticSectionActivityNone),
-                name => name,
-            },
+        let activity = self.backends.idle.map(|backend| {
+            let (value, description) = match backend {
+                NO_BACKEND => (
+                    language.text(Key::DiagnosticSectionActivityNone),
+                    Some(language.text(Key::DiagnosticSectionActivityNoneText)),
+                ),
+                name => (name, None),
+            };
+            DiagnosticRow {
+                title: language.text(Key::DiagnosticSectionDetection),
+                value,
+                description,
+            }
         });
-        let locks = (self.backends.lock_reporting == Some(LockReporting::Unavailable)).then(|| {
+        let locks = self.backends.lock_reporting.map(|reporting| {
+            let (value, description) = match reporting {
+                LockReporting::Live => (language.text(Key::DiagnosticSectionLocksReported), None),
+                LockReporting::Unavailable => (
+                    language.text(Key::DiagnosticSectionLocksNotReported),
+                    Some(language.text(Key::LockStateUnknownText)),
+                ),
+            };
             DiagnosticRow {
                 title: language.text(Key::DiagnosticSectionLocks),
-                description: language.text(Key::LockStateUnknownText),
+                value,
+                description,
             }
         });
         (activity.is_some() || locks.is_some()).then(|| DiagnosticView {

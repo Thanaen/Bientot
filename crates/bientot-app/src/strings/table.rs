@@ -8,6 +8,7 @@ use super::Entry;
 pub enum Key {
     ActivitySourceSwitchFailed,
     ActivityUndetectableAction,
+    ActivityUndetectableForecastPaused,
     ActivityUndetectableText,
     ActivityUndetectableTitle,
     AdjustTimeAddDurationContent,
@@ -83,8 +84,12 @@ pub enum Key {
     DiagnosticExportFailed,
     DiagnosticExportSucceeded,
     DiagnosticSectionActivityNone,
+    DiagnosticSectionActivityNoneText,
+    DiagnosticSectionDetection,
     DiagnosticSectionHeader,
     DiagnosticSectionLocks,
+    DiagnosticSectionLocksNotReported,
+    DiagnosticSectionLocksReported,
     DiagnosticZipFileType,
     FlyoutAdjustButton,
     FlyoutAdjustTime,
@@ -887,10 +892,11 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 879] = [
+pub(super) static ENTRIES: [Entry; 884] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
-    Entry { name: "ActivityUndetectable.Action", fr: "Déclarer du temps", en: "Declare time", linux: None },
-    Entry { name: "ActivityUndetectable.Text", fr: "Rien n’est compté automatiquement. Vous pouvez déclarer votre temps à la main.", en: "Nothing is counted automatically. You can declare your time by hand.", linux: None },
+    Entry { name: "ActivityUndetectable.Action", fr: "Déclarer du temps", en: "Log time", linux: None },
+    Entry { name: "ActivityUndetectable.ForecastPaused", fr: "Pas de prévision sans détection de l’activité", en: "No forecast without activity detection", linux: None },
+    Entry { name: "ActivityUndetectable.Text", fr: "Rien n’est compté automatiquement. Vous pouvez déclarer votre temps à la main.", en: "Nothing is counted automatically. You can log your time by hand.", linux: None },
     Entry { name: "ActivityUndetectable.Title", fr: "Bientôt ne détecte pas votre activité sur ce bureau", en: "Bientôt cannot detect your activity on this desktop", linux: None },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration", linux: None },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval", linux: None },
@@ -965,8 +971,12 @@ pub(super) static ENTRIES: [Entry; 879] = [
     Entry { name: "DiagnosticExportFailed", fr: "Bientôt n’a pas pu enregistrer le ZIP de diagnostic. Choisissez un autre emplacement et réessayez.", en: "Bientôt could not save the diagnostic ZIP. Choose another location and try again.", linux: None },
     Entry { name: "DiagnosticExportSucceeded", fr: "Le ZIP de diagnostic a été enregistré.", en: "The diagnostic ZIP was saved.", linux: None },
     Entry { name: "DiagnosticSection.ActivityNone", fr: "Aucune", en: "None", linux: None },
+    Entry { name: "DiagnosticSection.ActivityNoneText", fr: "Rien n’est compté automatiquement.", en: "Nothing is counted automatically.", linux: None },
+    Entry { name: "DiagnosticSection.Detection", fr: "Méthode de détection", en: "Detection method", linux: None },
     Entry { name: "DiagnosticSection.Header", fr: "Diagnostic", en: "Diagnostics", linux: None },
     Entry { name: "DiagnosticSection.Locks", fr: "Verrouillage de l’écran", en: "Screen lock", linux: None },
+    Entry { name: "DiagnosticSection.LocksNotReported", fr: "Non signalé", en: "Not reported", linux: None },
+    Entry { name: "DiagnosticSection.LocksReported", fr: "Signalé", en: "Reported", linux: None },
     Entry { name: "DiagnosticZipFileType", fr: "Archive ZIP", en: "ZIP archive", linux: None },
     Entry { name: "FlyoutAdjustButton", fr: "Corriger…", en: "Adjust time…", linux: None },
     Entry { name: "FlyoutAdjustTime", fr: "Corriger le temps…", en: "Adjust time…", linux: None },

@@ -413,6 +413,16 @@ impl Today {
         workday.is_working_day().then_some(Target { workday, zone })
     }
 
+    /// « Déclarer du temps travaillé » of today, on what the week's « Déclarer du temps
+    /// travaillé… » would open it.
+    pub fn declaration(&self) -> Seed {
+        self.week()
+            .inspect_err(|error| log::error!("cannot read the week: {error:#}"))
+            .map_or(Seed::DeclareWork(None), |week| {
+                week.declaration(&self.workday())
+            })
+    }
+
     /// The time a correction opened now is recorded at.
     pub fn adjustment_time(&self) -> Timestamp {
         match &self.source {
@@ -539,7 +549,8 @@ pub fn install(today: Today, cx: &mut App) {
         let _ = adjust_view::window::open(None, Seed::Blank, Opener::Flyout, cx);
     });
     cx.on_action(|_: &DeclareTime, cx| {
-        let _ = adjust_view::window::open(None, Seed::DeclareWork(None), Opener::Flyout, cx);
+        let seed = cx.global::<Today>().declaration();
+        let _ = adjust_view::window::open(None, seed, Opener::Flyout, cx);
     });
     cx.on_action(|count: &CountUnrecorded, cx| {
         let mut notice = None;

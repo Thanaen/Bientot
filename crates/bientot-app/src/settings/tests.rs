@@ -352,8 +352,20 @@ fn diagnostic(backends: Backends, language: Language) -> Option<DiagnosticView> 
     form.view().diagnostic
 }
 
+fn diagnostic_row(
+    title: &'static str,
+    value: &'static str,
+    description: Option<&'static str>,
+) -> Option<DiagnosticRow> {
+    Some(DiagnosticRow {
+        title,
+        value,
+        description,
+    })
+}
+
 #[test]
-fn diagnostic_names_the_idle_backend_in_use_and_says_when_locks_are_not_reported() {
+fn diagnostic_names_the_idle_backend_in_use_and_whether_locks_are_reported() {
     let backends = Backends {
         idle: Some("ext-idle-notify-v1"),
         lifecycle: Some("logind"),
@@ -364,33 +376,67 @@ fn diagnostic_names_the_idle_backend_in_use_and_says_when_locks_are_not_reported
         diagnostic(backends, Language::French),
         Some(DiagnosticView {
             heading: "Diagnostic",
-            activity: Some(AboutRow {
-                title: "Détection de l’activité",
-                value: "ext-idle-notify-v1",
-            }),
-            locks: Some(DiagnosticRow {
-                title: "Verrouillage de l’écran",
-                description: "Ce bureau ne signale pas le verrouillage de l’écran. \
-                              Bientôt se fie à votre activité.",
-            }),
+            activity: diagnostic_row("Méthode de détection", "ext-idle-notify-v1", None),
+            locks: diagnostic_row(
+                "Verrouillage de l’écran",
+                "Non signalé",
+                Some(
+                    "Ce bureau ne signale pas le verrouillage de l’écran. \
+                     Bientôt se fie à votre activité."
+                ),
+            ),
         })
     );
-    let live = Backends {
+    assert_eq!(
+        diagnostic(backends, Language::English),
+        Some(DiagnosticView {
+            heading: "Diagnostics",
+            activity: diagnostic_row("Detection method", "ext-idle-notify-v1", None),
+            locks: diagnostic_row(
+                "Screen lock",
+                "Not reported",
+                Some("This desktop does not report screen locks. Bientôt relies on your activity."),
+            ),
+        })
+    );
+    let undetectable = Backends {
         idle: Some("none"),
         activity_undetectable: true,
         lock_reporting: Some(LockReporting::Live),
         ..backends
     };
     assert_eq!(
-        diagnostic(live, Language::English),
+        diagnostic(undetectable, Language::French),
+        Some(DiagnosticView {
+            heading: "Diagnostic",
+            activity: diagnostic_row(
+                "Méthode de détection",
+                "Aucune",
+                Some("Rien n’est compté automatiquement."),
+            ),
+            locks: diagnostic_row("Verrouillage de l’écran", "Signalé", None),
+        })
+    );
+    assert_eq!(
+        diagnostic(undetectable, Language::English),
         Some(DiagnosticView {
             heading: "Diagnostics",
-            activity: Some(AboutRow {
-                title: "Activity detection",
-                value: "None",
-            }),
-            locks: None,
+            activity: diagnostic_row(
+                "Detection method",
+                "None",
+                Some("Nothing is counted automatically."),
+            ),
+            locks: diagnostic_row("Screen lock", "Reported", None),
         })
+    );
+    let unknown = Backends {
+        lock_reporting: None,
+        ..backends
+    };
+    assert_eq!(
+        diagnostic(unknown, Language::French).and_then(|diagnostic| diagnostic.locks),
+        None,
+        "no lock row until lock reporting is known"
     );
 }
 

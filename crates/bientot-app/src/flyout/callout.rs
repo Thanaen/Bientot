@@ -118,13 +118,10 @@ impl Flyout {
     fn undetectable_callout(&self, theme: &Theme) -> AnyElement {
         let title = self.text(Key::ActivityUndetectableTitle);
         let declare = self.tracking.can_correct_time().then(|| {
-            self.callout_button(
-                "declare-time",
-                self.text(Key::ActivityUndetectableAction).into(),
-                None,
-                Box::new(DeclareTime),
-                theme,
-            )
+            let id = "declare-time";
+            let button = filled_button(id, self.text(Key::ActivityUndetectableAction), theme)
+                .on_click(|_, window, cx| window.dispatch_action(Box::new(DeclareTime), cx));
+            self.reveal_on_tab(id, button)
         });
         callout_box_with_icon(Hue::Warning, "activity", theme)
             .id("activity-undetectable")

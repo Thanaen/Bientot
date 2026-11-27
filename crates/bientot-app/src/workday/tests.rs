@@ -453,6 +453,78 @@ fn a_paused_working_day_asks_to_resume_unless_the_source_is_in_trouble() {
     }
 }
 
+/// The headline's lines while no idle backend answers, as the flyout shows them.
+fn lines_without_detection(
+    view: &DayView,
+    tracking: TrackingState,
+    language: Language,
+) -> Vec<String> {
+    let headline = view.headline_without_detection(tracking, language);
+    [
+        headline.label.as_deref(),
+        Some(&headline.value),
+        headline.hint.as_deref(),
+        headline.qualifier.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .map(spaced)
+    .collect()
+}
+
+/// Without an idle backend the source never recovers by itself: the forecast promises no
+/// recalculation, and a paused day says the forecast needs the detection. A finished day still
+/// points to adjusting the time, and a day the source does not hold back is unchanged.
+#[test]
+fn without_an_idle_backend_the_headline_promises_no_forecast() {
+    for (language, expected) in [
+        (
+            Language::French,
+            [
+                vec!["Départ prévu", "Prévision indisponible"],
+                vec!["Pas de prévision sans détection de l’activité"],
+                vec!["Cliquez sur Corriger le temps pour ajouter le travail manquant"],
+            ],
+        ),
+        (
+            Language::English,
+            [
+                vec!["Projected departure", "Forecast unavailable"],
+                vec!["No forecast without activity detection"],
+                vec!["Select Adjust time to add any missing work"],
+            ],
+        ),
+    ] {
+        let view = day(DemoScenario::Unavailable, language);
+        let shown = [
+            TrackingState::Running,
+            TrackingState::Paused,
+            TrackingState::Finished,
+        ]
+        .map(|tracking| lines_without_detection(&view, tracking, language));
+        assert_eq!(shown, expected, "{language:?}");
+    }
+    let on_track = day(DemoScenario::OnTrack, Language::French);
+    for tracking in [
+        TrackingState::Running,
+        TrackingState::Paused,
+        TrackingState::Finished,
+    ] {
+        assert_eq!(
+            on_track.headline_without_detection(tracking, Language::French),
+            *on_track.shown_while(tracking).headline,
+            "{tracking:?}"
+        );
+    }
+    let without_summary = unavailable_source(BuiltInActivitySource::SOURCE_ID);
+    assert_eq!(
+        without_summary
+            .headline_without_detection(TrackingState::Running, Language::French)
+            .hint,
+        None
+    );
+}
+
 /// A finished working day says how far the worked row ends from its target instead of asking to
 /// resume. While the source is in trouble the gap is unknown, so it points to adjusting the time
 /// instead.

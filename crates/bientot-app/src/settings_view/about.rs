@@ -4,7 +4,7 @@
 use gpui::{Role, SharedString, div, prelude::*};
 
 use super::{group, row_line, row_text};
-use crate::settings::{AboutView, DiagnosticView};
+use crate::settings::{AboutView, DiagnosticRow, DiagnosticView};
 use crate::theme::Theme;
 use crate::theme::spacing::*;
 
@@ -40,37 +40,44 @@ pub(super) fn section(about: AboutView, theme: &Theme) -> impl IntoElement {
     )
 }
 
-/// « Diagnostic »: the idle backend's name at the end of its row, and the sentence that says the
-/// desktop does not report locks under its title.
+/// « Diagnostic »: the idle backend's name and whether locks are reported at the end of their
+/// rows, with what that means for the day under the title where it changes what is counted.
 pub(super) fn diagnostic_section(diagnostic: DiagnosticView, theme: &Theme) -> impl IntoElement {
-    let activity = diagnostic.activity.map(|activity| {
-        let text = row_text(activity.title, theme.text, None, theme.text_muted);
-        let label = format!("{} {}", activity.title, activity.value);
-        div()
-            .py(BASE_12)
-            .when(diagnostic.locks.is_some(), |row| {
-                row.border_b_1().border_color(theme.border_variant)
-            })
-            .child(row_line(text, value("idle-backend", label, activity.value)))
-            .into_any_element()
-    });
-    let locks = diagnostic.locks.map(|locks| {
-        div()
-            .py(BASE_12)
-            .child(row_text(
-                locks.title,
-                theme.text,
-                Some(locks.description.into_any_element()),
-                theme.text_muted,
-            ))
-            .into_any_element()
-    });
+    let divided = diagnostic.locks.is_some();
+    let activity = diagnostic
+        .activity
+        .map(|activity| diagnostic_row("idle-backend", activity, divided, theme));
+    let locks = diagnostic
+        .locks
+        .map(|locks| diagnostic_row("lock-reporting", locks, false, theme));
     group(
         "diagnostic",
         Some(diagnostic.heading),
         activity.into_iter().chain(locks),
         theme,
     )
+}
+
+fn diagnostic_row(
+    id: &'static str,
+    row: DiagnosticRow,
+    divided: bool,
+    theme: &Theme,
+) -> gpui::AnyElement {
+    let text = row_text(
+        row.title,
+        theme.text,
+        row.description.map(IntoElement::into_any_element),
+        theme.text_muted,
+    );
+    let label = format!("{} {}", row.title, row.value);
+    div()
+        .py(BASE_12)
+        .when(divided, |row| {
+            row.border_b_1().border_color(theme.border_variant)
+        })
+        .child(row_line(text, value(id, label, row.value)))
+        .into_any_element()
 }
 
 /// The value at the end of a row, which a screen reader names with its row's title: `label`.

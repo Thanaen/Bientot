@@ -557,6 +557,20 @@ impl SettingsView {
         self.json.scroll_to_end();
     }
 
+    /// Brings the group under `heading` to the top of the page, for the screenshots.
+    pub fn scroll_to_group(&self, heading: Key) {
+        let page = self.form.view();
+        let heading = self.language.text(heading);
+        if let Some(position) = page
+            .sections
+            .iter()
+            .position(|section| section.heading == Some(heading))
+        {
+            let before = usize::from(page.source.is_some());
+            self.content_scroll.scroll_to_top_of_item(before + position);
+        }
+    }
+
     /// Names `folder` in the header of « settings.json » in place of the file's own, for the
     /// screenshots.
     pub fn show_folder_as(&mut self, folder: &str) {

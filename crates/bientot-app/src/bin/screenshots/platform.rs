@@ -106,9 +106,9 @@ const LINUX: &[Scene] = &[
         group: "settings::capture_pages",
         name: "settings-general-end",
     },
-    // « Diagnostic » under it, which only Linux shows: DiagnosticSection.Header, the idle
-    // backend's name, DiagnosticSection.Locks and LockStateUnknown.Text; then
-    // DiagnosticSection.ActivityNone.
+    // « Diagnostic » under it, which only Linux shows: DiagnosticSection.Header and
+    // .Detection with the idle backend's name, .Locks with .LocksNotReported and
+    // LockStateUnknown.Text; then .ActivityNone with .ActivityNoneText, and .LocksReported.
     Scene {
         group: "settings::capture_pages",
         name: "settings-general-diagnostic",
@@ -146,6 +146,11 @@ const LINUX: &[Scene] = &[
     Scene {
         group: "flyout::capture_notices",
         name: "flyout-activity-undetectable",
+    },
+    // ActivityUndetectable.ForecastPaused.
+    Scene {
+        group: "flyout::capture_notices",
+        name: "flyout-activity-undetectable-paused",
     },
     // FlyoutRebuiltReviewText.
     Scene {
