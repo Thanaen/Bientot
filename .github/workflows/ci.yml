@@ -73,7 +73,7 @@ jobs:
 
           # Linux minutes are cheap: the Linux job runs on every Rust change, not only the app's.
           rust_linux=false
-          if grep -qE "${rust_files}|^\.github/workflows/ci\.yml$|^scripts/(measure-performance|linux-desktop-harness)\.sh$" <<< "$files"; then
+          if grep -qE "${rust_files}|^\.github/workflows/ci\.yml$|^scripts/(measure-performance|linux-desktop-harness|release-direct)\.sh$" <<< "$files"; then
             rust_linux=true
           fi
 
@@ -476,25 +476,33 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # Builds the release executable on Linux, measures its size and starts it in a headless X11
-  # session. It runs beside `Rust`: Linux minutes are cheap, and the answer comes sooner.
+  # Builds the release executable and the AppImage on Linux, checks and measures them and starts
+  # them in a headless X11 session. It runs beside `Rust`: Linux minutes are cheap, and the answer
+  # comes sooner. Ubuntu 22.04 has the oldest glibc the AppImage supports, 2.35, so what this job
+  # builds starts on Ubuntu 22.04, Debian 12 and the distributions after them
+  # (specs/005-linux-support/contracts/packaging.md). `Rust on Linux (aarch64)` runs the same
+  # steps on Arm.
   rust-linux:
     name: Rust on Linux
     needs: plan
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.verified != 'true' && needs.plan.outputs.rust-linux != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # A pull request's first run builds without a cache.
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     permissions:
       contents: read
 
     env:
       CARGO_TERM_COLOR: always
+      PLATFORM: linux-x64
 
-    steps:
+    steps: &rust-linux-steps
+      # The whole history: the AppImage's version counts the commits.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Install Rust toolchain
         run: rustup toolchain install
@@ -503,78 +511,202 @@ jobs:
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       # The list of CONTRIBUTING.md, so that this job proves it, then the headless desktop:
-      # Xvfb, openbox, the D-Bus mocks and ImageMagick for the screenshot.
+      # Xvfb, openbox and the D-Bus mocks; then what scripts/release-direct.sh needs for the
+      # AppImage, mksquashfs and Pillow, and FUSE to start it.
       - name: Install the system packages
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
             build-essential pkg-config libfreetype-dev libfontconfig-dev \
             libxkbcommon-dev libxkbcommon-x11-dev mesa-vulkan-drivers \
-            xvfb openbox x11-utils imagemagick dbus python3-dbusmock
+            xvfb openbox x11-utils dbus python3-dbusmock \
+            squashfs-tools python3-pil fuse3
 
       # Every hostile plugin of crates/bientot-plugins/tests/hostile on the plugin host built for
       # release (FR-072, SC-004), as `Rust on Windows` runs them.
       - name: Run the hostile plugins
         run: cargo run --release --locked -p bientot-plugins --example hostile-corpus
 
-      # The features of the Store package and the ZIP on Windows. `direct` adds nothing on Linux
-      # yet: Velopack and the update code are Windows-only until T143, and T145 builds it then.
+      # The features of the Store package and the ZIP on Windows, and of the Flatpak.
       - name: Build release executable
         run: |
           cargo build --release --locked -p bientot-app --bin worktime --features release
           mkdir -p artifacts/linux
           cp target/release/worktime artifacts/linux/worktime
 
+      # Its version must be the velopack crate's (crates/bientot-app/Cargo.toml), as in the
+      # Release workflow. The runner image has .NET.
+      - name: Install vpk
+        run: |
+          dotnet tool install --global vpk --version 1.2.161
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      # The AppImage of the direct channel (`direct` feature), as the release builds it. CI makes
+      # no delta package, which needs the previous release from the feed: FIRST_RELEASE skips it.
+      - name: Build the AppImage
+        env:
+          RELEASE_ANY_BRANCH: "1"
+          FIRST_RELEASE: "1"
+          PYTHON: /usr/bin/python3
+        run: |
+          scripts/release-direct.sh --target "$PLATFORM" "$RUNNER_TEMP/release"
+          cp "$RUNNER_TEMP"/release/*.AppImage "artifacts/linux/Bientot-$(uname -m).AppImage"
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/artifacts/linux/Bientot-$(uname -m).AppImage" --appimage-extract > /dev/null
+          ls -l release squashfs-root/usr/bin
+
       # HTTPS goes through rustls, linked in: a package must not depend on the host's OpenSSL
       # (specs/005-linux-support/contracts/packaging.md).
       - name: Check that OpenSSL is not linked
         run: |
-          libraries=$(ldd artifacts/linux/worktime)
-          if grep -E 'lib(ssl|crypto)\.' <<< "$libraries"; then
-            echo "::error::The executable links OpenSSL."
-            exit 1
-          fi
+          for executable in artifacts/linux/worktime "$RUNNER_TEMP/squashfs-root/usr/bin/worktime"; do
+            libraries=$(ldd "$executable")
+            if grep -E 'lib(ssl|crypto)\.' <<< "$libraries"; then
+              echo "::error::$executable links OpenSSL."
+              exit 1
+            fi
+          done
+
+      # Each executable needs no glibc symbol newer than the runner's, so the AppImage starts on
+      # Ubuntu 22.04 and Debian 12. A static executable, such as Velopack's UpdateNix, needs none.
+      - name: Check the glibc version
+        env:
+          GLIBC_MAX: "2.35"
+        run: |
+          for executable in artifacts/linux/worktime "$RUNNER_TEMP"/squashfs-root/usr/bin/{worktime,UpdateNix}; do
+            needed=$(objdump -T "$executable" | grep -o 'GLIBC_[0-9.]*' | cut -d_ -f2 | sort -uV | tail -n 1)
+            echo "$executable: glibc ${needed:-not linked}"
+            if [ -n "$needed" ] && [ "$(printf '%s\n' "$needed" "$GLIBC_MAX" | sort -V | tail -n 1)" != "$GLIBC_MAX" ]; then
+              echo "::error::$executable needs glibc $needed, newer than $GLIBC_MAX."
+              exit 1
+            fi
+          done
 
       # The budget of the Windows executable (issue #147), on the stripped executable. GPUI's X11
       # and Wayland backends take it over, so the job warns until the Linux size task (issue #226)
-      # brings it under. OVER_BUDGET: error makes the size a gate again.
+      # brings it under. OVER_BUDGET: error makes the size a gate again. The Velopack build
+      # (`direct`) has the same budget; the AppImage's size is reported only.
       - name: Measure the size
         env:
           BUDGET_BYTES: 20000000
           OVER_BUDGET: warning
         run: |
-          bytes=$(stat -c %s artifacts/linux/worktime)
-          megabytes=$(awk -v bytes="$bytes" 'BEGIN { printf "%.2f", bytes / 1000000 }')
-          table=$(printf '## Rust on Linux\n\n| Gate | Measured | Target |\n| --- | --- | --- |\n| Executable size | %s MB (%s bytes) | < %s MB |\n' "$megabytes" "$bytes" "$((BUDGET_BYTES / 1000000))")
+          megabytes() { awk -v bytes="$1" 'BEGIN { printf "%.2f", bytes / 1000000 }'; }
+          release=$(stat -c %s artifacts/linux/worktime)
+          direct=$(stat -c %s "$RUNNER_TEMP/squashfs-root/usr/bin/worktime")
+          appimage=$(stat -c %s artifacts/linux/Bientot-*.AppImage)
+          table=$(printf '## Rust on Linux, %s\n\n| Gate | Measured | Target |\n| --- | --- | --- |\n' "$PLATFORM"
+            printf '| Executable size | %s MB (%s bytes) | < %s MB |\n' "$(megabytes "$release")" "$release" "$((BUDGET_BYTES / 1000000))"
+            printf '| Executable size, Velopack build | %s MB (%s bytes) | < %s MB |\n' "$(megabytes "$direct")" "$direct" "$((BUDGET_BYTES / 1000000))"
+            printf '| AppImage size | %s MB (%s bytes) | |\n' "$(megabytes "$appimage")" "$appimage")
           echo "$table"
           echo "$table" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$bytes" -ge "$BUDGET_BYTES" ]; then
-            echo "::${OVER_BUDGET}::The executable is ${bytes} bytes, over the ${BUDGET_BYTES} byte budget (issue #226)."
-            if [ "$OVER_BUDGET" = error ]; then exit 1; fi
-          fi
+          for bytes in "$release" "$direct"; do
+            if [ "$bytes" -ge "$BUDGET_BYTES" ]; then
+              echo "::${OVER_BUDGET}::An executable is ${bytes} bytes, over the ${BUDGET_BYTES} byte budget (issue #226)."
+              if [ "$OVER_BUDGET" = error ]; then exit 1; fi
+            fi
+          done
 
       # Ready within 10 s with nothing on standard error, on a throwaway --data-dir so that the run
-      # sends no usage signal. The time and memory are indications: the runner has no GPU, so Mesa
-      # renders on the CPU. Xvfb has no DRI3, which Mesa's EGL warns about on standard error.
+      # sends no usage signal: the release executable, then the AppImage, which FUSE mounts. The
+      # time and memory are indications: the runner has no GPU, so Mesa renders on the CPU. Xvfb
+      # has no DRI3, which Mesa's EGL warns about on standard error. Ubuntu 22.04's Mesa maps the
+      # flyout and draws nothing in it, so `Linux screenshot` takes the screenshot.
       - name: Start headless
         env:
-          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
           EGL_LOG_LEVEL: fatal
         # `bash` alone runs with pipefail, so a failed start fails the step despite the `tee`.
         shell: bash
         run: |
+          VK_ICD_FILENAMES=$(echo /usr/share/vulkan/icd.d/lvp_icd*.json)
+          export VK_ICD_FILENAMES
           echo >> "$GITHUB_STEP_SUMMARY"
-          scripts/linux-desktop-harness.sh x11 \
-            scripts/measure-performance.sh artifacts/linux/worktime --screenshot artifacts/linux/flyout.png \
-            | tee -a "$GITHUB_STEP_SUMMARY"
+          for executable in artifacts/linux/worktime artifacts/linux/Bientot-*.AppImage; do
+            printf '\n%s:\n\n' "${executable##*/}" | tee -a "$GITHUB_STEP_SUMMARY"
+            scripts/linux-desktop-harness.sh x11 scripts/measure-performance.sh "$executable" \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+          done
 
-      # The executable to try, and the flyout as the headless start drew it.
-      - name: Upload executable and screenshot
+      # The executable and the AppImage to try.
+      - name: Upload executable and AppImage
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: worktime-rust-linux-${{ github.run_attempt }}
+          name: worktime-${{ env.PLATFORM }}-${{ github.run_attempt }}
           path: artifacts/linux/
+          retention-days: 7
+          if-no-files-found: error
+
+  # The steps of `Rust on Linux` on Arm (specs/005-linux-support, T146).
+  rust-linux-arm:
+    name: Rust on Linux (aarch64)
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.verified != 'true' && needs.plan.outputs.rust-linux != 'false' }}
+    runs-on: ubuntu-22.04-arm
+    timeout-minutes: 45
+
+    permissions:
+      contents: read
+
+    env:
+      CARGO_TERM_COLOR: always
+      PLATFORM: linux-arm64
+
+    steps: *rust-linux-steps
+
+  # What `Rust on Linux` built, started on the newest Ubuntu, whose Mesa draws the flyout under
+  # Xvfb, for a screenshot of the screen with the flyout open. It also shows that the AppImage
+  # built on Ubuntu 22.04 runs on a later system.
+  linux-screenshot:
+    name: Linux screenshot
+    needs: rust-linux
+    if: ${{ !cancelled() && needs.rust-linux.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The libraries the executable links, then the headless desktop of `Rust on Linux`.
+      - name: Install the system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            libxkbcommon-x11-0 mesa-vulkan-drivers \
+            xvfb openbox x11-utils imagemagick dbus python3-dbusmock fuse3
+
+      - name: Download executable and AppImage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: worktime-linux-x64-${{ github.run_attempt }}
+          path: artifacts/linux
+
+      # An artifact keeps no file mode, hence the chmod.
+      - name: Start headless
+        env:
+          EGL_LOG_LEVEL: fatal
+        shell: bash
+        run: |
+          chmod +x artifacts/linux/worktime artifacts/linux/Bientot-*.AppImage
+          VK_ICD_FILENAMES=$(echo /usr/share/vulkan/icd.d/lvp_icd*.json)
+          export VK_ICD_FILENAMES
+          scripts/linux-desktop-harness.sh x11 \
+            scripts/measure-performance.sh artifacts/linux/worktime --screenshot screenshots/flyout.png
+          scripts/linux-desktop-harness.sh x11 \
+            scripts/measure-performance.sh artifacts/linux/Bientot-*.AppImage --screenshot screenshots/flyout-appimage.png
+
+      # The flyout as the headless start drew it.
+      - name: Upload screenshots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-screenshot-${{ github.run_attempt }}
+          path: screenshots/
           retention-days: 7
           if-no-files-found: error
 
@@ -588,6 +720,8 @@ jobs:
       - gpui-screenshots
       - rust-windows
       - rust-linux
+      - rust-linux-arm
+      - linux-screenshot
     if: ${{ github.event_name == 'pull_request' && !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5

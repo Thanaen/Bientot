@@ -1,11 +1,11 @@
-//! Writes THIRD-PARTY-NOTICES.txt for the release worktime.exe: every crate compiled into it from
+//! Writes THIRD-PARTY-NOTICES.txt for the release executable: every crate compiled into it from
 //! outside the workspace (a registry or a git source), with its license and the license texts it
 //! ships.
 //!
-//! The crate set is `cargo tree` for the Windows target with a feature of bientot-app, `release`
-//! for the Store package and the ZIP unless another is given (`direct` for the Velopack release),
-//! over normal edges only: build scripts and proc-macros run on the build machine and are not in
-//! the exe.
+//! The crate set is `cargo tree` for a target, the Windows one (worktime.exe) unless another is
+//! given (a Linux one for the AppImage), with a feature of bientot-app, `release` for the Store
+//! package and the ZIP unless another is given (`direct` for the Velopack release), over normal
+//! edges only: build scripts and proc-macros run on the build machine and are not in the exe.
 //! `cargo metadata` resolves features for the whole workspace and would list crates the exe never
 //! links, so it only supplies each crate's manifest path, license and repository. It runs with
 //! every feature on, so that it knows every crate the tree names.
@@ -15,7 +15,7 @@
 //! which must cover its whole expression, and its authors as the copyright holders the MIT and
 //! BSD texts require.
 //!
-//! Usage: `cargo run --locked -p bientot-notices -- <output file> [feature]`. Fails, naming the crate, on a
+//! Usage: `cargo run --locked -p bientot-notices -- <output file> [feature [target]]`. Fails, naming the crate, on a
 //! missing license, a license outside [`license::ALLOWED`] or license texts that do not cover it.
 
 mod license;
@@ -29,10 +29,10 @@ use std::process::{Command, ExitCode};
 use license::Expression;
 use serde_json::Value;
 
-const TARGET: &str = "x86_64-pc-windows-msvc";
+const WINDOWS: &str = "x86_64-pc-windows-msvc";
 const LICENSE_FILE_PREFIXES: &[&str] = &["LICENSE", "LICENCE", "COPYING", "NOTICE", "UNLICENSE"];
+/// Follows « libsqlite3-sys compiles the SQLite library it bundles into <executable>. SQLite is ».
 const SQLITE_NOTICE: &str = "\
-libsqlite3-sys compiles the SQLite library it bundles into worktime.exe. SQLite is
 in the public domain (https://sqlite.org/copyright.html). Its source carries this
 blessing in place of a license:
 
@@ -56,19 +56,27 @@ struct Crate {
 
 fn main() -> ExitCode {
     let mut arguments = std::env::args_os().skip(1);
-    let (Some(output), feature, None) = (arguments.next(), arguments.next(), arguments.next())
-    else {
-        eprintln!("usage: bientot-notices <output file> [feature]");
+    let (Some(output), feature, target, None) = (
+        arguments.next(),
+        arguments.next(),
+        arguments.next(),
+        arguments.next(),
+    ) else {
+        eprintln!("usage: bientot-notices <output file> [feature [target]]");
         return ExitCode::FAILURE;
     };
-    let Some(feature) = feature
-        .as_deref()
-        .map_or(Some("release"), |feature| feature.to_str())
-    else {
-        eprintln!("bientot-notices: the feature is not UTF-8");
+    let (Some(feature), Some(target)) = (
+        feature
+            .as_deref()
+            .map_or(Some("release"), |feature| feature.to_str()),
+        target
+            .as_deref()
+            .map_or(Some(WINDOWS), |target| target.to_str()),
+    ) else {
+        eprintln!("bientot-notices: the feature or the target is not UTF-8");
         return ExitCode::FAILURE;
     };
-    match generate(Path::new(&output), feature) {
+    match generate(Path::new(&output), feature, target) {
         Ok(count) => {
             eprintln!("{}: {count} crates", Path::new(&output).display());
             ExitCode::SUCCESS
@@ -80,7 +88,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn generate(output: &Path, feature: &str) -> Result<usize, String> {
+fn generate(output: &Path, feature: &str, target: &str) -> Result<usize, String> {
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let manifest = workspace.join("Cargo.toml");
     let tree = cargo(&[
@@ -93,7 +101,7 @@ fn generate(output: &Path, feature: &str) -> Result<usize, String> {
         "--features",
         feature,
         "--target",
-        TARGET,
+        target,
         "--edges",
         "normal,no-proc-macro",
         "--prefix",
@@ -108,7 +116,7 @@ fn generate(output: &Path, feature: &str) -> Result<usize, String> {
         "--format-version",
         "1",
         "--filter-platform",
-        TARGET,
+        target,
         "--manifest-path",
         path_str(&manifest)?,
     ])?;
@@ -176,7 +184,13 @@ fn generate(output: &Path, feature: &str) -> Result<usize, String> {
     }
 
     let count = crates.len();
-    fs::write(output, render(crates)).map_err(|error| format!("{}: {error}", output.display()))?;
+    let executable = if target.contains("-windows-") {
+        "worktime.exe"
+    } else {
+        "worktime"
+    };
+    fs::write(output, render(crates, executable))
+        .map_err(|error| format!("{}: {error}", output.display()))?;
     Ok(count)
 }
 
@@ -273,14 +287,15 @@ fn read_text(path: &Path) -> Result<String, String> {
     Ok(format!("{}\n", text.trim_end()))
 }
 
-fn render(mut crates: Vec<Crate>) -> String {
+/// The notices of the crates compiled into `executable`, the file name the text gives it.
+fn render(mut crates: Vec<Crate>, executable: &str) -> String {
     crates.sort_by(|a, b| {
         (&a.name, version_key(&a.version)).cmp(&(&b.name, version_key(&b.version)))
     });
 
-    let mut out = String::from(
+    let mut out = format!(
         "THIRD-PARTY NOTICES FOR BIENTÔT\n\n\
-         worktime.exe, the Bientôt app, contains the following third-party Rust crates. Each\n\
+         {executable}, the Bientôt app, contains the following third-party Rust crates. Each\n\
          line gives the crate, its version, its license as the crate declares it, and its\n\
          repository. The license texts follow, each one once, with the crates it covers. A\n\
          crate that ships no license file is covered by the standard text of its license, and\n\
@@ -306,6 +321,9 @@ fn render(mut crates: Vec<Crate>) -> String {
         .any(|package| package.name == "libsqlite3-sys")
     {
         heading(&mut out, "SQLite");
+        out += &format!(
+            "libsqlite3-sys compiles the SQLite library it bundles into {executable}. SQLite is\n"
+        );
         out += SQLITE_NOTICE;
     }
 
@@ -386,11 +404,14 @@ mod tests {
 
     #[test]
     fn lists_crates_by_name_then_version() {
-        let out = render(vec![
-            package("b", "1.0.0", &["B\n"]),
-            package("a", "0.10.0", &["A\n"]),
-            package("a", "0.9.1", &["A\n"]),
-        ]);
+        let out = render(
+            vec![
+                package("b", "1.0.0", &["B\n"]),
+                package("a", "0.10.0", &["A\n"]),
+                package("a", "0.9.1", &["A\n"]),
+            ],
+            "worktime.exe",
+        );
         let lines: Vec<&str> = out.lines().filter(|line| line.contains(" — ")).collect();
         assert_eq!(
             lines,
@@ -404,10 +425,13 @@ mod tests {
 
     #[test]
     fn prints_a_shared_text_once_for_every_crate_it_covers() {
-        let out = render(vec![
-            package("one", "1.0.0", &["SHARED TEXT\n", "OWN\n"]),
-            package("two", "2.0.0", &["SHARED\n   TEXT\n"]),
-        ]);
+        let out = render(
+            vec![
+                package("one", "1.0.0", &["SHARED TEXT\n", "OWN\n"]),
+                package("two", "2.0.0", &["SHARED\n   TEXT\n"]),
+            ],
+            "worktime.exe",
+        );
         assert_eq!(out.matches("SHARED").count(), 1);
         assert!(out.contains(&format!(
             "Used by one 1.0.0, two 2.0.0\n{RULE}\n\nSHARED TEXT\n"
@@ -428,17 +452,41 @@ mod tests {
 
     #[test]
     fn adds_the_sqlite_notice_only_with_libsqlite3_sys() {
-        assert!(!render(vec![package("rusqlite", "0.40.2", &["MIT\n"])]).contains("SQLite"));
         assert!(
-            render(vec![package("libsqlite3-sys", "0.38.0", &["MIT\n"])]).contains("public domain")
+            !render(
+                vec![package("rusqlite", "0.40.2", &["MIT\n"])],
+                "worktime.exe"
+            )
+            .contains("SQLite")
         );
+        assert!(
+            render(
+                vec![package("libsqlite3-sys", "0.38.0", &["MIT\n"])],
+                "worktime.exe"
+            )
+            .contains("public domain")
+        );
+    }
+
+    #[test]
+    fn names_the_executable_of_the_target() {
+        let crates = || vec![package("libsqlite3-sys", "0.38.0", &["MIT\n"])];
+        let windows = render(crates(), "worktime.exe");
+        assert!(windows.contains("\nworktime.exe, the Bientôt app, contains"));
+        assert!(windows.contains("bundles into worktime.exe. SQLite is\nin the public domain"));
+        let linux = render(crates(), "worktime");
+        assert!(linux.contains("\nworktime, the Bientôt app, contains"));
+        assert!(linux.contains("bundles into worktime. SQLite is\nin the public domain"));
     }
 
     #[test]
     fn prints_the_copyright_of_a_crate_on_the_standard_text() {
         let mut covered = package("b", "1.0.0", &["MIT\n"]);
         covered.copyright = Some("Jane Doe <jane@example.com>".to_owned());
-        let out = render(vec![package("a", "1.0.0", &["MIT\n"]), covered]);
+        let out = render(
+            vec![package("a", "1.0.0", &["MIT\n"]), covered],
+            "worktime.exe",
+        );
         assert!(out.contains(
             "a 1.0.0 — MIT — no repository listed\n\
              b 1.0.0 — MIT — no repository listed\n    \

@@ -147,15 +147,21 @@ A green Linux run does not prove these:
   `crates/bientot-windows/`, the Windows code of `bientot-store`, the Cargo
   manifests, the toolchain, `scripts/measure-performance.ps1` or `ci.yml`
   change, and after **Rust** passes.
-- **Rust on Linux** runs the hostile plugins, builds the Linux release
-  executable, reports its size against 20 000 000 bytes (a warning, not a
-  failure, until issue #226 brings it under), and starts it in a headless X11
-  session (`scripts/linux-desktop-harness.sh x11`) with
+- **Rust on Linux** runs on Ubuntu 22.04 (glibc 2.35, the oldest the
+  AppImage supports). It runs the hostile plugins, builds the Linux release
+  executable and the AppImage (`scripts/release-direct.sh --target
+  linux-x64`), fails when an executable links OpenSSL or needs a glibc newer
+  than 2.35, reports the sizes against 20 000 000 bytes (a warning, not a
+  failure, until issue #226 brings them under), and starts the executable,
+  then the AppImage, in a headless X11 session
+  (`scripts/linux-desktop-harness.sh x11`) with
   `scripts/measure-performance.sh`, which fails when the app is not ready
   within 10 s or writes to standard error, and reports its start time and
-  memory. It uploads the executable and a screenshot of its flyout. It runs
-  on every change that runs **Rust**, and on changes to its own two scripts,
-  beside **Rust**.
+  memory. It uploads the executable and the AppImage. It runs on every
+  change that runs **Rust**, and on changes to its own three scripts, beside
+  **Rust**. **Rust on Linux (aarch64)** runs the same steps on Arm, and
+  **Linux screenshot** starts both builds on the newest Ubuntu, whose Mesa
+  draws under Xvfb, and uploads a screenshot of the flyout.
 
 Keep work out of the Windows job unless it needs Windows, and keep new gates
 conditional on the files they check.

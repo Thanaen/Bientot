@@ -720,7 +720,10 @@ works for an AppImage in the user's home on the Tier 1 distributions, and
 AppImage is built on `ubuntu-22.04` runners (glibc 2.35), which covers
 Ubuntu 22.04+, Debian 12+, Fedora 36+ and Mint 21+ (versions stated from
 general knowledge; openSUSE Leap's glibc is not known here; both checked in
-T141). CI fails when the highest `GLIBC_` symbol exceeds 2.35.
+T141). CI fails when the highest `GLIBC_` symbol exceeds 2.35. **Run**
+(T141): the AppImage built on Ubuntu 22.04 needs 2.35 for `hypotf` alone and
+2.34 for every other symbol, and starts in Ubuntu 22.04 (2.35) and Debian 12
+(2.36) containers; see « AppImage build (Lot 14) ».
 **Assumption A-19**: GitHub still offers `ubuntu-22.04` and
 `ubuntu-22.04-arm` runners when Lot 14 lands; otherwise the build runs in a
 `debian:12` container. Task T141. Flatpak brings its own glibc.
@@ -995,6 +998,51 @@ the first frame; later opens took 150 to 350 ms. On sway, Mesa writes
 « MESA: error: ZINK: failed to choose pdev » to standard error, and the
 window still draws.
 
+## AppImage build (Lot 14)
+
+Run on 27 November 2026 with `scripts/release-direct.sh --target linux-x64`
+in an `ubuntu:22.04` container holding the package list of `Rust on Linux`,
+vpk 1.2.161 and the pinned toolchain (T141, T142, T145). Every result below
+is **Run**, in containers on an x86_64 host; nothing ran on Arm or on a
+desktop.
+
+- vpk writes `Thanaen.WorkTime.AppImage`, `Thanaen.WorkTime-<version>-linux-full.nupkg`,
+  `releases.linux.json`, `assets.linux.json` and `RELEASES-linux`. With
+  `--channel linux-arm64` the names carry the channel:
+  `Thanaen.WorkTime-linux-arm64.AppImage`, `…-linux-arm64-full.nupkg`,
+  `releases.linux-arm64.json`. Each package records its channel in
+  `usr/bin/sq.version`, which the velopack crate reads when the app names
+  none.
+- Inside: `AppRun`, a shell script that `exec`s `worktime`, and `usr/bin/`
+  with `worktime`, Velopack's static `UpdateNix` and `sq.version`, the
+  layout the crate's locator expects (R13).
+- glibc: `GLIBC_2.35` (`hypotf`) is the highest symbol of `worktime`;
+  `UpdateNix` needs none. An executable built on Ubuntu 24.04 needs 2.39,
+  which the CI check refuses.
+- Linked (`DT_NEEDED`): `libxkbcommon`, `libxkbcommon-x11`, `libxcb`,
+  `libgcc_s`, `libm`, `libc`. No OpenSSL.
+- Sizes: `worktime` (`direct`) 26 032 008 bytes; the AppImage 16 566 776
+  bytes, smaller than the executable it holds, since squashfs compresses it.
+- Start: under Xvfb with the harness, through FUSE, ready in 0.42 to 0.44 s
+  with nothing on standard error, in `ubuntu:22.04` and `debian:12`
+  containers holding only the runtime libraries, and on Ubuntu 24.04. The
+  process `measure-performance.sh` watches is `worktime` itself: the type 2
+  runtime `exec`s `AppRun`, which `exec`s the app, and a separate process
+  serves the mount. Without `fusermount3` or `fusermount`, the runtime writes
+  « Error: No suitable fusermount binary found on the $PATH » to standard
+  output and the app still starts.
+- Drawing: in the Ubuntu 22.04 (Mesa 23.2) and Debian 12 (Mesa 22.3)
+  containers, the flyout window maps at its place, 360 × 392 at the top
+  right, and stays black, still after 40 s, for the bare executable as for
+  the AppImage. Without a Vulkan driver it opens no window. Mesa 25.2
+  (Ubuntu 24.04, container or host) draws it. So `Rust on Linux` starts the
+  builds on Ubuntu 22.04 without a screenshot, and `Linux screenshot` takes
+  it on `ubuntu-latest`. Whether a real GPU draws on Ubuntu 22.04 or Debian
+  12 is open (T184).
+- The Linux dependency tree holds two licenses `bientot-notices` refused:
+  `hexf-parse` (CC0-1.0, without a license file) and `option-ext` (MPL-2.0,
+  through GPUI's `font-kit`). Both are in the notices now (T142).
+
 ## Assumptions and the tasks that settle them
 
 | Id | Assumption | Task |
@@ -1017,7 +1065,7 @@ window still draws.
 | A-16 | Orca reads the flyout through AT-SPI | T127 |
 | A-17 | Notification body clicks arrive, directly and through the portal | T101 |
 | A-18 | The Background portal does not prompt again once granted | T112 |
-| A-19 | `ubuntu-22.04` runners still exist | T141 |
+| A-19 | `ubuntu-22.04` runners still exist: their images are still published on 27 November 2026 (actions/runner-images, actions/partner-runner-images); the first CI run confirms | T141 |
 | A-20 | `rustls` costs under 1.5 MB: measured, +0.91 MB | T037 |
 
 ## Sources

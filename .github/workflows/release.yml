@@ -111,7 +111,7 @@ jobs:
         env:
           PYTHON: python
           RELEASE_NO_FETCH: "1"
-        run: scripts/release-direct.sh "$(cygpath -u "$RUNNER_TEMP")/release"
+        run: scripts/release-direct.sh --target win-x64 "$(cygpath -u "$RUNNER_TEMP")/release"
 
       # The previous full package, downloaded for the delta, belongs to its own release. vpk names
       # the files after the packId, which stays Thanaen.WorkTime so that installed copies keep
