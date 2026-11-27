@@ -786,6 +786,8 @@ pub enum Key {
     StartupFailureExportingButton,
     StartupFailureMessage,
     StartupFailureTitle,
+    StartupMismatchAction,
+    StartupMismatchAppImageText,
     StartupRegistrationMismatch,
     StartupUnavailable,
     TimeFieldHoursAutomationPropertiesName,
@@ -893,7 +895,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 885] = [
+pub(super) static ENTRIES: [Entry; 887] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
     Entry { name: "ActivityUndetectable.Action", fr: "Déclarer du temps", en: "Log time", linux: None },
     Entry { name: "ActivityUndetectable.ForecastPaused", fr: "Pas de prévision sans détection de l’activité", en: "No forecast without activity detection", linux: None },
@@ -1674,6 +1676,8 @@ pub(super) static ENTRIES: [Entry; 885] = [
     Entry { name: "StartupFailureExportingButton", fr: "Exportation…", en: "Exporting…", linux: None },
     Entry { name: "StartupFailureMessage", fr: "Vérifiez les paramètres et la base de données locale, puis relancez l’application. Si le problème persiste, exportez le diagnostic.", en: "Check the settings and local database, then restart Bientôt. If it keeps happening, export diagnostics.", linux: None },
     Entry { name: "StartupFailureTitle", fr: "Bientôt n’a pas pu démarrer", en: "Bientôt could not start", linux: None },
+    Entry { name: "StartupMismatch.Action", fr: "Corriger", en: "Fix", linux: None },
+    Entry { name: "StartupMismatchAppImage.Text", fr: "L’entrée de démarrage pointe vers un autre emplacement. Le fichier a peut-être été déplacé.", en: "The startup entry points to another location. The file may have been moved.", linux: None },
     Entry { name: "StartupRegistrationMismatch", fr: "Une autre copie utilise l’entrée de démarrage de Bientôt. Activez ce réglage pour utiliser cette copie.", en: "Another copy uses the Bientôt startup entry. Turn this setting on to use this copy.", linux: None },
     Entry { name: "StartupUnavailable", fr: "Le démarrage automatique n’est pas disponible pour cette copie de Bientôt.", en: "Startup registration is unavailable for this copy of Bientôt.", linux: None },
     Entry { name: "TimeFieldHours.AutomationProperties.Name", fr: "Heures", en: "Hours", linux: None },

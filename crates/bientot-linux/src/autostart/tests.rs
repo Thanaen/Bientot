@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use bientot_platform::startup::StartupRegistrationState::{
-    Disabled, Enabled, RegistrationMismatch, Unavailable,
+    Disabled, Enabled, RegistrationMismatch, RegistrationMoved, Unavailable,
 };
 use bientot_platform::startup::{StartupPort, StartupRegistrationState};
 use tempfile::TempDir;
@@ -123,6 +123,51 @@ fn the_flatpaks_entry_is_a_mismatch_and_no_other_copy_that_starts_too() {
 
     assert_eq!(config.autostart.set_enabled(false), RegistrationMismatch);
     assert_eq!(config.text().unwrap(), flatpak, "the Flatpak's entry stays");
+}
+
+const APPIMAGE: &str = "/home/ana/Applications/Bientot.AppImage";
+
+/// The registration of the AppImage file [`APPIMAGE`], under a configuration folder of its own,
+/// whose entry is `entry`.
+fn appimage_reading(entry: &str) -> Config {
+    let home = TempDir::new().unwrap();
+    let autostart = XdgAutostart::for_appimage(Some(home.path()), Path::new(APPIMAGE));
+    let config = Config { home, autostart };
+    config.put(entry);
+    config
+}
+
+#[test]
+fn an_appimage_reads_an_entry_of_another_file_as_moved_and_enabling_repairs_it() {
+    let old = entry_starting("\"/home/ana/Downloads/Bientot.AppImage\" --autostart");
+    let config = appimage_reading(&old);
+    assert_eq!(config.state(), RegistrationMoved);
+
+    assert_eq!(config.autostart.set_enabled(false), RegistrationMoved);
+    assert_eq!(config.text().unwrap(), old, "the old entry stays");
+
+    assert_eq!(config.autostart.set_enabled(true), Enabled);
+    assert!(
+        config
+            .text()
+            .unwrap()
+            .contains("Exec=\"/home/ana/Applications/Bientot.AppImage\" --autostart\n")
+    );
+}
+
+#[test]
+fn an_appimage_reads_the_flatpaks_entry_and_one_it_cannot_read_as_a_mismatch() {
+    for exec in [
+        "flatpak run --command=bientot dev.bientot.Bientot --autostart",
+        "bientot --autostart",
+        "\"/home/ana/Downloads/Bientot.AppImage",
+        "",
+    ] {
+        let config = appimage_reading(&entry_starting(exec));
+        assert_eq!(config.state(), RegistrationMismatch, "{exec:?}");
+    }
+    let config = appimage_reading(&entry_starting(APPIMAGE));
+    assert_eq!(config.state(), Enabled);
 }
 
 #[test]
@@ -272,17 +317,13 @@ fn under_a_temporary_xdg_config_home_the_entry_is_written_there_and_removed() {
 }
 
 #[test]
-fn an_appimage_registers_its_own_file_not_the_mounted_executable() {
-    let mounted = Some(PathBuf::from("/tmp/.mount_BientoXyz/usr/bin/worktime"));
+fn an_appimage_is_known_by_its_absolute_file() {
     assert_eq!(
-        installed_executable(Some("/home/ana/Bientot.AppImage".into()), mounted.clone()),
+        appimage_file(Some("/home/ana/Bientot.AppImage".into())),
         Some(PathBuf::from("/home/ana/Bientot.AppImage"))
     );
-    assert_eq!(installed_executable(None, mounted.clone()), mounted);
-    assert_eq!(
-        installed_executable(Some("Bientot.AppImage".into()), mounted.clone()),
-        mounted
-    );
+    assert_eq!(appimage_file(None), None);
+    assert_eq!(appimage_file(Some("Bientot.AppImage".into())), None);
 }
 
 #[test]

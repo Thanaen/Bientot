@@ -302,6 +302,8 @@
   <data name="StartupDisabledByPolicy" xml:space="preserve"><value>Votre organisation empêche Bientôt de démarrer à l’ouverture de session.</value></data>
   <data name="StartupEnabledByPolicy" xml:space="preserve"><value>Votre organisation impose le démarrage de Bientôt à l’ouverture de session.</value></data>
   <data name="StartupRegistrationMismatch" xml:space="preserve"><value>Une autre copie utilise l’entrée de démarrage de Bientôt. Activez ce réglage pour utiliser cette copie.</value></data>
+  <data name="StartupMismatchAppImage.Text" xml:space="preserve"><value>L’entrée de démarrage pointe vers un autre emplacement. Le fichier a peut-être été déplacé.</value></data>
+  <data name="StartupMismatch.Action" xml:space="preserve"><value>Corriger</value></data>
   <data name="StartupUnavailable" xml:space="preserve"><value>Le démarrage automatique n’est pas disponible pour cette copie de Bientôt.</value></data>
   <data name="SettingsStartupChangeFailed" xml:space="preserve"><value>Windows n’a pas modifié le démarrage. Vérifiez l’état ci-dessus et réessayez.</value></data>
   <data name="SettingsStartupChangeFailed.Linux" xml:space="preserve"><value>Le démarrage automatique n’a pas pu être modifié. Vérifiez l’état et réessayez.</value></data>

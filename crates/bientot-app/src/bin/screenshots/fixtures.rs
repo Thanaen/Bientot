@@ -193,6 +193,7 @@ impl SettingsState {
                 StartupRegistrationState::DisabledByPolicy => "startup-disabled-by-policy",
                 StartupRegistrationState::EnabledByPolicy => "startup-enabled-by-policy",
                 StartupRegistrationState::RegistrationMismatch => "startup-mismatch",
+                StartupRegistrationState::RegistrationMoved => "startup-moved",
                 StartupRegistrationState::Unavailable => "startup-unavailable",
                 StartupRegistrationState::Disabled => "startup-disabled",
                 StartupRegistrationState::Enabled => "startup-enabled",

@@ -316,7 +316,10 @@ diagnostic log gets the warning `lifecycle.watch_failed` (`kind`:
   `…/worktime`; the file and its id do not depend on that name.
   States: file absent, or `Hidden=true`, or
   `X-GNOME-Autostart-enabled=false` → `Disabled`; `Exec`'s program is this
-  install → `Enabled`; `Exec` is another path, has none or cannot be read →
+  install → `Enabled`; on an AppImage, `Exec`'s program is another absolute
+  path → `RegistrationMoved` (`StartupMismatchAppImage.Text` with
+  « Corriger », which turns the switch on); `Exec` is another program, has
+  none or cannot be read, or a source build reads another path →
   `RegistrationMismatch`; no absolute UTF-8 path for the executable, no
   configuration folder, or the file cannot be read or written →
   `Unavailable`. A `cargo` build in `target/` registers, as on Windows,
@@ -325,8 +328,10 @@ diagnostic log gets the warning `lifecycle.watch_failed` (`kind`:
   `Enabled`; disabling removes the file only when its program is this
   install. `other_copy_starts` is false: the Flatpak's portal writes its
   entry under the same file name, so the folder starts one copy at most,
-  and the Flatpak's entry reads as `RegistrationMismatch`, which turning
-  the switch on replaces. A demo gets no port, as on Windows.
+  and the Flatpak's entry, whose program is `flatpak`, reads as
+  `RegistrationMismatch` (`StartupRegistrationMismatch`, « Activez ce
+  réglage pour utiliser cette copie »), which turning the switch on
+  replaces. A demo gets no port, as on Windows.
 - Flatpak (`InstallKind::Flatpak`, `bientot_linux::autostart::Autostart`):
   `org.freedesktop.portal.Background.RequestBackground` with
   `autostart = true|false`, `commandline = ["bientot", "--autostart"]`,

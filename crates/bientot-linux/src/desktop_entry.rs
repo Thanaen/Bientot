@@ -57,6 +57,14 @@ impl Entry {
         entry
     }
 
+    /// The program of `Exec`.
+    pub(crate) fn program(&self) -> Option<&Path> {
+        self.exec
+            .as_ref()
+            .and_then(|exec| exec.first())
+            .map(Path::new)
+    }
+
     /// Whether its program is `executable`.
     pub(crate) fn starts(&self, executable: &str) -> bool {
         self.exec

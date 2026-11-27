@@ -117,6 +117,11 @@ const LINUX: &[Scene] = &[
         group: "settings::capture_pages",
         name: "settings-general-diagnostic-undetectable",
     },
+    // StartupMismatchAppImage.Text and StartupMismatch.Action: a state only an AppImage has.
+    Scene {
+        group: "settings::capture_pages",
+        name: "settings-general-startup-moved",
+    },
     // SettingsStartupCard.Header, in the two other states Linux reaches.
     Scene {
         group: "settings::capture_pages",
@@ -136,6 +141,12 @@ const LINUX: &[Scene] = &[
     Scene {
         group: "onboarding::capture_steps",
         name: "onboarding-connections",
+    },
+    // StartupMismatchAppImage.Text as the row's status, its switch off: a state only an AppImage
+    // has.
+    Scene {
+        group: "onboarding::capture_steps",
+        name: "onboarding-connections-startup-moved",
     },
     // NotificationRegistrationFailed.
     Scene {

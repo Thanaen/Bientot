@@ -202,6 +202,7 @@ impl Setting {
             control,
             details: None,
             startup_apps: None,
+            repair: None,
         }
     }
 
@@ -789,6 +790,18 @@ pub struct RowView {
     pub details: Option<Details>,
     /// Under « Démarrage Windows », in place of `status` when it names Startup apps.
     pub startup_apps: Option<StartupAppsView>,
+    /// Under « Démarrage automatique », in place of `status` while the entry starts the AppImage
+    /// from another path.
+    pub repair: Option<StartupRepairView>,
+}
+
+/// What the startup row says while the autostart entry starts the AppImage from another path, as
+/// after the file was moved, and « Corriger », which turns the switch on: that writes the entry
+/// again for this file.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StartupRepairView {
+    pub message: &'static str,
+    pub action: &'static str,
 }
 
 /// What only the system's page of startup apps can change: another copy that also starts at
@@ -1034,6 +1047,12 @@ impl SettingsForm {
     /// starts twice.
     fn shows_other_copy(&self) -> bool {
         self.other_copy && self.is_on(Switch::Startup)
+    }
+
+    /// The entry starts the AppImage from another path, and no change is asked yet.
+    fn shows_repair(&self) -> bool {
+        self.startup_requested.is_none()
+            && self.startup == Some(StartupRegistrationState::RegistrationMoved)
     }
 
     /// What sends the user to the system's page of startup apps, where it has one: this copy
@@ -1681,6 +1700,7 @@ impl SettingsForm {
             Setting::UsagePing => switch(Switch::UsagePing),
             Setting::AppointmentProposals => switch(Switch::AppointmentProposals),
         };
+        let repair = setting == Setting::Startup && self.shows_repair();
         let row = RowView {
             tone: match setting {
                 Setting::Debt if !self.is_enabled(Switch::Debt) => RowTone::Disabled,
@@ -1691,6 +1711,7 @@ impl SettingsForm {
                 .startup
                 .filter(|_| {
                     setting == Setting::Startup
+                        && !repair
                         && !matches!(self.startup_apps(), Some((Key::StartupDisabledByUser, _)))
                 })
                 .map(|state| language.text(startup::status(state))),
@@ -1700,6 +1721,10 @@ impl SettingsForm {
                 .startup_apps()
                 .filter(|_| setting == Setting::Startup)
                 .map(|(message, page)| StartupAppsView::new(message, page, language)),
+            repair: repair.then(|| StartupRepairView {
+                message: language.text(Key::StartupMismatchAppImageText),
+                action: language.text(Key::StartupMismatchAction),
+            }),
             ..setting.row(language, control)
         };
         if setting == Setting::Updates && !self.usage_ping.checks_updates() {

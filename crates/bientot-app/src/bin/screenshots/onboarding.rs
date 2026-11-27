@@ -5,9 +5,11 @@ use std::sync::Arc;
 
 use bientot_app::onboarding::Onboarding;
 use bientot_app::onboarding_view::{self, OnboardingView};
+use bientot_app::settings::Switch;
 use bientot_app::settings::data::{Action, Chosen, Refusal};
 use bientot_app::strings::{Language, LanguageSources};
 use bientot_platform::startup::StartupRegistrationState;
+use bientot_platform::system::InstallKind;
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::transfer::Contents;
 use gpui::{AppContext as _, HeadlessAppContext, size};
@@ -15,6 +17,7 @@ use jiff::civil::date;
 
 use super::capture;
 use super::fixtures::SettingsState;
+use super::platform::Shots;
 
 pub fn capture_steps(
     cx: &mut HeadlessAppContext,
@@ -23,6 +26,15 @@ pub fn capture_steps(
 ) -> anyhow::Result<()> {
     for shot in OnboardingShot::ALL {
         capture_onboarding(cx, language, shot, output)?;
+    }
+    // The startup entry of a moved file, which only an AppImage reports.
+    if cx.update(|cx| cx.global::<Shots>().platform.install_kind()) == Some(InstallKind::AppImage) {
+        capture_onboarding(
+            cx,
+            language,
+            OnboardingShot::ConnectionsStartupMoved,
+            output,
+        )?;
     }
     Ok(())
 }
@@ -47,6 +59,8 @@ enum OnboardingShot {
     ConnectionsZip,
     /// « Commencer » pressed, and the settings not saved.
     ConnectionsSaveFailed,
+    /// The AppImage's entry starts another file, and the switch turned off, so the row names it.
+    ConnectionsStartupMoved,
 }
 
 impl OnboardingShot {
@@ -75,12 +89,15 @@ impl OnboardingShot {
             Self::ConnectionsDetails => "connections-details",
             Self::ConnectionsZip => "connections-zip",
             Self::ConnectionsSaveFailed => "connections-save-failed",
+            Self::ConnectionsStartupMoved => "connections-startup-moved",
         }
     }
 
     fn apply(self, view: &mut OnboardingView, cx: &mut gpui::Context<OnboardingView>) {
-        view.onboarding_mut()
-            .show_startup(StartupRegistrationState::Enabled);
+        view.onboarding_mut().show_startup(match self {
+            Self::ConnectionsStartupMoved => StartupRegistrationState::RegistrationMoved,
+            _ => StartupRegistrationState::Enabled,
+        });
         let steps = match self {
             Self::Language
             | Self::LanguageImportReading
@@ -90,7 +107,8 @@ impl OnboardingShot {
             Self::Connections
             | Self::ConnectionsDetails
             | Self::ConnectionsZip
-            | Self::ConnectionsSaveFailed => 2,
+            | Self::ConnectionsSaveFailed
+            | Self::ConnectionsStartupMoved => 2,
         };
         for _ in 0..steps {
             view.onboarding_mut().advance();
@@ -121,6 +139,9 @@ impl OnboardingShot {
         }
         if let Self::ConnectionsDetails = self {
             view.toggle_details();
+        }
+        if let Self::ConnectionsStartupMoved = self {
+            view.onboarding_mut().toggle(Switch::Startup);
         }
         if let Self::ConnectionsSaveFailed = self {
             view.onboarding_mut().advance();

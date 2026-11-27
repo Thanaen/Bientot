@@ -374,18 +374,23 @@ impl Onboarding {
     }
 
     /// Start with Windows shows what will happen, not the request, when it is not WorkTime's
-    /// to change; and why, then or when another copy holds the registration.
+    /// to change; and why, then or when another copy holds the registration. A moved AppImage's
+    /// entry is named only while the switch is off: « Commencer » with it on writes the entry again.
     fn startup_row(&self) -> (bool, Option<Key>) {
+        let on = self.settings.start_with_windows;
         match self.startup {
-            None => (self.settings.start_with_windows, None),
+            None => (on, None),
             Some(state) if !startup::can_change(state) => {
                 (startup::is_on(state), Some(startup::status(state)))
             }
-            Some(state) => (
-                self.settings.start_with_windows,
-                (state == StartupRegistrationState::RegistrationMismatch)
-                    .then(|| startup::status(state)),
-            ),
+            Some(state) => {
+                let named = match state {
+                    StartupRegistrationState::RegistrationMismatch => true,
+                    StartupRegistrationState::RegistrationMoved => !on,
+                    _ => false,
+                };
+                (on, named.then(|| startup::status(state)))
+            }
         }
     }
 

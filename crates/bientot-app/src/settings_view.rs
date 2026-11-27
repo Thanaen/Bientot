@@ -41,7 +41,7 @@ use crate::settings::startup;
 use crate::settings::{
     CalloutView, Clock, Control, Details, Field, LanguageChoice, LauncherView, Leaving, Link, Page,
     PingDetails, RowTone, RowView, SectionView, Setting, SettingsForm, SourceCallout,
-    StartupAppsView, Switch, Tone, UsagePingFacts,
+    StartupAppsView, StartupRepairView, Switch, Tone, UsagePingFacts,
 };
 use crate::shell;
 use crate::strings::{Key, Language};
@@ -1100,12 +1100,45 @@ impl SettingsView {
                 view.form.toggle_details()
             })
         });
-        let details = details.or_else(|| {
-            row.startup_apps
-                .map(|view| startup_apps_callout(view, theme))
-        });
+        let details = details
+            .or_else(|| {
+                row.startup_apps
+                    .map(|view| startup_apps_callout(view, theme))
+            })
+            .or_else(|| {
+                row.repair
+                    .map(|view| startup_repair_callout(view, theme, cx))
+            });
         row_frame((&row).into(), control, details, last, theme)
     }
+}
+
+/// The autostart entry starts the AppImage from another path, and « Corriger », which turns the
+/// switch on, laid out as [`startup_apps_callout`].
+fn startup_repair_callout(
+    view: StartupRepairView,
+    theme: &Theme,
+    cx: &mut Context<SettingsView>,
+) -> gpui::Div {
+    div().pt(BASE_08).child(
+        widgets::inline_callout_box(Hue::Info, theme)
+            .id("startup-repair-callout")
+            .role(Role::Status)
+            .aria_label(view.message)
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .type_style(text::LABEL_SM)
+                    .child(view.message),
+            )
+            .child(
+                outlined_on_tint("startup-repair", view.action, token::BUTTON_MEDIUM, theme)
+                    .on_click(
+                        cx.listener(|view, _, window, cx| view.toggle(Switch::Startup, window, cx)),
+                    ),
+            ),
+    )
 }
 
 /// « Menu des applications »: its switch adds Bientôt to the menu or removes it, and waits while

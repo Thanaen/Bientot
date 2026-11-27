@@ -662,6 +662,59 @@ fn turning_startup_off_saves_once_windows_settled_on_it() {
     assert_eq!(form.view().status, Some("Paramètres enregistrés."));
 }
 
+fn repair(form: &SettingsForm) -> Option<StartupRepairView> {
+    row(&form.view(), Setting::Startup).repair
+}
+
+#[test]
+fn an_entry_of_a_moved_appimage_offers_to_repair_it_in_place_of_the_status() {
+    for (language, message, action) in [
+        (
+            Language::French,
+            "L’entrée de démarrage pointe vers un autre emplacement. Le fichier a peut-être été \
+             déplacé.",
+            "Corriger",
+        ),
+        (
+            Language::English,
+            "The startup entry points to another location. The file may have been moved.",
+            "Fix",
+        ),
+    ] {
+        let mut form = form(language);
+        form.show_startup(StartupRegistrationState::RegistrationMoved);
+        assert_eq!(repair(&form), Some(StartupRepairView { message, action }));
+        assert_eq!(startup_switch(&form).1, None);
+
+        // The Flatpak's entry, which turning the switch on replaces, is no file to repair.
+        form.show_startup(StartupRegistrationState::RegistrationMismatch);
+        assert_eq!(repair(&form), None);
+    }
+}
+
+#[test]
+fn repairing_the_entry_of_a_moved_appimage_turns_the_switch_on() {
+    let mut form = form(Language::French);
+    let mut port = Port::default();
+    form.show_startup(StartupRegistrationState::RegistrationMoved);
+    assert_eq!(startup_switch(&form).0, startup_control(false, true));
+
+    let pending = form.toggle(Switch::Startup).expect("the switch can change");
+    assert_eq!(pending.startup(), Some(true));
+    assert_eq!(repair(&form), None);
+
+    form.finish_startup(pending, StartupRegistrationState::Enabled, &mut port);
+    assert_eq!(
+        startup_switch(&form),
+        (
+            startup_control(true, true),
+            Some("Bientôt démarrera à la prochaine ouverture de session.")
+        )
+    );
+    assert_eq!(repair(&form), None);
+    assert!(form.current().start_with_windows);
+}
+
 #[test]
 fn a_startup_change_windows_refused_shows_a_callout_and_retries() {
     for (language, message, retry) in [
@@ -935,6 +988,7 @@ fn the_zip_build_greys_the_updates_and_links_to_github() {
             },
             details: None,
             startup_apps: None,
+            repair: None,
         }
     );
     assert!(form.current().updates.check_for_updates);

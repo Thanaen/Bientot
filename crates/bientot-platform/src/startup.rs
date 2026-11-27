@@ -11,6 +11,10 @@ pub enum StartupRegistrationState {
     EnabledByPolicy,
     /// The `Run` value starts something other than this executable.
     RegistrationMismatch,
+    /// Only an AppImage reports it: the entry starts a file at another absolute path, as after
+    /// the file was moved. Another kind of copy's entry, as the Flatpak's, is a
+    /// [`Self::RegistrationMismatch`].
+    RegistrationMoved,
 }
 
 /// Marks a launch started at sign-in on every system but Windows, whose registrations keep

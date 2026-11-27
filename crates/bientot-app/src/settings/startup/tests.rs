@@ -121,6 +121,35 @@ fn each_state_shows_the_switch_and_the_dotnet_status() {
 }
 
 #[test]
+fn a_moved_appimage_shows_the_switch_off_and_turning_it_on_repairs_the_entry() {
+    assert!(!is_on(RegistrationMoved));
+    assert!(can_change(RegistrationMoved));
+    assert_eq!(
+        Language::French.text(status(RegistrationMoved)),
+        "L’entrée de démarrage pointe vers un autre emplacement. Le fichier a peut-être été \
+         déplacé."
+    );
+    assert_eq!(
+        Language::English.text(status(RegistrationMoved)),
+        "The startup entry points to another location. The file may have been moved."
+    );
+
+    let registration = Registration::new(RegistrationMoved, Enabled);
+    assert_eq!(apply(&registration, false), RegistrationMoved);
+    assert!(
+        registration.changes().is_empty(),
+        "the old entry is left alone"
+    );
+    assert_eq!(apply(&registration, true), Enabled);
+    assert_eq!(registration.changes(), [true]);
+    assert_eq!(
+        settled(RegistrationMoved, true),
+        None,
+        "a refusal may be retried"
+    );
+}
+
+#[test]
 fn a_change_is_applied_when_windows_settles_on_it() {
     let registration = Registration::new(Disabled, Enabled);
     let settled = apply(&registration, true);
