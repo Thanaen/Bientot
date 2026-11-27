@@ -1,6 +1,7 @@
 // Release builds on Windows have no console window.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+use std::process::ExitCode;
 use std::rc::Rc;
 
 use bientot_app::assets::{self, Assets};
@@ -44,7 +45,7 @@ use gpui::{App, Global, QuitMode};
 static CLOCK: SystemClock = SystemClock;
 static ZONES: SystemZones = SystemZones;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<ExitCode> {
     // Before anything else: the uninstaller's cleanup, which then ends the process.
     let may_install = platform::run_update_hooks();
     let launch = Launch::parse(std::env::args().skip(1))?;
@@ -55,7 +56,11 @@ fn main() -> anyhow::Result<()> {
         instance,
     }) = run(launch.clone(), languages, may_install)
     else {
-        return Ok(());
+        return Ok(if shell::stopped_without_graphics() {
+            ExitCode::FAILURE
+        } else {
+            ExitCode::SUCCESS
+        });
     };
     let failure = StartupFailure::new(&error, directory.as_ref(), languages);
     application().run(move |cx| {
@@ -100,13 +105,14 @@ fn prepare(theme: ThemeMode, cx: &mut App) {
 }
 
 /// Shows why WorkTime does not start, in a window that offers the diagnostic ZIP, as the .NET
-/// main window does; a message box when that window cannot open.
+/// main window does; when that window cannot open, the system's last resort, a message box on
+/// Windows and a notification on Linux.
 fn fail(failure: StartupFailure, cx: &mut App) {
     let language = failure.language();
     if let Err(error) = startup_failure_view::open(failure, cx) {
         log::error!("cannot show the startup failure: {error:#}");
-        alert(language, Key::InitializationFailed);
-        cx.quit();
+        shell::alert(language, Key::InitializationFailed);
+        shell::quit_once_running(cx);
     }
 }
 
@@ -129,7 +135,7 @@ fn run(launch: Launch, languages: LanguageSources, may_install: bool) -> Result<
             if let Some(language) =
                 transfer::import_left_waiting(launch.restarted_from, &directory, languages)
             {
-                alert(language, Key::ImportWaitsForNextStart);
+                shell::alert(language, Key::ImportWaitsForNextStart);
             }
             return Ok(());
         }
@@ -485,6 +491,9 @@ fn show(
     if open_flyout || shell::window_mode(cx) {
         shell::open_flyout(cx);
     }
+    if !shell::window_mode(cx) {
+        shell::app_shown();
+    }
     if let Some(host) = cx.global_mut::<Today>().live() {
         // scripts/measure-performance.ps1 times the startup to this event.
         host.log(DiagnosticLogLevel::Information, "startup.tray_ready", &[]);
@@ -505,16 +514,11 @@ fn show(
         bientot_app::plugins::start(&directory, language, daily, cx);
     }
     // The CI startup measurement waits for this file: the shell is ready to be clicked.
-    if let Some(path) = std::env::var_os("BIENTOT_READY_FILE") {
+    if !shell::stopped_without_graphics()
+        && let Some(path) = std::env::var_os("BIENTOT_READY_FILE")
+    {
         std::fs::write(path, b"").ok();
     }
-}
-
-/// Tells the user why WorkTime does not start. Release builds on Windows have no console.
-fn alert(language: Language, key: Key) {
-    let text = language.text(key);
-    eprintln!("{text}");
-    platform::show_fatal(language.text(Key::ShellWindowTitle), text);
 }
 
 /// The session and power changes of a live day, queued in `arrived` from the moment the watch

@@ -89,6 +89,7 @@ pub fn open(
         cx.new(|cx| AdjustView::new(form, opener, window, cx))
     }) {
         Ok(window) => {
+            crate::shell::app_shown();
             cx.default_global::<AdjustWindow>().0 = Some(window);
             OpenOutcome::Fresh
         }

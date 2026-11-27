@@ -68,6 +68,18 @@ nothing to standard error or to its log: `shell::open_new_flyout` reports
 the failure with `log::error!`, and no logger is installed. That silent
 process is the case T117 must turn into a message.
 
+**Run (T117, 2026-11-27).** Under `scripts/linux-desktop-harness.sh`, on
+X11 and on Wayland, with `VK_ICD_FILENAMES` and
+`__EGL_VENDOR_LIBRARY_FILENAMES` naming no file: when the flyout
+(`--open-flyout`) or a first start's onboarding cannot open, the app writes
+`NoGraphics.Text` to standard error, sends it to the notification server and
+quits; a start that failed and cannot open its window does the same with
+`InitializationFailed`. Found on the way: GPUI's Linux event loop (`calloop`)
+clears a quit asked before it runs, so `cx.quit()` from the launch's own
+callback left the process running, unseen, after a failed start whose window
+did not open, and after an onboarding that did not open. Those quits now
+wait for the loop (`shell::quit_once_running`).
+
 So a Linux user who built Bientôt today would get a silent process that
 counts nothing: `main.rs` substitutes `NoLastInput`, no lifecycle is watched,
 no notification sink is registered and `tray::install` is never called
@@ -494,6 +506,12 @@ Differences from Windows, all platform limits:
   on a toast left in the notification centre restarts Bientôt through COM.
   On Linux a server may start the app from the `desktop-entry` hint, or do
   nothing; Bientôt does not depend on it.
+  **Source** (gnome-shell `js/ui/notificationDaemon.js`, 2026-11-27): GNOME
+  Shell activates the application it found, from the hint or from the
+  sender's windows, for a click on a notification without the `default`
+  action, and destroys that application's notifications once their sender
+  leaves the bus. So the last resort, sent by a process about to exit,
+  goes without the hint (T117, `contracts/linux-backends.md`).
 - **Actions.** Servers advertise `actions` in `GetCapabilities` or not
   (**Source**: the specification makes them optional). Bientôt's
   notifications carry no button today, only the body click, so nothing is

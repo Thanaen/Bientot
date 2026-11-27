@@ -290,6 +290,7 @@ pub enum Key {
     LauncherEntryHeader,
     LauncherEntryInputAutomationPropertiesName,
     LockStateUnknownText,
+    NoGraphicsText,
     NotificationCombinedBody,
     NotificationCompleteBody,
     NotificationCompletionBody,
@@ -892,7 +893,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 884] = [
+pub(super) static ENTRIES: [Entry; 885] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
     Entry { name: "ActivityUndetectable.Action", fr: "Déclarer du temps", en: "Log time", linux: None },
     Entry { name: "ActivityUndetectable.ForecastPaused", fr: "Pas de prévision sans détection de l’activité", en: "No forecast without activity detection", linux: None },
@@ -1177,6 +1178,7 @@ pub(super) static ENTRIES: [Entry; 884] = [
     Entry { name: "LauncherEntry.Header", fr: "Menu des applications", en: "App menu", linux: None },
     Entry { name: "LauncherEntry.Input.AutomationProperties.Name", fr: "Afficher Bientôt dans le menu des applications", en: "Show Bientôt in the app menu", linux: None },
     Entry { name: "LockStateUnknown.Text", fr: "Ce bureau ne signale pas le verrouillage de l’écran. Bientôt se fie à votre activité.", en: "This desktop does not report screen locks. Bientôt relies on your activity.", linux: None },
+    Entry { name: "NoGraphics.Text", fr: "Bientôt n’a pas pu ouvrir de fenêtre et s’est fermé. Vérifiez que les pilotes graphiques de votre système sont installés, puis relancez l’application.", en: "Bientôt could not open a window and has closed. Check that your system’s graphics drivers are installed, then restart the app.", linux: None },
     Entry { name: "NotificationCombinedBody", fr: "Il reste {0} minutes et votre heure limite de départ approche. Départ prévu\u{a0}: {1}.", en: "{0} minutes remain and your preferred departure time is approaching. Projected departure: {1}.", linux: None },
     Entry { name: "NotificationCompleteBody", fr: "Votre objectif quotidien est atteint.", en: "Your daily target is complete.", linux: None },
     Entry { name: "NotificationCompletionBody", fr: "Il reste {0} minutes avant votre objectif. Départ prévu\u{a0}: {1}.", en: "{0} minutes remain toward your daily target. Projected departure: {1}.", linux: None },

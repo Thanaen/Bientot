@@ -176,9 +176,6 @@ pub trait NotificationSink {
 }
 
 // bientot-platform/src/notifications.rs
-/// (new) Asked once at start and when a show fails.
-pub enum NotificationAvailability { Available, Unavailable }
-
 /// (new) A click on a notification's body. Clicks that arrive before the
 /// handler (the one that started the process included) reach it first, in
 /// order. The delivery id is `None` when the system gives none.
@@ -209,6 +206,14 @@ Windows `Toasts` implement `Notifier` in `bientot-windows`. A refused
 registration reaches the app as `platform::NotificationsRefused`, the
 backend's own error type (`windows::core::Error` on Windows), because the
 diagnostic log names that type.
+
+Whether the system shows the notifications is asked once, at start
+(`Platform::notifier`). A show refused later changes nothing: its reminder
+stays reserved, the flyout shows no notice and nothing asks again, as for a
+toast that fails on Windows (T103: the panel kept that parity). The refusal
+is logged: on Windows `show` returns it, as `notification.failed` in the
+diagnostic log; on Linux `show` returns before the service answers, and the
+notification thread logs the refusal with `log`.
 
 ## Start at sign-in
 

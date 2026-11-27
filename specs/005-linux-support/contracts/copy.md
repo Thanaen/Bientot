@@ -3,8 +3,8 @@
 Every text below goes to the three-reviewer panel (designer critique, UX
 writing, screenshot review), which approves the final wording in the pull
 request of the task named. The State column says where each variant
-stands; the new texts are still proposals. French is the source; English
-follows it.
+stands; the new texts are still proposals unless their Task cell says the
+panel approved them. French is the source; English follows it.
 
 Rules:
 
@@ -80,7 +80,7 @@ They are on the same list of the test.
 | `LauncherEntry.ChangeFailed` | Same, under the row in the error colour when the files cannot be written or removed; the switch goes back to the menu as it is, and switching again tries again | Le menu des applications n’a pas pu être modifié. Réessayez. | The app menu could not be changed. Try again. | T144 |
 | `InstallKind.Header` | Settings › About, a row under the version, for a Flatpak or an AppImage only; the version row is unchanged, and Windows shows no such row | Type d’installation | Installation type | T121 |
 | `InstallKind.Flatpak` / `.AppImage` | Same, the row’s value | Flatpak / AppImage | Flatpak / AppImage | T121 |
-| `NoGraphics.Text` | Last-resort message when no window can open | Bientôt n’a pas pu ouvrir sa fenêtre : aucun pilote graphique compatible n’a été trouvé. | Bientôt could not open its window: no compatible graphics driver was found. | T117 |
+| `NoGraphics.Text` | Last-resort message when the first window of the process cannot open; Bientôt then quits | Bientôt n’a pas pu ouvrir de fenêtre et s’est fermé. Vérifiez que les pilotes graphiques de votre système sont installés, puis relancez l’application. | Bientôt could not open a window and has closed. Check that your system’s graphics drivers are installed, then restart the app. | T117. Approved by the panel (T117) |
 
 `InstallKind.*` replaces the earlier proposal « Installé depuis Flathub /
 Fichier AppImage »: the app can tell that it runs in a Flatpak, not which

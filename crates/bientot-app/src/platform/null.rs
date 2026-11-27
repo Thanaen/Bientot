@@ -81,6 +81,10 @@ pub fn local_app_data() -> anyhow::Result<PathBuf> {
 }
 
 /// The caller already wrote it to the standard error.
+#[cfg_attr(
+    target_os = "linux",
+    allow(dead_code, reason = "the Linux backend has its own")
+)]
 pub fn show_fatal(_title: &str, _body: &str) {}
 
 /// Cannot watch a process here: answers at once, as if it had exited.

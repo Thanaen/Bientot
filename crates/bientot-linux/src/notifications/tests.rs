@@ -22,7 +22,7 @@ fn the_server_is_sent_the_text_the_icon_the_desktop_entry_and_the_body_action() 
             summary: "Bientôt",
             body: "Il reste 15 minutes avant votre objectif. Départ prévu : 17:55.",
             actions: ["default", ""],
-            hints: [("desktop-entry", "dev.bientot.Bientot")],
+            hints: &[("desktop-entry", "dev.bientot.Bientot")],
             expire_timeout: -1,
         }
     );
@@ -38,6 +38,45 @@ fn the_portal_is_sent_the_delivery_id_as_the_notification_id() {
             id: "2026-11-26:CompletionApproach",
             title: "Bientôt",
             body: "Il reste 15 minutes avant votre objectif. Départ prévu : 17:55.",
+            default_action: "open",
+        }
+    );
+}
+
+const NO_GRAPHICS: &str = "Bientôt could not open a window and has closed. Check that your \
+                           system’s graphics drivers are installed, then restart the app.";
+
+#[test]
+fn the_last_resort_reaches_the_server_with_its_text_and_the_body_action_but_no_desktop_entry() {
+    let request = last_resort("Bientôt", NO_GRAPHICS);
+
+    assert_eq!(
+        notify_once(&request),
+        Notify {
+            app_name: "Bientôt",
+            replaces_id: 0,
+            app_icon: "dev.bientot.Bientot",
+            summary: "Bientôt",
+            body: "Bientôt could not open a window and has closed. Check that your system’s \
+                   graphics drivers are installed, then restart the app.",
+            actions: ["default", ""],
+            hints: &[],
+            expire_timeout: -1,
+        }
+    );
+}
+
+#[test]
+fn the_last_resort_reaches_the_portal_under_an_id_of_its_own() {
+    let request = last_resort("Bientôt", NO_GRAPHICS);
+
+    assert_eq!(
+        portal_notification(&request),
+        PortalNotification {
+            id: "last-resort",
+            title: "Bientôt",
+            body: "Bientôt could not open a window and has closed. Check that your system’s \
+                   graphics drivers are installed, then restart the app.",
             default_action: "open",
         }
     );

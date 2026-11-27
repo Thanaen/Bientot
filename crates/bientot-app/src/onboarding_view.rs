@@ -111,13 +111,21 @@ pub fn open(
         is_resizable: false,
         ..Default::default()
     };
+    let language = onboarding.language();
     match cx.open_window(options, |window, cx| {
         cx.new(|cx| OnboardingView::new(onboarding, save, on_complete, window, cx))
     }) {
-        Ok(window) => cx.default_global::<OnboardingWindow>().0 = Some(window),
+        Ok(window) => {
+            crate::shell::app_shown();
+            cx.default_global::<OnboardingWindow>().0 = Some(window);
+        }
         Err(error) => {
             log::error!("cannot open the onboarding: {error:#}");
-            cx.quit();
+            if crate::platform::NO_WINDOW_MEANS_NO_GRAPHICS {
+                crate::shell::stop_without_graphics(language, cx);
+            } else {
+                cx.quit();
+            }
         }
     }
 }

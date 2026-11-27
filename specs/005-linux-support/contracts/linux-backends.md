@@ -253,6 +253,43 @@ export names `none`.
   `AddNotification` refused later leaves its reminder reserved, as a toast
   that fails on Windows; it is logged with `log`, not in the diagnostic log.
 - A demo shows none, as on Windows.
+- The last resort, `platform::show_fatal` when no window can open:
+  `show_once` sends `last_resort(title, body)`, with delivery id
+  `last-resort`, on a connection of its own, and returns once the service
+  answered or a call timed out; the process then exits. A demo shows it
+  too, as Windows shows its message box. Read in gnome-shell
+  `js/ui/notificationDaemon.js`, plasma-workspace `libnotificationmanager`
+  and `applets/notifications`, xdg-desktop-portal 1.22.1
+  `src/notification.c` and xdg-desktop-portal-gnome `src/notification.c`
+  (2026-11-27):
+  - Server: `notify_once`, the `Notify` above without the `desktop-entry`
+    hint. With it, GNOME Shell's `_getApp` finds the application, and
+    `FdoNotificationDaemonSource._onNameVanished` destroys the source, and
+    its notifications with it, once the sender leaves the bus; a click on
+    one without the `default` action calls `open()`, which calls
+    `app.activate()`. Without it, `_getApp` looks among the windows of the
+    sender's process (`shell_window_tracker_get_app_from_pid`), which has
+    none, then for `Bientôt.desktop`, which no application is named: the
+    source has no application, `_onNameVanished` keeps it, and `open()`
+    starts nothing. The source shows the `app_name` and the `app_icon`.
+    Plasma removes no notification when its sender leaves (`server_p.cpp`
+    watches only inhibitors and watchers), and its popup starts no
+    application on a click (`Globals.qml`). It keeps the `default` action: Plasma takes no left click on a
+    notification without one (`NotificationPopup.qml`), and closes it for a
+    click with one (`Globals.qml`, `invokeDefaultAction`).
+  - Portal: the `AddNotification` above, unchanged. When the application
+    leaves the bus, the frontend only stops passing on the clicks on its
+    notifications (`on_peer_disconnect`). On GNOME the backend
+    hands it to `org.gtk.Notifications`, whose source watches no bus name
+    and is kept across restarts of the shell. There a click on a
+    notification without `default-action` calls the application's
+    `activate()`, which would start Bientôt again
+    (`GtkNotificationDaemonNotification.activate`); with `open`, the shell
+    sends `ActionInvoked` and the backend calls
+    `org.freedesktop.Application.Activate` on `dev.bientot.Bientot`, which
+    starts Bientôt only through a D-Bus service file of that name: a
+    package must not ship one. Plasma's backend (`portal_p.cpp`) keeps the
+    notification and sends `ActionInvoked` for `open`.
 
 ## Start at sign-in
 
