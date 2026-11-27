@@ -491,6 +491,9 @@ fn show(
     if open_flyout || shell::window_mode(cx) {
         shell::open_flyout(cx);
     }
+    if !shell::window_mode(cx) {
+        shell::app_shown();
+    }
     if let Some(host) = cx.global_mut::<Today>().live() {
         // scripts/measure-performance.ps1 times the startup to this event.
         host.log(DiagnosticLogLevel::Information, "startup.tray_ready", &[]);

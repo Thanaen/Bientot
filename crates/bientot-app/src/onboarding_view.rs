@@ -116,7 +116,7 @@ pub fn open(
         cx.new(|cx| OnboardingView::new(onboarding, save, on_complete, window, cx))
     }) {
         Ok(window) => {
-            crate::shell::window_opened();
+            crate::shell::app_shown();
             cx.default_global::<OnboardingWindow>().0 = Some(window);
         }
         Err(error) => {

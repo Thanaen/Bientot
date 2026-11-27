@@ -149,7 +149,7 @@ pub fn open(cx: &mut App) {
         cx.new(|cx| SettingsView::new(form, settings_file, window, cx))
     }) {
         Ok(window) => {
-            crate::shell::window_opened();
+            crate::shell::app_shown();
             cx.default_global::<SettingsWindow>().0 = Some(window);
         }
         Err(error) => log::error!("cannot open « Paramètres »: {error:#}"),

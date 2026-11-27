@@ -288,7 +288,7 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
     }
     match opened {
         Ok(window) => {
-            window_opened();
+            app_shown();
             // `focus: true` only shows the window activated, and Windows keeps a window of a
             // background process out of the foreground: the flyout then never learns that a
             // click went elsewhere, and stays open. `activate_window` forces it to the front.
@@ -321,7 +321,8 @@ pub fn alert(language: Language, key: Key) {
     platform::show_fatal(language.text(Key::ShellWindowTitle), text);
 }
 
-/// Whether a window of Bientôt opened yet in this process, or none could. It lives on the thread
+/// Whether a window of Bientôt opened or its tray shows it yet in this process, or no window
+/// could open. It lives on the thread
 /// GPUI runs on rather than in the app, which is gone when `main` reads it for the exit status.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Windows {
@@ -334,16 +335,17 @@ thread_local! {
     static WINDOWS: Cell<Windows> = const { Cell::new(Windows::NoneYet) };
 }
 
-/// A window of Bientôt opened, so a window that fails to open later stops nothing.
-pub fn window_opened() {
+/// A window of Bientôt opened, or the launch ended with its tray icon showing it: a window that
+/// fails to open later stops nothing.
+pub fn app_shown() {
     if WINDOWS.get() == Windows::NoneYet {
         WINDOWS.set(Windows::Opened);
     }
 }
 
-/// A window cannot open. Until one has in this process none will, so Bientôt quits rather than
-/// run on unseen, and says why. Once one has, the caller's log is all: the tray stays, and the
-/// next click tries again.
+/// A window cannot open. Until one has, or the tray shows the app, nothing does, so Bientôt quits
+/// rather than run on unseen, and says why. Afterwards the caller's log is all: the tray stays,
+/// and the next click tries again.
 pub fn stop_without_graphics(language: Language, cx: &mut App) {
     if WINDOWS.get() != Windows::NoneYet {
         return;
