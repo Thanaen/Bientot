@@ -1,9 +1,12 @@
-# Start with Windows
+# Start at sign-in
 
-Open the Bientôt settings and turn on **Start with Windows**. The toggle
-loads the actual Windows state. An old `StartWithWindows = true` setting does
-not register the application automatically. Saving another setting also reads
-the current Windows state without changing the startup registration.
+Open the Bientôt settings and turn on **Windows startup** on Windows, or
+**Automatic startup** on Linux. The toggle loads the actual state of the
+system. An old `StartWithWindows = true` setting does not register the
+application automatically. Saving another setting also reads the current
+state without changing the startup registration.
+
+The sections below up to [Linux](#linux) describe Windows.
 
 ## Installer and portable application
 
@@ -89,6 +92,41 @@ manage their own Run value as described above.
 
 Uninstalling the installer copy also removes its Run value.
 
+## Linux
+
+The AppImage and a build from source register with an XDG autostart entry,
+`$XDG_CONFIG_HOME/autostart/dev.bientot.Bientot.desktop`, or
+`~/.config/autostart/dev.bientot.Bientot.desktop` when `XDG_CONFIG_HOME` is
+unset or not an absolute path. The desktop starts every entry of that folder
+when you sign in. Its `Exec` line names the AppImage file itself, since the
+executable inside it moves at every run, or the executable of a build from
+source, with the `--autostart` marker. For example:
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=Bientôt
+Exec="/home/user/Applications/Bientot.AppImage" --autostart
+Icon=dev.bientot.Bientot
+X-GNOME-Autostart-enabled=true
+```
+
+`--autostart` has the meaning of `--worktime-windows-startup` on Windows: a
+sign-in launch shows only the tray icon. Without a tray host it shows its
+window.
+
+The setting reads the entry. It is off when the file is missing, or when it
+has `Hidden=true` or `X-GNOME-Autostart-enabled=false`, since the desktop then
+skips it. Settings report an entry that starts another file as a mismatch,
+for example after you moved the AppImage. Turn the setting on again from the
+new file to replace it. Turning the setting on rewrites the entry unless it
+already starts this copy. Turning it off deletes the file only when it starts
+this copy.
+
+A Flatpak's sandbox has an autostart folder of its own, which no desktop
+reads, so a Flatpak shows startup registration as unavailable. A demo
+registers nothing, as on Windows.
+
 ## Verification
 
 The `bientot-windows` tests cover the registry states, path quoting,
@@ -112,6 +150,13 @@ database appears, top-level window show events, visible windows, and the startup
 failure window. It watches for eight seconds, writes `visibility.json`, and stops
 that process during cleanup. It does not simulate a Windows sign-in or validate
 a Store-signed MSIX.
+
+On Linux, the `bientot-linux` tests write, read and remove the autostart
+entry in a temporary configuration folder, on any OS
+(`cargo test -p bientot-linux`).
+`crates/bientot-app/tests/desktop_harness_instance.rs` starts the app with
+`--autostart` in the desktop harness and checks that it shows nothing
+([CONTRIBUTING.md](../CONTRIBUTING.md#check-both-platforms)).
 
 The Store install, the startup task, and the uninstall were checked for v1.0.0;
 see [release-checklist.md](release-checklist.md#microsoft-store-package). A

@@ -20,8 +20,11 @@ spec conventions. The code layout is in [docs/architecture.md](docs/architecture
 
 - `rustup`. The toolchain pinned in `rust-toolchain.toml` installs on the
   first `cargo` command.
-- To run the app: Windows 11 x64. The code builds and its tests run on Linux
-  and macOS too, except the Windows-only parts listed below.
+- To run the app: Windows 11 x64, or Linux with an X11 or Wayland session.
+  The Linux build is not released, and it records no activity.
+  [Platforms](docs/architecture.md#platforms) in the architecture says what
+  it does. The code also builds and its tests run on macOS, except the
+  Windows-only and Linux-only parts listed below.
 - On Debian or Ubuntu, the C compiler and the libraries the build links, then
   a Vulkan driver to draw (Mesa's software one works without a GPU). The
   `Rust on Linux` CI job installs the same list:
@@ -42,21 +45,6 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo test --workspace --all-features --locked
 ```
-
-Then check the Windows-only code from Linux: the DPAPI secret store, the Win32 calls of the
-Windows integration and the notification-area icon of the app. The `Rust` CI job runs the
-same script. It needs `clang` and `llvm` (for `llvm-lib` and `llvm-rc`):
-
-```bash
-scripts/lint-windows.sh
-```
-
-It lints the workspace for `x86_64-pc-windows-msvc`, then `bientot-app` with each feature set
-the Windows job builds (`usage-ping`, `release`, `direct`). It never passes `--all-features`,
-whose `screenshots` feature builds only on Linux. The bundled SQLite of `bientot-store` needs
-the MSVC C compiler to build for Windows, so the script gives the build a stand-in C compiler
-that writes empty objects, since linting links nothing. The Windows tests run only on
-Windows.
 
 The first version of the app, then called WorkTime, was a .NET app, removed in October
 2026. The Rust app reads the same data files, so several tests replay what the .NET code
@@ -86,9 +74,9 @@ regenerate it and commit `crates/bientot-app/src/strings/table.rs`:
 BIENTOT_UPDATE_STRINGS=1 cargo test -p bientot-app strings
 ```
 
-To try the app on Windows with scripted activity and temporary data, run
-`cargo run -p bientot-app --bin worktime -- --demo`, with `--english`, `--light` or
-`--data-dir <folder>` as needed.
+To try the app with scripted activity and temporary data, on Windows or in a Linux desktop
+session, run `cargo run -p bientot-app --bin worktime -- --demo`, with `--english`,
+`--light` or `--data-dir <folder>` as needed.
 
 For the web service:
 
@@ -112,15 +100,102 @@ cd fuzz && cargo +nightly fuzz run settings -- -max_total_time=60
 A failing input lands in `fuzz/artifacts/<target>/`. Turn it into a regular test of
 `bientot-store` once it is fixed.
 
+### Check both platforms
+
+The code of each system lives in its own crate, `bientot-windows` or
+`bientot-linux`, and in its backend in `crates/bientot-app/src/platform/`
+([architecture](docs/architecture.md#platforms)). A change to code both
+systems share needs the checks of both.
+
+On Linux, run the tests that need a desktop session. `cargo test` skips them:
+they are marked `#[ignore = "desktop-harness"]` and their names hold
+`desktop_harness`. `scripts/linux-desktop-harness.sh` starts a throwaway
+session, runs them in it, then stops it. The session has private D-Bus buses,
+python-dbusmock's logind and notification server, mocks of a
+StatusNotifierWatcher and of Mutter's idle monitor, and a display server:
+Xvfb with openbox for `x11`, sway without a screen for `wayland`. Install
+what the `Rust` CI job installs, then run both sessions:
+
+```bash
+sudo apt-get install xvfb openbox x11-utils xdotool sway wtype grim dbus python3-dbusmock
+scripts/linux-desktop-harness.sh x11
+scripts/linux-desktop-harness.sh wayland
+```
+
+The mocks run on `/usr/bin/python3`. If python-dbusmock is installed for
+another interpreter, name it in `HARNESS_PYTHON`. CI also points
+`VK_ICD_FILENAMES` at Mesa's software driver (`lvp_icd*.json` in
+`/usr/share/vulkan/icd.d/`), so that the app draws without a GPU. A command
+after the session name runs in place of the tests, for example the tests of
+one crate, or the headless start of a release build that `Rust on Linux`
+runs:
+
+```bash
+scripts/linux-desktop-harness.sh x11 cargo test -p bientot-linux -- --ignored desktop_harness
+scripts/linux-desktop-harness.sh x11 scripts/measure-performance.sh target/release/worktime
+```
+
+Then check the Windows-only code from Linux: the DPAPI secret store, the Win32 calls of the
+Windows integration and the Windows backend of the app. The `Rust` CI job runs the
+same script. It needs `clang` and `llvm` (for `llvm-lib` and `llvm-rc`):
+
+```bash
+scripts/lint-windows.sh
+```
+
+It lints the workspace for `x86_64-pc-windows-msvc`, then `bientot-app` with each feature set
+the Windows job builds (`usage-ping`, `release`, `direct`). It never passes `--all-features`,
+whose `screenshots` feature builds only on Linux. The bundled SQLite of `bientot-store` needs
+the MSVC C compiler to build for Windows, so the script gives the build a stand-in C compiler
+that writes empty objects, since linting links nothing. The Windows tests run only on
+Windows.
+
+On Windows, this command runs the Windows tests and the portable half of
+`bientot-linux`, as `Rust on Windows` does:
+
+```bash
+cargo test --locked -p bientot-platform -p bientot-windows -p bientot-linux
+```
+
+No script checks the Linux system calls from Windows. They compile, and
+their tests run, only on Linux.
+
+To build the AppImage as `Rust on Linux` does, run this from a clean clone
+with its full history, on a Linux host of the target's architecture. The
+header of the script lists the tools it needs, such as `vpk` and
+`mksquashfs`:
+
+```bash
+RELEASE_ANY_BRANCH=1 FIRST_RELEASE=1 scripts/release-direct.sh --target linux-x64 <empty-folder>
+```
+
+`RELEASE_ANY_BRANCH=1` builds a commit other than `origin/main`, and
+`FIRST_RELEASE=1` skips the delta package, which needs the previous release.
+Use `--target linux-arm64` on Arm.
+
 ### What only Windows checks
 
 A green Linux run does not prove these:
 
 - the Windows tests of `bientot-store`, `bientot-platform` and
   `bientot-windows` (DPAPI, the Run key, the last-input query, the
-  single-instance event);
+  single-instance pipe);
 - the release executable and its size, startup time and memory;
 - notifications, the tray icon and anything you see on screen.
+
+### What only Linux checks
+
+A green Windows run does not prove these:
+
+- the system calls of `bientot-linux` and the Linux backend of the app,
+  which compile only on Linux;
+- the desktop harness tests;
+- the Linux release executable, the AppImage, the glibc and OpenSSL gates
+  and the headless start of `Rust on Linux`.
+
+The harness runs mocks, so a real Linux desktop is still the only check of
+what you see on screen: the tray icon, the flyout's place, the
+notifications.
 
 ## CI
 
@@ -138,15 +213,14 @@ A green Linux run does not prove these:
   changes, beside **Rust**. **Publish screenshots** pushes them to the
   `refs/ci-screenshots/<pull request>` ref (not a branch, so Vercel ignores it)
   and links them from the job summary.
-- **Rust on Windows** tests `bientot-store`, `bientot-platform` and
-  `bientot-windows`, builds the release executable and measures its size,
-  startup time and memory. Then `scripts/measure-performance.ps1` runs it with
-  the built-in activity source, warns above the spec budgets and fails only
-  above 2 % CPU, 200 MiB or 6 s.
-  The job runs only when `crates/bientot-app/`, `crates/bientot-platform/`,
-  `crates/bientot-windows/`, the Windows code of `bientot-store`, the Cargo
-  manifests, the toolchain, `scripts/measure-performance.ps1` or `ci.yml`
-  change, and after **Rust** passes.
+- **Rust on Windows** tests `bientot-store`, `bientot-platform`,
+  `bientot-windows` and the portable half of `bientot-linux`, builds the
+  release executable and measures its size, startup time and memory. Then
+  `scripts/measure-performance.ps1` runs it with the built-in activity
+  source, warns above the spec budgets and fails only above 2 % CPU, 200 MiB
+  or 6 s. The job runs only when the files it builds change (see
+  [When each gate runs](docs/ci-quality-gates.md#when-each-gate-runs)), and
+  after **Rust** passes.
 - **Rust on Linux** runs on Ubuntu 22.04 (glibc 2.35, the oldest the
   AppImage supports). It runs the hostile plugins, builds the Linux release
   executable and the AppImage (`scripts/release-direct.sh --target
@@ -186,7 +260,8 @@ names Linux.
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) with a
   scope that names the part of the project the change is for:
-  - `app`: the Windows app (`crates/`, `packaging/`, its dependencies);
+  - `app`: the app on either platform (`crates/`, `packaging/`, its
+    dependencies);
   - `site`: the website and the web service (`services/bientot/`);
   - `repo`: everything else, such as CI, the release workflow and the
     repository's documentation.
@@ -241,6 +316,10 @@ The project follows [GitHub Spec Kit](https://github.com/github/spec-kit).
   - `002-daily-workflow-ux` holds the daily workflow improvements.
   - `003-plugin-runtime` holds the first step of the plugin system: the
     WebAssembly runtime, one flyout card and palette commands.
+  - `004-weekly-schedule-days-off` holds the weekly schedule, leave and
+    public holidays.
+  - `005-linux-support` holds the Linux build: the platform ports, the Linux
+    backends, the packages and their CI gates.
 - `.specify/feature.json` names the active feature folder.
 - `.specify/templates/` and `.specify/scripts/` are the Spec Kit templates and
   PowerShell scripts.
