@@ -19,7 +19,12 @@ fn here() -> DataDirectory {
     DataDirectory::from(PathBuf::from("C:/Users/Camille/AppData/Local/Bientôt"))
 }
 
+/// The first run on a system in French, in the language `--french` or `--english` forces.
 fn onboarding(forced: Option<Language>) -> Onboarding {
+    on_system(forced, Some(Language::French))
+}
+
+fn on_system(forced: Option<Language>, system: Option<Language>) -> Onboarding {
     Onboarding::new(
         Settings::default(),
         UsagePingFacts {
@@ -28,7 +33,7 @@ fn onboarding(forced: Option<Language>) -> Onboarding {
             today: TODAY,
             last_sent: None,
         },
-        forced,
+        LanguageSources { forced, system },
         Some(here()),
     )
 }
@@ -132,7 +137,7 @@ fn the_language_step_offers_windows_french_and_english() {
     assert_eq!(page.heading, "Choisissez votre langue");
     assert_eq!(
         page.intro,
-        "Bientôt suit la langue de Windows. Vous pourrez la changer dans Paramètres."
+        "Bientôt suit la langue de Windows par défaut. Vous pourrez en changer dans Paramètres."
     );
     assert_eq!(
         page.body,
@@ -141,7 +146,7 @@ fn the_language_step_offers_windows_french_and_english() {
             options: vec![
                 LanguageOption {
                     choice: LanguageChoice::System,
-                    label: "Langue de Windows",
+                    label: "Langue de Windows (français)",
                     selected: true,
                 },
                 LanguageOption {
@@ -169,6 +174,26 @@ fn the_language_step_offers_windows_french_and_english() {
 }
 
 #[test]
+fn the_system_choice_names_the_system_language_when_it_is_french_or_english() {
+    let system_label = |system: Option<Language>| {
+        let Body::Language { options, .. } = on_system(None, system).view().body else {
+            panic!("the language step");
+        };
+        options[0].label
+    };
+    assert_eq!(
+        system_label(Some(Language::French)),
+        "Langue de Windows (français)"
+    );
+    assert_eq!(
+        system_label(Some(Language::English)),
+        "Windows language (English)"
+    );
+    // A system in neither language gets English instead.
+    assert_eq!(system_label(None), "Windows language (English instead)");
+}
+
+#[test]
 fn a_chosen_language_shows_at_once_unless_the_launch_fixed_it() {
     let mut onboarding = onboarding(None);
     onboarding.choose_language(LanguageChoice::English);
@@ -187,7 +212,7 @@ fn a_chosen_language_shows_at_once_unless_the_launch_fixed_it() {
             .map(|option| (option.label, option.selected))
             .collect::<Vec<_>>(),
         [
-            ("Windows language", false),
+            ("Windows language (French)", false),
             ("Français", false),
             ("English", true)
         ]
@@ -491,7 +516,10 @@ fn the_zip_build_leaves_the_updates_out() {
             today: TODAY,
             last_sent: None,
         },
-        Some(Language::French),
+        LanguageSources {
+            forced: Some(Language::French),
+            system: Some(Language::French),
+        },
         None,
     );
     onboarding.advance();
@@ -613,7 +641,10 @@ fn a_demo_offers_no_import() {
             today: TODAY,
             last_sent: None,
         },
-        Some(Language::French),
+        LanguageSources {
+            forced: Some(Language::French),
+            system: Some(Language::French),
+        },
         None,
     );
 

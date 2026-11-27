@@ -328,6 +328,8 @@ pub enum Key {
     OnboardingLanguageIntroText,
     OnboardingLanguageRestartNoticeText,
     OnboardingLanguageSystem,
+    OnboardingLanguageSystemEnglish,
+    OnboardingLanguageSystemFrench,
     OnboardingLanguageTitleText,
     OnboardingLunchEndInputAutomationPropertiesName,
     OnboardingLunchEndInputHeader,
@@ -871,7 +873,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 863] = [
+pub(super) static ENTRIES: [Entry; 865] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration", linux: None },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval", linux: None },
@@ -1191,9 +1193,11 @@ pub(super) static ENTRIES: [Entry; 863] = [
     Entry { name: "OnboardingLanguageEnglish.Content", fr: "English", en: "English", linux: None },
     Entry { name: "OnboardingLanguageFrench.Content", fr: "Français", en: "Français", linux: None },
     Entry { name: "OnboardingLanguageInput.AutomationProperties.Name", fr: "Langue", en: "Language", linux: None },
-    Entry { name: "OnboardingLanguageIntro.Text", fr: "Bientôt suit la langue de Windows. Vous pourrez la changer dans Paramètres.", en: "Bientôt follows the Windows language by default. You can change it later in Settings.", linux: Some(("Bientôt suit la langue du système. Vous pourrez la changer dans Paramètres.", "Bientôt follows your system language by default. You can change it later in Settings.")) },
+    Entry { name: "OnboardingLanguageIntro.Text", fr: "Bientôt suit la langue de Windows par défaut. Vous pourrez en changer dans Paramètres.", en: "Bientôt follows your Windows language by default. You can pick another later in Settings.", linux: Some(("Bientôt suit la langue du système par défaut. Vous pourrez en changer dans Paramètres.", "Bientôt follows your system language by default. You can pick another later in Settings.")) },
     Entry { name: "OnboardingLanguageRestartNotice.Text", fr: "Bientôt redémarrera dans la langue choisie à la fin de la configuration.", en: "Bientôt restarts in the chosen language when you finish.", linux: None },
-    Entry { name: "OnboardingLanguageSystem", fr: "Langue de Windows", en: "Windows language", linux: Some(("Langue du système", "System language")) },
+    Entry { name: "OnboardingLanguageSystem", fr: "Langue de Windows (anglais à la place)", en: "Windows language (English instead)", linux: Some(("Langue du système (anglais à la place)", "System language (English instead)")) },
+    Entry { name: "OnboardingLanguageSystemEnglish", fr: "Langue de Windows (anglais)", en: "Windows language (English)", linux: Some(("Langue du système (anglais)", "System language (English)")) },
+    Entry { name: "OnboardingLanguageSystemFrench", fr: "Langue de Windows (français)", en: "Windows language (French)", linux: Some(("Langue du système (français)", "System language (French)")) },
     Entry { name: "OnboardingLanguageTitle.Text", fr: "Choisissez votre langue", en: "Choose your language", linux: None },
     Entry { name: "OnboardingLunchEndInput.AutomationProperties.Name", fr: "Heure de fin du déjeuner", en: "Lunch end time", linux: None },
     Entry { name: "OnboardingLunchEndInput.Header", fr: "Fin du déjeuner", en: "Lunch end", linux: None },

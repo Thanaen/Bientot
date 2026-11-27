@@ -531,3 +531,12 @@ fn the_language_is_the_command_then_the_saved_one_then_windows_then_english() {
     assert_eq!(resolve(false, Some("de-DE"), ["de-DE"]), "en-US");
     assert_eq!(resolve(false, None, []), "en-US");
 }
+
+#[test]
+fn the_known_system_language_is_the_first_french_or_english_one() {
+    use super::language::first_known;
+    assert_eq!(first_known(["de-DE", "en-GB", "fr-FR"]), Some("en-US"));
+    assert_eq!(first_known(["fr"]), Some("fr-FR"));
+    assert_eq!(first_known(["de-DE"]), None);
+    assert_eq!(first_known([]), None);
+}

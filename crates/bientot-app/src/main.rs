@@ -11,7 +11,7 @@ use bientot_app::live::{self, Announcement, LiveHost};
 use bientot_app::notify::ToastSink;
 use bientot_app::platform::{self, Platform, PlatformContext, TrayEvents};
 use bientot_app::startup_failure::StartupFailure;
-use bientot_app::strings::{Key, Language};
+use bientot_app::strings::{Key, Language, LanguageSources};
 use bientot_app::theme::ThemeMode;
 use bientot_app::tray_model::MenuCommand;
 use bientot_app::updates::UpdateSourceKind;
@@ -48,15 +48,16 @@ fn main() -> anyhow::Result<()> {
     // Before anything else: the uninstaller's cleanup, which then ends the process.
     let may_install = platform::run_update_hooks();
     let launch = Launch::parse(std::env::args().skip(1))?;
+    let languages = LanguageSources::new(launch.language, &platform::system_locale());
     let Err(StartFailure {
         error,
         directory,
         instance,
-    }) = run(launch.clone(), may_install)
+    }) = run(launch.clone(), languages, may_install)
     else {
         return Ok(());
     };
-    let failure = StartupFailure::new(&error, directory.as_ref(), launch.language);
+    let failure = StartupFailure::new(&error, directory.as_ref(), languages);
     application().run(move |cx| {
         prepare(launch.theme, cx);
         if let Some(instance) = instance {
@@ -109,7 +110,7 @@ fn fail(failure: StartupFailure, cx: &mut App) {
     }
 }
 
-fn run(launch: Launch, may_install: bool) -> Result<(), StartFailure> {
+fn run(launch: Launch, languages: LanguageSources, may_install: bool) -> Result<(), StartFailure> {
     let location = launch
         .location(platform::local_app_data)
         .map_err(|error| StartFailure {
@@ -126,7 +127,7 @@ fn run(launch: Launch, may_install: bool) -> Result<(), StartFailure> {
         Ok(Acquired::Primary(instance)) => instance,
         Ok(Acquired::Secondary) => {
             if let Some(language) =
-                transfer::import_left_waiting(launch.restarted_from, &directory, launch.language)
+                transfer::import_left_waiting(launch.restarted_from, &directory, languages)
             {
                 alert(language, Key::ImportWaitsForNextStart);
             }
@@ -151,7 +152,7 @@ fn run(launch: Launch, may_install: bool) -> Result<(), StartFailure> {
         None => transfer::apply_staged(&directory),
     };
     let theme = launch.theme;
-    let (quit_mode, boot) = match run_on(launch, &directory, imported, migration) {
+    let (quit_mode, boot) = match run_on(launch, languages, &directory, imported, migration) {
         Ok(started) => started,
         Err(error) => {
             return Err(StartFailure {
@@ -205,6 +206,7 @@ fn settle(
 /// quits.
 fn run_on(
     launch: Launch,
+    languages: LanguageSources,
     directory: &DataDirectory,
     imported: Option<Announcement>,
     mut migration: Option<Migration>,
@@ -242,6 +244,7 @@ fn run_on(
         Opening::Day(start(
             directory,
             &launch,
+            languages,
             loaded,
             platform,
             imported,
@@ -266,12 +269,11 @@ fn run_on(
             Some(_) => std::sync::Arc::new(|_| Ok(())),
             None => std::sync::Arc::new(move |settings| store.save(settings)),
         };
-        let forced = launch.language;
         // A demo's folder is thrown away, so it offers no import.
         let import = launch.demo.is_none().then(|| directory.clone());
         onboarding_view::open(
             settings,
-            forced,
+            languages,
             import,
             save,
             Box::new(move |settings, cx| {
@@ -282,6 +284,7 @@ fn run_on(
                 let started = start(
                     &directory,
                     &launch,
+                    languages,
                     Some(loaded),
                     platform,
                     imported,
@@ -293,7 +296,7 @@ fn run_on(
                     Err(error) => {
                         log::error!("cannot start after the onboarding: {error:#}");
                         let exported = exportable.then_some(&directory);
-                        fail(StartupFailure::new(&error, exported, forced), cx);
+                        fail(StartupFailure::new(&error, exported, languages), cx);
                     }
                 }
             }),
@@ -341,6 +344,7 @@ struct ShellPorts {
 fn start(
     directory: &DataDirectory,
     launch: &Launch,
+    languages: LanguageSources,
     loaded: Option<LoadedSettings>,
     platform: Platform,
     imported: Option<Announcement>,
@@ -359,10 +363,8 @@ fn start(
             if let Some(loaded) = loaded {
                 host.save_settings(&loaded.settings)?;
             }
-            let language = Language::resolve(
-                launch.language,
-                host.settings().language_override.as_deref(),
-            );
+            let language =
+                Language::resolve(languages, host.settings().language_override.as_deref());
             (Source::Demo(Box::new(host)), language)
         }
         None => {
@@ -370,10 +372,8 @@ fn start(
                 Some(loaded) => loaded,
                 None => live::load_settings(directory)?,
             };
-            let language = Language::resolve(
-                launch.language,
-                loaded.settings.language_override.as_deref(),
-            );
+            let language =
+                Language::resolve(languages, loaded.settings.language_override.as_deref());
             // Listens before reading what the system saw, as `WindowsLifecyclePorts.Attach`
             // does: a change meanwhile waits for the startup state.
             let mut watching = Lifecycle::watch(&*platform.lifecycle);

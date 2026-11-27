@@ -4,7 +4,7 @@
 use bientot_app::diagnostics::Outcome;
 use bientot_app::startup_failure::StartupFailure;
 use bientot_app::startup_failure_view::{self, StartupFailureView};
-use bientot_app::strings::Language;
+use bientot_app::strings::{Language, LanguageSources};
 use gpui::{AnyWindowHandle, AppContext as _, HeadlessAppContext, px, size};
 
 use super::capture;
@@ -87,7 +87,11 @@ fn open_startup_failure(
         .fold(anyhow::anyhow!(*root), |error, context| {
             error.context(*context)
         });
-    let mut failure = StartupFailure::new(&error, None, Some(language));
+    let sources = LanguageSources {
+        forced: Some(language),
+        system: Some(language),
+    };
+    let mut failure = StartupFailure::new(&error, None, sources);
     if let Some(outcome) = export {
         failure.start_export();
         if let Some(outcome) = outcome {

@@ -18,12 +18,20 @@ fn folder(settings: Option<&str>, staged: bool) -> (tempfile::TempDir, DataDirec
 fn a_restart_that_left_its_import_staged_tells_in_the_language_of_the_settings() {
     let (_root, directory) = folder(Some(r#"{"languageOverride":"en-US"}"#), true);
 
+    let on_french_system = |forced| LanguageSources {
+        forced,
+        system: Some(Language::French),
+    };
     assert_eq!(
-        import_left_waiting(Some(4242), &directory, None),
+        import_left_waiting(Some(4242), &directory, on_french_system(None)),
         Some(Language::English)
     );
     assert_eq!(
-        import_left_waiting(Some(4242), &directory, Some(Language::French)),
+        import_left_waiting(
+            Some(4242),
+            &directory,
+            on_french_system(Some(Language::French))
+        ),
         Some(Language::French)
     );
 }
@@ -33,6 +41,7 @@ fn only_a_restart_with_a_staged_import_has_something_to_tell() {
     let (_root, staged) = folder(None, true);
     let (_other, nothing) = folder(None, false);
 
-    assert_eq!(import_left_waiting(None, &staged, None), None);
-    assert_eq!(import_left_waiting(Some(4242), &nothing, None), None);
+    let sources = LanguageSources::default();
+    assert_eq!(import_left_waiting(None, &staged, sources), None);
+    assert_eq!(import_left_waiting(Some(4242), &nothing, sources), None);
 }

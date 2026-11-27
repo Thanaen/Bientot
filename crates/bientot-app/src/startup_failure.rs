@@ -9,7 +9,7 @@ use gpui::SharedString;
 
 use crate::demo::FolderRefusal;
 use crate::diagnostics::{Contents, Outcome};
-use crate::strings::{Key, Language};
+use crate::strings::{Key, Language, LanguageSources};
 use crate::widgets::Notice;
 
 /// Where the export stands.
@@ -57,21 +57,21 @@ pub struct FailurePage<'a> {
 }
 
 impl StartupFailure {
-    /// A start on `directory` that failed with `error`. The texts are in `forced`, else in the
-    /// language of the settings if they still read. A demo refused its folder says why. Nothing
-    /// is written to `directory`: invalid settings stay where they are, for the ZIP's reader to
-    /// find.
+    /// A start on `directory` that failed with `error`. The texts are in the language `sources`
+    /// and the settings choose, if the settings still read. A demo refused its folder says why.
+    /// Nothing is written to `directory`: invalid settings stay where they are, for the ZIP's
+    /// reader to find.
     pub fn new(
         error: &anyhow::Error,
         directory: Option<&DataDirectory>,
-        forced: Option<Language>,
+        sources: LanguageSources,
     ) -> Self {
         let settings = directory
             .and_then(|directory| SettingsStore::new(directory.settings_file()).ok())
             .and_then(|store| store.peek());
         Self {
             language: Language::resolve(
-                forced,
+                sources,
                 settings
                     .as_ref()
                     .and_then(|settings| settings.language_override.as_deref()),

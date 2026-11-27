@@ -88,7 +88,8 @@ const LINUX: &[Scene] = &[
         group: "settings::capture_pages",
         name: "settings-general-startup-unavailable",
     },
-    // OnboardingLanguageIntro.Text, OnboardingLanguageSystem.
+    // OnboardingLanguageIntro.Text, and the system's language: OnboardingLanguageSystemFrench or
+    // OnboardingLanguageSystemEnglish.
     Scene {
         group: "onboarding::capture_steps",
         name: "onboarding-language",

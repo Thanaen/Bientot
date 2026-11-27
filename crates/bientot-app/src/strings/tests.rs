@@ -5,6 +5,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use bientot_platform::locale::InMemoryLocale;
+
 use super::*;
 
 const UPDATE_VARIABLE: &str = "BIENTOT_UPDATE_STRINGS";
@@ -342,15 +344,52 @@ fn writes_times_as_each_culture_does() {
     );
 }
 
+fn sources(forced: Option<Language>, system: Option<Language>) -> LanguageSources {
+    LanguageSources { forced, system }
+}
+
 #[test]
-fn a_forced_language_beats_the_saved_one_and_french_is_the_default() {
+fn a_forced_language_beats_the_saved_one_which_beats_the_system_then_english() {
+    let french = Some(Language::French);
+    let english = Some(Language::English);
     assert_eq!(
-        Language::resolve(Some(Language::French), Some("en-US")),
+        Language::resolve(sources(french, english), Some("en-US")),
         Language::French
     );
-    assert_eq!(Language::resolve(None, Some("en-US")), Language::English);
-    assert_eq!(Language::resolve(None, Some("de-DE")), Language::French);
-    assert_eq!(Language::resolve(None, None), Language::French);
+    assert_eq!(
+        Language::resolve(sources(english, french), Some("fr-FR")),
+        Language::English
+    );
+    assert_eq!(
+        Language::resolve(sources(None, french), Some("en-US")),
+        Language::English
+    );
+    assert_eq!(
+        Language::resolve(sources(None, french), Some("de-DE")),
+        Language::French
+    );
+    assert_eq!(
+        Language::resolve(sources(None, english), None),
+        Language::English
+    );
+    assert_eq!(
+        Language::resolve(sources(None, None), None),
+        Language::English
+    );
+}
+
+#[test]
+fn the_system_language_is_its_first_french_or_english_one() {
+    let system = |languages: &[&str]| {
+        let locale = InMemoryLocale {
+            languages: languages.iter().map(|&tag| tag.to_owned()).collect(),
+        };
+        LanguageSources::new(None, &locale).system
+    };
+    assert_eq!(system(&["de-DE", "fr-CH", "en-US"]), Some(Language::French));
+    assert_eq!(system(&["en-GB"]), Some(Language::English));
+    assert_eq!(system(&["de-DE"]), None);
+    assert_eq!(system(&[]), None);
 }
 
 #[test]
