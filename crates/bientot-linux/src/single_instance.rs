@@ -12,10 +12,23 @@
 mod native;
 
 use std::ffi::OsString;
+use std::io;
 use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "linux")]
 pub use native::{ActivationListener, PrimaryInstance};
+
+/// What keeps later launches from reaching this Bientôt, for the caller's diagnostic log. Each
+/// gives the error's kind alone: its text can name the folder, and so the user.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InstanceNote {
+    /// The socket a dead owner left could not be removed, so the new one cannot take its place.
+    StaleSocketKept(io::ErrorKind),
+    /// No socket: a later launch exits after 2 s without showing this Bientôt.
+    Unbound(io::ErrorKind),
+    /// Receiving a later launch failed: none is received from then on.
+    AcceptFailed(io::ErrorKind),
+}
 
 /// The folder that holds the lock and the socket of the data folder `data_folder`:
 /// `$XDG_RUNTIME_DIR/bientot`, private to the user and emptied at each sign-in, or

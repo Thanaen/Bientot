@@ -1,10 +1,12 @@
 //! One Bientôt per data folder with real processes in `scripts/linux-desktop-harness.sh`: a later
 //! `worktime` on the folder of a running one hands over and exits, and the running one shows its
 //! flyout. The x11 session has no `XDG_RUNTIME_DIR`, so its lock and socket are in the data
-//! folder; the wayland session has one. The tests share the session's bus and display, so they
-//! take turns.
+//! folder; the wayland session has one. A socket the app cannot bind is written to its diagnostic
+//! log. The tests share the session's bus and display, so they take turns.
 #![cfg(target_os = "linux")]
 
+use std::fs::DirBuilder;
+use std::os::unix::fs::DirBuilderExt as _;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::{Mutex, PoisonError};
@@ -17,6 +19,8 @@ static HARNESS_TURN: Mutex<()> = Mutex::new(());
 
 const WAIT: Duration = Duration::from_secs(60);
 const REDIRECTED: &str = "instance.redirected";
+const LISTEN_FAILED: &str =
+    r#""Level":"Warning","Event":"instance.listen_failed","Properties":{"kind":"invalid_input"}"#;
 
 /// Polls `check` until it gives a value, for up to `wait`.
 fn eventually<T>(what: &str, wait: Duration, mut check: impl FnMut() -> Option<T>) -> T {
@@ -61,13 +65,18 @@ impl Folder {
 
     /// The app, started hidden as at sign-in, once its shell is ready.
     fn start(&self) -> App {
+        self.start_with(|_| {})
+    }
+
+    /// The app, started hidden as at sign-in by the command `configure` completes, once its
+    /// shell is ready.
+    fn start_with(&self, configure: impl FnOnce(&mut Command)) -> App {
         let ready = self.root.path().join("ready");
         std::fs::remove_file(&ready).ok();
-        let child = self
-            .command(&["--autostart"])
-            .env("BIENTOT_READY_FILE", &ready)
-            .spawn()
-            .unwrap();
+        let mut command = self.command(&["--autostart"]);
+        command.env("BIENTOT_READY_FILE", &ready);
+        configure(&mut command);
+        let child = command.spawn().unwrap();
         eventually("the app to start", WAIT, || ready.exists().then_some(()));
         App { child }
     }
@@ -208,5 +217,29 @@ fn desktop_harness_after_kill_9_the_next_launch_holds_the_folder_and_takes_later
     assert!(next.alive());
     eventually("the redirection in the log", WAIT, || {
         (folder.redirections() == 1).then_some(())
+    });
+}
+
+#[test]
+#[ignore = "desktop-harness"]
+fn desktop_harness_a_socket_the_app_cannot_bind_reaches_its_diagnostic_log() {
+    let _turn = HARNESS_TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    let folder = Folder::new();
+    // Too long a path for the socket's `sun_path`.
+    let runtime = folder.root.path().join("r".repeat(80));
+    DirBuilder::new().mode(0o700).create(&runtime).unwrap();
+
+    let _app = folder.start_with(|command| {
+        command.env("XDG_RUNTIME_DIR", &runtime);
+        if let (Some(display), Some(session_runtime)) = (
+            std::env::var_os("WAYLAND_DISPLAY"),
+            std::env::var_os("XDG_RUNTIME_DIR"),
+        ) {
+            command.env("WAYLAND_DISPLAY", Path::new(&session_runtime).join(display));
+        }
+    });
+
+    eventually("the failure in the log", WAIT, || {
+        folder.log().contains(LISTEN_FAILED).then_some(())
     });
 }

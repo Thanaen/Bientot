@@ -17,17 +17,19 @@ mod null;
 use std::cell::RefCell;
 use std::io;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use anyhow::Context as _;
 use bientot_core::diagnostics::DiagnosticLogLevel;
+use bientot_core::notifications::NotificationError;
 use bientot_domain::time::SystemClock;
 use bientot_linux::autostart::{Autostart, XdgAutostart};
 use bientot_linux::idle::{Backend, IdleNote, IdleWatch};
 use bientot_linux::launcher::LauncherEntry;
 use bientot_linux::logind::LogindSource;
-use bientot_linux::notifications::{DesktopNotifications, Service};
+use bientot_linux::notifications::{DesktopNotifications, Service, Unavailable};
 use bientot_linux::placement::LinuxDesktop;
+use bientot_linux::single_instance::{ActivationListener, InstanceNote, PrimaryInstance};
 use bientot_linux::tray::StatusNotifier;
 use bientot_platform::activity::LastInputProbe;
 use bientot_platform::launcher::LauncherPort;
@@ -35,8 +37,10 @@ use bientot_platform::lifecycle::{
     LifecycleListener, LifecycleSource, LifecycleTransition, LockReporting, SessionSnapshot,
 };
 use bientot_platform::notifications::{Notifier, QueuedClicks};
+use bientot_platform::single_instance::{Acquired, InstanceLock};
 use bientot_platform::startup::StartupPort;
 use bientot_platform::system::{InstallKind, SystemInfo as _};
+use bientot_store::data_directory::DataDirectory;
 use futures::channel::mpsc;
 use gpui::{Bounds, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
@@ -50,7 +54,39 @@ use crate::zones::SystemZones;
 pub use null::*;
 
 pub use bientot_linux::process::wait_for_exit;
-pub use bientot_linux::single_instance::PrimaryInstance as Instance;
+
+/// The lock and the socket of `bientot-linux`. What goes wrong with them reaches the diagnostic
+/// log among the notes of the platform `build` made: the folder is claimed before the platform
+/// is built, and listens after.
+pub struct Instance(PrimaryInstance);
+
+impl InstanceLock for Instance {
+    type Listener = ActivationListener;
+
+    fn acquire(directory: &DataDirectory) -> io::Result<Acquired<Self>> {
+        Ok(match PrimaryInstance::acquire(directory)? {
+            Acquired::Primary(instance) => Acquired::Primary(Self(instance)),
+            Acquired::Secondary => Acquired::Secondary,
+        })
+    }
+
+    /// Without a platform built, as after a failed start, which has no diagnostic log, its notes
+    /// go nowhere.
+    fn listen(
+        self,
+        on_activation: impl FnMut() + Send + 'static,
+    ) -> io::Result<ActivationListener> {
+        let notes = NOTES.lock().unwrap_or_else(PoisonError::into_inner).clone();
+        self.0.listen(on_activation, move |note| {
+            if let Some(notes) = &notes {
+                notes.unbounded_send(instance_line(note)).ok();
+            }
+        })
+    }
+}
+
+/// Where the notes of the platform `build` made last go, for the instance claimed before it.
+static NOTES: Mutex<Option<mpsc::UnboundedSender<BackendNote>>> = Mutex::new(None);
 
 /// `LC_ALL`, `LC_MESSAGES` or `LANG`, as POSIX reads them.
 pub fn system_locale() -> bientot_linux::locale::EnvironmentLocale {
@@ -87,6 +123,8 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     // A demo neither reads the input nor watches the session: as on Windows, its day is the
     // scenario's. The watch's thread opens the idle backend, so a demo starts none.
     let (notes, backend_notes) = mpsc::unbounded();
+    *NOTES.lock().unwrap_or_else(PoisonError::into_inner) = Some(notes.clone());
+    let refusals = notes.clone();
     let lifecycle = (!demo).then(|| Reported {
         source: LogindSource::new(kind, SystemClock, SystemZones),
         notes: notes.clone(),
@@ -103,7 +141,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     let clicks = QueuedClicks::default();
     let service = Service::for_install(kind);
     let notifier = ctx.launch.demo.is_none().then(|| {
-        DesktopNotifications::start(service, clicks.clone())
+        notifications(service, clicks.clone(), refusals)
             .map(|notifications| Box::new(notifications) as Box<dyn Notifier>)
     });
     let (events, tray_events) = mpsc::unbounded();
@@ -173,6 +211,53 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         desktop,
         ..null
     })
+}
+
+/// The notifications through `service`, whose refused shows `notes` gets as
+/// [`notification_failed`].
+fn notifications(
+    service: Service,
+    clicks: QueuedClicks,
+    notes: mpsc::UnboundedSender<BackendNote>,
+) -> Result<DesktopNotifications, Unavailable> {
+    DesktopNotifications::start(service, clicks, move || {
+        notes.unbounded_send(notification_failed()).ok();
+    })
+}
+
+/// The diagnostic log's line for a show the notification server or the portal refused, the line
+/// of a refused toast on Windows, with the type it names there. Its `message` is left out: the
+/// bus's text can name the user's session or bus.
+fn notification_failed() -> BackendNote {
+    BackendNote {
+        level: DiagnosticLogLevel::Error,
+        event: "notification.failed",
+        properties: vec![(
+            "exceptionType",
+            std::any::type_name::<NotificationError>().into(),
+        )],
+        idle: None,
+        lifecycle: None,
+        lock_reporting: None,
+    }
+}
+
+/// The diagnostic log's line for what keeps later launches from reaching this Bientôt
+/// (contracts/linux-backends.md, « Single instance »).
+fn instance_line(note: InstanceNote) -> BackendNote {
+    let (event, kind) = match note {
+        InstanceNote::StaleSocketKept(kind) => ("instance.stale_socket_kept", kind),
+        InstanceNote::Unbound(kind) => ("instance.listen_failed", kind),
+        InstanceNote::AcceptFailed(kind) => ("instance.accept_failed", kind),
+    };
+    BackendNote {
+        level: DiagnosticLogLevel::Warning,
+        event,
+        properties: vec![("kind", error_kind(kind).into())],
+        idle: None,
+        lifecycle: None,
+        lock_reporting: None,
+    }
 }
 
 /// The diagnostic log's line for what the idle probe noted (contracts/linux-backends.md,
@@ -276,21 +361,27 @@ fn lock_line(reporting: LockReporting) -> BackendNote {
 }
 
 /// The diagnostic log's line for a lifecycle watch that did not start (contracts/linux-backends.md,
-/// « Lock, sleep, session »). The error's text can name the user's session or bus, so the line
-/// gives its kind alone, from a fixed list.
+/// « Lock, sleep, session »).
 fn watch_failed(error: &io::Error) -> BackendNote {
-    let kind = match error.kind() {
-        io::ErrorKind::NotFound => "not_found",
-        io::ErrorKind::PermissionDenied => "permission_denied",
-        _ => "other",
-    };
     BackendNote {
         level: DiagnosticLogLevel::Warning,
         event: "lifecycle.watch_failed",
-        properties: vec![("kind", kind.into())],
+        properties: vec![("kind", error_kind(error.kind()).into())],
         idle: None,
         lifecycle: Some(NO_BACKEND),
         lock_reporting: Some(LockReporting::Unavailable),
+    }
+}
+
+/// An I/O error's kind as the diagnostic log writes it, from a fixed list: the error's text can
+/// name the user's session, bus or folder.
+fn error_kind(kind: io::ErrorKind) -> &'static str {
+    match kind {
+        io::ErrorKind::NotFound => "not_found",
+        io::ErrorKind::PermissionDenied => "permission_denied",
+        io::ErrorKind::AddrInUse => "address_in_use",
+        io::ErrorKind::InvalidInput => "invalid_input",
+        _ => "other",
     }
 }
 
@@ -374,17 +465,142 @@ impl crate::updates::StoreError for velopack::Error {
 mod tests {
     use std::io;
     use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
 
-    use bientot_core::diagnostics::DiagnosticLogLevel::{Information, Warning};
+    use bientot_core::diagnostics::DiagnosticLogLevel::{Error, Information, Warning};
     use bientot_domain::accounting::SessionState;
     use bientot_linux::idle::{Backend, IdleNote};
+    use bientot_linux::notifications::Service;
+    use bientot_linux::single_instance::InstanceNote;
     use bientot_platform::lifecycle::{
         InMemoryLifecycle, LifecycleChange, LifecycleListener, LifecycleSource,
         LifecycleTransition, LockReporting, SessionSnapshot,
     };
+    use bientot_platform::notifications::{NotificationRequest, Notifier as _, QueuedClicks};
     use futures::channel::mpsc;
 
-    use super::{BackendNote, Reported, idle_line};
+    use super::{BackendNote, Reported, idle_line, instance_line, notifications};
+
+    /// The line of a show the desktop refused, as Windows logs a refused toast.
+    fn refused_toast_line() -> BackendNote {
+        BackendNote {
+            level: Error,
+            event: "notification.failed",
+            properties: vec![(
+                "exceptionType",
+                "bientot_core::notifications::NotificationError".into(),
+            )],
+            idle: None,
+            lifecycle: None,
+            lock_reporting: None,
+        }
+    }
+
+    #[test]
+    fn a_refused_show_is_logged_as_a_refused_toast_is_on_windows() {
+        assert_eq!(super::notification_failed(), refused_toast_line());
+    }
+
+    /// python-dbusmock's notification server, on the bus of `scripts/linux-desktop-harness.sh`,
+    /// refusing `Notify` for the life of the value.
+    struct Refusing;
+
+    impl Refusing {
+        fn new() -> Self {
+            answer_notify_with(
+                "raise dbus.exceptions.DBusException('refused', name='org.freedesktop.DBus.Error.Failed')",
+            );
+            Self
+        }
+    }
+
+    impl Drop for Refusing {
+        fn drop(&mut self) {
+            answer_notify_with(
+                "if args[1]:\n    ret = args[1]\nelse:\n    ret = self.next_id\n    self.next_id += 1\n",
+            );
+        }
+    }
+
+    fn answer_notify_with(code: &str) {
+        let output = std::process::Command::new("busctl")
+            .args([
+                "--user",
+                "call",
+                "org.freedesktop.Notifications",
+                "/org/freedesktop/Notifications",
+                "org.freedesktop.DBus.Mock",
+                "AddMethod",
+                "sssss",
+                "org.freedesktop.Notifications",
+                "Notify",
+                "susssasa{sv}i",
+                "u",
+                code,
+            ])
+            .output()
+            .expect("busctl runs");
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    #[ignore = "desktop-harness"]
+    fn desktop_harness_a_show_the_server_refuses_reaches_the_diagnostic_log() {
+        let (notes, mut sent) = mpsc::unbounded();
+        let shown = notifications(Service::Server, QueuedClicks::default(), notes).unwrap();
+        let _refusing = Refusing::new();
+
+        shown
+            .show(&NotificationRequest {
+                delivery_id: "refused".into(),
+                title: "Bientôt".into(),
+                body: "Il reste 15 minutes avant votre objectif.".into(),
+            })
+            .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let note = loop {
+            if let Ok(note) = sent.try_recv() {
+                break note;
+            }
+            assert!(Instant::now() < deadline, "gave up waiting for the refusal");
+            std::thread::sleep(Duration::from_millis(50));
+        };
+
+        assert_eq!(note, refused_toast_line());
+    }
+
+    #[test]
+    fn what_keeps_later_launches_away_is_logged_with_its_kind() {
+        let line = |event, kind: &'static str| BackendNote {
+            level: Warning,
+            event,
+            properties: vec![("kind", kind.into())],
+            idle: None,
+            lifecycle: None,
+            lock_reporting: None,
+        };
+        assert_eq!(
+            [
+                InstanceNote::StaleSocketKept(io::ErrorKind::PermissionDenied),
+                InstanceNote::Unbound(io::ErrorKind::AddrInUse),
+                InstanceNote::Unbound(io::ErrorKind::InvalidInput),
+                InstanceNote::AcceptFailed(io::ErrorKind::NotFound),
+                InstanceNote::AcceptFailed(io::ErrorKind::OutOfMemory),
+            ]
+            .map(instance_line),
+            [
+                line("instance.stale_socket_kept", "permission_denied"),
+                line("instance.listen_failed", "address_in_use"),
+                line("instance.listen_failed", "invalid_input"),
+                line("instance.accept_failed", "not_found"),
+                line("instance.accept_failed", "other"),
+            ]
+        );
+    }
 
     #[test]
     fn the_log_and_the_export_name_the_idle_backend_chosen_then_each_change() {

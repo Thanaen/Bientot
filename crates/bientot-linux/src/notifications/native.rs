@@ -32,8 +32,9 @@ const PORTAL_PATH: &str = "/org/freedesktop/portal/desktop";
 /// service answers at all.
 const TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Shows the reminders through `org.freedesktop.Notifications` or the portal, and hands the
-/// clicks on their body to the [`QueuedClicks`] it was started with. Dropping it ends its thread.
+/// Shows the reminders through `org.freedesktop.Notifications` or the portal, hands the clicks on
+/// their body to the [`QueuedClicks`] it was started with, and tells the caller each show the
+/// service refused. Dropping it ends its thread.
 pub struct DesktopNotifications {
     shows: async_channel::Sender<NotificationRequest>,
 }
@@ -54,8 +55,14 @@ impl Error for Unavailable {}
 impl DesktopNotifications {
     /// Opens the session bus and waits, up to [`TIMEOUT`], for `service` to answer: the server's
     /// `GetServerInformation`, or the portal's `version`. A server that is not running may be
-    /// started for it, as D-Bus activation does for notifications.
-    pub fn start(service: Service, clicks: QueuedClicks) -> Result<Self, Unavailable> {
+    /// started for it, as D-Bus activation does for notifications. `on_refused` runs on that
+    /// thread for each show the service refuses later: the reminder stays reserved, as when a
+    /// toast fails on Windows.
+    pub fn start(
+        service: Service,
+        clicks: QueuedClicks,
+        on_refused: impl FnMut() + Send + 'static,
+    ) -> Result<Self, Unavailable> {
         let (shows, requests) = async_channel::unbounded();
         let (answer, answered) = mpsc::sync_channel(1);
         thread::Builder::new()
@@ -63,7 +70,9 @@ impl DesktopNotifications {
             .spawn(move || {
                 async_io::block_on(async move {
                     match open(service).await {
-                        Ok(bus) => serve(service, bus, answer, requests, clicks).await,
+                        Ok(bus) => {
+                            serve(service, bus, answer, requests, clicks, on_refused).await;
+                        }
                         Err(error) => drop(answer.send(Err(error))),
                     }
                 });
@@ -79,8 +88,8 @@ impl DesktopNotifications {
 }
 
 impl Notifier for DesktopNotifications {
-    /// Returns once the notification thread has `request`. A service that refuses it then is
-    /// logged there: the reminder stays reserved, as when a toast fails on Windows.
+    /// Returns once the notification thread has `request`. A refusal by the service comes later,
+    /// through the `on_refused` of [`DesktopNotifications::start`].
     fn show(&self, request: &NotificationRequest) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.shows
             .try_send(request.clone())
@@ -191,6 +200,7 @@ async fn serve(
     answer: Answer,
     requests: async_channel::Receiver<NotificationRequest>,
     clicks: QueuedClicks,
+    mut on_refused: impl FnMut(),
 ) {
     let signals = MessageStream::from(&bus);
     let _ = answer.send(Ok(()));
@@ -204,7 +214,7 @@ async fn serve(
                 match event {
                     Event::Show(request) => match show(&bus, &notify(&request)).await {
                         Ok(id) => delivered.shown(id, request.delivery_id),
-                        Err(error) => refused(&request, &error),
+                        Err(_) => on_refused(),
                     },
                     Event::Invoked { key, action } => click(&clicks, &delivered, &key, &action),
                     Event::Closed(key) => delivered.closed(&key),
@@ -219,7 +229,7 @@ async fn serve(
                 match event {
                     Event::Show(request) => match add(&bus, &request).await {
                         Ok(()) => delivered.shown(request.delivery_id.clone(), request.delivery_id),
-                        Err(error) => refused(&request, &error),
+                        Err(_) => on_refused(),
                     },
                     Event::Invoked { key, action } => click(&clicks, &delivered, &key, &action),
                     // The portal tells no close.
@@ -317,13 +327,6 @@ fn click<K: Eq + std::hash::Hash>(
     if let Some(delivery_id) = delivered.invoked(key, action) {
         clicks.click(Some(delivery_id.to_owned()));
     }
-}
-
-fn refused(request: &NotificationRequest, error: &dyn fmt::Display) {
-    log::warn!(
-        "the desktop did not show the notification {}: {error}",
-        request.delivery_id
-    );
 }
 
 #[cfg(test)]
