@@ -108,8 +108,8 @@ pub trait Tray<C> {
 /// What an [`InMemoryTray`] was last given to show.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Published<C> {
-    /// The size of each pixmap of the icon.
-    pub icon_sizes: Vec<u32>,
+    /// Each pixmap of the icon: its size and its RGBA rows.
+    pub pixmaps: Vec<(u32, Vec<u8>)>,
     pub tooltip: String,
     pub menu: Vec<MenuEntry<C>>,
     pub generation: u64,
@@ -153,7 +153,12 @@ impl<C: Clone> Tray<C> for InMemoryTray<C> {
 
     fn publish(&self, state: TrayState<'_, C>) {
         *self.published.borrow_mut() = Some(Published {
-            icon_sizes: state.icon.pixmaps.iter().map(|(size, _)| *size).collect(),
+            pixmaps: state
+                .icon
+                .pixmaps
+                .iter()
+                .map(|(size, rgba)| (*size, rgba.to_vec()))
+                .collect(),
             tooltip: state.tooltip.to_owned(),
             menu: state.menu.to_vec(),
             generation: state.generation,

@@ -349,7 +349,8 @@ pub enum TrayEvent {
 pub trait Tray<C> {
     /// Sizes the host wants, in pixels, most wanted first.
     fn icon_sizes(&self) -> Vec<u32>;
-    /// Whether the panel is dark, when the platform can tell.
+    /// Whether the panel is dark, when the platform can tell. `None` (Linux) draws the icon
+    /// for a panel of any colour, `tray_art::Taskbar::Unknown`.
     fn panel_is_dark(&self) -> Option<bool>;
     fn host(&self) -> TrayHost;
     fn publish(&self, state: TrayState<'_, C>);

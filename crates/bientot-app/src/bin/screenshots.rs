@@ -1,6 +1,6 @@
 //! Renders the flyout of every demo scenario, the week of the scenarios that store one, and the
 //! states of « Corriger le temps… », « Paramètres » and the onboarding, to PNG files, in one
-//! language and one theme.
+//! language and one theme; for Linux, the tray icon on panels of several colours too.
 //!
 //! Usage: `bientot-screenshots <output directory> --french|--english --light|--dark
 //! [--platform windows|linux]`. Each scenario module's doc lists the files it writes there; a
@@ -51,6 +51,8 @@ mod settings;
 mod shared;
 #[path = "screenshots/startup_failure.rs"]
 mod startup_failure;
+#[path = "screenshots/tray.rs"]
+mod tray;
 #[path = "screenshots/week.rs"]
 mod week;
 
@@ -133,7 +135,7 @@ fn close_windows(cx: &mut HeadlessAppContext) -> anyhow::Result<()> {
 type Scenes = fn(&mut HeadlessAppContext, Language, &std::path::Path) -> anyhow::Result<()>;
 
 /// Every group of scenes, by the name `screenshots/platform.rs` gives it, in the order taken.
-const SCENES: [(&str, Scenes); 21] = [
+const SCENES: [(&str, Scenes); 22] = [
     ("flyout::capture_scenarios", flyout::capture_scenarios),
     ("saturday::capture_day_off", saturday::capture_day_off),
     (
@@ -176,6 +178,7 @@ const SCENES: [(&str, Scenes); 21] = [
         "startup_failure::capture_failures",
         startup_failure::capture_failures,
     ),
+    ("tray::capture_icons", tray::capture_icons),
 ];
 
 /// The first frame of the dialog's entrance, the next two at 60 Hz (16.7 ms and 33.3 ms of
