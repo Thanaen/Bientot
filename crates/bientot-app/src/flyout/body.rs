@@ -11,6 +11,7 @@ use gpui::{
 };
 
 use super::{BODY_PADDING, Flyout, InstallUpdate, UndoNotice, readable};
+use crate::platform::Backends;
 use crate::settings_view;
 use crate::strings::Key;
 use crate::theme::spacing::*;
@@ -263,8 +264,13 @@ impl Flyout {
         )
     }
 
-    fn headline(&self, theme: &Theme) -> impl IntoElement {
-        let headline = self.day.shown_while(self.tracking.state()).headline;
+    fn headline(&self, undetectable: bool, theme: &Theme) -> impl IntoElement {
+        let tracking = self.tracking.state();
+        let headline = if undetectable {
+            self.day.headline_without_detection(tracking, self.language)
+        } else {
+            self.day.shown_while(tracking).headline.clone()
+        };
         let value = if headline.emphasized {
             div().type_style(text::WT_HERO)
         } else {
@@ -406,8 +412,11 @@ impl Flyout {
         theme: &Theme,
     ) -> Vec<AnyElement> {
         let mut parts = self.notices(window, cx, theme);
+        let undetectable = cx
+            .try_global::<Backends>()
+            .is_some_and(|backends| backends.activity_undetectable);
         parts.extend(
-            self.source_callout(theme)
+            self.source_callout(undetectable, theme)
                 .map(|callout| (Part::SourceCallout, callout)),
         );
         parts.extend(
@@ -422,7 +431,10 @@ impl Flyout {
             self.trust_callout(theme)
                 .map(|callout| (Part::TrustCallout, callout)),
         );
-        parts.push((Part::Headline, self.headline(theme).into_any_element()));
+        parts.push((
+            Part::Headline,
+            self.headline(undetectable, theme).into_any_element(),
+        ));
         parts.extend(
             self.day
                 .worked

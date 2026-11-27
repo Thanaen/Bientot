@@ -29,13 +29,13 @@ use crate::adjust::{Editable, Seed, Target};
 use crate::adjust_view;
 use crate::demo::DemoHost;
 use crate::flyout::{
-    AdjustTime, Alerts, CountAutomatically, CountUnrecorded, ExportDiagnostics, FinishDay,
-    HideCount, HideTrustOffer, OpenGeneralSettings, OpenSettings, OpenSettingsJson, OpenWeek, Quit,
-    Refresh, ResolveReview, ShowUnrecorded, TogglePause, UndoCount, UndoNotice,
+    AdjustTime, Alerts, CountAutomatically, CountUnrecorded, DeclareTime, ExportDiagnostics,
+    FinishDay, HideCount, HideTrustOffer, OpenGeneralSettings, OpenSettings, OpenSettingsJson,
+    OpenWeek, Quit, Refresh, ResolveReview, ShowUnrecorded, TogglePause, UndoCount, UndoNotice,
     UseBuiltInDetection,
 };
 use crate::live::{Announcement, LiveHost, Tracking, TrackingCommand};
-use crate::platform::{BackendNotes, Backends, TrayEvents};
+use crate::platform::{BackendNotes, Backends, NO_BACKEND, TrayEvents};
 use crate::settings::Page;
 use crate::strings::{Key, Language};
 use crate::time_text::minutes_text;
@@ -413,6 +413,16 @@ impl Today {
         workday.is_working_day().then_some(Target { workday, zone })
     }
 
+    /// « Déclarer du temps travaillé » of today, on what the week's « Déclarer du temps
+    /// travaillé… » would open it.
+    pub fn declaration(&self) -> Seed {
+        self.week()
+            .inspect_err(|error| log::error!("cannot read the week: {error:#}"))
+            .map_or(Seed::DeclareWork(None), |week| {
+                week.declaration(&self.workday())
+            })
+    }
+
     /// The time a correction opened now is recorded at.
     pub fn adjustment_time(&self) -> Timestamp {
         match &self.source {
@@ -537,6 +547,10 @@ pub fn install(today: Today, cx: &mut App) {
     cx.on_action(|_: &OpenWeek, cx| week_view::open(cx));
     cx.on_action(|_: &AdjustTime, cx| {
         let _ = adjust_view::window::open(None, Seed::Blank, Opener::Flyout, cx);
+    });
+    cx.on_action(|_: &DeclareTime, cx| {
+        let seed = cx.global::<Today>().declaration();
+        let _ = adjust_view::window::open(None, seed, Opener::Flyout, cx);
     });
     cx.on_action(|count: &CountUnrecorded, cx| {
         let mut notice = None;
@@ -764,14 +778,19 @@ pub fn install_tray(
 }
 
 /// Writes each line the backends send to the diagnostic log of the user's own day, as it comes,
-/// and names in the export the idle or lifecycle backend a line says is in use.
+/// and names in the export the idle or lifecycle backend a line says is in use, and whether the
+/// desktop reports locks.
 pub fn log_backend_notes(mut notes: BackendNotes, cx: &mut App) {
     cx.spawn(async move |cx| {
         while let Some(note) = notes.next().await {
             cx.update(|cx| {
                 let backends = cx.default_global::<Backends>();
-                backends.idle = note.idle.or(backends.idle);
+                if let Some(idle) = note.idle {
+                    backends.idle = Some(idle);
+                    backends.activity_undetectable = idle == NO_BACKEND;
+                }
                 backends.lifecycle = note.lifecycle.or(backends.lifecycle);
+                backends.lock_reporting = note.lock_reporting.or(backends.lock_reporting);
                 if let Some(host) = cx.global_mut::<Today>().live() {
                     host.log(note.level, note.event, &note.properties);
                 }

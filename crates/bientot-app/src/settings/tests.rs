@@ -2,11 +2,13 @@ use std::io;
 
 use bientot_core::settings::SettingsPort;
 use bientot_domain::configuration::Settings;
+use bientot_platform::lifecycle::LockReporting;
 use bientot_store::settings::SaveSettingsError;
 use jiff::SignedDuration;
 use jiff::civil::Date;
 
 use super::*;
+use crate::platform::Backends;
 
 /// Records the saves; fails them while `fail`, and the recalculations while `stale`.
 #[derive(Default)]
@@ -342,6 +344,127 @@ fn a_flatpak_or_an_appimage_names_itself_under_the_version() {
             "{install_kind:?}"
         );
     }
+}
+
+fn diagnostic(backends: Backends, language: Language) -> Option<DiagnosticView> {
+    let mut form = SettingsForm::new(built_in(), usage_ping(None, Channel::Zip), language);
+    form.show_backends(backends);
+    form.view().diagnostic
+}
+
+fn diagnostic_row(
+    title: &'static str,
+    value: &'static str,
+    description: Option<&'static str>,
+) -> Option<DiagnosticRow> {
+    Some(DiagnosticRow {
+        title,
+        value,
+        description,
+    })
+}
+
+#[test]
+fn diagnostic_names_the_idle_backend_in_use_and_whether_locks_are_reported() {
+    let backends = Backends {
+        idle: Some("ext-idle-notify-v1"),
+        lifecycle: Some("logind"),
+        lock_reporting: Some(LockReporting::Unavailable),
+        ..Backends::default()
+    };
+    assert_eq!(
+        diagnostic(backends, Language::French),
+        Some(DiagnosticView {
+            heading: "Diagnostic",
+            activity: diagnostic_row("Méthode de détection", "ext-idle-notify-v1", None),
+            locks: diagnostic_row(
+                "Verrouillage de l’écran",
+                "Non signalé",
+                Some(
+                    "Ce bureau ne signale pas le verrouillage de l’écran. \
+                     Bientôt se fie à votre activité."
+                ),
+            ),
+        })
+    );
+    assert_eq!(
+        diagnostic(backends, Language::English),
+        Some(DiagnosticView {
+            heading: "Diagnostics",
+            activity: diagnostic_row("Detection method", "ext-idle-notify-v1", None),
+            locks: diagnostic_row(
+                "Screen lock",
+                "Not reported",
+                Some("This desktop does not report screen locks. Bientôt relies on your activity."),
+            ),
+        })
+    );
+    let undetectable = Backends {
+        idle: Some("none"),
+        activity_undetectable: true,
+        lock_reporting: Some(LockReporting::Live),
+        ..backends
+    };
+    assert_eq!(
+        diagnostic(undetectable, Language::French),
+        Some(DiagnosticView {
+            heading: "Diagnostic",
+            activity: diagnostic_row(
+                "Méthode de détection",
+                "Aucune",
+                Some("Rien n’est compté automatiquement."),
+            ),
+            locks: diagnostic_row("Verrouillage de l’écran", "Signalé", None),
+        })
+    );
+    assert_eq!(
+        diagnostic(undetectable, Language::English),
+        Some(DiagnosticView {
+            heading: "Diagnostics",
+            activity: diagnostic_row(
+                "Detection method",
+                "None",
+                Some("Nothing is counted automatically."),
+            ),
+            locks: diagnostic_row("Screen lock", "Reported", None),
+        })
+    );
+    let demo = Backends {
+        idle: Some("none"),
+        activity_undetectable: false,
+        ..backends
+    };
+    assert_eq!(
+        diagnostic(demo, Language::French).and_then(|diagnostic| diagnostic.activity),
+        diagnostic_row("Méthode de détection", "Aucune", None),
+        "a demo reads no input but counts its scenario"
+    );
+    let unknown = Backends {
+        lock_reporting: None,
+        ..backends
+    };
+    assert_eq!(
+        diagnostic(unknown, Language::French).and_then(|diagnostic| diagnostic.locks),
+        None,
+        "no lock row until lock reporting is known"
+    );
+}
+
+#[test]
+fn diagnostic_shows_nowhere_the_backends_tell_nothing() {
+    assert_eq!(
+        diagnostic(Backends::default(), Language::French),
+        None,
+        "Windows"
+    );
+    let backends = Backends {
+        idle: Some("MIT-SCREEN-SAVER"),
+        ..Backends::default()
+    };
+    let mut form = SettingsForm::new(built_in(), usage_ping(None, Channel::Zip), Language::French);
+    form.show_backends(backends);
+    form.go_to(Page::Schedule);
+    assert_eq!(form.view().diagnostic, None, "only « Général » shows it");
 }
 
 /// « Menu des applications » on each group of « Général », by heading.

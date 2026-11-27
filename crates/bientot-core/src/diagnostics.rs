@@ -144,6 +144,9 @@ pub struct DiagnosticSystemSnapshot {
     /// Each concern with the name of its backend, both from the code: `("tray",
     /// "status-notifier")`.
     pub backends: Vec<(&'static str, &'static str)>,
+    /// Whether the desktop reports screen locks, `live` or `unavailable`: `None` where no watch
+    /// said.
+    pub lock_reporting: Option<&'static str>,
 }
 
 impl DiagnosticSystemSnapshot {
@@ -515,6 +518,9 @@ impl DiagnosticSystemSnapshot {
                 backends.name(concern, backend);
             }
         });
+        if let Some(reporting) = self.lock_reporting {
+            object.name("lockReporting", reporting);
+        }
     }
 }
 

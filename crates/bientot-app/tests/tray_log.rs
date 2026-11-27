@@ -17,6 +17,7 @@ use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
 use bientot_domain::sources::LastInputReading;
 use bientot_domain::time::{FixedTimeZoneProvider, SystemClock};
 use bientot_platform::activity::LastInputProbe;
+use bientot_platform::lifecycle::LockReporting;
 use bientot_platform::placement::{FlyoutPlacement, InMemoryDesktop};
 use bientot_platform::tray::{InMemoryTray, TrayEvent, TrayHost};
 use bientot_store::data_directory::DataDirectory;
@@ -130,6 +131,7 @@ fn the_log_writes_each_line_the_backends_send_those_sent_before_the_day_included
         properties,
         idle: None,
         lifecycle: None,
+        lock_reporting: None,
     };
     cx.update(|cx| {
         cx.set_global(Backends {
@@ -179,5 +181,106 @@ fn the_log_writes_each_line_the_backends_send_those_sent_before_the_day_included
         cx.update(|cx| cx.global::<Backends>().named()),
         [("idle", "MIT-SCREEN-SAVER"), ("lifecycle", "none")],
         "the export names the idle and lifecycle backends in use"
+    );
+}
+
+/// A line of the idle watch that names `backend`.
+fn idle_note(backend: &'static str) -> BackendNote {
+    BackendNote {
+        level: DiagnosticLogLevel::Information,
+        event: "idle.backend",
+        properties: vec![("name", backend.into())],
+        idle: Some(backend),
+        lifecycle: None,
+        lock_reporting: None,
+    }
+}
+
+/// What the flyout reads to tell that nothing is counted automatically, after the lines sent.
+fn undetectable_after(
+    cx: &mut gpui::HeadlessAppContext,
+    notes: &mpsc::UnboundedSender<BackendNote>,
+    sent: impl IntoIterator<Item = BackendNote>,
+) -> bool {
+    for note in sent {
+        notes.unbounded_send(note).unwrap();
+    }
+    cx.run_until_parked();
+    cx.update(|cx| cx.global::<Backends>().activity_undetectable)
+}
+
+#[test]
+fn activity_is_undetectable_while_the_idle_watch_last_named_no_backend() {
+    let folder = tempfile::tempdir().unwrap();
+    let (mut cx, _events) = installed(folder.path(), None);
+    let (notes, received) = mpsc::unbounded();
+    // As a demo names its idle backend: it starts no watch.
+    cx.update(|cx| {
+        cx.set_global(Backends {
+            idle: Some("none"),
+            ..Backends::default()
+        });
+        host::log_backend_notes(received, cx);
+    });
+
+    assert!(!undetectable_after(&mut cx, &notes, []), "before any line");
+    assert!(undetectable_after(&mut cx, &notes, [idle_note("none")]));
+    assert!(!undetectable_after(
+        &mut cx,
+        &notes,
+        [idle_note("MIT-SCREEN-SAVER")]
+    ));
+    let inhibitors = BackendNote {
+        event: "idle.inhibitor_blind",
+        properties: vec![("value", false.into())],
+        idle: None,
+        ..idle_note("none")
+    };
+    assert!(
+        !undetectable_after(&mut cx, &notes, [inhibitors]),
+        "a line that names no backend changes nothing"
+    );
+}
+
+#[test]
+fn the_export_tells_whether_the_desktop_reports_locks_as_the_last_line_says() {
+    let folder = tempfile::tempdir().unwrap();
+    let (mut cx, _events) = installed(folder.path(), None);
+    let (notes, received) = mpsc::unbounded();
+    let line = |reporting, value: &'static str| BackendNote {
+        level: DiagnosticLogLevel::Information,
+        event: "lifecycle.lock_reporting",
+        properties: vec![("value", value.into())],
+        idle: None,
+        lifecycle: None,
+        lock_reporting: Some(reporting),
+    };
+    cx.update(|cx| host::log_backend_notes(received, cx));
+    let reporting = |cx: &mut gpui::HeadlessAppContext| {
+        cx.run_until_parked();
+        cx.update(|cx| cx.global::<Backends>().lock_reporting)
+    };
+
+    notes
+        .unbounded_send(line(LockReporting::Unavailable, "unavailable"))
+        .unwrap();
+    assert_eq!(reporting(&mut cx), Some(LockReporting::Unavailable));
+    notes.unbounded_send(idle_note("none")).unwrap();
+    assert_eq!(
+        reporting(&mut cx),
+        Some(LockReporting::Unavailable),
+        "a line that does not tell keeps it"
+    );
+    notes
+        .unbounded_send(line(LockReporting::Live, "live"))
+        .unwrap();
+    assert_eq!(reporting(&mut cx), Some(LockReporting::Live));
+    assert_eq!(
+        logged(folder.path()),
+        [
+            r#""Event":"lifecycle.lock_reporting","Properties":{"value":"unavailable"}}"#,
+            r#""Event":"idle.backend","Properties":{"name":"none"}}"#,
+            r#""Event":"lifecycle.lock_reporting","Properties":{"value":"live"}}"#,
+        ]
     );
 }

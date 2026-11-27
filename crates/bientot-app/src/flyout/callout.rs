@@ -3,9 +3,9 @@
 use gpui::{Action, AnyElement, FontWeight, Role, SharedString, div, prelude::*};
 
 use super::{
-    CountAutomatically, CountUnrecorded, Flyout, HideCount, HideTrustOffer, OpenGeneralSettings,
-    Refresh, ResolveReview, ShowUnrecorded, UndoCount, UseBuiltInDetection, control, control_icon,
-    key_caps, keys, keystroke, readable,
+    CountAutomatically, CountUnrecorded, DeclareTime, Flyout, HideCount, HideTrustOffer,
+    OpenGeneralSettings, Refresh, ResolveReview, ShowUnrecorded, UndoCount, UseBuiltInDetection,
+    control, control_icon, key_caps, keys, keystroke, readable,
 };
 use crate::settings_view::outlined_on_tint;
 use crate::strings::Key;
@@ -20,8 +20,12 @@ impl Flyout {
     /// What the source reported, and what to do about it: a failure is a warning, with a refresh
     /// to try again; unrecorded time is only information, with « Oui, compter N min » to count
     /// it as work, filled as the usual answer, on a day that can be corrected, and « Voir sur la
-    /// frise » to settle it in the week.
-    pub(super) fn source_callout(&self, theme: &Theme) -> Option<AnyElement> {
+    /// frise » to settle it in the week. While no idle backend answers, see
+    /// [`Self::undetectable_callout`].
+    pub(super) fn source_callout(&self, undetectable: bool, theme: &Theme) -> Option<AnyElement> {
+        if undetectable {
+            return Some(self.undetectable_callout(theme));
+        }
         let hint = self.day.source_hint.as_ref()?;
         let (failure, remedies) = match hint {
             SourceHint::Failure {
@@ -106,6 +110,38 @@ impl Flyout {
                 )
                 .into_any_element(),
         )
+    }
+
+    /// No idle backend answers on this desktop: the built-in source fails at every read, which a
+    /// refresh or the settings cannot change, so the callout offers « Déclarer du temps » in
+    /// their place, on a day that can be corrected.
+    fn undetectable_callout(&self, theme: &Theme) -> AnyElement {
+        let title = self.text(Key::ActivityUndetectableTitle);
+        let declare = self.tracking.can_correct_time().then(|| {
+            let id = "declare-time";
+            let button = filled_button(id, self.text(Key::ActivityUndetectableAction), theme)
+                .on_click(|_, window, cx| window.dispatch_action(Box::new(DeclareTime), cx));
+            self.reveal_on_tab(id, button)
+        });
+        callout_box_with_icon(Hue::Warning, "activity", theme)
+            .id("activity-undetectable")
+            .role(Role::Group)
+            .aria_label(title)
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .flex()
+                    .flex_col()
+                    .gap(BASE_02)
+                    .child(div().font_weight(FontWeight::SEMIBOLD).child(title))
+                    .child(readable(
+                        "activity-undetectable-body",
+                        self.text(Key::ActivityUndetectableText),
+                    ))
+                    .children(declare.map(|button| div().pt(BASE_06).flex().child(button))),
+            )
+            .into_any_element()
     }
 
     /// The review that is not of a lock and awaits an answer, an absence in a recurring

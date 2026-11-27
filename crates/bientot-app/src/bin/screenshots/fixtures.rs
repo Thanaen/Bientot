@@ -4,14 +4,17 @@
 use anyhow::Context as _;
 use bientot_app::demo;
 use bientot_app::live::{self, LiveHost};
+use bientot_app::platform::Backends;
 use bientot_app::settings::{Field, Switch, UsagePingFacts};
 use bientot_app::settings_view::SettingsView;
+use bientot_app::strings::Key;
 use bientot_app::theme::motion;
 use bientot_core::settings::{EditGroup, SettingsPort};
 use bientot_domain::configuration::{RecurringAppointment, Settings};
 use bientot_domain::sources::{ActivitySourceKind, ActivitySourceSelection, IdleSpan, IdleState};
 use bientot_domain::time::{Clock, FixedTimeZoneProvider, FrozenClock};
 use bientot_domain::usage_ping::{Build, Channel};
+use bientot_platform::lifecycle::LockReporting;
 use bientot_platform::startup::StartupRegistrationState;
 use bientot_platform::system::InstallKind;
 use bientot_store::activity::{ActivitySourceSelectionRepository, ActivitySpanRepository};
@@ -153,6 +156,11 @@ pub(super) enum SettingsState {
     LauncherOff,
     /// The AppImage's change of the menu of applications refused.
     LauncherFailed,
+    /// Scrolled to « Diagnostic »: Linux's idle backend on Wayland, on a desktop that reports
+    /// no lock.
+    Diagnostic,
+    /// Scrolled to « Diagnostic »: no idle backend answers, and locks are reported.
+    DiagnosticUndetectable,
     /// Two recurring appointments, the second switched off.
     Appointments,
     /// `Appointments` with the editor open on a new one.
@@ -199,6 +207,8 @@ impl SettingsState {
             Self::LanguageOpen => Some("language-open"),
             Self::LauncherOff => Some("launcher-off"),
             Self::LauncherFailed => Some("launcher-failed"),
+            Self::Diagnostic => Some("diagnostic"),
+            Self::DiagnosticUndetectable => Some("diagnostic-undetectable"),
             Self::Appointments => Some("appointments"),
             Self::AppointmentNew => Some("appointment-new"),
             Self::AppointmentEdit => Some("appointment-edit"),
@@ -321,6 +331,9 @@ impl SettingsState {
         if details || matches!(self, Self::End | Self::Zip) {
             view.scroll_to_end();
         }
+        if matches!(self, Self::Diagnostic | Self::DiagnosticUndetectable) {
+            view.scroll_to_group(Key::SettingsDetectionGroup);
+        }
         match self {
             Self::AppointmentNew | Self::AppointmentHoursError => {
                 view.open_appointment(None, window, cx);
@@ -360,6 +373,19 @@ impl SettingsState {
             | Self::AppointmentEdit
             | Self::AppointmentAlternate
             | Self::LauncherOff => {}
+            Self::Diagnostic => form.show_backends(Backends {
+                idle: Some("ext-idle-notify-v1"),
+                lifecycle: Some("logind"),
+                lock_reporting: Some(LockReporting::Unavailable),
+                ..Backends::default()
+            }),
+            Self::DiagnosticUndetectable => form.show_backends(Backends {
+                idle: Some("none"),
+                activity_undetectable: true,
+                lifecycle: Some("logind"),
+                lock_reporting: Some(LockReporting::Live),
+                ..Backends::default()
+            }),
             Self::LauncherFailed => {
                 let added = form.change_launcher();
                 assert_eq!(added, Some(false), "the switch removes the AppImage");

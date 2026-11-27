@@ -106,6 +106,17 @@ const LINUX: &[Scene] = &[
         group: "settings::capture_pages",
         name: "settings-general-end",
     },
+    // « Diagnostic » under it, which only Linux shows: DiagnosticSection.Header and
+    // .Detection with the idle backend's name, .Locks with .LocksNotReported and
+    // LockStateUnknown.Text; then .ActivityNone with .ActivityNoneText, and .LocksReported.
+    Scene {
+        group: "settings::capture_pages",
+        name: "settings-general-diagnostic",
+    },
+    Scene {
+        group: "settings::capture_pages",
+        name: "settings-general-diagnostic-undetectable",
+    },
     // SettingsStartupCard.Header, in the two other states Linux reaches.
     Scene {
         group: "settings::capture_pages",
@@ -130,6 +141,16 @@ const LINUX: &[Scene] = &[
     Scene {
         group: "flyout::capture_notices",
         name: "flyout-notifications-unavailable",
+    },
+    // ActivityUndetectable.Title, .Text and .Action: a state only Linux has.
+    Scene {
+        group: "flyout::capture_notices",
+        name: "flyout-activity-undetectable",
+    },
+    // ActivityUndetectable.ForecastPaused.
+    Scene {
+        group: "flyout::capture_notices",
+        name: "flyout-activity-undetectable-paused",
     },
     // FlyoutRebuiltReviewText.
     Scene {

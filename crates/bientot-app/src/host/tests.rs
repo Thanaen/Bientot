@@ -1058,3 +1058,25 @@ fn a_click_on_an_item_of_a_replaced_menu_runs_nothing() {
         Some(MenuCommand::TogglePause),
     );
 }
+
+/// « Déclarer du temps » of the flyout opens on what the week's « Déclarer du temps
+/// travaillé… » of today opens: here the morning nothing recorded, not 09:00 to 10:00.
+#[test]
+fn the_flyout_declares_time_where_the_week_would() {
+    let folder = tempfile::tempdir().unwrap();
+    let today = start(folder.path(), clock());
+    let week = WeekState::new(today.week().unwrap(), Language::English);
+    let (_, seed) = week.declare_work().unwrap();
+    let Seed::DeclareWork(Some(unrecorded)) = &seed else {
+        panic!("the morning is left to declare: {seed:?}");
+    };
+    assert_eq!(
+        unrecorded.slots(),
+        [UtcInterval::new(
+            "2026-10-08T00:00:00Z".parse().unwrap(),
+            START.parse().unwrap()
+        )
+        .unwrap()]
+    );
+    assert_eq!(today.declaration(), seed);
+}

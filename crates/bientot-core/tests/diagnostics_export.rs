@@ -735,6 +735,7 @@ fn names_the_system_after_the_runtime_where_the_platform_describes_it() {
             desktops: vec![name("ubuntu"), name("gnome")],
             session_type: DiagnosticSessionType::Wayland,
             backends: vec![("tray", "status-notifier"), ("notifications", "none")],
+            lock_reporting: Some("unavailable"),
         }),
         ..useful_snapshot()
     };
@@ -743,7 +744,7 @@ fn names_the_system_after_the_runtime_where_the_platform_describes_it() {
     export(&destination, None, &described).unwrap();
 
     let snapshot = Archive::open(&destination).text("snapshot.json");
-    let system = r#"{"installKind":"Flatpak","distribution":"ubuntu","distributionVersion":"24.04","desktops":["ubuntu","gnome"],"sessionType":"Wayland","backends":{"tray":"status-notifier","notifications":"none"}}"#;
+    let system = r#"{"installKind":"Flatpak","distribution":"ubuntu","distributionVersion":"24.04","desktops":["ubuntu","gnome"],"sessionType":"Wayland","backends":{"tray":"status-notifier","notifications":"none"},"lockReporting":"unavailable"}"#;
     assert!(
         snapshot.contains(&format!(r#""X64"}},"system":{system},"summary":"#)),
         "{snapshot}"
@@ -762,6 +763,7 @@ fn writes_at_most_eight_desktops() {
             desktops: vec![desktop; 9],
             session_type: DiagnosticSessionType::Unknown,
             backends: Vec::new(),
+            lock_reporting: None,
         }),
         ..useful_snapshot()
     };

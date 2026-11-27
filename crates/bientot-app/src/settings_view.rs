@@ -34,7 +34,7 @@ use gpui::{
 
 use crate::adjust::{TimeField, TimePart};
 use crate::host::{self, Today};
-use crate::platform;
+use crate::platform::{self, Backends};
 use crate::settings::data::DataPage;
 use crate::settings::startup;
 use crate::settings::{
@@ -377,6 +377,9 @@ impl SettingsView {
         if let Some(page) = startup.as_ref().and_then(|port| port.system_page()) {
             form.show_startup_page(page);
         }
+        if let Some(backends) = cx.try_global::<Backends>() {
+            form.show_backends(*backends);
+        }
         let language = cx.try_global::<Language>().copied().unwrap_or_default();
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle, cx);
@@ -394,6 +397,10 @@ impl SettingsView {
             })
             .collect();
         let mut subscriptions = Vec::new();
+        subscriptions.push(cx.observe_global::<Backends>(|view, cx| {
+            view.form.show_backends(*cx.global::<Backends>());
+            cx.notify();
+        }));
         subscriptions.push(cx.observe_window_activation(window, |view, window, cx| {
             if window.is_window_active() {
                 view.read_startup(cx);
@@ -548,6 +555,20 @@ impl SettingsView {
     pub fn scroll_to_end(&mut self) {
         self.content_scroll.scroll_to_bottom();
         self.json.scroll_to_end();
+    }
+
+    /// Brings the group under `heading` to the top of the page, for the screenshots.
+    pub fn scroll_to_group(&self, heading: Key) {
+        let page = self.form.view();
+        let heading = self.language.text(heading);
+        if let Some(position) = page
+            .sections
+            .iter()
+            .position(|section| section.heading == Some(heading))
+        {
+            let before = usize::from(page.source.is_some());
+            self.content_scroll.scroll_to_top_of_item(before + position);
+        }
     }
 
     /// Names `folder` in the header of « settings.json » in place of the file's own, for the
@@ -2002,7 +2023,10 @@ impl SettingsView {
                 .chain(
                     page.about
                         .map(|about| about::section(about, theme).into_any_element()),
-                ),
+                )
+                .chain(page.diagnostic.map(|diagnostic| {
+                    about::diagnostic_section(diagnostic, theme).into_any_element()
+                })),
             theme,
         )
     }

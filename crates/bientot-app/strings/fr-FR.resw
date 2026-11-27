@@ -361,6 +361,18 @@
   <data name="LauncherEntry.Description" xml:space="preserve"><value>Afficher Bientôt dans le menu de votre bureau, pour l’ouvrir sans chercher le fichier AppImage.</value></data>
   <data name="LauncherEntry.Input.AutomationProperties.Name" xml:space="preserve"><value>Afficher Bientôt dans le menu des applications</value></data>
   <data name="LauncherEntry.ChangeFailed" xml:space="preserve"><value>Le menu des applications n’a pas pu être modifié. Réessayez.</value></data>
+  <data name="ActivityUndetectable.Title" xml:space="preserve"><value>Bientôt ne détecte pas votre activité sur ce bureau</value></data>
+  <data name="ActivityUndetectable.Text" xml:space="preserve"><value>Rien n’est compté automatiquement. Vous pouvez déclarer votre temps à la main.</value></data>
+  <data name="ActivityUndetectable.Action" xml:space="preserve"><value>Déclarer du temps</value></data>
+  <data name="DiagnosticSection.Header" xml:space="preserve"><value>Diagnostic</value></data>
+  <data name="DiagnosticSection.ActivityNone" xml:space="preserve"><value>Aucune</value></data>
+  <data name="DiagnosticSection.Locks" xml:space="preserve"><value>Verrouillage de l’écran</value></data>
+  <data name="ActivityUndetectable.ForecastPaused" xml:space="preserve"><value>Pas de prévision sans détection de l’activité</value></data>
+  <data name="DiagnosticSection.Detection" xml:space="preserve"><value>Méthode de détection</value></data>
+  <data name="DiagnosticSection.ActivityNoneText" xml:space="preserve"><value>Rien n’est compté automatiquement.</value></data>
+  <data name="DiagnosticSection.LocksReported" xml:space="preserve"><value>Signalé</value></data>
+  <data name="DiagnosticSection.LocksNotReported" xml:space="preserve"><value>Non signalé</value></data>
+  <data name="LockStateUnknown.Text" xml:space="preserve"><value>Ce bureau ne signale pas le verrouillage de l’écran. Bientôt se fie à votre activité.</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Envoyer un signal d’utilisation anonyme</value></data>
   <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Une fois par jour, sans identifiant ni donnée sur votre temps de travail. Ce décompte aide le développeur à savoir combien de personnes utilisent Bientôt.</value></data>

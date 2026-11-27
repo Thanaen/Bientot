@@ -11,10 +11,11 @@ use std::sync::Arc;
 use bientot_app::assets::{self, Assets};
 use bientot_app::demo::{self, DemoHost};
 use bientot_app::flyout::{
-    self, AdjustTime, Alerts, CountUnrecorded, FinishDay, Flyout, OpenGeneralSettings,
+    self, AdjustTime, Alerts, CountUnrecorded, DeclareTime, FinishDay, Flyout, OpenGeneralSettings,
     OpenSettings, OpenWeek, Refresh, ShowUnrecorded, TogglePause, UseBuiltInDetection,
 };
 use bientot_app::live::Tracking;
+use bientot_app::platform::Backends;
 use bientot_app::strings::Language;
 use bientot_app::theme::ThemeMode;
 use bientot_app::theme::size::FLYOUT_WIDTH;
@@ -75,7 +76,7 @@ fn tab_stops(scenario: DemoScenario, tracking: Tracking) -> Vec<&'static str> {
 
 /// [`tab_stops`] of a flyout that opens on `alerts`.
 fn tab_stops_with(scenario: DemoScenario, tracking: Tracking, alerts: Alerts) -> Vec<&'static str> {
-    press_every_tab_stop(day(scenario), tracking, alerts).0
+    press_every_tab_stop(day(scenario), tracking, alerts, Backends::default()).0
 }
 
 /// What the hint's two buttons sent.
@@ -85,12 +86,13 @@ struct Sent {
     shown: Vec<ShowUnrecorded>,
 }
 
-/// Enter on each Tab stop of the flyout of `day`, in Tab order: what each one did, and what the
-/// buttons of unrecorded time sent.
+/// Enter on each Tab stop of the flyout of `day`, in Tab order, with `backends` in use: what each
+/// one did, and what the buttons of unrecorded time sent.
 fn press_every_tab_stop(
     day: DayView,
     tracking: Tracking,
     alerts: Alerts,
+    backends: Backends,
 ) -> (Vec<&'static str>, Sent) {
     let pressed = Pressed::default();
     let sent = Rc::new(RefCell::new(Sent::default()));
@@ -101,6 +103,7 @@ fn press_every_tab_stop(
     cx.update(|cx| {
         cx.set_global(ThemeMode::Light);
         cx.set_global(Language::French);
+        cx.set_global(backends);
         assets::load_fonts(cx).unwrap();
         flyout::bind_keys(cx);
         record::<OpenWeek>(&pressed, "open week", cx);
@@ -110,6 +113,7 @@ fn press_every_tab_stop(
         record::<Refresh>(&pressed, "refresh", cx);
         record::<TogglePause>(&pressed, "toggle pause", cx);
         record::<AdjustTime>(&pressed, "adjust time", cx);
+        record::<DeclareTime>(&pressed, "declare time", cx);
         record::<FinishDay>(&pressed, "finish day", cx);
         // One listener only: the last one registered for an action is the one that runs.
         let (counted, counts) = (pressed.clone(), sent.clone());
@@ -248,6 +252,69 @@ fn a_failed_built_in_source_offers_its_settings_and_a_refresh() {
     );
 }
 
+/// Without an idle backend, every read fails: a refresh or the settings change nothing, and the
+/// flyout offers to declare the time by hand in their place.
+#[test]
+fn without_an_idle_backend_the_flyout_offers_to_declare_time() {
+    let undetectable = Backends {
+        idle: Some("none"),
+        activity_undetectable: true,
+        ..Backends::default()
+    };
+    let stops = |working_day| {
+        press_every_tab_stop(
+            day(DemoScenario::Unavailable),
+            running(working_day),
+            Alerts::default(),
+            undetectable,
+        )
+        .0
+    };
+    assert_eq!(
+        stops(true),
+        [
+            "open week",
+            "open settings",
+            "declare time",
+            "toggle pause",
+            "adjust time",
+            "finish day",
+        ]
+    );
+    assert_eq!(
+        stops(false),
+        ["open week", "open settings"],
+        "a day off cannot be corrected"
+    );
+}
+
+/// A demo names no idle backend without a watch to say so: its day is the scenario's.
+#[test]
+fn a_demo_without_an_idle_backend_keeps_the_hint_of_its_scenario() {
+    let demo = Backends {
+        idle: Some("none"),
+        ..Backends::default()
+    };
+    assert_eq!(
+        press_every_tab_stop(
+            day(DemoScenario::Unavailable),
+            running(true),
+            Alerts::default(),
+            demo,
+        )
+        .0,
+        [
+            "open week",
+            "open settings",
+            "open general settings",
+            "refresh",
+            "toggle pause",
+            "adjust time",
+            "finish day",
+        ]
+    );
+}
+
 /// The settings would only repeat the switch to the built-in detection the hint offers.
 #[test]
 fn activitywatch_in_trouble_offers_the_built_in_detection_and_a_refresh() {
@@ -324,7 +391,7 @@ fn the_hint_s_buttons_send_the_unrecorded_time_of_its_day() {
         interval("2026-08-31T09:40:12Z", "2026-08-31T09:45:42Z"),
         interval("2026-08-31T14:00:00Z", "2026-08-31T14:20:00Z"),
     ];
-    let sent = press_every_tab_stop(day, running(true), Alerts::default()).1;
+    let sent = press_every_tab_stop(day, running(true), Alerts::default(), Backends::default()).1;
     assert_eq!(
         sent,
         Sent {

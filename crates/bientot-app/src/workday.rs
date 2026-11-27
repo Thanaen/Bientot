@@ -240,6 +240,31 @@ impl DayView {
         }
     }
 
+    /// The headline of [`Self::shown_while`] while no idle backend answers on this desktop, so
+    /// that the source never recovers by itself: a forecast held back by the source promises no
+    /// recalculation, and a paused day says the forecast needs the detection.
+    pub fn headline_without_detection(
+        &self,
+        tracking: TrackingState,
+        language: Language,
+    ) -> Headline {
+        let shown = self.shown_while(tracking);
+        let mut headline = shown.headline.clone();
+        if shown.tone != Tone::SourceProblem {
+            return headline;
+        }
+        match (tracking, &self.stopped) {
+            (TrackingState::Paused, Some(_)) => {
+                headline.value = language
+                    .text(Key::ActivityUndetectableForecastPaused)
+                    .into();
+            }
+            (TrackingState::Finished, Some(_)) => {}
+            _ => headline.hint = None,
+        }
+        headline
+    }
+
     /// `zone` is that of the refresh; `settings` give the latest departure and the lunch end.
     pub fn present(
         state: &WorkdayRefreshState,

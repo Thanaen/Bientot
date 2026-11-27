@@ -59,9 +59,17 @@ They are on the same list of the test.
 | `WindowModeNotice.Link` | Same | Afficher l’icône | Show the icon | T064 |
 | `WindowModeNotice.Dismiss` | Same | Compris | Got it | T064 |
 | `ActivityUndetectable.Title` | Flyout, while no idle backend answers | Bientôt ne détecte pas votre activité sur ce bureau | Bientôt cannot detect your activity on this desktop | T075 |
-| `ActivityUndetectable.Text` | Same | Rien n’est compté automatiquement. Vous pouvez déclarer votre temps à la main. | Nothing is counted automatically. You can declare your time by hand. | T075 |
-| `ActivityUndetectable.Action` | Same | Déclarer du temps | Declare time | T075 |
-| `LockStateUnknown.Text` | Settings › Diagnostic, and the export | Ce bureau ne signale pas le verrouillage de l’écran. Bientôt se fie à votre activité. | This desktop does not report screen locks. Bientôt relies on your activity. | T084 |
+| `ActivityUndetectable.Text` | Same | Rien n’est compté automatiquement. Vous pouvez déclarer votre temps à la main. | Nothing is counted automatically. You can log your time by hand. | T075 |
+| `ActivityUndetectable.Action` | Same, a filled button, left out on a day off; it opens « Déclarer du temps travaillé » as the week's « Déclarer du temps travaillé… » does | Déclarer du temps | Log time | T075 |
+| `ActivityUndetectable.ForecastPaused` | Flyout, same state, the headline of a paused day in place of `ShellForecastAwaitsSource`; the running day's « Prévision indisponible » shows no `FlyoutDegradedHint` then | Pas de prévision sans détection de l’activité | No forecast without activity detection | T075 |
+| `LockStateUnknown.Text` | Settings › Diagnostic, under `DiagnosticSection.Locks` while its value is `DiagnosticSection.LocksNotReported`; the export says `lockReporting: unavailable`, since it holds no free text | Ce bureau ne signale pas le verrouillage de l’écran. Bientôt se fie à votre activité. | This desktop does not report screen locks. Bientôt relies on your activity. | T084 |
+| `DiagnosticSection.Header` | Settings › Général, the group under « À propos », Linux only | Diagnostic | Diagnostics | T075 |
+| `DiagnosticSection.Detection` | Same, the title of the first row, with the idle backend's name as its value | Méthode de détection | Detection method | T075 |
+| `DiagnosticSection.ActivityNone` | Same, the row's value while no idle backend answers | Aucune | None | T075 |
+| `DiagnosticSection.ActivityNoneText` | Same, under the row's title with that value | Rien n’est compté automatiquement. | Nothing is counted automatically. | T075 |
+| `DiagnosticSection.Locks` | Same, the title of the second row, shown once lock reporting is known | Verrouillage de l’écran | Screen lock | T084 |
+| `DiagnosticSection.LocksReported` | Same, its value while the desktop reports locks | Signalé | Reported | T084 |
+| `DiagnosticSection.LocksNotReported` | Same, its value otherwise, with `LockStateUnknown.Text` under the title | Non signalé | Not reported | T084 |
 | `PowerHistoryPartial.Text` | Day details, on the unknown span after a start without a readable journal | L’ordinateur a été en veille à un moment que Bientôt ne peut pas connaître. | The computer slept at a time Bientôt cannot know. | T094 |
 | `StartupMismatchAppImage.Text` | Settings › Startup, state « registration mismatch » on an AppImage | Le démarrage pointe vers un autre emplacement de Bientôt. Le fichier a peut-être été déplacé. | Startup points to another location of Bientôt. The file may have been moved. | T115 |
 | `StartupMismatch.Action` | Same | Corriger | Fix | T115 |

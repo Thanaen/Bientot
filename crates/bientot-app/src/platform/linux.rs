@@ -31,7 +31,9 @@ use bientot_linux::placement::LinuxDesktop;
 use bientot_linux::tray::StatusNotifier;
 use bientot_platform::activity::LastInputProbe;
 use bientot_platform::launcher::LauncherPort;
-use bientot_platform::lifecycle::{LifecycleListener, LifecycleSource, SessionSnapshot};
+use bientot_platform::lifecycle::{
+    LifecycleListener, LifecycleSource, LifecycleTransition, LockReporting, SessionSnapshot,
+};
 use bientot_platform::notifications::{Notifier, QueuedClicks};
 use bientot_platform::startup::StartupPort;
 use bientot_platform::system::{InstallKind, SystemInfo as _};
@@ -39,7 +41,7 @@ use futures::channel::mpsc;
 use gpui::{Bounds, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
-use super::{BackendNote, Backends, Platform, PlatformContext};
+use super::{BackendNote, Backends, NO_BACKEND, Platform, PlatformContext, lock_reporting_name};
 use crate::zones::SystemZones;
 
 // `build`, `place_window`, `activate_window`, `NotificationsRefused`, `Instance`,
@@ -129,13 +131,16 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
             "none"
         }),
         // The watch's first note names the backend once the thread has chosen it.
-        idle: demo.then_some("none"),
+        idle: demo.then_some(NO_BACKEND),
+        activity_undetectable: false,
         // Until a note says the watch did not start.
         lifecycle: Some(if lifecycle.is_some() {
             "logind"
         } else {
             "none"
         }),
+        // The watch tells once it starts.
+        lock_reporting: None,
     };
     let null = null::build(ctx)?;
     Ok(Platform {
@@ -175,6 +180,7 @@ fn idle_line(note: IdleNote) -> BackendNote {
             properties: vec![("name", name(backend))],
             idle: Some(backend_name(backend)),
             lifecycle: None,
+            lock_reporting: None,
         },
         IdleNote::Changed { from, to } => BackendNote {
             level: level(to),
@@ -182,6 +188,7 @@ fn idle_line(note: IdleNote) -> BackendNote {
             properties: vec![("from", name(from)), ("to", name(to))],
             idle: Some(backend_name(to)),
             lifecycle: None,
+            lock_reporting: None,
         },
         IdleNote::InhibitorsCount => BackendNote {
             level: DiagnosticLogLevel::Information,
@@ -189,16 +196,18 @@ fn idle_line(note: IdleNote) -> BackendNote {
             properties: vec![("value", false.into())],
             idle: None,
             lifecycle: None,
+            lock_reporting: None,
         },
     }
 }
 
 fn backend_name(backend: Option<Backend>) -> &'static str {
-    backend.map_or("none", Backend::name)
+    backend.map_or(NO_BACKEND, Backend::name)
 }
 
 /// A lifecycle source that tells the diagnostic log, and the export through `Backends`, when its
-/// watch does not start: logind then records no lock and no sleep.
+/// watch does not start, as logind then records no lock and no sleep, and whether the desktop
+/// reports locks.
 struct Reported<S> {
     source: S,
     notes: mpsc::UnboundedSender<BackendNote>,
@@ -210,9 +219,49 @@ impl<S: LifecycleSource> LifecycleSource for Reported<S> {
     }
 
     fn watch(&self, listener: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>> {
+        let listener = Box::new(Reporting {
+            listener,
+            notes: self.notes.clone(),
+        });
         self.source.watch(listener).inspect_err(|error| {
             self.notes.unbounded_send(watch_failed(error)).ok();
         })
+    }
+}
+
+/// Hands each change on to `listener`, and tells the log whether the desktop reports locks.
+struct Reporting {
+    listener: Box<dyn LifecycleListener>,
+    notes: mpsc::UnboundedSender<BackendNote>,
+}
+
+impl LifecycleListener for Reporting {
+    fn changed(&mut self, transition: LifecycleTransition) {
+        self.listener.changed(transition);
+    }
+
+    fn ended(&mut self) {
+        self.listener.ended();
+    }
+
+    fn lock_reporting(&mut self, reporting: LockReporting) {
+        self.notes.unbounded_send(lock_line(reporting)).ok();
+    }
+}
+
+/// The diagnostic log's line for whether the desktop reports locks (contracts/linux-backends.md,
+/// « Lock, sleep, session »). Without it the day rests on activity alone: a warning.
+fn lock_line(reporting: LockReporting) -> BackendNote {
+    BackendNote {
+        level: match reporting {
+            LockReporting::Live => DiagnosticLogLevel::Information,
+            LockReporting::Unavailable => DiagnosticLogLevel::Warning,
+        },
+        event: "lifecycle.lock_reporting",
+        properties: vec![("value", lock_reporting_name(reporting).into())],
+        idle: None,
+        lifecycle: None,
+        lock_reporting: Some(reporting),
     }
 }
 
@@ -230,7 +279,8 @@ fn watch_failed(error: &io::Error) -> BackendNote {
         event: "lifecycle.watch_failed",
         properties: vec![("kind", kind.into())],
         idle: None,
-        lifecycle: Some("none"),
+        lifecycle: Some(NO_BACKEND),
+        lock_reporting: Some(LockReporting::Unavailable),
     }
 }
 
@@ -313,11 +363,14 @@ impl crate::updates::StoreError for velopack::Error {
 #[cfg(test)]
 mod tests {
     use std::io;
+    use std::sync::{Arc, Mutex};
 
     use bientot_core::diagnostics::DiagnosticLogLevel::{Information, Warning};
+    use bientot_domain::accounting::SessionState;
     use bientot_linux::idle::{Backend, IdleNote};
     use bientot_platform::lifecycle::{
-        InMemoryLifecycle, LifecycleListener, LifecycleSource, LifecycleTransition, SessionSnapshot,
+        InMemoryLifecycle, LifecycleChange, LifecycleListener, LifecycleSource,
+        LifecycleTransition, LockReporting, SessionSnapshot,
     };
     use futures::channel::mpsc;
 
@@ -334,6 +387,7 @@ mod tests {
                 .collect(),
             idle: Some(idle),
             lifecycle: None,
+            lock_reporting: None,
         };
         assert_eq!(
             [
@@ -383,6 +437,7 @@ mod tests {
                 properties: vec![("value", false.into())],
                 idle: None,
                 lifecycle: None,
+                lock_reporting: None,
             }
         );
     }
@@ -409,13 +464,14 @@ mod tests {
     }
 
     #[test]
-    fn a_watch_that_does_not_start_logs_its_kind_and_leaves_no_lifecycle_backend() {
+    fn a_watch_that_does_not_start_logs_its_kind_and_leaves_no_lifecycle_backend_nor_locks() {
         let line = |kind: &'static str| BackendNote {
             level: Warning,
             event: "lifecycle.watch_failed",
             properties: vec![("kind", kind.into())],
             idle: None,
             lifecycle: Some("none"),
+            lock_reporting: Some(LockReporting::Unavailable),
         };
         for (kind, logged) in [
             (io::ErrorKind::NotFound, "not_found"),
@@ -444,6 +500,73 @@ mod tests {
 
         let _watch = source.watch(Box::new(Ignored)).unwrap();
         assert_eq!(sent.try_recv().ok(), None);
+    }
+
+    /// A watch that says the desktop reports no lock, then starts reporting them with a lock,
+    /// as logind's does when a screensaver starts after the app.
+    struct LateScreensaver(LifecycleTransition);
+
+    impl LifecycleSource for LateScreensaver {
+        fn snapshot(&self) -> SessionSnapshot {
+            unreachable!()
+        }
+
+        fn watch(&self, mut listener: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>> {
+            listener.lock_reporting(LockReporting::Unavailable);
+            listener.lock_reporting(LockReporting::Live);
+            listener.changed(self.0.clone());
+            Ok(Box::new(()))
+        }
+    }
+
+    struct Collected(Arc<Mutex<Vec<LifecycleTransition>>>);
+
+    impl LifecycleListener for Collected {
+        fn changed(&mut self, transition: LifecycleTransition) {
+            self.0.lock().unwrap().push(transition);
+        }
+
+        fn ended(&mut self) {}
+    }
+
+    #[test]
+    fn the_log_and_the_export_follow_whether_the_desktop_reports_locks() {
+        let lock = LifecycleTransition {
+            change: LifecycleChange::Session(SessionState::Locked),
+            occurred_at: "2026-11-27T09:00:00Z".parse().unwrap(),
+            time_zone_id: "Europe/Paris".into(),
+        };
+        let (notes, sent) = mpsc::unbounded();
+        let recorded = Arc::default();
+        let source = Reported {
+            source: LateScreensaver(lock.clone()),
+            notes,
+        };
+
+        let _watch = source
+            .watch(Box::new(Collected(Arc::clone(&recorded))))
+            .unwrap();
+        drop(source);
+        let line = |level, value: &'static str, reporting| BackendNote {
+            level,
+            event: "lifecycle.lock_reporting",
+            properties: vec![("value", value.into())],
+            idle: None,
+            lifecycle: None,
+            lock_reporting: Some(reporting),
+        };
+        assert_eq!(
+            futures::executor::block_on_stream(sent).collect::<Vec<_>>(),
+            [
+                line(Warning, "unavailable", LockReporting::Unavailable),
+                line(Information, "live", LockReporting::Live),
+            ]
+        );
+        assert_eq!(
+            *recorded.lock().unwrap(),
+            [lock],
+            "the ledger still gets the lock"
+        );
     }
 
     #[cfg(feature = "updates")]

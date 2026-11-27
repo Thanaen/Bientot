@@ -23,12 +23,19 @@ a demo and, until T112, in a Flatpak), the idle time (the backend in use,
 under the names below, or `none` when none answers and in a demo; absent
 until the first selection ends)
 and the lifecycle (`logind`, or `none` in a demo and once its watch did
-not start). Each name the system gives is
+not start), then `lockReporting`: `live`, or `unavailable` when the desktop
+does not report screen locks or the lifecycle watch did not start; absent
+in a demo, which starts no watch. Each name the system gives is
 written only when it is 1 to 64 characters of `a-z`, `0-9`, `.`, `_` and
 `-`, as os-release allows in `ID`
 (`bientot_core::diagnostics::DiagnosticName`): free text, which could name
 the user or the computer, never reaches the archive. « À propos » names
-a Flatpak or an AppImage under the version.
+a Flatpak or an AppImage under the version. « Diagnostic », under it, names
+the idle backend in use under « Méthode de détection » (« Aucune » for
+`none`, with « Rien n’est compté automatiquement. ») and, once lock
+reporting is known, whether locks are « Signalé » or « Non signalé », the
+latter with `LockStateUnknown.Text`; both follow the backends' notes while
+the window is open. Windows shows no such group.
 
 ## Tray: StatusNotifierItem (`ksni`)
 
@@ -128,7 +135,12 @@ version 1. A line that leaves no backend is a warning. Names:
 `ext-idle-notify-v1`, `org.gnome.Mutter.IdleMonitor`,
 `org.cinnamon.Muffin.IdleMonitor`, `org.freedesktop.ScreenSaver`,
 `MIT-SCREEN-SAVER`. The probe is made when the app starts, and a demo makes
-none: as on Windows, a demo does not read the input.
+none: as on Windows, a demo does not read the input. While the last note
+names no backend, the flyout shows `ActivityUndetectable.*` in place of the
+built-in source's failure, whose refresh and settings would change nothing,
+with « Déclarer du temps », which opens « Déclarer du temps travaillé » on
+today as the week does, and without the promise that the forecast comes back;
+a demo's `none` comes from no note and shows the scenario's day.
 
 The app reads the probe through `IdleWatch`, whose thread makes the probe,
 then reads it every second and keeps the monotonic instant of the last
@@ -182,6 +194,12 @@ export names `none`.
      snapshot's `GetActive` or the first signal;
   3. else none: `LockReporting::Unavailable`, and the snapshot's session is
      `Unknown`. A switch of the session (`Active`) is still recorded.
+- The watch tells its listener the `LockReporting` of its own readings when
+  it starts, then each change (`LifecycleListener::lock_reporting`): a
+  screensaver that starts after the app, or `LockedHint` first seen true,
+  turns it to `Live`. The app logs `lifecycle.lock_reporting` (`value`:
+  `live`, or `unavailable` as a warning) and names it in the export; the
+  snapshot, read apart from the watch, is not used for it.
 - No inhibitor lock is taken. SIGTERM keeps its default action: the
   process ends, and every change already handed to the listener is in the
   ledger. Catching it in the source would delay a logout; whether the app

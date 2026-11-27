@@ -19,7 +19,7 @@ use gpui::{App, AsyncApp, Global};
 use jiff::Timestamp;
 
 use crate::host::Today;
-use crate::platform::{self, Backends};
+use crate::platform::{self, Backends, lock_reporting_name};
 use crate::shell;
 use crate::strings::{Key, Language};
 use crate::widgets::Notice;
@@ -202,8 +202,8 @@ fn runtime() -> DiagnosticRuntimeSnapshot {
     }
 }
 
-/// What the export names of `system` and of the `backends` in use. A name that is not a
-/// [`DiagnosticName`] is left out.
+/// What the export names of `system` and of the `backends` in use, and whether the desktop
+/// reports locks. A name that is not a [`DiagnosticName`] is left out.
 fn system_snapshot(system: &impl SystemInfo, backends: Backends) -> DiagnosticSystemSnapshot {
     let description = system.describe();
     let name = |text: &String| DiagnosticName::new(text);
@@ -225,6 +225,7 @@ fn system_snapshot(system: &impl SystemInfo, backends: Backends) -> DiagnosticSy
             None => DiagnosticSessionType::Unknown,
         },
         backends: backends.named(),
+        lock_reporting: backends.lock_reporting.map(lock_reporting_name),
     }
 }
 

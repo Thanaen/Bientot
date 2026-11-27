@@ -18,7 +18,7 @@ use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
 use bientot_domain::sources::LastInputReading;
 use bientot_platform::activity::LastInputProbe;
 use bientot_platform::launcher::LauncherPort;
-use bientot_platform::lifecycle::{InMemoryLifecycle, LifecycleSource};
+use bientot_platform::lifecycle::{InMemoryLifecycle, LifecycleSource, LockReporting};
 use bientot_platform::notifications::{NotificationClicks, Notifier, QueuedClicks};
 use bientot_platform::placement::{Desktop, FlyoutPlacement, InMemoryDesktop};
 use bientot_platform::power_history::{HistoryUnavailable, PowerBoundaries, PowerBoundaryLog};
@@ -135,6 +135,20 @@ pub struct BackendNote {
     /// The lifecycle backend in use from this line on, which the export names in
     /// `Backends::lifecycle`.
     pub lifecycle: Option<&'static str>,
+    /// Whether the desktop reports screen locks from this line on, see
+    /// `Backends::lock_reporting`.
+    pub lock_reporting: Option<LockReporting>,
+}
+
+/// The name of a concern's backend when none answers.
+pub const NO_BACKEND: &str = "none";
+
+/// How the diagnostic log and the export write whether the desktop reports locks.
+pub fn lock_reporting_name(reporting: LockReporting) -> &'static str {
+    match reporting {
+        LockReporting::Live => "live",
+        LockReporting::Unavailable => "unavailable",
+    }
 }
 
 /// The ports of the system, for one launch.
@@ -201,8 +215,15 @@ pub struct Backends {
     /// The idle time's, as the last `BackendNote` naming one says, and `None` before the first:
     /// the diagnostic log tells each change.
     pub idle: Option<&'static str>,
+    /// The last `BackendNote` of the idle watch named no backend: nothing is counted
+    /// automatically, and the flyout says so. Never in a demo, which starts no watch, nor on
+    /// Windows.
+    pub activity_undetectable: bool,
     /// The lock, unlock, sleep and resume's, until a `BackendNote` says its watch did not start.
     pub lifecycle: Option<&'static str>,
+    /// Whether the desktop reports screen locks, as the last `BackendNote` telling it says:
+    /// `None` where none does, as in a demo and on Windows, whose locks are always reported.
+    pub lock_reporting: Option<LockReporting>,
 }
 
 impl Backends {

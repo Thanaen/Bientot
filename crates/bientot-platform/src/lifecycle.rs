@@ -59,6 +59,11 @@ pub trait LifecycleListener: Send + 'static {
 
     /// The source stopped, its bus closed or its window destroyed: no change follows.
     fn ended(&mut self);
+
+    /// Whether the desktop reports locks, once the watch starts and at each change: a desktop
+    /// may start reporting them after the snapshot, as when its screensaver starts after the app.
+    /// A source that always reports them, as on Windows, never calls it.
+    fn lock_reporting(&mut self, _reporting: LockReporting) {}
 }
 
 /// The session lock and unlock and the suspend and resume of this computer.

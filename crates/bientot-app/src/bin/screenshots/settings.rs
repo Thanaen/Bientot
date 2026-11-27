@@ -1,4 +1,5 @@
-//! « Paramètres » on each page and in each state, `settings-<page>[-<state>].png`, and the
+//! « Paramètres » on each page and in each state, `settings-<page>[-<state>].png` (« Diagnostic »
+//! on Linux only), and the
 //! entrances `settings-schedule-unsaved-motion-<0|7|13|50|100>.png` and
 //! `settings-general-language-open-motion-<0|8|17|50|100>.png`, and « Données » in each state,
 //! `settings-data[-<state>].png`, and « Plugins » in each state, `settings-plugins[-<state>].png`.
@@ -25,7 +26,7 @@ use gpui::{AppContext as _, HeadlessAppContext, size};
 use jiff::civil::date;
 
 use super::fixtures::SettingsState;
-use super::platform::Shots;
+use super::platform::{Platform, Shots};
 use super::{capture, capture_entrance};
 
 pub fn capture_pages(
@@ -74,6 +75,15 @@ pub fn capture_pages(
     // The row of « Menu des applications », which only an AppImage shows.
     if cx.update(|cx| cx.global::<Shots>().platform.install_kind()) == Some(InstallKind::AppImage) {
         for state in [SettingsState::LauncherOff, SettingsState::LauncherFailed] {
+            capture_settings(cx, language, Page::General, state, output)?;
+        }
+    }
+    // « Diagnostic », which only Linux's backends fill.
+    if cx.update(|cx| cx.global::<Shots>().platform) == Platform::Linux {
+        for state in [
+            SettingsState::Diagnostic,
+            SettingsState::DiagnosticUndetectable,
+        ] {
             capture_settings(cx, language, Page::General, state, output)?;
         }
     }

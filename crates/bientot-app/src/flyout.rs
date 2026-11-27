@@ -15,6 +15,7 @@ use jiff::civil::Date;
 use crate::live::Tracking;
 use crate::palette::{Host, Situation};
 use crate::palette_view::{Opened, PaletteView};
+use crate::platform::Backends;
 use crate::shell;
 use crate::strings::{Key, Language};
 use crate::theme::spacing::*;
@@ -43,6 +44,7 @@ actions!(
         OpenGeneralSettings,
         TogglePause,
         AdjustTime,
+        DeclareTime,
         FinishDay,
         Refresh,
         UseBuiltInDetection,
@@ -235,6 +237,7 @@ pub struct Flyout {
     plugin_menu: plugin_card::Menu,
     _close_on_deactivate: Subscription,
     _show_updates: Subscription,
+    _show_backends: Subscription,
     _keep_focus: Subscription,
 }
 
@@ -260,6 +263,7 @@ impl Flyout {
             }
         });
         let show_updates = cx.observe_global::<Updates>(|_, cx| cx.notify());
+        let show_backends = cx.observe_global::<Backends>(|_, cx| cx.notify());
         // A control that goes away with the focus, as the update callout once installed,
         // hands it back to the flyout: without it Tab and Échap fall to the root.
         let keep_focus = cx.on_focus_lost(window, |flyout, window, cx| {
@@ -287,6 +291,7 @@ impl Flyout {
             plugin_menu: plugin_card::Menu::new(cx),
             _close_on_deactivate: close_on_deactivate,
             _show_updates: show_updates,
+            _show_backends: show_backends,
             _keep_focus: keep_focus,
         }
     }

@@ -1,3 +1,4 @@
+use bientot_platform::lifecycle::LockReporting;
 use bientot_platform::system::{InMemorySystem, SystemDescription};
 
 use super::*;
@@ -103,13 +104,15 @@ fn ubuntu(install_kind: InstallKind) -> InMemorySystem {
 }
 
 #[test]
-fn the_export_names_the_system_and_each_backend_in_use() {
+fn the_export_names_the_system_each_backend_in_use_and_unreported_locks() {
     let backends = Backends {
         tray: Some("status-notifier"),
         notifications: Some("notification-portal"),
         autostart: None,
         idle: Some("org.gnome.Mutter.IdleMonitor"),
+        activity_undetectable: false,
         lifecycle: Some("logind"),
+        lock_reporting: Some(LockReporting::Unavailable),
     };
     let name = |text| DiagnosticName::new(text);
     assert_eq!(
@@ -126,6 +129,7 @@ fn the_export_names_the_system_and_each_backend_in_use() {
                 ("idle", "org.gnome.Mutter.IdleMonitor"),
                 ("lifecycle", "logind"),
             ],
+            lock_reporting: Some("unavailable"),
         }
     );
 }
@@ -204,7 +208,9 @@ fn the_export_holds_no_host_name_user_name_home_or_machine_id() {
         notifications: Some("notification-server"),
         autostart: Some("xdg-autostart"),
         idle: Some("MIT-SCREEN-SAVER"),
+        activity_undetectable: false,
         lifecycle: Some("logind"),
+        lock_reporting: Some(LockReporting::Live),
     };
     let failed = Contents::of_failed_start(None, None);
     let contents = Contents {
@@ -220,7 +226,7 @@ fn the_export_holds_no_host_name_user_name_home_or_machine_id() {
     for personal in [user, "zoe", "gauthier", host, "bureau", machine_id, &home] {
         assert!(!exported.contains(personal), "{personal} in {exported}");
     }
-    let system = r#""system":{"installKind":"AppImage","distribution":"ubuntu","distributionVersion":"24.04","desktops":["ubuntu","gnome"],"sessionType":"Wayland","backends":{"tray":"status-notifier","notifications":"notification-server","autostart":"xdg-autostart","idle":"MIT-SCREEN-SAVER","lifecycle":"logind"}}"#;
+    let system = r#""system":{"installKind":"AppImage","distribution":"ubuntu","distributionVersion":"24.04","desktops":["ubuntu","gnome"],"sessionType":"Wayland","backends":{"tray":"status-notifier","notifications":"notification-server","autostart":"xdg-autostart","idle":"MIT-SCREEN-SAVER","lifecycle":"logind"},"lockReporting":"live"}"#;
     assert!(exported.contains(system), "{exported}");
 }
 
