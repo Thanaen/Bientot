@@ -83,7 +83,7 @@ assumption A-14).
 | Path | Owner | Removed by |
 | --- | --- | --- |
 | `$XDG_CONFIG_HOME/autostart/dev.bientot.Bientot.desktop` | Startup switch (AppImage) | Turning the switch off |
-| `~/.local/share/applications/dev.bientot.Bientot.desktop`, icons under `~/.local/share/icons/hicolor/` | AppImage first run | « Remove from the app menu » |
+| `$XDG_DATA_HOME/applications/dev.bientot.Bientot.desktop`, `$XDG_DATA_HOME/icons/hicolor/256x256/apps/dev.bientot.Bientot.png` (`~/.local/share` when unset) | AppImage, on the first run of the user's data folder; the switch « Menu des applications » turned on | Turning the switch off; a later start does not write them again |
 | `$XDG_RUNTIME_DIR/bientot/<stem>.sock`, `.lock` (stem: the instance key's first 41 characters); `<data folder>/run/` without `$XDG_RUNTIME_DIR` | Single instance | The socket at exit, or by the next owner after a crash; the lock stays; the runtime directory is cleared at sign-out by the system |
 
 `docs/privacy.md` lists them (T183).

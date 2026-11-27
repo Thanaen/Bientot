@@ -692,7 +692,8 @@ replaces the file named by `$APPIMAGE`. **Source** (Velopack documentation):
 takes `--categories` and `--compression`; an update downloads to `/var/tmp`
 and replaces the AppImage, asking for `pkexec` only when the file sits in a
 privileged folder; there is no installer and no desktop integration, so the
-app writes its own launcher entry on first run (T144). The feed is
+app writes its own launcher entry on first run (T144, « AppImage build »
+below). The feed is
 `releases.linux.json` beside `releases.win.json`.
 **Assumption A-12**: the whole flow (check, download, replace, restart)
 works for an AppImage in the user's home on the Tier 1 distributions, and
@@ -1059,6 +1060,25 @@ desktop.
   with `FLATPAK_ID` set, and the bare executable, asked nothing. Not run:
   « Redémarrer maintenant » in the flyout, which calls the same updater
   with the arguments of a user's restart; a desktop; Arm (T140).
+- Launcher entry (T144). The AppImage of T142 holds `.DirIcon`, a 256 × 256
+  PNG of 23 178 bytes, the same bytes as `Thanaen.WorkTime.png`, and its
+  `AppRun` already reads `$APPIMAGE` and `$APPDIR`, which the type 2
+  runtime sets. So the app copies the icon from `$APPDIR/.DirIcon` and
+  embeds nothing. Run with the debug `worktime` under Xvfb, `APPDIR` the
+  extracted AppImage, `APPIMAGE` a path with a space and a `%`, and a
+  throwaway home: the first start wrote
+  `$XDG_DATA_HOME/applications/dev.bientot.Bientot.desktop` and the icon,
+  byte-identical to `.DirIcon`; a second start, the onboarding still
+  unsaved, left the entry untouched (same modification time);
+  with saved settings, a start from another path rewrote `Exec` and
+  `TryExec`, and after the two files were removed a start wrote nothing;
+  without `APPIMAGE`, or with `FLATPAK_ID`, nothing was written. Not run: a
+  desktop's menu showing it (no validator nor GLib binding in the
+  container), the settings switch outside the screenshots. The windows set
+  no app id or `WM_CLASS` (`WindowOptions::app_id` is unset), so neither
+  this entry's `StartupWMClass=dev.bientot.Bientot` nor the AppImage's own
+  `Thanaen.WorkTime` matches them yet: a dock may show the running app
+  apart from its launcher until a task gives the windows the app id.
 
 ## Assumptions and the tasks that settle them
 

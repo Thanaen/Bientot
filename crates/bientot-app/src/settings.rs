@@ -727,6 +727,9 @@ impl UsagePingFacts {
 pub struct SectionView {
     pub heading: Option<&'static str>,
     pub rows: Vec<RowView>,
+    /// After « Langue » in « Application », where this copy adds itself to the menu: above
+    /// « Démarrage automatique », whose callout under the group stays beside its row.
+    pub launcher: Option<LauncherView>,
     /// A failed save or a day left to recalculate, under the group.
     pub callouts: Vec<CalloutView>,
 }
@@ -789,6 +792,37 @@ impl StartupAppsView {
 /// A read of the registration, begun while the switch was settled.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StartupRead(u64);
+
+/// « Menu des applications »: its switch adds this copy to the desktop's menu of applications,
+/// or removes it, as the startup switch does with the autostart entry.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LauncherView {
+    pub title: &'static str,
+    pub description: &'static str,
+    /// The switch's accessible name.
+    pub name: &'static str,
+    /// Whether the menu shows this copy, or the change asked while it runs.
+    pub on: bool,
+    /// `false` while a change runs.
+    pub enabled: bool,
+    /// Why the last change did nothing; switching again tries again.
+    pub error: Option<&'static str>,
+}
+
+/// The entry this copy writes itself in the menu of applications, as last read.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Launcher {
+    added: bool,
+    change: LauncherChange,
+}
+
+/// The last change asked of the entry.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LauncherChange {
+    Settled,
+    Running { requested: bool },
+    Failed,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RowTone {
@@ -897,6 +931,8 @@ pub struct SettingsForm {
     startup_page: Option<SystemPage>,
     /// Counts the switch's changes, so that a read begun before one is not shown after it.
     startup_changes: u64,
+    /// `None` where the copy writes no entry of its own, and until the entry has been read.
+    launcher: Option<Launcher>,
 }
 
 impl SettingsForm {
@@ -915,6 +951,7 @@ impl SettingsForm {
             other_copy: false,
             startup_page: None,
             startup_changes: 0,
+            launcher: None,
         }
     }
 
@@ -994,6 +1031,59 @@ impl SettingsForm {
         self.startup_requested = None;
         self.workspace
             .finish_startup(pending, startup::settled(settled, requested), port);
+    }
+
+    /// Whether the menu of applications shows this copy, as read: « Menu des applications »
+    /// shows from then on.
+    pub fn show_launcher(&mut self, added: bool) {
+        self.launcher = Some(Launcher {
+            added,
+            change: LauncherChange::Settled,
+        });
+    }
+
+    /// What the switch of « Menu des applications » asks for: to add this copy, or to remove it.
+    /// `None` without the row, and while a change runs.
+    pub fn change_launcher(&mut self) -> Option<bool> {
+        if self.leaving.is_some() {
+            return None;
+        }
+        let launcher = self
+            .launcher
+            .as_mut()
+            .filter(|launcher| !matches!(launcher.change, LauncherChange::Running { .. }))?;
+        let requested = !launcher.added;
+        launcher.change = LauncherChange::Running { requested };
+        Some(requested)
+    }
+
+    /// The menu as read once the change ended, and whether the change was made.
+    pub fn finish_launcher(&mut self, added: bool, made: bool) {
+        self.launcher = Some(Launcher {
+            added,
+            change: if made {
+                LauncherChange::Settled
+            } else {
+                LauncherChange::Failed
+            },
+        });
+    }
+
+    fn launcher(&self) -> Option<LauncherView> {
+        let Launcher { added, change } = self.launcher?;
+        let language = self.language;
+        Some(LauncherView {
+            title: language.text(Key::LauncherEntryHeader),
+            description: language.text(Key::LauncherEntryDescription),
+            name: language.text(Key::LauncherEntryInputAutomationPropertiesName),
+            on: match change {
+                LauncherChange::Running { requested } => requested,
+                LauncherChange::Settled | LauncherChange::Failed => added,
+            },
+            enabled: !matches!(change, LauncherChange::Running { .. }),
+            error: (change == LauncherChange::Failed)
+                .then(|| language.text(Key::LauncherEntryChangeFailed)),
+        })
     }
 
     /// The saved settings name ActivityWatch, which v1 no longer reads.
@@ -1329,6 +1419,9 @@ impl SettingsForm {
                 SectionView {
                     heading: heading.map(|key| language.text(key)),
                     rows: settings.iter().map(|&setting| self.row(setting)).collect(),
+                    launcher: self
+                        .launcher()
+                        .filter(|_| *heading == Some(Key::SettingsApplicationGroup)),
                     callouts: groups
                         .into_iter()
                         .filter_map(|group| self.callout(group))

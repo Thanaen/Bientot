@@ -15,6 +15,7 @@ use bientot_app::strings::Language;
 use bientot_app::theme::motion;
 use bientot_domain::configuration::Settings;
 use bientot_platform::startup::StartupRegistrationState;
+use bientot_platform::system::InstallKind;
 use bientot_plugin_api::{Capability, PluginId};
 use bientot_plugins::state::Status;
 use bientot_store::data_directory::DataDirectory;
@@ -69,6 +70,12 @@ pub fn capture_pages(
         SettingsState::LanguageOpen,
     ] {
         capture_settings(cx, language, Page::General, state, output)?;
+    }
+    // The row of « Menu des applications », which only an AppImage shows.
+    if cx.update(|cx| cx.global::<Shots>().platform.install_kind()) == Some(InstallKind::AppImage) {
+        for state in [SettingsState::LauncherOff, SettingsState::LauncherFailed] {
+            capture_settings(cx, language, Page::General, state, output)?;
+        }
     }
     for state in [
         SettingsState::Appointments,

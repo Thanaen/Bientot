@@ -16,6 +16,7 @@ use std::sync::Arc;
 
 use bientot_domain::sources::LastInputReading;
 use bientot_platform::activity::LastInputProbe;
+use bientot_platform::launcher::LauncherPort;
 use bientot_platform::lifecycle::{InMemoryLifecycle, LifecycleSource};
 use bientot_platform::notifications::{NotificationClicks, Notifier, QueuedClicks};
 use bientot_platform::placement::{Desktop, FlyoutPlacement, InMemoryDesktop};
@@ -133,6 +134,9 @@ pub struct Platform {
     /// `None` in a demo, which leaves the user's registration alone, and where the system cannot
     /// start the app at sign-in.
     pub startup: Option<Arc<dyn StartupPort>>,
+    /// This copy's entry in the desktop's menu of applications, where the copy writes its own:
+    /// the AppImage. `None` in a demo, and for every other install.
+    pub launcher: Option<Arc<dyn LauncherPort>>,
     /// Shows nothing until the app first publishes the day to it.
     pub tray: Rc<dyn Tray<MenuCommand>>,
     pub tray_events: TrayEvents,
@@ -153,6 +157,7 @@ impl Platform {
             notifier: None,
             notification_clicks: Box::new(QueuedClicks::default()),
             startup: None,
+            launcher: None,
             tray: Rc::new(InMemoryTray::new(Vec::new(), None, TrayHost::Absent)),
             tray_events: mpsc::unbounded().1,
             backends: Backends::default(),

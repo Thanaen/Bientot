@@ -66,7 +66,10 @@ They are on the same list of the test.
 | `StartupMismatchAppImage.Text` | Settings › Startup, state « registration mismatch » on an AppImage | Le démarrage pointe vers un autre emplacement de Bientôt. Le fichier a peut-être été déplacé. | Startup points to another location of Bientôt. The file may have been moved. | T115 |
 | `StartupMismatch.Action` | Same | Corriger | Fix | T115 |
 | `StartupPortalReason` | The desktop’s own permission prompt (Flatpak) | Bientôt démarre à l’ouverture de session pour compter votre journée dès le début. | Bientôt starts when you sign in so that your day is counted from its beginning. | T112 |
-| `LauncherEntry.Remove` | Settings › General, AppImage only | Retirer Bientôt du menu des applications | Remove Bientôt from the app menu | T144 |
+| `LauncherEntry.Header` | Settings › General, « Application », the row between « Langue » and « Démarrage automatique », AppImage only; Windows shows no such row | Menu des applications | App menu | T144 |
+| `LauncherEntry.Description` | Same, under the title | Afficher Bientôt dans le menu de votre bureau, pour l’ouvrir sans chercher le fichier AppImage. | Show Bientôt in your desktop’s menu so you can open it without looking for the AppImage file. | T144 |
+| `LauncherEntry.Input.AutomationProperties.Name` | Same, the accessible name of the row’s switch, on while the menu shows Bientôt | Afficher Bientôt dans le menu des applications | Show Bientôt in the app menu | T144 |
+| `LauncherEntry.ChangeFailed` | Same, under the row in the error colour when the files cannot be written or removed; the switch goes back to the menu as it is, and switching again tries again | Le menu des applications n’a pas pu être modifié. Réessayez. | The app menu could not be changed. Try again. | T144 |
 | `InstallKind.Header` | Settings › About, a row under the version, for a Flatpak or an AppImage only; the version row is unchanged, and Windows shows no such row | Type d’installation | Installation type | T121 |
 | `InstallKind.Flatpak` / `.AppImage` | Same, the row’s value | Flatpak / AppImage | Flatpak / AppImage | T121 |
 | `NoGraphics.Text` | Last-resort message when no window can open | Bientôt n’a pas pu ouvrir sa fenêtre : aucun pilote graphique compatible n’a été trouvé. | Bientôt could not open its window: no compatible graphics driver was found. | T117 |
@@ -76,6 +79,19 @@ Fichier AppImage »: the app can tell that it runs in a Flatpak, not which
 remote installed it, and a row titled like « Version » above it, with its
 value at the end, reads in one line in both languages. The panel decides
 the final wording.
+
+`LauncherEntry.*` is a row of « Application », the other file Bientôt
+writes for the desktop beside « Démarrage automatique ». The panel chose a
+switch, built and behaving as the one of « Démarrage automatique », so that
+the two rows that add a file for the desktop read and act alike: on while
+the menu shows Bientôt, off once the entry is gone, which the user turns on
+again from there. While the change runs the switch is disabled. A failure
+puts the switch back and shows under the row, as those of the actions of
+« Données » do: this row saves no setting, so it has no callout and no
+« Réessayer », and switching again tries again. The row sits above
+« Démarrage automatique », between it and « Langue », because the callout of
+a refused startup change shows under the card and must stay beside its own
+row.
 
 Texts of the site (download section, help page « Afficher l’icône de
 Bientôt sur GNOME », FAQ « Mac ou Linux ? ») and of the Flathub listing
