@@ -20,7 +20,7 @@ const PINNED: &[(&str, &str, &str)] = &[
     ),
     (
         "the update feed installed copies read",
-        include_str!("../src/platform/windows/direct.rs"),
+        include_str!("../src/platform/direct.rs"),
         "pub const FEED_URL: &str = \"https://worktime.thanaen.dev/updates/\";",
     ),
     (

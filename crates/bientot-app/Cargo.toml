@@ -22,7 +22,8 @@ screenshots = ["gpui/test-support", "gpui_platform/test-support", "dep:gpui_wgpu
 # Sends the anonymous daily usage signal over HTTPS from a release build. A debug build never
 # sends, even with this feature on, and CI only measures the release build with `--data-dir`.
 usage-ping = ["dep:ureq"]
-# Updates the build installed by Velopack's Setup.exe from its feed (`updates::direct`).
+# Updates the build Velopack installed, `Setup.exe`'s or the AppImage, from its feed
+# (`platform/direct.rs`).
 updates = ["dep:ureq", "dep:velopack"]
 # Runs WebAssembly plugins (specs/003-plugin-runtime). Without it, nothing of the plugin host is
 # compiled in.
@@ -30,7 +31,7 @@ plugins = ["dep:bientot-plugin-api", "dep:bientot-plugins"]
 # The features of the Store package and the portable ZIP, whose updates do not go through
 # Velopack. The notices generator reads the same feature.
 release = ["usage-ping", "plugins"]
-# The features of the Velopack Setup.exe (scripts/release-direct.sh).
+# The features of the Velopack Setup.exe and AppImage (scripts/release-direct.sh).
 direct = ["release", "updates"]
 
 [dependencies]
@@ -53,6 +54,9 @@ bientot-plugin-api = { path = "../bientot-plugin-api", optional = true }
 bientot-plugins = { path = "../bientot-plugins", optional = true }
 bientot-store = { path = "../bientot-store" }
 bientot-windows = { path = "../bientot-windows" }
+# The updater of `Setup.exe` and of the AppImage (`platform/direct.rs`). `public-utils` names the
+# manifest an update source receives.
+velopack = { version = "=1.2.161", features = ["public-utils"], optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # The tray and the flyout's placement (`platform::linux`); the other Linux ports are not wired yet.
@@ -78,8 +82,6 @@ raw-window-handle = "0.6"
 # with this feature, not with `native-tls-no-default` alone.
 ureq = { version = "3.4.2", default-features = false, features = ["native-tls"], optional = true }
 tray-icon = { version = "0.26", default-features = false }
-# `public-utils` names the manifest an update source receives.
-velopack = { version = "=1.2.161", features = ["public-utils"], optional = true }
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Graphics_Dwm",

@@ -3,7 +3,7 @@
 # feed that installed copies read:
 #
 #   win-x64      `Setup.exe` and `releases.win.json`
-#                (crates/bientot-app/src/platform/windows/direct.rs), with the sample plugin
+#                (crates/bientot-app/src/platform/direct.rs), with the sample plugin
 #                `focus.bientot-plugin`. The Release workflow (.github/workflows/release.yml) runs
 #                it on Windows and publishes the output folder as a GitHub Release; it also
 #                cross-builds from Linux.

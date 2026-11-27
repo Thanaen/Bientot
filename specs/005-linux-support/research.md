@@ -560,8 +560,9 @@ filters that refuse the call. Both halves are tested on their own.
   user. Today's code gives `…/share/Bientot` (`launch.rs:417`); no Linux
   build was ever released, so the lower-case name costs nothing. In Flatpak
   the same code lands in `~/.var/app/dev.bientot.Bientot/data/bientot`.
-  Velopack keeps its packages under `$XDG_CACHE_HOME` or `/var/tmp` on its
-  own. **No migration** exists or is needed on Linux; `data_migration`
+  Velopack keeps its packages in `/var/tmp/velopack/Thanaen.WorkTime/packages`
+  on its own, whatever `$XDG_CACHE_HOME` says (the crate's Linux locator;
+  run in T143). **No migration** exists or is needed on Linux; `data_migration`
   stays a Windows step.
 - **Cross-install data.** On Windows the Store build and `Setup.exe` share
   `%LOCALAPPDATA%\Bientot`. On Linux the sandbox separates them. The bridge
@@ -1042,6 +1043,22 @@ desktop.
 - The Linux dependency tree holds two licenses `bientot-notices` refused:
   `hexf-parse` (CC0-1.0, without a license file) and `option-ext` (MPL-2.0,
   through GPUI's `font-kit`). Both are in the notices now (T142).
+- Update (T143), run on an Ubuntu 24.04 x86_64 container host under Xvfb,
+  with two `direct` AppImages packed by `release-direct.sh` from a throwaway
+  branch whose `FEED_URL` was `http://127.0.0.1:8765/`, the feed served by
+  `python3 -m http.server`: version 1.0.109, with saved settings, asked
+  `releases.linux.json` and downloaded `…-1.0.110-linux-full.nupkg` to
+  `/var/tmp/velopack/Thanaen.WorkTime/packages` 2 s after start. It took the
+  full package although the feed listed a delta: Velopack uses deltas only
+  from a full package of the running version in that folder, and a copy
+  installed by download has none. The next start installed it before the
+  window: `UpdateNix` replaced the file `$APPIMAGE` names (now byte-identical
+  to 1.0.110's AppImage) and started it again with the same arguments and
+  `VELOPACK_RESTART=true`; the new process runs from the new mount and its
+  `sq.version` says 1.0.110. No mount was left once the app was stopped. The same AppImage
+  with `FLATPAK_ID` set, and the bare executable, asked nothing. Not run:
+  « Redémarrer maintenant » in the flyout, which calls the same updater
+  with the arguments of a user's restart; a desktop; Arm (T140).
 
 ## Assumptions and the tasks that settle them
 
