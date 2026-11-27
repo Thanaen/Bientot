@@ -29,10 +29,10 @@ use crate::adjust::{Editable, Seed, Target};
 use crate::adjust_view;
 use crate::demo::DemoHost;
 use crate::flyout::{
-    AdjustTime, Alerts, CountAutomatically, CountUnrecorded, DeclareTime, ExportDiagnostics,
-    FinishDay, HideCount, HideTrustOffer, OpenGeneralSettings, OpenSettings, OpenSettingsJson,
-    OpenWeek, Quit, Refresh, ResolveReview, ShowUnrecorded, TogglePause, UndoCount, UndoNotice,
-    UseBuiltInDetection,
+    AdjustTime, Alerts, CountAutomatically, CountUnrecorded, DeclareTime, DismissWindowModeNotice,
+    ExportDiagnostics, FinishDay, HideCount, HideTrustOffer, OpenGeneralSettings, OpenSettings,
+    OpenSettingsJson, OpenWeek, Quit, Refresh, ResolveReview, ShowIconHelp, ShowUnrecorded,
+    TogglePause, UndoCount, UndoNotice, UseBuiltInDetection,
 };
 use crate::live::{Announcement, LiveHost, Tracking, TrackingCommand};
 use crate::platform::{BackendNotes, Backends, NO_BACKEND, TrayEvents};
@@ -300,6 +300,21 @@ impl Today {
         saved.is_ok()
     }
 
+    /// Whether the user closed the notice of window mode. A demo keeps nothing.
+    pub fn window_mode_notice_dismissed(&self) -> bool {
+        match &self.source {
+            Source::Live(host) => host.window_mode_notice_dismissed(),
+            Source::Demo(_) => false,
+        }
+    }
+
+    /// « Compris » on the notice of window mode, kept for the next launches.
+    pub fn dismiss_window_mode_notice(&mut self) {
+        if let Some(host) = self.live() {
+            host.dismiss_window_mode_notice();
+        }
+    }
+
     /// Records a refusal of a proposal; a failed save only logs, as the proposal comes back.
     pub fn dismiss_proposal(&mut self, dismissal: DismissedProposal) {
         let mut settings = self.settings().clone();
@@ -540,6 +555,9 @@ impl Today {
 
 /// Makes `today` the shell's day: the flyout's actions and the timers act on it from now on.
 pub fn install(today: Today, cx: &mut App) {
+    if today.window_mode_notice_dismissed() {
+        shell::close_window_mode_notice(cx);
+    }
     cx.set_global(today);
     cx.on_action(|_: &Refresh, cx| change(cx, Today::refresh));
     cx.on_action(|_: &TogglePause, cx| change(cx, Today::toggle_pause));
@@ -577,6 +595,14 @@ pub fn install(today: Today, cx: &mut App) {
     });
     cx.on_action(|HideTrustOffer(id): &HideTrustOffer, cx| {
         change(cx, |today| today.hide_offer(id))
+    });
+    cx.on_action(|_: &ShowIconHelp, cx| {
+        let language = cx.try_global::<Language>().copied().unwrap_or_default();
+        cx.open_url(shell::icon_help_url(language));
+    });
+    cx.on_action(|_: &DismissWindowModeNotice, cx| {
+        shell::close_window_mode_notice(cx);
+        change(cx, Today::dismiss_window_mode_notice);
     });
     cx.on_action(|_: &OpenSettings, cx| settings_view::open(cx));
     cx.on_action(|_: &OpenSettingsJson, cx| settings_view::open_on(Page::Json, cx));

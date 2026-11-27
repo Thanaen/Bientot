@@ -49,6 +49,8 @@ actions!(
         Refresh,
         UseBuiltInDetection,
         InstallUpdate,
+        ShowIconHelp,
+        DismissWindowModeNotice,
         OpenSettingsJson,
         ExportDiagnostics,
         OpenCommands,
@@ -796,6 +798,11 @@ impl Render for Flyout {
             }))
             .on_action(
                 cx.listener(|flyout, _: &UndoNotice, window, cx| {
+                    flyout.closing_callout(window, cx)
+                }),
+            )
+            .on_action(
+                cx.listener(|flyout, _: &DismissWindowModeNotice, window, cx| {
                     flyout.closing_callout(window, cx)
                 }),
             )

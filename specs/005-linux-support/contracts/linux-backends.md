@@ -110,7 +110,8 @@ host opens the window when nothing shows and turns an open flyout into it;
 with a host back, turns the window into the flyout when it has the focus
 and closes it otherwise. A window replaces another only once open, so
 that the app never runs without one. `windowModeNoticeDismissed` in
-`app-state.json` is read and written; the notice itself is T064's.
+`app-state.json` is read at start and written by the notice's « Compris »
+(T064), which the flyout shows in window mode only.
 
 ## Idle
 

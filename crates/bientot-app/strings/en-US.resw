@@ -376,6 +376,10 @@
   <data name="DiagnosticSection.LocksReported" xml:space="preserve"><value>Reported</value></data>
   <data name="DiagnosticSection.LocksNotReported" xml:space="preserve"><value>Not reported</value></data>
   <data name="LockStateUnknown.Text" xml:space="preserve"><value>This desktop does not report screen locks. Bientôt relies on your activity.</value></data>
+  <data name="WindowModeNotice.Title" xml:space="preserve"><value>This desktop shows no icon for Bientôt</value></data>
+  <data name="WindowModeNotice.Text" xml:space="preserve"><value>Bientôt stays open in this window. You can minimize it; tracking continues.</value></data>
+  <data name="WindowModeNotice.Link" xml:space="preserve"><value>How to show the icon</value></data>
+  <data name="WindowModeNotice.Dismiss" xml:space="preserve"><value>Got it</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Send an anonymous usage signal</value></data>
   <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Once a day, with no identifier and no data about your working time. This count helps the developer know how many people use Bientôt.</value></data>

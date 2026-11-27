@@ -50,7 +50,7 @@ session type, install kind and the result of each step in `research.md`,
 3. Finish onboarding. On a desktop with a tray host, the icon shows in the
    panel with the remaining time and is legible on this panel's colour.
 4. On Fedora GNOME (no host): a window opens instead, with the notice;
-   « Afficher l’icône » opens the help page. Install the AppIndicator
+   « Comment afficher l’icône » opens the help page. Install the AppIndicator
    extension: the icon appears and the window becomes the flyout, without
    a restart.
 

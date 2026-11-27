@@ -376,6 +376,10 @@
   <data name="DiagnosticSection.LocksReported" xml:space="preserve"><value>Signalé</value></data>
   <data name="DiagnosticSection.LocksNotReported" xml:space="preserve"><value>Non signalé</value></data>
   <data name="LockStateUnknown.Text" xml:space="preserve"><value>Ce bureau ne signale pas le verrouillage de l’écran. Bientôt se fie à votre activité.</value></data>
+  <data name="WindowModeNotice.Title" xml:space="preserve"><value>Ce bureau n’affiche pas d’icône pour Bientôt</value></data>
+  <data name="WindowModeNotice.Text" xml:space="preserve"><value>Bientôt reste ouvert dans cette fenêtre. Vous pouvez la réduire : le suivi continue.</value></data>
+  <data name="WindowModeNotice.Link" xml:space="preserve"><value>Comment afficher l’icône</value></data>
+  <data name="WindowModeNotice.Dismiss" xml:space="preserve"><value>Compris</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Envoyer un signal d’utilisation anonyme</value></data>
   <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Une fois par jour, sans identifiant ni donnée sur votre temps de travail. Ce décompte aide le développeur à savoir combien de personnes utilisent Bientôt.</value></data>

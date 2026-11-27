@@ -1,5 +1,5 @@
-//! The flyout's body, between the header and the actions: the notices, the day, the
-//! announcements and the Store update on offer.
+//! The flyout's body, between the header and the actions: the notices, why the app shows in a
+//! window, the day, the announcements and the Store update on offer.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -12,7 +12,6 @@ use gpui::{
 
 use super::{BODY_PADDING, Flyout, InstallUpdate, UndoNotice, readable};
 use crate::platform::Backends;
-use crate::settings_view;
 use crate::strings::Key;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, motion, radius, size, tabular_figures, text};
@@ -22,6 +21,7 @@ use crate::widgets::{
     notice_box_beside_button, small,
 };
 use crate::workday::Worked;
+use crate::{settings_view, shell};
 
 /// Where a notice that arrives in the open flyout stands at `time`, a share of its entrance: it
 /// sits in the flow, so it fades in over the whole entrance while it rises 4 px into place.
@@ -54,6 +54,7 @@ fn shown_refresh_failure<'a>(
 pub(super) enum Part {
     Notice,
     RefreshFailure,
+    WindowModeNotice,
     SourceCallout,
     AppointmentCallout,
     CountedCallout,
@@ -402,9 +403,9 @@ impl Flyout {
             }))
     }
 
-    /// What scrolls between the header and the actions: the notices, the day and the callouts,
-    /// down to the update. After Tab, it scrolls the part that took the focus into view, or
-    /// the control that took it in a part taller than the body.
+    /// What scrolls between the header and the actions: the notices, the callouts on the day's
+    /// time, why the app shows in a window, the day and the other callouts, down to the update. After Tab, it scrolls the part that
+    /// took the focus into view, or the control that took it in a part taller than the body.
     pub(super) fn body(
         &mut self,
         window: &mut Window,
@@ -431,6 +432,9 @@ impl Flyout {
             self.trust_callout(theme)
                 .map(|callout| (Part::TrustCallout, callout)),
         );
+        if shell::shows_window_mode_notice(cx) {
+            parts.push((Part::WindowModeNotice, self.window_mode_notice(theme)));
+        }
         parts.push((
             Part::Headline,
             self.headline(undetectable, theme).into_any_element(),

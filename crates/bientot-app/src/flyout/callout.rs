@@ -3,9 +3,9 @@
 use gpui::{Action, AnyElement, FontWeight, Role, SharedString, div, prelude::*};
 
 use super::{
-    CountAutomatically, CountUnrecorded, DeclareTime, Flyout, HideCount, HideTrustOffer,
-    OpenGeneralSettings, Refresh, ResolveReview, ShowUnrecorded, UndoCount, UseBuiltInDetection,
-    control, control_icon, key_caps, keys, keystroke, readable,
+    CountAutomatically, CountUnrecorded, DeclareTime, DismissWindowModeNotice, Flyout, HideCount,
+    HideTrustOffer, OpenGeneralSettings, Refresh, ResolveReview, ShowIconHelp, ShowUnrecorded,
+    UndoCount, UseBuiltInDetection, control, control_icon, key_caps, keys, keystroke, readable,
 };
 use crate::settings_view::outlined_on_tint;
 use crate::strings::Key;
@@ -140,6 +140,54 @@ impl Flyout {
                         self.text(Key::ActivityUndetectableText),
                     ))
                     .children(declare.map(|button| div().pt(BASE_06).flex().child(button))),
+            )
+            .into_any_element()
+    }
+
+    /// Why Bientôt shows in a window on a desktop without a tray (FR-012), with « Comment
+    /// afficher l’icône » for the help page and « Compris », after which it never shows again.
+    pub(super) fn window_mode_notice(&self, theme: &Theme) -> AnyElement {
+        let title = self.text(Key::WindowModeNoticeTitle);
+        let help = self.callout_button(
+            "window-mode-help",
+            self.text(Key::WindowModeNoticeLink).into(),
+            None,
+            Box::new(ShowIconHelp),
+            theme,
+        );
+        let dismiss = self.callout_button(
+            "window-mode-dismiss",
+            self.text(Key::WindowModeNoticeDismiss).into(),
+            None,
+            Box::new(DismissWindowModeNotice),
+            theme,
+        );
+        callout_box_with_icon(Hue::Info, Hue::Info.icon(), theme)
+            .id("window-mode")
+            .role(Role::Group)
+            .aria_label(title)
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .flex()
+                    .flex_col()
+                    .gap(BASE_02)
+                    .child(div().font_weight(FontWeight::SEMIBOLD).child(title))
+                    .child(readable(
+                        "window-mode-body",
+                        self.text(Key::WindowModeNoticeText),
+                    ))
+                    .child(
+                        div()
+                            .pt(BASE_06)
+                            .flex()
+                            .flex_wrap()
+                            .items_center()
+                            .gap(BASE_08)
+                            .child(help)
+                            .child(dismiss),
+                    ),
             )
             .into_any_element()
     }

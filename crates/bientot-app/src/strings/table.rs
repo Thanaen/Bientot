@@ -859,6 +859,10 @@ pub enum Key {
     UsagePingChannelDirect,
     UsagePingChannelStore,
     UsagePingChannelZip,
+    WindowModeNoticeDismiss,
+    WindowModeNoticeLink,
+    WindowModeNoticeText,
+    WindowModeNoticeTitle,
     WorkdayBuiltInInputFailed,
     WorkdayBuiltInInterrupted,
     WorkdayBuiltInRecording,
@@ -895,7 +899,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 887] = [
+pub(super) static ENTRIES: [Entry; 891] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
     Entry { name: "ActivityUndetectable.Action", fr: "Déclarer du temps", en: "Log time", linux: None },
     Entry { name: "ActivityUndetectable.ForecastPaused", fr: "Pas de prévision sans détection de l’activité", en: "No forecast without activity detection", linux: None },
@@ -1749,6 +1753,10 @@ pub(super) static ENTRIES: [Entry; 887] = [
     Entry { name: "UsagePingChannelDirect", fr: "le programme d’installation", en: "the installer", linux: None },
     Entry { name: "UsagePingChannelStore", fr: "le Microsoft\u{a0}Store", en: "the Microsoft\u{a0}Store", linux: None },
     Entry { name: "UsagePingChannelZip", fr: "l’archive ZIP", en: "the ZIP download", linux: None },
+    Entry { name: "WindowModeNotice.Dismiss", fr: "Compris", en: "Got it", linux: None },
+    Entry { name: "WindowModeNotice.Link", fr: "Comment afficher l’icône", en: "How to show the icon", linux: None },
+    Entry { name: "WindowModeNotice.Text", fr: "Bientôt reste ouvert dans cette fenêtre. Vous pouvez la réduire\u{a0}: le suivi\u{a0}continue.", en: "Bientôt stays open in this window. You\u{a0}can\u{a0}minimize it; tracking\u{a0}continues.", linux: None },
+    Entry { name: "WindowModeNotice.Title", fr: "Ce bureau n’affiche pas d’icône pour\u{a0}Bientôt", en: "This desktop shows no icon for Bientôt", linux: None },
     Entry { name: "WorkdayBuiltInInputFailed", fr: "Détection intégrée · lecture des saisies impossible", en: "Built-in detection · cannot read input", linux: None },
     Entry { name: "WorkdayBuiltInInterrupted", fr: "Détection intégrée · enregistrement interrompu", en: "Built-in detection · recording stopped", linux: None },
     Entry { name: "WorkdayBuiltInRecording", fr: "Détection intégrée · enregistrement en cours", en: "Built-in detection · recording", linux: None },

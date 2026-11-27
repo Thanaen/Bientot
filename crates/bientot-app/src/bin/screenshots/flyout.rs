@@ -16,9 +16,12 @@
 //! - `flyout-diagnostics-<saved|failed>.png`;
 //! - `flyout-<settings-restored|notifications-unavailable|refresh-failed|alerts>.png`;
 //! - `flyout-activity-undetectable[-paused].png`, without an idle backend, on Linux only;
+//! - `flyout-window-mode[-alerts].png`, the notice of a desktop without a tray, on Linux only;
 //! - `flyout-update-<offered|installing|failed>.png` and `flyout-update-direct-<…>.png`;
 //! - `flyout-alerts-short.png` and `flyout-alerts-short-update.png`;
 //! - `palette-flyout.png`, `palette-flyout-query.png` and `palette-flyout-empty.png`.
+
+use std::rc::Rc;
 
 use anyhow::Context as _;
 use bientot_app::automatic::{self, CountedAbsence, TrustOffer};
@@ -42,6 +45,8 @@ use bientot_domain::accounting::{AdjustmentId, LongLockReviewId, TrackingState};
 use bientot_domain::adjustments::ManualAdjustment;
 use bientot_domain::intervals::UtcInterval;
 use bientot_domain::time::LocalWorkday;
+use bientot_platform::placement::{FlyoutPlacement, InMemoryDesktop};
+use bientot_platform::tray::TrayHost;
 use gpui::{AppContext as _, HeadlessAppContext, px, size};
 use jiff::SignedDuration;
 
@@ -417,7 +422,60 @@ pub fn capture_notices(
         let path = output.join("flyout-activity-undetectable-paused.png");
         capture(cx, window.into(), &path)?;
         cx.update(|cx| cx.set_global(Backends::default()));
+        capture_window_mode(cx, language, output)?;
     }
+    Ok(())
+}
+
+/// No tray host shows the icon, so the flyout is a window that says why: alone, then with what
+/// the flyout tells unasked on such a desktop, the notifications refused at the start and a
+/// refresh that failed.
+fn capture_window_mode(
+    cx: &mut HeadlessAppContext,
+    language: Language,
+    output: &std::path::Path,
+) -> anyhow::Result<()> {
+    let desktop = |placement| {
+        Rc::new(InMemoryDesktop {
+            placement,
+            usable_height: None,
+            system_draws_frame: false,
+        })
+    };
+    cx.update(|cx| shell::install(desktop(FlyoutPlacement::Window), TrayHost::Absent, cx));
+    let directory = demo::throwaway_directory();
+    let day = DemoHost::open(DemoScenario::OnTrack, &directory)?.refresh(language);
+    std::fs::remove_dir_all(&directory).ok();
+    let day = day?;
+    capture_flyout(
+        cx,
+        day.clone(),
+        None,
+        &output.join("flyout-window-mode.png"),
+    )?;
+    let alerts = Alerts {
+        announcements: vec![Announcement::NotificationsRefused.notice(language)],
+        refresh_failure: Some(Notice::refresh_pending(
+            language.text(Key::PeriodicRefreshErrorMessage),
+        )),
+    };
+    let window = cx.open_window(size(FLYOUT_WIDTH, px(800.)), |window, cx| {
+        cx.new(|cx| {
+            Flyout::new(day, working(TrackingState::Running), None, window, cx).with_alerts(alerts)
+        })
+    })?;
+    capture(
+        cx,
+        window.into(),
+        &output.join("flyout-window-mode-alerts.png"),
+    )?;
+    cx.update(|cx| {
+        shell::install(
+            desktop(FlyoutPlacement::CompositorPlaced),
+            TrayHost::Present,
+            cx,
+        )
+    });
     Ok(())
 }
 
