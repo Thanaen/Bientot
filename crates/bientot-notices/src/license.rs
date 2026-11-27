@@ -17,6 +17,9 @@ pub const ALLOWED: &[&str] = &[
     "Unlicense",
     // webpki-root-certs: its one condition is the agreement text alongside the data.
     "CDLA-Permissive-2.0",
+    // option-ext, through GPUI's font-kit on Linux, unchanged: the notice gives its license text
+    // and its repository, where its source is, which is what section 3.2 asks of a binary.
+    "MPL-2.0",
 ];
 
 #[derive(Debug, PartialEq, Eq)]
@@ -260,12 +263,12 @@ mod tests {
     fn and_needs_every_term_allowed() {
         assert!(parse("Apache-2.0 AND MIT").is_allowed());
         assert!(parse("(MIT OR Apache-2.0) AND Unicode-3.0").is_allowed());
-        assert!(!parse("MIT AND MPL-2.0").is_allowed());
+        assert!(!parse("MIT AND LGPL-2.1-only").is_allowed());
     }
 
     #[test]
     fn rejects_a_license_outside_the_list() {
-        assert!(!parse("MPL-2.0").is_allowed());
+        assert!(!parse("LGPL-2.1-only").is_allowed());
         assert!(!parse("mit").is_allowed());
     }
 
