@@ -2,10 +2,12 @@
 //! states of « Corriger le temps… », « Paramètres » and the onboarding, to PNG files, in one
 //! language and one theme.
 //!
-//! Usage: `bientot-screenshots <output directory> --french|--english --light|--dark`. Each
-//! scenario module's doc lists the files it writes there; a `<name>-motion-<percent>.png` is an
-//! entrance at that share of its duration.
-//! Linux only: it needs a Vulkan driver, and CI uses Mesa's software one (lavapipe).
+//! Usage: `bientot-screenshots <output directory> --french|--english --light|--dark
+//! [--platform windows|linux]`. Each scenario module's doc lists the files it writes there; a
+//! `<name>-motion-<percent>.png` is an entrance at that share of its duration. `--platform linux`
+//! takes only the scenes that differ on Linux (`screenshots/platform.rs`); Windows, the default,
+//! takes them all.
+//! Runs on Linux only: it needs a Vulkan driver, and CI uses Mesa's software one (lavapipe).
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -19,9 +21,11 @@ use bientot_app::onboarding_view;
 use bientot_app::palette_view;
 use bientot_app::settings_view;
 use bientot_app::startup_failure_view;
+use bientot_app::strings::Language;
 use bientot_app::theme::{ThemeMode, motion};
 use bientot_app::week_view;
 use gpui::{AnyWindowHandle, HeadlessAppContext};
+use platform::{Platform, Shots};
 
 #[path = "screenshots/adjust.rs"]
 mod adjust;
@@ -35,6 +39,8 @@ mod flyout;
 mod midnight;
 #[path = "screenshots/onboarding.rs"]
 mod onboarding;
+#[path = "screenshots/platform.rs"]
+mod platform;
 #[path = "screenshots/plugins.rs"]
 mod plugins;
 #[path = "screenshots/saturday.rs"]
@@ -52,13 +58,23 @@ mod week;
 const HISTORY_WEEK_MEETING: &str = "demo-history-week-meeting";
 const HISTORY_WEEK_MANUAL: &str = "demo-history-week-manual";
 
-const USAGE: &str =
-    "usage: bientot-screenshots <output directory> --french|--english --light|--dark";
+const USAGE: &str = "usage: bientot-screenshots <output directory> --french|--english \
+                     --light|--dark [--platform windows|linux]";
 
 fn main() -> anyhow::Result<()> {
     let mut arguments = std::env::args().skip(1);
     let output = PathBuf::from(arguments.next().context(USAGE)?);
-    let launch = Launch::parse(arguments).context(USAGE)?;
+    let mut platform = Platform::Windows;
+    let mut rest = Vec::new();
+    while let Some(argument) = arguments.next() {
+        if argument == "--platform" {
+            let name = arguments.next().context(USAGE)?;
+            platform = Platform::parse(&name).context(USAGE)?;
+        } else {
+            rest.push(argument);
+        }
+    }
+    let launch = Launch::parse(rest).context(USAGE)?;
     anyhow::ensure!(launch.theme != ThemeMode::System, USAGE);
     let language = launch.language.context(USAGE)?;
     std::fs::create_dir_all(&output)?;
@@ -75,6 +91,7 @@ fn main() -> anyhow::Result<()> {
     cx.update(|cx| {
         cx.set_global(launch.theme);
         cx.set_global(language);
+        cx.set_global(Shots::new(platform));
         assets::load_fonts(cx)?;
         bientot_app::flyout::bind_keys(cx);
         week_view::bind_keys(cx);
@@ -86,29 +103,64 @@ fn main() -> anyhow::Result<()> {
         anyhow::Ok(())
     })?;
 
-    flyout::capture_scenarios(&mut cx, language, &output)?;
-    saturday::capture_day_off(&mut cx, language, &output)?;
-    flyout::capture_record_work_unavailable(&mut cx, language, &output)?;
-    flyout::capture_unrecorded_focused(&mut cx, language, &output)?;
-    flyout::capture_unrecorded_counted(&mut cx, language, &output)?;
-    flyout::capture_notices(&mut cx, language, &output)?;
-    flyout::capture_appointment_review(&mut cx, language, &output)?;
-    flyout::capture_rebuilt_review(&mut cx, language, &output)?;
-    flyout::capture_updates(&mut cx, language, &output)?;
-    flyout::capture_palette(&mut cx, language, &output)?;
-    plugins::capture_cards(&mut cx, language, &output)?;
-    week::capture_weeks(&mut cx, language, &output)?;
-    details::capture_details(&mut cx, language, &output)?;
-    adjust::capture_states(&mut cx, language, &output)?;
-    adjust::capture_declare_work(&mut cx, language, &output)?;
-    midnight::capture_midnight(&mut cx, language, &output)?;
-    adjust::capture_edits(&mut cx, language, &output)?;
-    settings::capture_pages(&mut cx, language, &output)?;
-    settings::capture_plugin_pages(&mut cx, language, &output)?;
-    onboarding::capture_steps(&mut cx, language, &output)?;
-    startup_failure::capture_failures(&mut cx, language, &output)?;
+    for (group, scenes) in SCENES {
+        if platform.takes_group(group) {
+            scenes(&mut cx, language, &output)?;
+        }
+    }
+    let missed = cx.update(|cx| cx.global::<Shots>().missed());
+    anyhow::ensure!(missed.is_empty(), "no scene took {missed:?}");
     Ok(())
 }
+
+/// What takes a group of scenes, in one language, to a folder.
+type Scenes = fn(&mut HeadlessAppContext, Language, &std::path::Path) -> anyhow::Result<()>;
+
+/// Every group of scenes, by the name `screenshots/platform.rs` gives it, in the order taken.
+const SCENES: [(&str, Scenes); 21] = [
+    ("flyout::capture_scenarios", flyout::capture_scenarios),
+    ("saturday::capture_day_off", saturday::capture_day_off),
+    (
+        "flyout::capture_record_work_unavailable",
+        flyout::capture_record_work_unavailable,
+    ),
+    (
+        "flyout::capture_unrecorded_focused",
+        flyout::capture_unrecorded_focused,
+    ),
+    (
+        "flyout::capture_unrecorded_counted",
+        flyout::capture_unrecorded_counted,
+    ),
+    ("flyout::capture_notices", flyout::capture_notices),
+    (
+        "flyout::capture_appointment_review",
+        flyout::capture_appointment_review,
+    ),
+    (
+        "flyout::capture_rebuilt_review",
+        flyout::capture_rebuilt_review,
+    ),
+    ("flyout::capture_updates", flyout::capture_updates),
+    ("flyout::capture_palette", flyout::capture_palette),
+    ("plugins::capture_cards", plugins::capture_cards),
+    ("week::capture_weeks", week::capture_weeks),
+    ("details::capture_details", details::capture_details),
+    ("adjust::capture_states", adjust::capture_states),
+    ("adjust::capture_declare_work", adjust::capture_declare_work),
+    ("midnight::capture_midnight", midnight::capture_midnight),
+    ("adjust::capture_edits", adjust::capture_edits),
+    ("settings::capture_pages", settings::capture_pages),
+    (
+        "settings::capture_plugin_pages",
+        settings::capture_plugin_pages,
+    ),
+    ("onboarding::capture_steps", onboarding::capture_steps),
+    (
+        "startup_failure::capture_failures",
+        startup_failure::capture_failures,
+    ),
+];
 
 /// The first frame of the dialog's entrance, the next two at 60 Hz (16.7 ms and 33.3 ms of
 /// 250), midway and at rest, in percent.
@@ -147,6 +199,13 @@ fn capture(
     window: AnyWindowHandle,
     path: &std::path::Path,
 ) -> anyhow::Result<()> {
+    let name = path
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    if !cx.update(|cx| cx.global_mut::<Shots>().take(name)) {
+        return Ok(());
+    }
     cx.run_until_parked();
     cx.update_window(window, |_, window, _| window.refresh())?;
     cx.run_until_parked();

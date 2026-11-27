@@ -531,6 +531,24 @@ The instance key is the one `bientot-store` already derives from the data
 folder (#189). A Flatpak copy and an AppImage copy have different data
 folders (R12), so they are two instances, like two `--data-dir` runs.
 
+**Waiting for the process that restarted this one (T122).** After an
+import, the old process starts the new one and quits; the new one waits for
+it before it takes the lock, or the lock would hand it to the old one. The
+old process is the new one's parent, not its child, so std's
+`std::os::linux::process::PidFd`, which only `Command` hands out, does not
+apply. `rustix` is already a dependency of `bientot-linux`, and `async-io`
+already builds it with its `event` and `process` features in that crate's
+own graph (`cargo tree -p bientot-linux -e normal -f '{p} {f}'` gives the
+same features with and without them declared), so `pidfd_open` and `poll`
+cost no package, no compiled code and no `unsafe`. What they buy over
+polling `/proc/<pid>/stat`: the wait ends when the process does, not up to
+50 ms later, without a wake-up every 50 ms; and a pidfd names the process,
+so a number reused by another process during the wait cannot keep the new
+one waiting until its timeout. **Decision**: pidfd first; polling where
+`pidfd_open` fails with anything but `ESRCH` (no such process: it has
+exited) or `poll` fails, which covers kernels before 5.3 and seccomp
+filters that refuse the call. Both halves are tested on their own.
+
 ## R12. Paths, fonts, locale, opening things, and the rest
 
 - **Data folder.** One folder, as on Windows: `$XDG_DATA_HOME/bientot`
