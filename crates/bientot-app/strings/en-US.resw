@@ -424,8 +424,6 @@
   <data name="SettingsRetry.Content" xml:space="preserve"><value>Retry</value></data>
   <data name="SettingsGeneralTitle" xml:space="preserve"><value>General</value></data>
   <data name="SettingsGeneralDescriptionRealText" xml:space="preserve"><value>Language changes apply after Bientôt restarts.</value></data>
-  <data name="SettingsGeneralDescriptionDemoText" xml:space="preserve"><value>Language changes apply after Bientôt restarts. Windows startup is unavailable in demo mode.</value></data>
-  <data name="SettingsGeneralDescriptionDemoText.Linux" xml:space="preserve"><value>Language changes apply after Bientôt restarts. Automatic startup is unavailable in demo mode.</value></data>
   <data name="SettingsLunchStartLabel.Text" xml:space="preserve"><value>Start</value></data>
   <data name="SettingsLunchEndLabel.Text" xml:space="preserve"><value>End</value></data>
   <data name="SettingsLunchStartInput.AutomationProperties.Name" xml:space="preserve"><value>Lunch start time</value></data>
@@ -626,10 +624,6 @@
   <data name="OnboardingLanguageIntro.Text" xml:space="preserve"><value>Bientôt follows the Windows language by default. You can change it later in Settings.</value></data>
   <data name="OnboardingLanguageIntro.Text.Linux" xml:space="preserve"><value>Bientôt follows your system language by default. You can change it later in Settings.</value></data>
   <data name="OnboardingLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Language</value></data>
-  <data name="OnboardingLanguageSystemFrench" xml:space="preserve"><value>Windows language (French)</value></data>
-  <data name="OnboardingLanguageSystemFrench.Linux" xml:space="preserve"><value>System language (French)</value></data>
-  <data name="OnboardingLanguageSystemEnglish" xml:space="preserve"><value>Windows language (English)</value></data>
-  <data name="OnboardingLanguageSystemEnglish.Linux" xml:space="preserve"><value>System language (English)</value></data>
   <data name="OnboardingLanguageSystem" xml:space="preserve"><value>Windows language</value></data>
   <data name="OnboardingLanguageSystem.Linux" xml:space="preserve"><value>System language</value></data>
   <data name="OnboardingLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
@@ -646,14 +640,8 @@
   <data name="OnboardingLunchEndInput.AutomationProperties.Name" xml:space="preserve"><value>Lunch end time</value></data>
   <data name="OnboardingDepartureInput.Header" xml:space="preserve"><value>Preferred latest departure</value></data>
   <data name="OnboardingDepartureInput.AutomationProperties.Name" xml:space="preserve"><value>Preferred latest departure time</value></data>
-  <data name="OnboardingStartupTitle.Text" xml:space="preserve"><value>Start with Windows</value></data>
-  <data name="OnboardingStartupTitle.Text.Linux" xml:space="preserve"><value>Start when you sign in</value></data>
   <data name="OnboardingStartupIntro.Text" xml:space="preserve"><value>Bientôt only counts your time while it runs. Starting it when you sign in means you never miss a morning.</value></data>
-  <data name="OnboardingStartupCard.Header" xml:space="preserve"><value>Windows startup</value></data>
-  <data name="OnboardingStartupCard.Header.Linux" xml:space="preserve"><value>Automatic startup</value></data>
   <data name="OnboardingStartupCard.Description" xml:space="preserve"><value>Start Bientôt when you sign in.</value></data>
-  <data name="OnboardingStartupInput.AutomationProperties.Name" xml:space="preserve"><value>Start Bientôt with Windows</value></data>
-  <data name="OnboardingStartupInput.AutomationProperties.Name.Linux" xml:space="preserve"><value>Start Bientôt when you sign in</value></data>
   <data name="OnboardingStartupInput.OnContent" xml:space="preserve"><value>On</value></data>
   <data name="OnboardingStartupInput.OffContent" xml:space="preserve"><value>Off</value></data>
   <data name="OnboardingStartupFootnote.Text" xml:space="preserve"><value>The icon stays in the notification area. Closing the window does not stop Bientôt.</value></data>
@@ -771,7 +759,6 @@ Import the file you exported from Settings › Data on that PC.</value></data>
   <data name="UpdateAvailableDialog.Title" xml:space="preserve"><value>Update available</value></data>
   <data name="UpdateAvailableDialog.PrimaryButtonText" xml:space="preserve"><value>Update</value></data>
   <data name="UpdateAvailableDialog.CloseButtonText" xml:space="preserve"><value>Later</value></data>
-  <data name="UpdateAvailableDialogMessage.Text" xml:space="preserve"><value>A new version of Bientôt is available in the Microsoft Store. Windows asks for your permission before downloading it, and Bientôt may close while it installs.</value></data>
   <data name="UpdateNotice.Message" xml:space="preserve"><value>A new version is available in the Microsoft Store. Bientôt may close while it installs.</value></data>
   <data name="UpdateNoticeAction.Content" xml:space="preserve"><value>See the update</value></data>
   <data name="UpdateInstallFailed" xml:space="preserve"><value>The update couldn’t be installed. Bientôt will offer it again within a day.</value></data>

@@ -415,10 +415,6 @@ const SHOWN_ON_WINDOWS_ONLY: &[(&str, &str)] = &[
         "the Linux autostart entry has no state turned off by the system",
     ),
     (
-        "UpdateAvailableDialogMessage.Text",
-        "the Store's update prompt: a Linux build has no Store",
-    ),
-    (
         "UpdateNotice.Message",
         "the Store's update notice: a Linux build has no Store",
     ),
