@@ -72,9 +72,14 @@ pub fn capture_pages(
     ] {
         capture_settings(cx, language, Page::General, state, output)?;
     }
-    // The row of « Menu des applications », which only an AppImage shows.
+    // The row of « Menu des applications », and the startup entry of a moved file, which only an
+    // AppImage shows.
     if cx.update(|cx| cx.global::<Shots>().platform.install_kind()) == Some(InstallKind::AppImage) {
-        for state in [SettingsState::LauncherOff, SettingsState::LauncherFailed] {
+        for state in [
+            SettingsState::LauncherOff,
+            SettingsState::LauncherFailed,
+            SettingsState::Startup(StartupRegistrationState::RegistrationMoved),
+        ] {
             capture_settings(cx, language, Page::General, state, output)?;
         }
     }

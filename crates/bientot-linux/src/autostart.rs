@@ -41,6 +41,8 @@ pub struct XdgAutostart {
     file: Option<PathBuf>,
     /// `None`: no path a desktop file can name, and nothing is ever written.
     executable: Option<String>,
+    /// The executable is an AppImage file, which the user may move.
+    appimage: bool,
 }
 
 impl XdgAutostart {
@@ -52,15 +54,32 @@ impl XdgAutostart {
                 .filter(|path| crate::is_absolute(path))
                 .and_then(Path::to_str)
                 .map(str::to_owned),
+            appimage: false,
         }
     }
 
-    /// The entry of this process: under `$XDG_CONFIG_HOME`, for `$APPIMAGE` when an AppImage
-    /// runs it and the executable otherwise.
+    /// The entry under `config_home` that starts the AppImage `file`, which reads an entry of
+    /// another absolute path as [`StartupRegistrationState::RegistrationMoved`].
+    pub fn for_appimage(config_home: Option<&Path>, file: &Path) -> Self {
+        Self {
+            appimage: true,
+            ..Self::new(config_home, Some(file))
+        }
+    }
+
+    /// The entry of this process, under `$XDG_CONFIG_HOME`: for `$APPIMAGE` when an AppImage
+    /// runs it, since its executable lives in a mount that changes at every run, else for the
+    /// executable.
     pub fn for_this_process() -> Self {
         let variable = |name: &str| std::env::var_os(name);
-        let executable = installed_executable(variable("APPIMAGE"), std::env::current_exe().ok());
-        Self::new(config_home(variable).as_deref(), executable.as_deref())
+        let config_home = config_home(variable);
+        match appimage_file(variable("APPIMAGE")) {
+            Some(file) => Self::for_appimage(config_home.as_deref(), &file),
+            None => Self::new(
+                config_home.as_deref(),
+                std::env::current_exe().ok().as_deref(),
+            ),
+        }
     }
 
     fn try_state(&self) -> io::Result<StartupRegistrationState> {
@@ -69,7 +88,7 @@ impl XdgAutostart {
         };
         Ok(match read(file)? {
             None => StartupRegistrationState::Disabled,
-            Some(entry) => entry.state(executable),
+            Some(entry) => entry.state(executable, self.appimage),
         })
     }
 
@@ -79,9 +98,9 @@ impl XdgAutostart {
         };
         let entry = read(file)?;
         if enabled {
-            if entry
-                .is_none_or(|entry| entry.state(executable) != StartupRegistrationState::Enabled)
-            {
+            if entry.is_none_or(|entry| {
+                entry.state(executable, self.appimage) != StartupRegistrationState::Enabled
+            }) {
                 write(file, desktop_file(executable).as_bytes())?;
             }
         } else if entry.is_some_and(|entry| entry.starts(executable)) {
@@ -99,14 +118,15 @@ impl StartupPort for XdgAutostart {
 
     /// Enabling writes this install's entry unless it is already there, repairing one that is
     /// turned off or starts another path. Disabling removes only an entry that starts this
-    /// install, and reports another path's as a mismatch.
+    /// install, and reports one this install does not own as an AppImage's moved entry or a
+    /// mismatch, as [`Self::state`] reads it.
     fn set_enabled(&self, enabled: bool) -> StartupRegistrationState {
         self.try_set_enabled(enabled)
             .unwrap_or(StartupRegistrationState::Unavailable)
     }
 
     /// Never: the Flatpak's portal writes its entry under the same file name, so this folder
-    /// starts one copy at most, and an entry of the Flatpak reads as one for another path.
+    /// starts one copy at most, and an entry of the Flatpak reads as a mismatch.
     fn other_copy_starts(&self) -> bool {
         false
     }
@@ -117,16 +137,11 @@ fn config_home(variable: impl Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
     base_directory(variable, "XDG_CONFIG_HOME", ".config")
 }
 
-/// What the entry starts: the AppImage file itself, since its executable lives in a mount that
-/// changes at every run, else the executable.
-fn installed_executable(
-    appimage: Option<OsString>,
-    current_exe: Option<PathBuf>,
-) -> Option<PathBuf> {
+/// The AppImage file that runs this process, from `$APPIMAGE` when it is absolute.
+fn appimage_file(appimage: Option<OsString>) -> Option<PathBuf> {
     appimage
         .map(PathBuf::from)
         .filter(|path| crate::is_absolute(path))
-        .or(current_exe)
 }
 
 /// The entry that starts `executable` at sign-in, as Bientôt writes it.
@@ -140,12 +155,15 @@ fn desktop_file(executable: &str) -> String {
 
 impl Entry {
     /// The state the table of the contract gives an autostart entry for this install's
-    /// `executable`.
-    fn state(&self, executable: &str) -> StartupRegistrationState {
+    /// `executable`, an AppImage file when `appimage`. The Flatpak's entry starts the program
+    /// `flatpak`, not an absolute path, so an AppImage reads it as a mismatch, not as a move.
+    fn state(&self, executable: &str, appimage: bool) -> StartupRegistrationState {
         if self.turned_off {
             StartupRegistrationState::Disabled
         } else if self.starts(executable) {
             StartupRegistrationState::Enabled
+        } else if appimage && self.program().is_some_and(crate::is_absolute) {
+            StartupRegistrationState::RegistrationMoved
         } else {
             StartupRegistrationState::RegistrationMismatch
         }

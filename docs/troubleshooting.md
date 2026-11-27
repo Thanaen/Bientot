@@ -62,11 +62,12 @@ On Windows the setting is **Windows startup**:
 | Windows did not apply the startup change. Check the status above and try again. | Windows rejected the change. |
 
 On Linux the setting is **Automatic startup**. It can show two of the
-messages above and one of its own:
+messages above and two of its own:
 
 | Message | Meaning |
 | --- | --- |
-| Another copy uses the Bientôt startup entry. Turn this setting on to use this copy. | The autostart entry starts another file, for example after the AppImage moved. |
+| The startup entry points to another location. The file may have been moved. | AppImage: the autostart entry starts another AppImage file, for example after you moved this one. **Fix** writes the entry again for this file. |
+| Another copy uses the Bientôt startup entry. Turn this setting on to use this copy. | The autostart entry starts another copy: the Flatpak, or another file for a build from source. |
 | Startup registration is unavailable for this copy of Bientôt. | Demo mode, a Flatpak, or an autostart folder that Bientôt cannot read or write. |
 | Automatic startup could not be changed. Check the status above and try again. | Writing or removing the autostart entry failed. |
 

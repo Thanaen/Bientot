@@ -413,6 +413,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                     },
                     details: None,
                     startup_apps: None,
+                    repair: None,
                 },
                 RowView {
                     setting: Setting::Updates,
@@ -430,6 +431,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                     },
                     details: None,
                     startup_apps: None,
+                    repair: None,
                 },
                 RowView {
                     setting: Setting::UsagePing,
@@ -452,6 +454,7 @@ fn the_last_step_offers_startup_updates_and_the_usage_signal() {
                         shown: None,
                     }),
                     startup_apps: None,
+                    repair: None,
                 },
             ],
             footnote: Some("Vos heures et votre activité restent sur ce PC."),
@@ -505,6 +508,37 @@ fn start_with_windows_shows_what_windows_decides() {
             )
         )
     );
+}
+
+#[test]
+fn a_moved_appimage_is_named_only_while_the_switch_would_leave_its_entry() {
+    let mut onboarding = on_connections(Some(StartupRegistrationState::RegistrationMoved));
+    assert_eq!(
+        (
+            switch(&onboarding, Setting::Startup),
+            row(&onboarding, Setting::Startup).status
+        ),
+        ((true, true), None),
+        "« Commencer » writes the entry again"
+    );
+
+    onboarding.toggle(Switch::Startup);
+    assert_eq!(
+        (
+            switch(&onboarding, Setting::Startup),
+            row(&onboarding, Setting::Startup).status
+        ),
+        (
+            (false, true),
+            Some(
+                "L’entrée de démarrage pointe vers un autre emplacement. Le fichier a peut-être \
+                 été déplacé."
+            )
+        )
+    );
+
+    onboarding.toggle(Switch::Startup);
+    assert_eq!(row(&onboarding, Setting::Startup).status, None);
 }
 
 #[test]
@@ -892,6 +926,14 @@ fn complete_asks_windows_then_saves_what_it_settled_on() {
     let taken = Registration::new(Disabled, Enabled);
     assert!(saved(true, Some(&taken)));
     assert_eq!(*taken.changes.lock().unwrap(), [true]);
+
+    let moved = Registration::new(RegistrationMoved, Enabled);
+    assert!(saved(true, Some(&moved)));
+    assert_eq!(
+        *moved.changes.lock().unwrap(),
+        [true],
+        "the entry is written again"
+    );
 
     let refused = Registration::new(Disabled, DisabledByUser);
     assert!(!saved(true, Some(&refused)));

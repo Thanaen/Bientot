@@ -20,6 +20,7 @@ pub fn can_change(state: StartupRegistrationState) -> bool {
         StartupRegistrationState::Disabled
             | StartupRegistrationState::Enabled
             | StartupRegistrationState::RegistrationMismatch
+            | StartupRegistrationState::RegistrationMoved
     )
 }
 
@@ -41,6 +42,7 @@ pub fn status(state: StartupRegistrationState) -> Key {
         StartupRegistrationState::Enabled => Key::StartupEnabled,
         StartupRegistrationState::EnabledByPolicy => Key::StartupEnabledByPolicy,
         StartupRegistrationState::RegistrationMismatch => Key::StartupRegistrationMismatch,
+        StartupRegistrationState::RegistrationMoved => Key::StartupMismatchAppImageText,
     }
 }
 

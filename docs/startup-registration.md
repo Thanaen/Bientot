@@ -117,11 +117,13 @@ window.
 
 The setting reads the entry. It is off when the file is missing, or when it
 has `Hidden=true` or `X-GNOME-Autostart-enabled=false`, since the desktop then
-skips it. Settings report an entry that starts another file as a mismatch,
-for example after you moved the AppImage. Turn the setting on again from the
-new file to replace it. Turning the setting on rewrites the entry unless it
-already starts this copy. Turning it off deletes the file only when it starts
-this copy.
+skips it. On an AppImage, settings report an entry that starts another file
+as pointing to another location, for example after you moved the AppImage,
+and offer **Fix**, which writes the entry again for this file. An entry of
+another copy, such as the Flatpak's, which starts `flatpak run`, is reported
+as a mismatch: turn the setting on to replace it. Turning the setting on
+rewrites the entry unless it already starts this copy. Turning it off
+deletes the file only when it starts this copy.
 
 A Flatpak's sandbox has an autostart folder of its own, which no desktop
 reads, so a Flatpak shows startup registration as unavailable. A demo
