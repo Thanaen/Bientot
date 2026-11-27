@@ -506,6 +506,12 @@ Differences from Windows, all platform limits:
   on a toast left in the notification centre restarts Bientôt through COM.
   On Linux a server may start the app from the `desktop-entry` hint, or do
   nothing; Bientôt does not depend on it.
+  **Source** (gnome-shell `js/ui/notificationDaemon.js`, 2026-11-27): GNOME
+  Shell activates the application it found, from the hint or from the
+  sender's windows, for a click on a notification without the `default`
+  action, and destroys that application's notifications once their sender
+  leaves the bus. So the last resort, sent by a process about to exit,
+  goes without the hint (T117, `contracts/linux-backends.md`).
 - **Actions.** Servers advertise `actions` in `GetCapabilities` or not
   (**Source**: the specification makes them optional). Bientôt's
   notifications carry no button today, only the body click, so nothing is

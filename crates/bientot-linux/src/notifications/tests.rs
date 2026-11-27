@@ -22,7 +22,7 @@ fn the_server_is_sent_the_text_the_icon_the_desktop_entry_and_the_body_action() 
             summary: "Bientôt",
             body: "Il reste 15 minutes avant votre objectif. Départ prévu : 17:55.",
             actions: ["default", ""],
-            hints: [("desktop-entry", "dev.bientot.Bientot")],
+            hints: &[("desktop-entry", "dev.bientot.Bientot")],
             expire_timeout: -1,
         }
     );
@@ -47,11 +47,11 @@ const NO_GRAPHICS: &str = "Bientôt could not open a window and has closed. Chec
                            system’s graphics drivers are installed, then restart the app.";
 
 #[test]
-fn the_last_resort_reaches_the_server_as_any_notification_with_its_text() {
+fn the_last_resort_reaches_the_server_with_its_text_and_the_body_action_but_no_desktop_entry() {
     let request = last_resort("Bientôt", NO_GRAPHICS);
 
     assert_eq!(
-        notify(&request),
+        notify_once(&request),
         Notify {
             app_name: "Bientôt",
             replaces_id: 0,
@@ -60,7 +60,7 @@ fn the_last_resort_reaches_the_server_as_any_notification_with_its_text() {
             body: "Bientôt could not open a window and has closed. Check that your system’s \
                    graphics drivers are installed, then restart the app.",
             actions: ["default", ""],
-            hints: [("desktop-entry", "dev.bientot.Bientot")],
+            hints: &[],
             expire_timeout: -1,
         }
     );

@@ -70,7 +70,7 @@ pub struct Notify<'a> {
     /// invokes it, and it shows no button.
     pub actions: [&'static str; 2],
     /// Hints whose value is a string.
-    pub hints: [(&'static str, &'static str); 1],
+    pub hints: &'static [(&'static str, &'static str)],
     /// -1: the server's own delay.
     pub expire_timeout: i32,
 }
@@ -85,15 +85,33 @@ pub fn notify(request: &NotificationRequest) -> Notify<'_> {
         summary: &request.title,
         body: &request.body,
         actions: [SERVER_BODY_ACTION, ""],
-        hints: [("desktop-entry", APP_ID)],
+        hints: &[("desktop-entry", APP_ID)],
         expire_timeout: -1,
     }
 }
 
+/// What the server is sent to show `request` from a process about to exit: [`notify`] without
+/// the `desktop-entry` hint. GNOME Shell destroys the notifications of a sender that leaves the
+/// bus when it found their application, and activates that application for a click on one
+/// without the body's action (gnome-shell `js/ui/notificationDaemon.js`,
+/// `FdoNotificationDaemonSource._onNameVanished` and `open`). Without the hint it looks for the
+/// application among the windows of the sender's process, which has none, then as
+/// `Bientôt.desktop`, which no application is named: the notification then outlives the
+/// process, and a click starts nothing.
+pub fn notify_once(request: &NotificationRequest) -> Notify<'_> {
+    Notify {
+        hints: &[],
+        ..notify(request)
+    }
+}
+
 /// The notification that tells why Bientôt stops when no window can, `body` under `title`, with
-/// an id of its own for the portal to name it by. It keeps the body's action: for a click on a
-/// notification without one, GNOME Shell activates the application of the `desktop-entry` hint,
-/// which would start Bientôt again (`js/ui/notificationDaemon.js`, `source.open()`).
+/// an id of its own for the portal to name it by. It keeps the body's action. Through the portal,
+/// GNOME Shell activates the application for a click on a notification without one, which would
+/// start Bientôt again (gnome-shell `js/ui/notificationDaemon.js`,
+/// `GtkNotificationDaemonNotification.activate`). Plasma ignores a left click on a notification
+/// without one, and closes one whose action a click invokes (plasma-workspace
+/// `applets/notifications/NotificationPopup.qml` and `global/Globals.qml`).
 pub fn last_resort(title: &str, body: &str) -> NotificationRequest {
     NotificationRequest {
         delivery_id: "last-resort".into(),

@@ -404,7 +404,15 @@ fn desktop_harness_shows_the_last_resort_before_it_returns() {
 
     show_once(Service::Server, &last_resort).unwrap();
     let arguments = notified(&bus, body).expect("the server was sent the last resort");
+    assert_eq!(text(&arguments[0]), "Bientôt");
+    assert_eq!(text(&arguments[2]), "dev.bientot.Bientot");
     assert_eq!(text(&arguments[3]), "Bientôt");
+    assert_eq!(
+        <Vec<String>>::try_from(arguments[5].try_clone().unwrap()).unwrap(),
+        ["default", ""]
+    );
+    let hints = <HashMap<String, OwnedValue>>::try_from(arguments[6].try_clone().unwrap()).unwrap();
+    assert_eq!(hints.keys().collect::<Vec<_>>(), Vec::<&String>::new());
 
     assert!(
         show_once(Service::Portal, &last_resort).is_err(),
@@ -418,5 +426,7 @@ fn desktop_harness_shows_the_last_resort_before_it_returns() {
     assert_eq!(text(&arguments[0]), "last-resort");
     let notification =
         <HashMap<String, OwnedValue>>::try_from(arguments[1].try_clone().unwrap()).unwrap();
+    assert_eq!(text(&notification["title"]), "Bientôt");
     assert_eq!(text(&notification["body"]), body);
+    assert_eq!(text(&notification["default-action"]), "open");
 }

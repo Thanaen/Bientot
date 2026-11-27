@@ -166,8 +166,9 @@ fn desktop_harness_logs_the_notifications_unavailable_only_when_no_server_answer
     assert!(refused.log().contains(REFUSED), "{}", refused.log());
 }
 
-/// The summary and body of each `Notify` the server mock was sent, in order.
-fn notified() -> Vec<(String, String)> {
+/// The summary, the body and the names of the hints of each `Notify` the server mock was sent,
+/// in order.
+fn notified() -> Vec<(String, String, Vec<String>)> {
     let calls: serde_json::Value = serde_json::from_str(&busctl(&[
         "--json=short",
         "call",
@@ -185,7 +186,13 @@ fn notified() -> Vec<(String, String)> {
         .iter()
         .map(|call| {
             let text = |index: usize| call[1][index]["data"].as_str().unwrap().to_owned();
-            (text(3), text(4))
+            let hints = call[1][6]["data"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .cloned()
+                .collect();
+            (text(3), text(4), hints)
         })
         .collect()
 }
@@ -262,9 +269,9 @@ fn settings(data: &Path) {
     std::fs::write(data.join("settings.json"), "{}").unwrap();
 }
 
-/// `text` as the server mock is sent it, under the app's name.
-fn under_the_name(text: &str) -> Vec<(String, String)> {
-    vec![("Bientôt".to_owned(), text.to_owned())]
+/// `text` as the server mock is sent it, under the app's name and with no hint.
+fn under_the_name(text: &str) -> Vec<(String, String, Vec<String>)> {
+    vec![("Bientôt".to_owned(), text.to_owned(), vec![])]
 }
 
 #[test]

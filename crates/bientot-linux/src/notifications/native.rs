@@ -17,7 +17,8 @@ use zbus::zvariant::{OwnedValue, Value};
 use zbus::{Connection, MatchRule, Message, MessageStream};
 
 use super::{
-    Delivered, PORTAL_BODY_ACTION, SERVER_BODY_ACTION, Service, notify, portal_notification,
+    Delivered, Notify, PORTAL_BODY_ACTION, SERVER_BODY_ACTION, Service, notify, notify_once,
+    portal_notification,
 };
 use crate::dbus::{BUS, BUS_PATH, call};
 
@@ -89,7 +90,11 @@ impl Notifier for DesktopNotifications {
 
 /// Shows `request` through `service` on a connection of its own, and returns once the service
 /// took it or refused it, each call waiting up to [`TIMEOUT`]: for a process about to exit, which
-/// hears no click. The notification stays after the connection closes.
+/// hears no click. The server is sent [`notify_once`], which GNOME Shell keeps once the sender
+/// has left the bus (gnome-shell `js/ui/notificationDaemon.js`); Plasma removes no notification
+/// when its sender leaves (plasma-workspace `libnotificationmanager/server_p.cpp`). When the
+/// application leaves, the portal only stops passing on the clicks on its notifications
+/// (xdg-desktop-portal `src/notification.c`, `on_peer_disconnect`).
 pub fn show_once(service: Service, request: &NotificationRequest) -> Result<(), Unavailable> {
     async_io::block_on(async {
         let bus = zbus::connection::Builder::session()?
@@ -97,7 +102,7 @@ pub fn show_once(service: Service, request: &NotificationRequest) -> Result<(), 
             .build()
             .await?;
         match service {
-            Service::Server => show(&bus, request).await.map(drop),
+            Service::Server => show(&bus, &notify_once(request)).await.map(drop),
             Service::Portal => add(&bus, request).await,
         }
     })
@@ -197,7 +202,7 @@ async fn serve(
             let mut delivered = Delivered::new(SERVER_BODY_ACTION);
             while let Some(event) = events.next().await {
                 match event {
-                    Event::Show(request) => match show(&bus, &request).await {
+                    Event::Show(request) => match show(&bus, &notify(&request)).await {
                         Ok(id) => delivered.shown(id, request.delivery_id),
                         Err(error) => refused(&request, &error),
                     },
@@ -225,8 +230,7 @@ async fn serve(
     }
 }
 
-async fn show(bus: &Connection, request: &NotificationRequest) -> zbus::Result<u32> {
-    let notify = notify(request);
+async fn show(bus: &Connection, notify: &Notify<'_>) -> zbus::Result<u32> {
     let hints: HashMap<&str, Value<'_>> = notify
         .hints
         .iter()
