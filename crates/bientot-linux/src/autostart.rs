@@ -118,7 +118,8 @@ impl StartupPort for XdgAutostart {
 
     /// Enabling writes this install's entry unless it is already there, repairing one that is
     /// turned off or starts another path. Disabling removes only an entry that starts this
-    /// install, and reports another path's as a mismatch.
+    /// install, and reports one this install does not own as an AppImage's moved entry or a
+    /// mismatch, as [`Self::state`] reads it.
     fn set_enabled(&self, enabled: bool) -> StartupRegistrationState {
         self.try_set_enabled(enabled)
             .unwrap_or(StartupRegistrationState::Unavailable)
