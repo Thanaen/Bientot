@@ -4,6 +4,7 @@
 //! asked says whether it was saved.
 
 use std::fmt::Display;
+use std::io;
 use std::path::{Path, PathBuf};
 
 use bientot_core::diagnostics::{
@@ -180,9 +181,8 @@ fn failed(error: &impl Display, cx: &mut AsyncApp) -> Outcome {
         } else {
             None
         };
-        match live {
-            Some(host) => host.log_failure("window_command.failed", error),
-            None => log::error!("cannot export the diagnostic ZIP: {error}"),
+        if let Some(host) = live {
+            host.log_failure("window_command.failed", error);
         }
     });
     Outcome::Failed
@@ -226,6 +226,18 @@ fn system_snapshot(system: &impl SystemInfo, backends: Backends) -> DiagnosticSy
         },
         backends: backends.named(),
         lock_reporting: backends.lock_reporting.map(lock_reporting_name),
+    }
+}
+
+/// An I/O error's kind as the diagnostic log writes it, from a fixed list: the error's text can
+/// name the user's session, bus or folder.
+pub fn error_kind(kind: io::ErrorKind) -> &'static str {
+    match kind {
+        io::ErrorKind::NotFound => "not_found",
+        io::ErrorKind::PermissionDenied => "permission_denied",
+        io::ErrorKind::AddrInUse => "address_in_use",
+        io::ErrorKind::InvalidInput => "invalid_input",
+        _ => "other",
     }
 }
 

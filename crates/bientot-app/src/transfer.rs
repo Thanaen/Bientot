@@ -110,10 +110,7 @@ async fn inspect(
         .spawn(async move {
             let contents = transfer::inspect(&file)?;
             // This PC's days only add a line to the dialog.
-            let this_pc = transfer::ledger_days(&directory).unwrap_or_else(|error| {
-                log::warn!("cannot read the days of the ledger: {error}");
-                None
-            });
+            let this_pc = transfer::ledger_days(&directory).ok().flatten();
             Ok(Chosen {
                 exported_on: contents
                     .exported_at
@@ -197,9 +194,7 @@ pub fn wait_for_restart(restarted_from: Option<u32>) {
     let Some(id) = restarted_from else {
         return;
     };
-    if !platform::wait_for_exit(id, RESTART_WAIT) {
-        log::warn!("the WorkTime that restarted this one still runs");
-    }
+    platform::wait_for_exit(id, RESTART_WAIT);
 }
 
 /// After a restart for an import that gave up waiting, the WorkTime that started it still owns
@@ -229,16 +224,8 @@ pub fn import_left_waiting(
 pub fn apply_staged(directory: &DataDirectory) -> Option<Announcement> {
     match transfer::apply_staged(directory, Timestamp::now(), &TimeZone::system()) {
         Ok(None) => None,
-        Ok(Some(applied)) => {
-            if let Some(backup) = applied.backup {
-                log::info!("import applied, previous data in {}", backup.display());
-            }
-            Some(Announcement::Imported)
-        }
-        Err(error) => {
-            log::error!("cannot apply the import: {error}");
-            Some(Announcement::ImportFailed)
-        }
+        Ok(Some(_)) => Some(Announcement::Imported),
+        Err(_) => Some(Announcement::ImportFailed),
     }
 }
 
@@ -256,9 +243,8 @@ fn failed(error: &dyn std::fmt::Display, cx: &mut AsyncApp) {
         } else {
             None
         };
-        match live {
-            Some(host) => host.log_failure("window_command.failed", &error),
-            None => log::error!("cannot move the data: {error}"),
+        if let Some(host) = live {
+            host.log_failure("window_command.failed", &error);
         }
     });
 }

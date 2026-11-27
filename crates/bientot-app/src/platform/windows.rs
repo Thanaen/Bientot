@@ -16,7 +16,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use anyhow::Context as _;
-use bientot_core::diagnostics::FinalPaths;
+use bientot_core::diagnostics::{DiagnosticLogLevel, FinalPaths};
 use bientot_domain::accounting::SESSION_HISTORY_SOURCE_ID;
 use bientot_domain::time::SystemClock;
 use bientot_platform::lifecycle::{
@@ -36,10 +36,12 @@ use bientot_windows::power_history::system_log;
 use bientot_windows::session_history::current_user_log;
 use bientot_windows::startup::{StartupRegistration, current_activation, launch_intent};
 use bientot_windows::updates::StoreUpdates;
+use futures::channel::mpsc;
 use gpui::{App, AsyncApp};
 use jiff::Timestamp;
 
-use super::{Platform, PlatformContext};
+use super::{BackendNote, Platform, PlatformContext};
+use crate::diagnostics::error_kind;
 use crate::updates::StoreError;
 use crate::zones::SystemZones;
 
@@ -73,11 +75,12 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         registration.migrate_owned_legacy_registration();
         Arc::new(registration) as Arc<dyn StartupPort>
     });
-    let (tray, tray_events) = tray::NotificationArea::new();
+    let (notes, backend_notes) = mpsc::unbounded();
+    let (tray, tray_events) = tray::NotificationArea::new(notes.clone());
     Ok(Platform {
         launch_intent,
         last_input: Box::new(SystemLastInput),
-        lifecycle: Arc::new(SessionWindow),
+        lifecycle: Arc::new(SessionWindow { notes }),
         power_log: Box::new(system_log()),
         session_log: Box::new(CurrentUserLog),
         notifier: toasts.map(|toasts| toasts.map(|toasts| Box::new(toasts) as Box<dyn Notifier>)),
@@ -87,7 +90,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         tray: Rc::new(tray),
         tray_events,
         backends: super::Backends::default(),
-        backend_notes: futures::channel::mpsc::unbounded().1,
+        backend_notes,
         desktop: Rc::new(tray::TaskbarCorner),
     })
 }
@@ -99,8 +102,11 @@ fn register_toasts(data_dir: Option<&Path>, clicks: QueuedClicks) -> windows::co
 }
 
 /// The session and power changes of this session, from a message-only window of its own thread,
-/// which receives them before GPUI runs.
-struct SessionWindow;
+/// which receives them before GPUI runs. A window that does not open, which then records no lock
+/// and no sleep, is written to the diagnostic log with the error's kind, as on Linux.
+struct SessionWindow {
+    notes: mpsc::UnboundedSender<BackendNote>,
+}
 
 impl LifecycleSource for SessionWindow {
     fn snapshot(&self) -> SessionSnapshot {
@@ -113,6 +119,17 @@ impl LifecycleSource for SessionWindow {
     fn watch(&self, mut listener: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>> {
         let window = LifecycleWindow::open(SystemClock, SystemZones, move |transition| {
             listener.changed(transition);
+        })
+        .inspect_err(|error| {
+            let note = BackendNote {
+                level: DiagnosticLogLevel::Warning,
+                event: "lifecycle.watch_failed",
+                properties: vec![("kind", error_kind(error.kind()).into())],
+                idle: None,
+                lifecycle: None,
+                lock_reporting: None,
+            };
+            self.notes.unbounded_send(note).ok();
         })?;
         Ok(Box::new(window))
     }
@@ -180,13 +197,8 @@ pub fn run_update_hooks() -> bool {
 #[cfg(feature = "updates")]
 fn unregister() {
     let startup = bientot_windows::startup::PortableStartupRegistration::for_current_process();
-    let state = startup.set_enabled(false);
-    if state == bientot_platform::startup::StartupRegistrationState::Unavailable {
-        log::warn!("cannot remove the startup registration");
-    }
-    if let Err(error) = bientot_windows::notifications::portable::unregister() {
-        log::warn!("cannot remove the toast registration: {error}");
-    }
+    startup.set_enabled(false);
+    let _ = bientot_windows::notifications::portable::unregister();
 }
 
 #[cfg(feature = "updates")]

@@ -7,6 +7,7 @@
 use std::cell::{Cell, RefCell};
 use std::num::NonZeroIsize;
 
+use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Rect, WorkArea};
 use bientot_platform::tray::{
     MenuEntry, ScreenPoint, Tray, TrayEvent, TrayHost, TrayState, item_id,
@@ -34,7 +35,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 use windows::core::w;
 
-use crate::platform::TrayEvents;
+use crate::platform::{BackendNote, TrayEvents};
 use crate::shell::{self, FrameInsets};
 
 thread_local! {
@@ -43,9 +44,10 @@ thread_local! {
 }
 
 /// The notification-area icon, made at the first [`Tray::publish`]: what it shows is known only
-/// once the day opened.
+/// once the day opened. An icon Windows refuses is written to the diagnostic log through `notes`.
 pub struct NotificationArea {
     shown: RefCell<Shown>,
+    notes: mpsc::UnboundedSender<BackendNote>,
 }
 
 enum Shown {
@@ -64,7 +66,7 @@ struct Visible {
 
 impl NotificationArea {
     /// The icon, and the channel its left clicks and chosen menu items arrive on.
-    pub fn new() -> (Self, TrayEvents) {
+    pub fn new(notes: mpsc::UnboundedSender<BackendNote>) -> (Self, TrayEvents) {
         let (events, received) = mpsc::unbounded();
         let clicks = events.clone();
         TrayIconEvent::set_event_handler(Some(move |event| {
@@ -91,8 +93,21 @@ impl NotificationArea {
         }));
         let tray = Self {
             shown: RefCell::new(Shown::Pending),
+            notes,
         };
         (tray, received)
+    }
+
+    fn note(&self, level: DiagnosticLogLevel, event: &'static str) {
+        let note = BackendNote {
+            level,
+            event,
+            properties: Vec::new(),
+            idle: None,
+            lifecycle: None,
+            lock_reporting: None,
+        };
+        self.notes.unbounded_send(note).ok();
     }
 }
 
@@ -122,14 +137,14 @@ impl<C> Tray<C> for NotificationArea {
         match &mut *shown {
             Shown::Pending => match Visible::show(&state) {
                 Ok(visible) => *shown = Shown::Visible(visible),
-                Err(error) => {
-                    log::error!("cannot create the notification-area icon: {error:#}");
+                Err(_) => {
+                    self.note(DiagnosticLogLevel::Error, "tray.create_failed");
                     *shown = Shown::Failed;
                 }
             },
             Shown::Visible(visible) => {
-                if let Err(error) = visible.update(&state) {
-                    log::error!("cannot update the notification-area icon: {error:#}");
+                if visible.update(&state).is_err() {
+                    self.note(DiagnosticLogLevel::Warning, "tray.update_failed");
                 }
             }
             Shown::Failed => {}

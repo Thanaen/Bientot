@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_domain::accounting::TrackingState;
 use bientot_domain::intervals::UtcInterval;
 use gpui::{
@@ -123,7 +124,7 @@ pub fn open(cx: &mut App) {
         return;
     }
     let language = cx.try_global::<Language>().copied().unwrap_or_default();
-    let week = read(cx);
+    let week = cx.global_mut::<Today>().read_week();
     let visible = cx
         .primary_display()
         .map(|display| display.visible_bounds().size);
@@ -151,7 +152,7 @@ pub fn open(cx: &mut App) {
             crate::shell::app_shown();
             cx.default_global::<WeekWindow>().0 = Some(window);
         }
-        Err(error) => log::error!("cannot open the week: {error:#}"),
+        Err(_) => host::log(DiagnosticLogLevel::Error, "week.open_failed", &[], cx),
     }
 }
 
@@ -173,19 +174,12 @@ pub fn open_on(date: jiff::civil::Date, intervals: &[UtcInterval], cx: &mut App)
         .ok();
 }
 
-fn read(cx: &App) -> Option<WeekTimeline> {
-    cx.global::<Today>()
-        .week()
-        .inspect_err(|error| log::error!("cannot read the week: {error:#}"))
-        .ok()
-}
-
 /// Shows the week again in the open window, after the day changed.
 pub fn reload(cx: &mut App) {
     let Some(window) = cx.try_global::<WeekWindow>().and_then(|week| week.0) else {
         return;
     };
-    let week = read(cx);
+    let week = cx.global_mut::<Today>().read_week();
     let recalculated = cx.global::<Today>().recalculated();
     let updated = window.update(cx, |view, _, cx| {
         view.reload(week, recalculated);

@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Rect};
 use bientot_platform::tray::{ScreenPoint, TrayHost};
 use gpui::{
@@ -18,7 +19,7 @@ use gpui::{
 };
 
 use crate::flyout::Flyout;
-use crate::host::Today;
+use crate::host::{self, Today};
 use crate::live::Tracking;
 use crate::strings::{Key, Language};
 use crate::widgets::Notice;
@@ -281,8 +282,7 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
     let mut opened = open(placement, cx);
     // GPUI cannot tell before it tries whether the compositor has layer-shell: Mutter has none,
     // and then the compositor places the flyout (T044).
-    if let (Err(error), FlyoutPlacement::Layer { .. }) = (&opened, placement) {
-        log::warn!("cannot open the flyout as a layer surface: {error:#}");
+    if let (Err(_), FlyoutPlacement::Layer { .. }) = (&opened, placement) {
         placement = FlyoutPlacement::CompositorPlaced;
         opened = open(placement, cx);
     }
@@ -303,8 +303,8 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
                 placement,
             });
         }
-        Err(error) => {
-            log::error!("cannot open the flyout: {error:#}");
+        Err(_) => {
+            host::log(DiagnosticLogLevel::Error, "flyout.open_failed", &[], cx);
             if platform::NO_WINDOW_MEANS_NO_GRAPHICS {
                 let language = cx.try_global::<Language>().copied().unwrap_or_default();
                 stop_without_graphics(language, cx);

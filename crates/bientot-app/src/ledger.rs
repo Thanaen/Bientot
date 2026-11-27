@@ -175,12 +175,11 @@ fn day_offers(
     snapshot: &DailySummarySnapshot,
 ) -> (Vec<(AdjustmentId, Offer)>, Confirmed) {
     let workday = snapshot.workday();
-    let history = match ManualAdjustmentRepository::new(connection).read_for_workday(workday) {
-        Ok(history) => history_by_id(history),
-        Err(error) => {
-            log::warn!("cannot read the corrections of {}: {error}", workday.date);
-            return (Vec::new(), Vec::new());
-        }
+    let Ok(history) = ManualAdjustmentRepository::new(connection)
+        .read_for_workday(workday)
+        .map(history_by_id)
+    else {
+        return (Vec::new(), Vec::new());
     };
     let replaced: HashSet<&AdjustmentId> = history
         .values()
@@ -249,12 +248,8 @@ fn pending_locks(
         .filter(|snapshot| snapshot.has_pending_review());
     for snapshot in snapshots {
         let workday = snapshot.workday();
-        let calculation = match accounting.calculate(workday.date, &context) {
-            Ok(calculation) => calculation,
-            Err(error) => {
-                log::warn!("cannot read the long locks of {}: {error}", workday.date);
-                continue;
-            }
+        let Ok(calculation) = accounting.calculate(workday.date, &context) else {
+            continue;
         };
         let current = calculation.summary_input.accounting();
         if current.timeline().window().workday != *workday {

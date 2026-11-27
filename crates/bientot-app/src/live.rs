@@ -53,6 +53,7 @@ use jiff::civil::Date;
 use rusqlite::Connection;
 
 use crate::automatic::{self, CountedAbsence, TrustOffer};
+use crate::diagnostics::error_kind;
 use crate::ledger;
 use crate::strings::{Key, Language};
 use crate::tray_model::{ClosedReview, ReviewAction, ReviewCommand, ReviewSubject};
@@ -347,7 +348,11 @@ impl<'a> LiveHost<'a> {
     fn restore_closed_callouts(&mut self) {
         match self.app_state.load() {
             Ok(state) => self.closed = state.closed_callouts,
-            Err(error) => log::warn!("cannot read the app state: {error}"),
+            Err(error) => self.log(
+                DiagnosticLogLevel::Warning,
+                "app_state.read_failed",
+                &[("kind", error_kind(error.kind()).into())],
+            ),
         }
     }
 
@@ -383,13 +388,10 @@ impl<'a> LiveHost<'a> {
     /// The local date of the last usage signal sent, `None` before the first one or while
     /// `app-state.json` cannot be read.
     pub fn usage_ping_last_sent(&self) -> Option<Date> {
-        match self.app_state.load() {
-            Ok(state) => state.usage_ping_last_sent,
-            Err(error) => {
-                log::warn!("cannot read the app state: {error}");
-                None
-            }
-        }
+        self.app_state
+            .load()
+            .ok()
+            .and_then(|state| state.usage_ping_last_sent)
     }
 
     /// Where the date of the last usage signal sent is kept.
@@ -418,9 +420,9 @@ impl<'a> LiveHost<'a> {
 
     /// Writes `settings` to `settings.json` and works on them from now on. Another activity
     /// source is recorded in the selection ledger from now, as the settings save it. The caller
-    /// refreshes, so that the day shows them.
+    /// refreshes, so that the day shows them. A failure is logged with its kind.
     pub fn save_settings(&mut self, settings: &Settings) -> Result<(), SaveSettingsError> {
-        match settings.activity_source {
+        let saved = match settings.activity_source {
             Some(source) if settings.activity_source != self.settings.activity_source => {
                 ActivitySourceSwitch::new(
                     ActivitySourceSelectionRepository::new(self.connection, self.clock),
@@ -438,10 +440,23 @@ impl<'a> LiveHost<'a> {
                     SwitchError::Selections(error) => {
                         SaveSettingsError::Io(std::io::Error::other(error))
                     }
-                })?;
+                })
+                .map(drop)
             }
-            _ => self.store.save(settings)?,
+            _ => self.store.save(settings),
+        };
+        if let Err(error) = &saved {
+            let kind = match error {
+                SaveSettingsError::Invalid(_) => "invalid",
+                SaveSettingsError::Io(error) => error_kind(error.kind()),
+            };
+            self.log(
+                DiagnosticLogLevel::Error,
+                "settings.save_failed",
+                &[("kind", kind.into())],
+            );
         }
+        saved?;
         self.settings = settings.clone();
         // Turning an appointment automatic counts the absences already in its week.
         self.scanned_days.clear();
@@ -462,9 +477,7 @@ impl<'a> LiveHost<'a> {
         event: &str,
         properties: &[(&str, DiagnosticValue)],
     ) {
-        if let Err(error) = self.logger.write(level, event, properties) {
-            log::warn!("cannot write the diagnostic log: {error}");
-        }
+        let _ = self.logger.write(level, event, properties);
     }
 
     /// Logs `event` with the error's type and message, as `FailureProperties` does.
@@ -595,10 +608,11 @@ impl<'a> LiveHost<'a> {
         let recorded =
             LifecycleEventRecorder::new(SessionEventRepository::new(self.connection, self.clock))
                 .record(transition, &mut hooks);
-        if let Err(error) = recorded {
-            log::error!("cannot record a session or power change: {error}");
+        let refresh = hooks.refresh;
+        if recorded.is_err() {
+            self.log(DiagnosticLogLevel::Error, "lifecycle.record_failed", &[]);
         }
-        hooks.refresh
+        refresh
     }
 
     /// The tick of the built-in source, every `IdleStateTracker::DEFAULT_POLL_INTERVAL`.
@@ -1253,7 +1267,7 @@ impl<'a> LiveHost<'a> {
 /// redacts.
 fn log_failure<E: Display>(logger: &mut LocalDiagnosticLogger, event: &str, error: &E) {
     let message = error.to_string();
-    let written = logger.write(
+    let _ = logger.write(
         DiagnosticLogLevel::Error,
         event,
         &[
@@ -1261,10 +1275,6 @@ fn log_failure<E: Display>(logger: &mut LocalDiagnosticLogger, event: &str, erro
             ("message", message.as_str().into()),
         ],
     );
-    if let Err(written) = written {
-        log::warn!("cannot write the diagnostic log: {written}");
-    }
-    log::error!("{event}: {message}");
 }
 
 #[cfg(test)]

@@ -33,13 +33,7 @@ pub struct DirectUpdates(UpdateManager);
 impl DirectUpdates {
     /// `None` when Velopack did not install the running exe, as for `cargo run`.
     pub fn installed() -> Option<Self> {
-        match UpdateManager::new(Feed, None, None) {
-            Ok(manager) => Some(Self(manager)),
-            Err(error) => {
-                log::info!("update_check.not_installed: {error}");
-                None
-            }
-        }
+        UpdateManager::new(Feed, None, None).ok().map(Self)
     }
 }
 
@@ -167,13 +161,10 @@ pub fn install_pending() {
     let Some(package) = manager.get_update_pending_restart() else {
         return;
     };
-    match manager.wait_exit_then_apply_updates(
-        &package,
-        true,
-        true,
-        crate::launch::restart_arguments(true),
-    ) {
-        Ok(()) => std::process::exit(0),
-        Err(error) => log::warn!("update_install.failed: {error}"),
+    if manager
+        .wait_exit_then_apply_updates(&package, true, true, crate::launch::restart_arguments(true))
+        .is_ok()
+    {
+        std::process::exit(0);
     }
 }
