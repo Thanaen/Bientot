@@ -55,8 +55,8 @@ They are on the same list of the test.
 | Id | Where | French | English | Task |
 | --- | --- | --- | --- | --- |
 | `WindowModeNotice.Title` | Flyout, once, when no tray host exists | Ce bureau n’affiche pas d’icône pour Bientôt | This desktop shows no icon for Bientôt | T064 |
-| `WindowModeNotice.Text` | Same | Bientôt reste ouvert dans cette fenêtre. Réduisez-la pour continuer : le suivi ne s’arrête pas. | Bientôt stays open in this window. Minimize it to carry on; tracking does not stop. | T064 |
-| `WindowModeNotice.Link` | Same | Afficher l’icône | Show the icon | T064 |
+| `WindowModeNotice.Text` | Same | Bientôt reste ouvert dans cette fenêtre. Vous pouvez la réduire : le suivi continue. | Bientôt stays open in this window. You can minimize it; tracking continues. | T064 |
+| `WindowModeNotice.Link` | Same | Comment afficher l’icône | How to show the icon | T064 |
 | `WindowModeNotice.Dismiss` | Same | Compris | Got it | T064 |
 | `ActivityUndetectable.Title` | Flyout, while no idle backend answers | Bientôt ne détecte pas votre activité sur ce bureau | Bientôt cannot detect your activity on this desktop | T075 |
 | `ActivityUndetectable.Text` | Same | Rien n’est compté automatiquement. Vous pouvez déclarer votre temps à la main. | Nothing is counted automatically. You can log your time by hand. | T075 |
@@ -100,6 +100,19 @@ puts the switch back and shows under the row, as those of the actions of
 « Démarrage automatique », between it and « Langue », because the callout of
 a refused startup change shows under the card and must stay beside its own
 row.
+
+`WindowModeNotice.*` is a callout of the flyout, above the day and below
+the callouts about the day's time (source, appointment, counted, trust), so a
+warning about tracking comes first: the info icon, the title in semibold, the
+text, then « Comment afficher l’icône » and « Compris » as two outlined
+buttons (it records no time, so no filled button). « Comment afficher
+l’icône » opens, with the system's URL opener,
+`https://bientot.dev/aide/afficher-l-icone` in French and
+`https://bientot.dev/en/help/show-the-icon` in English, the help page of
+T173 (`shell::icon_help_url`); T173 creates the page at exactly these two
+addresses. « Compris » writes `windowModeNoticeDismissed: true` in
+`app-state.json`, and the notice never shows again, on this desktop or
+another. Windows never shows it: its notification area is always there.
 
 Texts of the site (download section, help page « Afficher l’icône de
 Bientôt sur GNOME », FAQ « Mac ou Linux ? ») and of the Flathub listing

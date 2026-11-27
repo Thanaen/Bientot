@@ -48,7 +48,7 @@ Windows:
 
 | Key | Type | Meaning |
 | --- | --- | --- |
-| `windowModeNoticeDismissed` | bool | The user closed the notice of FR-012; it does not return while the desktop stays the same. Written only once true, so that Windows writes the file it always wrote; anything but `true` reads as false. Which desktop it was is not kept yet: the notice (T064) decides whether it needs to be |
+| `windowModeNoticeDismissed` | bool | The user closed the notice of FR-012 (« Compris », T064); it never returns. Written only once true, so that Windows writes the file it always wrote; anything but `true` reads as false. Which desktop it was is not kept: a user who closed the notice has read it |
 | `autostartGranted` | bool or absent | Flatpak only: the Background portal's last answer |
 
 ### Ledger

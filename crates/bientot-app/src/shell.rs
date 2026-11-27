@@ -116,6 +116,32 @@ pub fn window_mode(cx: &App) -> bool {
         .is_some_and(|placement| placement.tray == TrayHost::Absent)
 }
 
+/// The user closed the notice that says why the app shows in a window, at this launch or an
+/// earlier one.
+struct WindowModeNoticeClosed;
+
+impl Global for WindowModeNoticeClosed {}
+
+/// Keeps the flyout from telling again why the app shows in a window.
+pub fn close_window_mode_notice(cx: &mut App) {
+    cx.set_global(WindowModeNoticeClosed);
+}
+
+/// Whether the flyout tells why the app shows in a window: in window mode only, until the user
+/// closed the notice. Never on Windows, whose tray is always there.
+pub fn shows_window_mode_notice(cx: &App) -> bool {
+    window_mode(cx) && !cx.has_global::<WindowModeNoticeClosed>()
+}
+
+/// The page of the notice's « Comment afficher l’icône »: how to have the desktop show the icon,
+/// and what window mode does (T173 of specs/005-linux-support).
+pub fn icon_help_url(language: Language) -> &'static str {
+    match language {
+        Language::French => "https://bientot.dev/aide/afficher-l-icone",
+        Language::English => "https://bientot.dev/en/help/show-the-icon",
+    }
+}
+
 /// What the shell shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Shown {

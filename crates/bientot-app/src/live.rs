@@ -222,6 +222,8 @@ pub struct LiveHost<'a> {
     /// The automatic counts and the appointments whose callout the user closed today, kept in
     /// `app-state.json` for the rest of the day.
     closed: ClosedCallouts,
+    /// The user closed the notice of window mode, kept in `app-state.json` (FR-012).
+    window_mode_notice_dismissed: bool,
     /// The automatic counts whose save failed, not retried before WorkTime starts again.
     failed_counts: HashSet<AdjustmentId>,
     /// The earlier days of the week read for automatic counts, by the stored summary they had.
@@ -335,19 +337,24 @@ impl<'a> LiveHost<'a> {
             refresh_failed: false,
             recalculated_on: None,
             closed: ClosedCallouts::default(),
+            window_mode_notice_dismissed: false,
             failed_counts: HashSet::new(),
             scanned_days: HashMap::new(),
             gains: ledger::GainsCache::default(),
         };
         host.tracking = host.with_tracking(|tracking| tracking.reconcile_current_state())?;
-        host.restore_closed_callouts();
+        host.restore_app_state();
         Ok(host)
     }
 
-    /// The callouts the user closed earlier today, before WorkTime started again.
-    fn restore_closed_callouts(&mut self) {
+    /// The callouts the user closed earlier today and the notice of window mode once closed,
+    /// before WorkTime started again.
+    fn restore_app_state(&mut self) {
         match self.app_state.load() {
-            Ok(state) => self.closed = state.closed_callouts,
+            Ok(state) => {
+                self.closed = state.closed_callouts;
+                self.window_mode_notice_dismissed = state.window_mode_notice_dismissed;
+            }
             Err(error) => self.log(
                 DiagnosticLogLevel::Warning,
                 "app_state.read_failed",
@@ -1252,6 +1259,24 @@ impl<'a> LiveHost<'a> {
     pub fn hide_count(&mut self, id: &AdjustmentId) {
         if self.closed.close_count(self.today(), id.as_str()) {
             self.save_closed_callouts();
+        }
+    }
+
+    /// Whether the user closed the notice of window mode, at this launch or an earlier one.
+    pub fn window_mode_notice_dismissed(&self) -> bool {
+        self.window_mode_notice_dismissed
+    }
+
+    /// « Compris » on the notice of window mode: it does not come back, even after a restart.
+    pub fn dismiss_window_mode_notice(&mut self) {
+        if std::mem::replace(&mut self.window_mode_notice_dismissed, true) {
+            return;
+        }
+        if let Err(error) = self
+            .app_state
+            .update(|state| state.window_mode_notice_dismissed = true)
+        {
+            log_failure(&mut self.logger, "app_state.save_failed", &error);
         }
     }
 

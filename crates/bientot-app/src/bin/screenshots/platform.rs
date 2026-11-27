@@ -164,6 +164,16 @@ const LINUX: &[Scene] = &[
         group: "flyout::capture_notices",
         name: "flyout-activity-undetectable-paused",
     },
+    // WindowModeNotice.Title, .Text, .Link and .Dismiss: window mode, a state only Linux has;
+    // then the notice above the day with the alerts below it.
+    Scene {
+        group: "flyout::capture_notices",
+        name: "flyout-window-mode",
+    },
+    Scene {
+        group: "flyout::capture_notices",
+        name: "flyout-window-mode-alerts",
+    },
     // FlyoutRebuiltReviewText.
     Scene {
         group: "flyout::capture_rebuilt_review",
