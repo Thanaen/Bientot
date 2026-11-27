@@ -38,6 +38,7 @@ fn usage_ping(last_sent: Option<Date>, channel: Channel) -> UsagePingFacts {
         released: None,
         today: TODAY,
         last_sent,
+        install_kind: None,
     }
 }
 
@@ -291,6 +292,7 @@ fn general_ends_with_the_version_and_the_day_it_was_published() {
             version: "0.1.0-alpha.242",
             label: "Version 0.1.0-alpha.242".to_owned(),
             released: Some("Publiée le 21\u{a0}octobre\u{a0}2026".to_owned()),
+            install: None,
         })
     );
 
@@ -305,6 +307,40 @@ fn general_ends_with_the_version_and_the_day_it_was_published() {
 
     for page in [Page::Schedule, Page::Accounting, Page::Notifications] {
         assert_eq!(on_page(page, Language::French).view().about, None);
+    }
+}
+
+#[test]
+fn a_flatpak_or_an_appimage_names_itself_under_the_version() {
+    let about = |install_kind, language| {
+        let facts = UsagePingFacts {
+            install_kind,
+            ..usage_ping(None, Channel::Zip)
+        };
+        let form = SettingsForm::new(built_in(), facts, language);
+        form.view().about.unwrap().install
+    };
+    let row = |title, value| Some(AboutRow { title, value });
+    assert_eq!(
+        about(Some(InstallKind::Flatpak), Language::French),
+        row("Type d’installation", "Flatpak")
+    );
+    assert_eq!(
+        about(Some(InstallKind::AppImage), Language::English),
+        row("Installation type", "AppImage")
+    );
+    for install_kind in [
+        None,
+        Some(InstallKind::Development),
+        Some(InstallKind::Store),
+        Some(InstallKind::Direct),
+        Some(InstallKind::Portable),
+    ] {
+        assert_eq!(
+            about(install_kind, Language::French),
+            None,
+            "{install_kind:?}"
+        );
     }
 }
 

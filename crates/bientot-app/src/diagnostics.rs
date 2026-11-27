@@ -8,16 +8,18 @@ use std::path::{Path, PathBuf};
 
 use bientot_core::diagnostics::{
     DiagnosticArchitecture, DiagnosticExport, DiagnosticExportError, DiagnosticExportResult,
-    DiagnosticInitializationState, DiagnosticNumericVersion, DiagnosticRuntimeSnapshot,
-    DiagnosticSnapshot, create_snapshot,
+    DiagnosticInitializationState, DiagnosticInstallKind, DiagnosticName, DiagnosticNumericVersion,
+    DiagnosticRuntimeSnapshot, DiagnosticSessionType, DiagnosticSnapshot, DiagnosticSystemSnapshot,
+    create_snapshot,
 };
 use bientot_domain::configuration::Settings;
 use bientot_domain::time::SystemClock;
+use bientot_platform::system::{InstallKind, SessionType, SystemInfo};
 use gpui::{App, AsyncApp, Global};
 use jiff::Timestamp;
 
 use crate::host::Today;
-use crate::platform;
+use crate::platform::{self, Backends};
 use crate::shell;
 use crate::strings::{Key, Language};
 use crate::widgets::Notice;
@@ -59,24 +61,33 @@ impl Contents {
     /// The day the shell shows, now.
     fn of_today(cx: &App) -> Self {
         let today = cx.global::<Today>();
+        let backends = cx.try_global::<Backends>().copied().unwrap_or_default();
         Self {
-            snapshot: today.diagnostic_snapshot(runtime()),
+            snapshot: DiagnosticSnapshot {
+                system: platform::system().map(|system| system_snapshot(&system, backends)),
+                ..today.diagnostic_snapshot(runtime())
+            },
             logs: today.log_directory().map(ToOwned::to_owned),
         }
     }
 
     /// A start that failed with `settings` read, as `ObserveInitializationAsync` leaves the
-    /// snapshot: no day, so no summary.
+    /// snapshot: no day, so no summary, and no backend named.
     pub fn of_failed_start(settings: Option<&Settings>, logs: Option<PathBuf>) -> Self {
+        let failed = create_snapshot(
+            DiagnosticInitializationState::Failed,
+            settings,
+            None,
+            None,
+            Timestamp::now(),
+            runtime(),
+        );
         Self {
-            snapshot: create_snapshot(
-                DiagnosticInitializationState::Failed,
-                settings,
-                None,
-                None,
-                Timestamp::now(),
-                runtime(),
-            ),
+            snapshot: DiagnosticSnapshot {
+                system: platform::system()
+                    .map(|system| system_snapshot(&system, Backends::default())),
+                ..failed
+            },
             logs,
         }
     }
@@ -188,6 +199,32 @@ fn runtime() -> DiagnosticRuntimeSnapshot {
         process_architecture,
         operating_system_architecture: platform::native_machine()
             .map_or(process_architecture, machine_architecture),
+    }
+}
+
+/// What the export names of `system` and of the `backends` in use. A name that is not a
+/// [`DiagnosticName`] is left out.
+fn system_snapshot(system: &impl SystemInfo, backends: Backends) -> DiagnosticSystemSnapshot {
+    let description = system.describe();
+    let name = |text: &String| DiagnosticName::new(text);
+    DiagnosticSystemSnapshot {
+        install_kind: match system.install_kind() {
+            InstallKind::Store => DiagnosticInstallKind::Store,
+            InstallKind::Direct => DiagnosticInstallKind::Direct,
+            InstallKind::Portable => DiagnosticInstallKind::Portable,
+            InstallKind::Flatpak => DiagnosticInstallKind::Flatpak,
+            InstallKind::AppImage => DiagnosticInstallKind::AppImage,
+            InstallKind::Development => DiagnosticInstallKind::Development,
+        },
+        distribution: name(&description.distribution),
+        distribution_version: description.distribution_version.as_ref().and_then(name),
+        desktops: description.desktops.iter().filter_map(name).collect(),
+        session_type: match description.session_type {
+            Some(SessionType::X11) => DiagnosticSessionType::X11,
+            Some(SessionType::Wayland) => DiagnosticSessionType::Wayland,
+            None => DiagnosticSessionType::Unknown,
+        },
+        backends: backends.named(),
     }
 }
 

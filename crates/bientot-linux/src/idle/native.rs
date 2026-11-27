@@ -48,16 +48,8 @@ impl IdleProbe<SystemBackends, Monotonic> {
     }
 }
 
-/// `WAYLAND_DISPLAY` set → Wayland; else `DISPLAY` set → X11; else none.
 fn this_session() -> Option<SessionType> {
-    let set = |name| std::env::var_os(name).is_some_and(|value| !value.is_empty());
-    if set("WAYLAND_DISPLAY") {
-        Some(SessionType::Wayland)
-    } else if set("DISPLAY") {
-        Some(SessionType::X11)
-    } else {
-        None
-    }
+    crate::system::session_type(|name| std::env::var_os(name))
 }
 
 #[cfg(test)]

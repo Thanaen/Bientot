@@ -52,6 +52,7 @@ fn accounting(appointments: Vec<RecurringAppointment>, language: Language) -> Se
         released: None,
         today: TODAY,
         last_sent: Some(TODAY),
+        install_kind: None,
     };
     let mut form = SettingsForm::new(settings, facts, language);
     assert!(form.go_to(Page::Accounting));
@@ -346,6 +347,7 @@ fn the_proposals_switch_turns_proposals_off_and_keeps_the_refusals() {
         released: None,
         today: TODAY,
         last_sent: Some(TODAY),
+        install_kind: None,
     };
     let mut form = SettingsForm::new(settings, facts, Language::French);
     assert!(form.go_to(Page::Accounting));

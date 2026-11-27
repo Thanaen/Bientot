@@ -10,8 +10,21 @@ rest on an assumption that a task verifies first.
 | --- | --- |
 | Session type | `WAYLAND_DISPLAY` set → Wayland; else `DISPLAY` set → X11; else none |
 | Desktop | `XDG_CURRENT_DESKTOP`, split on `:`; lower-cased; kept for diagnostics and for the default flyout corner |
-| Install kind | `FLATPAK_ID` set → Flatpak; `APPIMAGE` set → AppImage; else development |
+| Install kind | `/.flatpak-info` present or `FLATPAK_ID` set → Flatpak; else `APPIMAGE` set → AppImage; else development (`bientot_linux::system::install_kind`) |
+| Distribution | os-release's `ID` (`linux` when missing) and `VERSION_ID`, nothing else: `/run/host/os-release` first in a Flatpak, whose own `/etc` names the runtime, then `/etc/os-release`, then `/usr/lib/os-release`; kept for diagnostics |
 | Own logind session | `GetSessionByPID(own pid)`; else `XDG_SESSION_ID`; else the user's `Display` session |
+
+The diagnostic export (`snapshot.json`, `system`) names the install kind,
+the distribution, its version, the desktops, the session type and the
+backend in use for the tray (`status-notifier` or `none`), the
+notifications (`notification-server`, `notification-portal`, or `none`
+when refused or in a demo) and the autostart (`xdg-autostart`, or `none` in
+a demo). Each name the system gives is written only when it is 1 to 64
+characters of `a-z`, `0-9`, `.`, `_` and `-`, as os-release allows in `ID`
+(`bientot_core::diagnostics::DiagnosticName`): free text, which could name
+the user or the computer, never reaches the archive. Idle and lock add
+their backends with T075 and T084. « À propos » names a Flatpak or an
+AppImage under the version.
 
 ## Tray: StatusNotifierItem (`ksni`)
 
@@ -50,7 +63,9 @@ are the mapping (any OS, tested), `StatusNotifier` the `Tray` (Linux).
   stays `Absent`, and the backend's name is `none`.
 - Diagnostic log: `tray.backend` (`name`: `status-notifier` or `none`)
   and `tray.host` (`state`: `present` or `absent`) at start, then
-  `tray.host` at each `HostChanged`. The export holds the log.
+  `tray.host` at each `HostChanged`. The export's projection of the log
+  keeps only its fixed list of events, which has neither; the export names
+  the tray's backend in `system.backends` instead (T121).
 - In Flatpak: `disable_dbus_name(true)` (A-6).
 
 ## Flyout placement

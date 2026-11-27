@@ -18,7 +18,7 @@ Signatures are in `contracts/platform-ports.md`. Meaning and rules:
 | `TrayHost` | `Present`, `Absent` | `Absent` only after 5 s without a host, so a restarting shell does not flip the mode. On Linux the host is the StatusNotifierWatcher, the only part a client sees; at start, what the watcher answers, without the 5 s |
 | `FlyoutPlacement` | `At`, `Layer`, `CompositorPlaced`, `Window` | Chosen once per opening. `Window` if and only if `TrayHost::Absent` |
 | `InstallKind` | `Store`, `Direct`, `Portable`, `Flatpak`, `AppImage`, `Development` | Decides: update source (`Direct`, `AppImage`: Velopack; `Store`: Store; others: none), startup backend, usage-signal channel (`Development` sends nothing) |
-| `SystemDescription` | `os_name`, `architecture`, `desktop`, `session_type` | Diagnostics only (plus the two optional usage-signal keys if Q3 is accepted) |
+| `SystemDescription` | `distribution`, `distribution_version`, `desktops`, `session_type` | Diagnostics only (plus the two optional usage-signal keys if Q3 is accepted); the architecture stays in the snapshot's `runtime` |
 
 ### State of each capability
 

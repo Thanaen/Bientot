@@ -19,6 +19,7 @@ fn open(reduce_motion: bool) -> (HeadlessAppContext, WindowHandle<SettingsView>)
         released: None,
         today: jiff::civil::date(2026, 10, 13),
         last_sent: None,
+        install_kind: None,
     };
     let form = SettingsForm::new(Settings::default(), usage_ping, Language::French);
     let window = common::open(

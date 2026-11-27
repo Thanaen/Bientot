@@ -12,11 +12,12 @@ use bientot_core::diagnostics::{
     DiagnosticActivityWatchTimingSnapshot, DiagnosticArchitecture, DiagnosticAssessmentReason,
     DiagnosticExport, DiagnosticExportError, DiagnosticExportResult,
     DiagnosticForecastAvailability, DiagnosticIndicator, DiagnosticInitializationState,
-    DiagnosticLogLevel, DiagnosticLogOptions, DiagnosticLoggingSettingsSnapshot,
-    DiagnosticNotificationRuleSnapshot, DiagnosticNotificationSettingsSnapshot,
-    DiagnosticNumericVersion, DiagnosticRuntimeSnapshot, DiagnosticSettingsSnapshot,
-    DiagnosticSnapshot, DiagnosticSourceFreshness, DiagnosticSourceQuality,
-    DiagnosticSummaryAvailability, DiagnosticSummarySnapshot, DiagnosticValue, FinalPaths,
+    DiagnosticInstallKind, DiagnosticLogLevel, DiagnosticLogOptions,
+    DiagnosticLoggingSettingsSnapshot, DiagnosticName, DiagnosticNotificationRuleSnapshot,
+    DiagnosticNotificationSettingsSnapshot, DiagnosticNumericVersion, DiagnosticRuntimeSnapshot,
+    DiagnosticSessionType, DiagnosticSettingsSnapshot, DiagnosticSnapshot,
+    DiagnosticSourceFreshness, DiagnosticSourceQuality, DiagnosticSummaryAvailability,
+    DiagnosticSummarySnapshot, DiagnosticSystemSnapshot, DiagnosticValue, FinalPaths,
     LocalDiagnosticLogger, NoFinalPathCheck, create_snapshot,
 };
 use bientot_domain::configuration::{NotificationRule, Settings};
@@ -105,6 +106,7 @@ fn useful_snapshot() -> DiagnosticSnapshot {
             process_architecture: DiagnosticArchitecture::X64,
             operating_system_architecture: DiagnosticArchitecture::X64,
         },
+        system: None,
         summary: Some(DiagnosticSummarySnapshot {
             availability: DiagnosticSummaryAvailability::Current,
             credited_work_ticks: 4 * TICKS_PER_HOUR,
@@ -719,6 +721,84 @@ fn reports_failure_before_initialization_without_inventing_unavailable_state() {
     assert_eq!(value(&snapshot, "availability"), "\"Stale\"");
     assert_eq!(value(&snapshot, "indicator"), "\"Unknown\"");
     assert_eq!(value(&snapshot, "creditedWorkTicks"), "144000000000");
+}
+
+#[test]
+fn names_the_system_after_the_runtime_where_the_platform_describes_it() {
+    let root = TempDir::new().unwrap();
+    let name = |text| DiagnosticName::new(text).unwrap();
+    let described = DiagnosticSnapshot {
+        system: Some(DiagnosticSystemSnapshot {
+            install_kind: DiagnosticInstallKind::Flatpak,
+            distribution: Some(name("ubuntu")),
+            distribution_version: Some(name("24.04")),
+            desktops: vec![name("ubuntu"), name("gnome")],
+            session_type: DiagnosticSessionType::Wayland,
+            backends: vec![("tray", "status-notifier"), ("notifications", "none")],
+        }),
+        ..useful_snapshot()
+    };
+    let destination = root.path().join("linux.zip");
+
+    export(&destination, None, &described).unwrap();
+
+    let snapshot = Archive::open(&destination).text("snapshot.json");
+    let system = r#"{"installKind":"Flatpak","distribution":"ubuntu","distributionVersion":"24.04","desktops":["ubuntu","gnome"],"sessionType":"Wayland","backends":{"tray":"status-notifier","notifications":"none"}}"#;
+    assert!(
+        snapshot.contains(&format!(r#""X64"}},"system":{system},"summary":"#)),
+        "{snapshot}"
+    );
+}
+
+#[test]
+fn writes_at_most_eight_desktops() {
+    let root = TempDir::new().unwrap();
+    let desktop = DiagnosticName::new("gnome").unwrap();
+    let described = DiagnosticSnapshot {
+        system: Some(DiagnosticSystemSnapshot {
+            install_kind: DiagnosticInstallKind::Development,
+            distribution: None,
+            distribution_version: None,
+            desktops: vec![desktop; 9],
+            session_type: DiagnosticSessionType::Unknown,
+            backends: Vec::new(),
+        }),
+        ..useful_snapshot()
+    };
+    let destination = root.path().join("desktops.zip");
+
+    export(&destination, None, &described).unwrap();
+
+    let snapshot = Archive::open(&destination).text("snapshot.json");
+    let desktops = format!(r#""desktops":[{}]"#, [r#""gnome""#; 8].join(","));
+    assert!(snapshot.contains(&desktops), "{snapshot}");
+    assert!(snapshot.contains(r#""sessionType":"Unknown","backends":{}"#));
+}
+
+#[test]
+fn a_system_name_is_a_short_lower_case_word() {
+    for name in [
+        "ubuntu",
+        "24.04",
+        "x-cinnamon",
+        "opensuse-tumbleweed",
+        "rhel_9",
+    ] {
+        assert_eq!(DiagnosticName::new(name).unwrap().as_str(), name);
+    }
+    let long = "a".repeat(DiagnosticName::MAXIMUM_BYTES + 1);
+    for text in [
+        "",
+        "Ubuntu",
+        "Ubuntu 24.04.1 LTS",
+        "alice's laptop",
+        "/home/alice",
+        "a\"b",
+        "fédora",
+        long.as_str(),
+    ] {
+        assert_eq!(DiagnosticName::new(text), None, "{text}");
+    }
 }
 
 #[test]

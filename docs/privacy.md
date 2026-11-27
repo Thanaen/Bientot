@@ -159,17 +159,23 @@ Bientôt never sends it anywhere. The ZIP holds three files:
 - `snapshot.json`: numeric settings (targets, lunch window, departure time,
   margins, notification rules, log limits, start with Windows, update check),
   the version numbers of Bientôt and Windows, the processor architecture, and
-  today's totals, indicator colour and source health.
+  today's totals, indicator colour and source health. On Linux it also names
+  the distribution and its version (`ID` and `VERSION_ID` of os-release),
+  the desktop, X11 or Wayland, how Bientôt was installed (Flatpak, AppImage
+  or a development build), and which mechanism shows the tray icon, the
+  notifications and the start at sign-in.
 - `logs.jsonl`: up to 10,000 log records from the newest 5 log files of the
   last 14 days. Each record keeps only its time (rounded to the minute), its
   level, an event name from a fixed list, a failure category such as `Io`, the
   status of an unavailable power history, and for a failed Store update check
   its numeric error code (HRESULT).
 
-The export leaves out file paths, host names, error messages, application
-names, window titles and any log event outside the fixed list. The tests in
-`crates/bientot-core/tests/diagnostics_export.rs` plant such values in the
-logs and settings and check that none of them reaches the archive.
+The export leaves out file paths, host names, user names, error messages,
+application names, window titles and any log event outside the fixed list.
+The tests in `crates/bientot-core/tests/diagnostics_export.rs` plant such
+values in the logs and settings and check that none of them reaches the
+archive; those in `crates/bientot-app/src/diagnostics/tests.rs` do the same
+with the Linux environment and os-release.
 
 Cancelling the save dialog writes nothing. An existing file is replaced only
 after the new archive is complete.

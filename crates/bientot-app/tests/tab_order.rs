@@ -188,6 +188,7 @@ fn tab_reaches_the_times_of_the_schedule() {
         released: None,
         today: jiff::civil::date(2026, 10, 13),
         last_sent: None,
+        install_kind: None,
     };
     let mut form = SettingsForm::new(Default::default(), usage_ping, Language::French);
     form.go_to(Page::Schedule);

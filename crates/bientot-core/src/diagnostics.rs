@@ -3,11 +3,13 @@
 //! local log the export reads (see [`LocalDiagnosticLogger`]).
 //!
 //! The snapshot keeps only settings that tune the rules and the aggregates of the current
-//! summary: no source address, bucket, key reference, language or path. The export adds a
+//! summary: no source address, bucket, key reference, language or path. Where the platform
+//! describes the system (Linux), it adds its distribution, desktops, session type, install kind
+//! and backends, each a [`DiagnosticName`] or a name from a fixed list. The export adds a
 //! manifest and a projection of the local log files that keeps each record's minute, level,
 //! known event name and a few fixed categories, and drops everything else. Every value the
-//! export writes is a number, a boolean or a name from a fixed list, so the JSON is written by
-//! hand in the property order and spelling of the .NET serializer.
+//! export writes is a number, a boolean or such a name, so the JSON is written by hand in the
+//! property order and spelling of the .NET serializer.
 
 mod export;
 mod json;
@@ -108,12 +110,66 @@ named_enum! {
     }
 }
 
+named_enum! {
+    pub enum DiagnosticInstallKind { Store, Direct, Portable, Flatpak, AppImage, Development }
+}
+
+named_enum! {
+    pub enum DiagnosticSessionType { Unknown, X11, Wayland }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiagnosticSnapshot {
     pub initialization: DiagnosticInitializationState,
     pub settings: Option<DiagnosticSettingsSnapshot>,
     pub runtime: DiagnosticRuntimeSnapshot,
+    /// `None` where the platform does not describe the system: the Windows export stays the one
+    /// .NET wrote.
+    pub system: Option<DiagnosticSystemSnapshot>,
     pub summary: Option<DiagnosticSummarySnapshot>,
+}
+
+/// What the export names of the system beside its version and architecture.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticSystemSnapshot {
+    pub install_kind: DiagnosticInstallKind,
+    /// The distribution's `ID` in os-release, such as `ubuntu`.
+    pub distribution: Option<DiagnosticName>,
+    /// Its `VERSION_ID`, such as `24.04`.
+    pub distribution_version: Option<DiagnosticName>,
+    /// `XDG_CURRENT_DESKTOP`'s, most specific first; the export writes the first
+    /// [`DiagnosticSystemSnapshot::MAXIMUM_DESKTOPS`].
+    pub desktops: Vec<DiagnosticName>,
+    pub session_type: DiagnosticSessionType,
+    /// Each concern with the name of its backend, both from the code: `("tray",
+    /// "status-notifier")`.
+    pub backends: Vec<(&'static str, &'static str)>,
+}
+
+impl DiagnosticSystemSnapshot {
+    pub const MAXIMUM_DESKTOPS: usize = 8;
+}
+
+/// A name the system gives itself, such as a distribution's id or a desktop's name: 1 to 64
+/// lower-case ASCII letters, digits, `.`, `_` and `-`, the characters os-release(5) allows in
+/// `ID` and `VERSION_ID`. Free text, which could name the user or the computer, is no name.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticName(String);
+
+impl DiagnosticName {
+    pub const MAXIMUM_BYTES: usize = 64;
+
+    pub fn new(text: &str) -> Option<Self> {
+        let allowed = |byte: u8| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-')
+        };
+        ((1..=Self::MAXIMUM_BYTES).contains(&text.len()) && text.bytes().all(allowed))
+            .then(|| Self(text.to_owned()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 /// Durations are in .NET ticks of 100 ns, times of day in minutes after midnight.
@@ -211,6 +267,7 @@ pub fn create_snapshot(
         initialization,
         settings: settings.map(settings_snapshot),
         runtime,
+        system: None,
         summary: refresh_state.and_then(|state| summary_snapshot(state, current_workday, now)),
     }
 }
@@ -356,6 +413,9 @@ impl DiagnosticSnapshot {
                 root.object("settings", |object| settings.write(object));
             }
             root.object("runtime", |object| self.runtime.write(object));
+            if let Some(system) = &self.system {
+                root.object("system", |object| system.write(object));
+            }
             if let Some(summary) = &self.summary {
                 root.object("summary", |object| summary.write(object));
             }
@@ -430,6 +490,31 @@ impl DiagnosticRuntimeSnapshot {
             "operatingSystemArchitecture",
             self.operating_system_architecture.name(),
         );
+    }
+}
+
+impl DiagnosticSystemSnapshot {
+    fn write(&self, object: &mut JsonObject) {
+        object.name("installKind", self.install_kind.name());
+        if let Some(distribution) = &self.distribution {
+            object.name("distribution", distribution.as_str());
+        }
+        if let Some(version) = &self.distribution_version {
+            object.name("distributionVersion", version.as_str());
+        }
+        object.names(
+            "desktops",
+            self.desktops
+                .iter()
+                .take(Self::MAXIMUM_DESKTOPS)
+                .map(DiagnosticName::as_str),
+        );
+        object.name("sessionType", self.session_type.name());
+        object.object("backends", |backends| {
+            for (concern, backend) in &self.backends {
+                backends.name(concern, backend);
+            }
+        });
     }
 }
 

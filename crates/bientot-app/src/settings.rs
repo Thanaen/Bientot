@@ -27,6 +27,7 @@ use bientot_domain::configuration::{
 use bientot_domain::sources::ActivitySourceKind;
 use bientot_domain::usage_ping::{Build, Channel, usage_ping_due};
 use bientot_platform::startup::{StartupRegistrationState, SystemPage};
+use bientot_platform::system::InstallKind;
 use jiff::SignedDuration;
 use jiff::civil::Date;
 
@@ -644,6 +645,15 @@ pub struct AboutView {
     pub label: String,
     /// « Publiée le 21 octobre 2026 ».
     pub released: Option<String>,
+    /// « Type d’installation » and « Flatpak », under the version: a Flatpak or an AppImage only.
+    pub install: Option<AboutRow>,
+}
+
+/// A row of « À propos »: its title, and its value where a row has its control.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AboutRow {
+    pub title: &'static str,
+    pub value: &'static str,
 }
 
 /// ActivityWatch is no longer read: the built-in detection is offered. It cannot be closed.
@@ -691,6 +701,9 @@ pub struct UsagePingFacts {
     /// The local date.
     pub today: Date,
     pub last_sent: Option<Date>,
+    /// How this copy was installed, where the system tells: Linux, where « À propos » names a
+    /// Flatpak or an AppImage.
+    pub install_kind: Option<InstallKind>,
 }
 
 impl UsagePingFacts {
@@ -1346,6 +1359,21 @@ impl SettingsForm {
                 .usage_ping
                 .released
                 .map(|date| language.format_dates(Key::SettingsVersionReleasedFormat, &[date])),
+            install: match self.usage_ping.install_kind {
+                Some(InstallKind::Flatpak) => Some(Key::InstallKindFlatpak),
+                Some(InstallKind::AppImage) => Some(Key::InstallKindAppImage),
+                Some(
+                    InstallKind::Store
+                    | InstallKind::Direct
+                    | InstallKind::Portable
+                    | InstallKind::Development,
+                )
+                | None => None,
+            }
+            .map(|value| AboutRow {
+                title: language.text(Key::InstallKindHeader),
+                value: language.text(value),
+            }),
         }
     }
 

@@ -85,7 +85,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         startup,
         tray: Rc::new(tray),
         tray_events,
-        tray_backend: None,
+        backends: super::Backends::default(),
         desktop: Rc::new(tray::TaskbarCorner),
     })
 }
@@ -239,6 +239,11 @@ pub fn open_in_editor(file: &Path, cx: &App) {
 
 pub fn system_locale() -> bientot_windows::locale::DisplayLanguages {
     bientot_windows::locale::DisplayLanguages
+}
+
+/// The export keeps the system .NET described, in `runtime`.
+pub fn system() -> Option<bientot_platform::system::InMemorySystem> {
+    None
 }
 
 /// The key of the zone in Windows' registry, such as `Romance Standard Time`.

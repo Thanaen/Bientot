@@ -287,6 +287,7 @@ impl SettingsState {
             released,
             today,
             last_sent: (!matches!(self, Self::NeverSent)).then_some(today),
+            install_kind: None,
         }
     }
 

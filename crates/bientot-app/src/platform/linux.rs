@@ -21,10 +21,10 @@ use futures::channel::mpsc;
 use gpui::{Bounds, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
-use super::{Platform, PlatformContext};
+use super::{Backends, Platform, PlatformContext};
 
 // `build`, `place_window`, `activate_window`, `NotificationsRefused`, `Instance`,
-// `wait_for_exit` and `system_locale` below take the place of null's.
+// `wait_for_exit`, `system_locale` and `system` below take the place of null's.
 pub use null::*;
 
 pub use bientot_linux::process::wait_for_exit;
@@ -33,6 +33,11 @@ pub use bientot_linux::single_instance::PrimaryInstance as Instance;
 /// `LC_ALL`, `LC_MESSAGES` or `LANG`, as POSIX reads them.
 pub fn system_locale() -> bientot_linux::locale::EnvironmentLocale {
     bientot_linux::locale::EnvironmentLocale
+}
+
+/// The install kind and the session from the environment, the distribution from os-release.
+pub fn system() -> Option<bientot_linux::system::ThisSystem> {
+    Some(bientot_linux::system::ThisSystem)
 }
 
 /// No notification server, or no portal in a Flatpak, answered at start: the app shows no
@@ -47,8 +52,9 @@ thread_local! {
 pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     // A demo shows no notifications, as on Windows.
     let clicks = QueuedClicks::default();
+    let service = Service::of_this_process();
     let notifier = ctx.launch.demo.is_none().then(|| {
-        DesktopNotifications::start(Service::of_this_process(), clicks.clone())
+        DesktopNotifications::start(service, clicks.clone())
             .map(|notifications| Box::new(notifications) as Box<dyn Notifier>)
     });
     let (events, tray_events) = mpsc::unbounded();
@@ -63,11 +69,23 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         .demo
         .is_none()
         .then(|| Arc::new(XdgAutostart::for_this_process()) as Arc<dyn StartupPort>);
+    let backends = Backends {
+        tray: Some(tray.backend()),
+        notifications: Some(match &notifier {
+            Some(Ok(_)) => service.backend(),
+            Some(Err(_)) | None => "none",
+        }),
+        autostart: Some(if startup.is_some() {
+            "xdg-autostart"
+        } else {
+            "none"
+        }),
+    };
     Ok(Platform {
         notifier,
         startup,
         notification_clicks: Box::new(clicks),
-        tray_backend: Some(tray.backend()),
+        backends,
         tray: Rc::new(tray),
         tray_events,
         desktop,

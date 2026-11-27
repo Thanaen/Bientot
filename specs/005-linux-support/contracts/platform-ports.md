@@ -441,10 +441,11 @@ pub struct InMemoryMotion { /* … */ }
 // bientot-platform/src/system.rs
 pub enum InstallKind { Store, Direct, Portable, Flatpak, AppImage, Development }
 
+/// Beside the version and the architecture, which the snapshot's `runtime` keeps.
 pub struct SystemDescription {
-    pub os_name: String,           // "Windows 11 26100", "Ubuntu 24.04.1 LTS"
-    pub architecture: String,
-    pub desktop: Option<String>,   // XDG_CURRENT_DESKTOP; None on Windows
+    pub distribution: String,                 // os-release ID: "ubuntu"
+    pub distribution_version: Option<String>, // VERSION_ID: "24.04"
+    pub desktops: Vec<String>,                // XDG_CURRENT_DESKTOP, lower-cased
     pub session_type: Option<SessionType>,
 }
 pub enum SessionType { X11, Wayland }
@@ -452,13 +453,14 @@ pub enum SessionType { X11, Wayland }
 pub trait SystemInfo {
     fn install_kind(&self) -> InstallKind;
     fn describe(&self) -> SystemDescription;
-    /// Names of the backends in use, for the diagnostic export:
-    /// ("idle", "ext-idle-notify-v1"), ("tray", "status-notifier"), …
-    fn backends(&self) -> Vec<(&'static str, String)>;
 }
 /// In-memory: the answers it was given.
-pub struct InMemorySystem { pub install_kind, pub description, pub backends }
+pub struct InMemorySystem { pub install_kind, pub description }
 ```
+
+The backends are no part of `SystemInfo`: `build` chooses them, so
+`Platform::backends` names them (below), and the export reads them from
+there.
 
 ## The value the app receives
 
@@ -483,9 +485,16 @@ pub struct Platform {
     pub startup: Option<Arc<dyn StartupPort>>, // None in a demo
     pub tray: Rc<dyn Tray<MenuCommand>>,       // shows nothing before its first publish
     pub tray_events: TrayEvents,
-    /// The diagnostic log's name of the tray's backend: `None` where the log names none (Windows).
-    pub tray_backend: Option<&'static str>,
+    /// The diagnostic export's name of each backend: `None` where it names none (Windows). The
+    /// tray's is also in the diagnostic log.
+    pub backends: Backends,
     pub desktop: Rc<dyn Desktop>,
+}
+
+pub struct Backends {
+    pub tray: Option<&'static str>,          // "status-notifier", "none"
+    pub notifications: Option<&'static str>, // "notification-server", "notification-portal", "none"
+    pub autostart: Option<&'static str>,     // "xdg-autostart", "none"
 }
 
 impl Platform {
@@ -525,6 +534,9 @@ pub async fn pick_open(file_type: String, extensions: &'static [&'static str],
 /// returned.
 pub fn store_updates() -> Result<Option<impl UpdateSource>, impl Display>;
 pub fn direct_updates() -> Option<impl UpdateSource>;
+/// The system as « À propos » and the diagnostic export describe it: `None` on Windows, whose
+/// export keeps the one .NET wrote.
+pub fn system() -> Option<impl SystemInfo>;
 /// The system's own name for its zone when it is not an IANA name: the Windows key.
 pub fn system_zone_id() -> Option<String>;
 /// What the diagnostic snapshot keeps of the system, as .NET wrote it: zeros and `None`
@@ -541,10 +553,11 @@ pub fn open_in_editor(file: &Path, cx: &App);
 
 The backend functions after `place_window` are no fields of `Platform`:
 the export of a failed start runs without one, and none of them holds
-state. `SystemInfo` stays unwired until T121 gives it a consumer: its
-`SystemDescription` names the system in words, while the snapshot keeps
-.NET's numeric version, so `diagnostics.rs` reads
-`operating_system_version` and `native_machine` meanwhile.
+state. `system()` is one of them: the export of a failed start describes
+the system too, with no backend named. Its `SystemDescription` goes to the
+snapshot's `system` beside `runtime`, which keeps .NET's numeric version
+and the architectures from `operating_system_version` and
+`native_machine`.
 
 `build` runs before GPUI does and before the day is known, so the Windows
 tray makes its icon at the first `publish`. The app quits when its last
