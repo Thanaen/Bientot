@@ -133,8 +133,8 @@ pub fn shows_window_mode_notice(cx: &App) -> bool {
     window_mode(cx) && !cx.has_global::<WindowModeNoticeClosed>()
 }
 
-/// The page of the notice's « Comment afficher l’icône »: how to have the desktop show the icon, and
-/// what window mode does (T173 of specs/005-linux-support).
+/// The page of the notice's « Comment afficher l’icône »: how to have the desktop show the icon,
+/// and what window mode does (T173 of specs/005-linux-support).
 pub fn icon_help_url(language: Language) -> &'static str {
     match language {
         Language::French => "https://bientot.dev/aide/afficher-l-icone",

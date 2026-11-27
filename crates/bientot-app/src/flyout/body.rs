@@ -404,8 +404,9 @@ impl Flyout {
     }
 
     /// What scrolls between the header and the actions: the notices, the callouts on the day's
-    /// time, why the app shows in a window, the day and the other callouts, down to the update. After Tab, it scrolls the part that
-    /// took the focus into view, or the control that took it in a part taller than the body.
+    /// time, why the app shows in a window, the day and the other callouts, down to the update.
+    /// After Tab, it scrolls the part that took the focus into view, or the control that took it in
+    /// a part taller than the body.
     pub(super) fn body(
         &mut self,
         window: &mut Window,

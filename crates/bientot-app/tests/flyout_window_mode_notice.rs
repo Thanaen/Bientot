@@ -1,9 +1,9 @@
-//! In window mode (FR-012) the flyout says once why Bientôt shows in a window: « Comment
-//! afficher l’icône » opens the help page, « Compris » closes the notice for good, across restarts. With a
+//! In window mode (FR-012) the flyout says once why Bientôt shows in a window: « Comment afficher
+//! l’icône » opens the help page, « Compris » closes the notice for good, across restarts. With a
 //! tray host, as on Windows, whose notification area is always there, it never shows. A keyboard
 //! user meets the notice as two more Tab stops, right after the header's two buttons when no
-//! callout about the day's time comes first. It needs the
-//! headless GPUI of the `screenshots` feature.
+//! callout about the day's time comes first. It needs the headless GPUI of the `screenshots`
+//! feature.
 #![cfg(all(feature = "screenshots", target_os = "linux"))]
 
 mod common;
@@ -39,9 +39,9 @@ impl LastInputProbe for NoInput {
     }
 }
 
-/// The app showing `today`, on a desktop that opens the flyout in a window without a tray host,
-/// as `LinuxDesktop` does; « Comment afficher l’icône » counts its presses in `help` rather than opening
-/// a browser.
+/// The app showing `today`, on a desktop that opens the flyout in a window without a tray host, as
+/// `LinuxDesktop` does; « Comment afficher l’icône » counts its presses in `help` rather than
+/// opening a browser.
 fn started(today: Today, tray: TrayHost, help: &Rc<Cell<usize>>) -> HeadlessAppContext {
     let mut cx = common::app(true, flyout::bind_keys);
     let help = help.clone();
