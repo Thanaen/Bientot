@@ -12,6 +12,7 @@ use std::fmt::Display;
 use std::sync::OnceLock;
 
 use bientot_core::settings::language;
+use bientot_platform::locale::SystemLocale;
 use gpui::Global;
 
 #[rustfmt::skip]
@@ -29,6 +30,27 @@ pub enum Language {
 
 impl Global for Language {}
 
+/// What chooses the language besides the settings: `--french` or `--english` over them, the
+/// system's languages under them.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct LanguageSources {
+    pub forced: Option<Language>,
+    /// The first of the system's languages that is French or English: `None` when it names
+    /// neither.
+    pub system: Option<Language>,
+}
+
+impl LanguageSources {
+    pub fn new(forced: Option<Language>, locale: &impl SystemLocale) -> Self {
+        let languages = locale.languages();
+        Self {
+            forced,
+            system: language::first_known(languages.iter().map(String::as_str))
+                .and_then(Language::of_tag),
+        }
+    }
+}
+
 impl Language {
     pub const ALL: [Language; 2] = [Language::French, Language::English];
 
@@ -40,22 +62,22 @@ impl Language {
         }
     }
 
-    /// The language of a launch: `forced` by `--french` or `--english`, else the one saved in
-    /// the settings, else the Windows display languages as `SettingsLanguageResolver` reads
-    /// them. Those are not read yet, so French stands for them.
-    pub fn resolve(forced: Option<Language>, saved: Option<&str>) -> Self {
-        if forced == Some(Language::French) {
+    /// The language of a launch, as `SettingsLanguageResolver` chooses it: the one `--french` or
+    /// `--english` forces, else the one saved in the settings, else the system's, else English.
+    pub fn resolve(sources: LanguageSources, saved: Option<&str>) -> Self {
+        if sources.forced == Some(Language::French) {
             return Language::French;
         }
         let tag = language::resolve(
-            forced == Some(Language::English),
+            sources.forced == Some(Language::English),
             saved,
-            [Language::French.tag()],
+            sources.system.map(Language::tag),
         );
-        Self::ALL
-            .into_iter()
-            .find(|language| language.tag() == tag)
-            .unwrap_or_default()
+        Self::of_tag(tag).unwrap_or_default()
+    }
+
+    fn of_tag(tag: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|language| language.tag() == tag)
     }
 
     /// `key` as the system of [`Wording::current`] words it.

@@ -22,7 +22,7 @@ use crate::settings::{
     Clock, Control, Details, Field, LanguageChoice, PingDetails, RowView, Setting, StartupAppsView,
     Switch, UsagePingFacts, error_text, ping_body,
 };
-use crate::strings::{Key, Language};
+use crate::strings::{Key, Language, LanguageSources};
 
 /// The argument that shows the onboarding on settings already saved, as in .NET.
 pub const ARGUMENT: &str = "--onboarding";
@@ -135,8 +135,9 @@ pub struct Onboarding {
     step: Step,
     /// The choices so far.
     settings: Settings,
-    /// `--french` or `--english`: the texts keep that language whatever is chosen.
-    forced: Option<Language>,
+    /// `--french` or `--english`, which the texts keep whatever is chosen, and the system's
+    /// language, which the system choice names.
+    sources: LanguageSources,
     /// The minimum target the settings had: the schedule does not ask for it, so it stays
     /// unless the daily target becomes shorter.
     preferred_minimum: SignedDuration,
@@ -167,13 +168,13 @@ impl Onboarding {
     pub fn new(
         mut settings: Settings,
         usage_ping: UsagePingFacts,
-        forced: Option<Language>,
+        sources: LanguageSources,
         directory: Option<DataDirectory>,
     ) -> Self {
         settings
             .activity_source
             .get_or_insert(ActivitySourceKind::BuiltIn);
-        let language = Language::resolve(forced, settings.language_override.as_deref());
+        let language = Language::resolve(sources, settings.language_override.as_deref());
         Self {
             step: Step::Language,
             preferred_minimum: settings.minimum_effective_target,
@@ -182,7 +183,7 @@ impl Onboarding {
             lunch_end: time_field(settings.lunch_end),
             departure: time_field(settings.preferred_latest_departure),
             settings,
-            forced,
+            sources,
             schedule_error: None,
             details_open: false,
             usage_ping,
@@ -199,7 +200,7 @@ impl Onboarding {
 
     /// The language of the texts: the one chosen, as soon as it is chosen.
     pub fn language(&self) -> Language {
-        Language::resolve(self.forced, self.settings.language_override.as_deref())
+        Language::resolve(self.sources, self.settings.language_override.as_deref())
     }
 
     pub fn is_saving(&self) -> bool {
@@ -446,8 +447,11 @@ impl Onboarding {
                 .map(|choice| LanguageOption {
                     choice,
                     label: language.text(match choice {
-                        // The Windows display languages are not read yet: the label names none.
-                        LanguageChoice::System => Key::OnboardingLanguageSystem,
+                        LanguageChoice::System => match self.sources.system {
+                            Some(Language::French) => Key::OnboardingLanguageSystemFrench,
+                            Some(Language::English) => Key::OnboardingLanguageSystemEnglish,
+                            None => Key::OnboardingLanguageSystem,
+                        },
                         LanguageChoice::French => Key::OnboardingLanguageFrenchContent,
                         LanguageChoice::English => Key::OnboardingLanguageEnglishContent,
                     }),

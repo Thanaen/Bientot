@@ -16,7 +16,7 @@ use crate::host::Today;
 use crate::live::Announcement;
 use crate::platform;
 use crate::settings::data::{Backup, Chosen, Exported, Refusal};
-use crate::strings::{Key, Language};
+use crate::strings::{Key, Language, LanguageSources};
 
 /// How long a restarted WorkTime waits for the one that started it to quit.
 const RESTART_WAIT: Duration = Duration::from_secs(30);
@@ -208,7 +208,7 @@ pub fn wait_for_restart(restarted_from: Option<u32>) {
 pub fn import_left_waiting(
     restarted_from: Option<u32>,
     directory: &DataDirectory,
-    forced: Option<Language>,
+    sources: LanguageSources,
 ) -> Option<Language> {
     if restarted_from.is_none() || !directory.pending_import_file().exists() {
         return None;
@@ -217,7 +217,7 @@ pub fn import_left_waiting(
         .ok()
         .and_then(|store| store.peek());
     Some(Language::resolve(
-        forced,
+        sources,
         saved
             .as_ref()
             .and_then(|settings| settings.language_override.as_deref()),

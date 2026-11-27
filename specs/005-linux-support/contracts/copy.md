@@ -36,10 +36,10 @@ Rules:
 | `SettingsStartupInput.AutomationProperties.Name` | Démarrer Bientôt avec Windows | Démarrer Bientôt à l’ouverture de session | Start Bientôt when you sign in | T115 | Approved by the panel (T120) |
 | `SettingsStartupCard.Header` | Démarrage Windows | Démarrage automatique | Automatic startup | T115 | Approved by the panel (T120) |
 | `OnboardingActivityWatchApiKeyHelp.Text` | … la clé chiffrée pour votre compte Windows … | *(not shown: the ActivityWatch step is no longer reachable; the resource is deleted on both platforms if T120 confirms it is dead)* | — | T120 | Deleted on both platforms (T120): no code read it |
-| `OnboardingLanguageIntro.Text` | Bientôt suit la langue de Windows. Vous pourrez la changer dans Paramètres. | Bientôt suit la langue du système. Vous pourrez la changer dans Paramètres. | Bientôt follows your system language by default. You can change it later in Settings. | T126 | Approved by the panel (T120) |
-| `OnboardingLanguageSystemFrench` | Langue de Windows (français) | *(not shown: no code read it)* | — | T126 | Deleted on both platforms (T120): no code read it |
-| `OnboardingLanguageSystemEnglish` | Langue de Windows (anglais) | *(not shown: no code read it)* | — | T126 | Deleted on both platforms (T120): no code read it |
-| `OnboardingLanguageSystem` | Langue de Windows | Langue du système | System language | T126 | Approved by the panel (T120) |
+| `OnboardingLanguageIntro.Text` | Bientôt suit la langue de Windows par défaut. Vous pourrez en changer dans Paramètres. | Bientôt suit la langue du système par défaut. Vous pourrez en changer dans Paramètres. | Bientôt follows your system language by default. You can pick another later in Settings. | T126 | Approved by the panel (T120, T126) |
+| `OnboardingLanguageSystemFrench` | Langue de Windows (français) | Langue du système (français) | System language (French) | T126 | Approved by the panel (T120); read since T126 |
+| `OnboardingLanguageSystemEnglish` | Langue de Windows (anglais) | Langue du système (anglais) | System language (English) | T126 | Approved by the panel (T120); read since T126 |
+| `OnboardingLanguageSystem` | Langue de Windows (anglais à la place) | Langue du système (anglais à la place) | System language (English instead) | T126 | Approved by the panel (T126): shown when the system language is neither French nor English |
 | `OnboardingStartupTitle.Text` | Démarrer avec Windows | *(not shown: no code read it)* | — | T115 | Deleted on both platforms (T120): no code read it |
 | `OnboardingStartupCard.Header` | Démarrage Windows | *(not shown: no code read it)* | — | T115 | Deleted on both platforms (T120): no code read it |
 | `OnboardingStartupInput.AutomationProperties.Name` | Démarrer Bientôt avec Windows | *(not shown: no code read it)* | — | T115 | Deleted on both platforms (T120): no code read it |

@@ -1,13 +1,15 @@
 //! The platform-independent half of Bientôt's system integration: the built-in activity source,
 //! the recording of session and power changes, the recovery of power and session history, the
 //! update check, the port that registers the app to start at sign-in, the tray menu, the names of
-//! time zones on either platform, and the types the platform crates share. Each port has an
-//! in-memory implementation here; `bientot-windows` makes the Windows calls behind them.
+//! time zones on either platform, the port that reads the user's languages, and the types the
+//! platform crates share. Each port has an in-memory implementation here; `bientot-windows` makes
+//! the Windows calls behind them.
 
 #![forbid(unsafe_code)]
 
 pub mod activity;
 pub mod lifecycle;
+pub mod locale;
 pub mod motion;
 pub mod notifications;
 pub mod placement;

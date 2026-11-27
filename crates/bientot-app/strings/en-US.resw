@@ -621,11 +621,15 @@
   <data name="OnboardingFinishButton.Content" xml:space="preserve"><value>Finish</value></data>
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>Bientôt could not save your setup. Try again.</value></data>
   <data name="OnboardingLanguageTitle.Text" xml:space="preserve"><value>Choose your language</value></data>
-  <data name="OnboardingLanguageIntro.Text" xml:space="preserve"><value>Bientôt follows the Windows language by default. You can change it later in Settings.</value></data>
-  <data name="OnboardingLanguageIntro.Text.Linux" xml:space="preserve"><value>Bientôt follows your system language by default. You can change it later in Settings.</value></data>
+  <data name="OnboardingLanguageIntro.Text" xml:space="preserve"><value>Bientôt follows your Windows language by default. You can pick another later in Settings.</value></data>
+  <data name="OnboardingLanguageIntro.Text.Linux" xml:space="preserve"><value>Bientôt follows your system language by default. You can pick another later in Settings.</value></data>
   <data name="OnboardingLanguageInput.AutomationProperties.Name" xml:space="preserve"><value>Language</value></data>
-  <data name="OnboardingLanguageSystem" xml:space="preserve"><value>Windows language</value></data>
-  <data name="OnboardingLanguageSystem.Linux" xml:space="preserve"><value>System language</value></data>
+  <data name="OnboardingLanguageSystemFrench" xml:space="preserve"><value>Windows language (French)</value></data>
+  <data name="OnboardingLanguageSystemFrench.Linux" xml:space="preserve"><value>System language (French)</value></data>
+  <data name="OnboardingLanguageSystemEnglish" xml:space="preserve"><value>Windows language (English)</value></data>
+  <data name="OnboardingLanguageSystemEnglish.Linux" xml:space="preserve"><value>System language (English)</value></data>
+  <data name="OnboardingLanguageSystem" xml:space="preserve"><value>Windows language (English instead)</value></data>
+  <data name="OnboardingLanguageSystem.Linux" xml:space="preserve"><value>System language (English instead)</value></data>
   <data name="OnboardingLanguageFrench.Content" xml:space="preserve"><value>Français</value></data>
   <data name="OnboardingLanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
   <data name="OnboardingLanguageRestartNotice.Text" xml:space="preserve"><value>Bientôt restarts in the chosen language when you finish.</value></data>

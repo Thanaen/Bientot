@@ -596,13 +596,19 @@ filters that refuse the call. Both halves are tested on their own.
   will show; no token changes.
 - **Tray icon rendering.** `tray_art::rgba` already draws at any size with
   `resvg`; see R4 for the outline.
-- **Locale.** `Language::resolve` does not read the system language on any
-  platform yet (« Those are not read yet, so French stands for them »,
-  `strings.rs:39-41`). Parity is kept by doing the same thing on both:
-  reading `LC_MESSAGES`/`LANG` on Linux and the display languages on
-  Windows belongs to one cross-platform task (T126), with spec 004's
-  region default (its T040) on the same port. The 17 strings that name
-  Windows get Linux variants (`contracts/copy.md`).
+- **Locale.** Before T126, `Language::resolve` read the system language on
+  neither platform (« Those are not read yet, so French stands for them »).
+  T126 reads both through one port, `bientot_platform::locale::SystemLocale`:
+  on Windows the display languages (`GetUserPreferredUILanguages`), on Linux
+  the locale POSIX gives the messages, `LC_ALL`, else `LC_MESSAGES`, else
+  `LANG`, the first one set and not empty. `C` and `POSIX` name no language
+  and hide the variables after them, as for any program. The first French
+  or English language wins, else English, on both. GNU's `LANGUAGE` list is
+  not read: it is a gettext extension, which gettext itself ignores under
+  the `C` locale, and neither spec asks for it. Spec 004's region default
+  (its T040) belongs on the same port; the Linux tags already carry the
+  territory (`fr-FR`). The 17 strings that name Windows get Linux variants
+  (`contracts/copy.md`).
 - **Opening URLs, files and folders.** `cx.open_url` and
   `cx.open_with_system` use the OpenURI portal or `xdg-open`. Nothing to
   write.

@@ -78,7 +78,7 @@ Independent of every other phase.
 
 **PR 5** `feat(app): treat French public holidays as days off`.
 
-- [ ] T040 [US4] Default `holiday_calendar` from the Windows region's country on first read, when the table has a calendar for it (`crates/bientot-windows` region query behind a trait, `crates/bientot-core/src/settings.rs`); Linux tests with an injected region.
+- [ ] T040 [US4] Default `holiday_calendar` from the Windows region's country on first read, when the table has a calendar for it (the region query on the `SystemLocale` port of spec 005's T126, `crates/bientot-platform/src/locale.rs`, `crates/bientot-core/src/settings.rs`); Linux tests with an injected region.
 - [ ] T041 [US4] Resolver: holidays of the selected calendar on working days become `Holiday(id)` unless remembered as worked; « Passer en journée travaillée » and « Jour férié » update `worked_holidays` from the current week on; half day on a holiday does not (`crates/bientot-domain/src/schedule.rs`, `crates/bientot-core/src/plans.rs`).
 - [ ] T042 [US4] Week row « Férié · <nom> », explanation block with its « aujourd'hui » variant and single button, selector with « Jour férié » (`crates/bientot-app/src/week*.rs`).
 - [ ] T043 [US4] Holiday flyout (`crates/bientot-app/src/workday.rs`, `flyout/body.rs`).

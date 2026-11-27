@@ -71,6 +71,9 @@ pub use backend::place_window;
 pub use backend::run_update_hooks;
 /// Tells the user why Bientôt cannot start when no window can open.
 pub use backend::show_fatal;
+/// The languages the user set the system to, which [`crate::strings::LanguageSources`] reads:
+/// the display languages of Windows, the POSIX locale of the messages on Linux.
+pub use backend::system_locale;
 /// The system's name for its own time zone when it is not an IANA name: the Windows key, which
 /// the ledger keeps as .NET's `TimeZoneInfo.Local.Id`.
 pub use backend::system_zone_id;

@@ -517,7 +517,7 @@ session's column ».
 | Export, import, `.bientot` across platforms | Yes | Same | Same | Same | Through the file chooser |
 | Diagnostic export | Yes | Same, plus desktop, session type, backends | Same | Same | |
 | Plugins | Yes | Same | Same | Same | |
-| Language follows the system | Not yet (French by default) | Same state; both gain it together (T126) | Same | Same | |
+| Language follows the system | First display language that is French or English, else English | Same rule on `LC_ALL`, else `LC_MESSAGES`, else `LANG` (T126) | Same | Same | |
 | Light and dark theme | Follows Windows | Same (portal) | Same | Same | |
 | Reduced motion | Follows « Animation effects » | Same where the desktop exposes it | Same | Same | |
 | Screen reader | Narrator | Orca, same names (to validate, T127) | Same | Same | |

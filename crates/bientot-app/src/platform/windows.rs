@@ -1,7 +1,7 @@
 //! The Windows backend: the ports of `bientot-windows`, the toasts, the « Animation effects »
 //! setting, the notification-area icon and the flyout's corner, the Store and Velopack's updates,
-//! the common item dialogs, the time zone's Windows key, the final paths, and the message box of
-//! last resort.
+//! the common item dialogs, the time zone's Windows key, the display languages, the final paths,
+//! and the message box of last resort.
 
 #[cfg(feature = "updates")]
 #[path = "windows/direct.rs"]
@@ -235,6 +235,10 @@ async fn off_thread(
 
 pub fn open_in_editor(file: &Path, cx: &App) {
     cx.open_with_system(file);
+}
+
+pub fn system_locale() -> bientot_windows::locale::DisplayLanguages {
+    bientot_windows::locale::DisplayLanguages
 }
 
 /// The key of the zone in Windows' registry, such as `Romance Standard Time`.

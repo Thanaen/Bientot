@@ -6,7 +6,7 @@ use std::sync::Arc;
 use bientot_app::onboarding::Onboarding;
 use bientot_app::onboarding_view::{self, OnboardingView};
 use bientot_app::settings::data::{Action, Chosen, Refusal};
-use bientot_app::strings::Language;
+use bientot_app::strings::{Language, LanguageSources};
 use bientot_platform::startup::StartupRegistrationState;
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::transfer::Contents;
@@ -150,7 +150,11 @@ fn capture_onboarding(
             let onboarding = Onboarding::new(
                 SettingsState::Saved.settings(),
                 usage_ping,
-                Some(language),
+                // On a system in the language of the screenshots, which its choice names.
+                LanguageSources {
+                    forced: Some(language),
+                    system: Some(language),
+                },
                 Some(directory),
             );
             cx.new(|cx| {

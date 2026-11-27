@@ -15,7 +15,7 @@ and RangeValue states. Narrator itself was not run.
 
 | Window | Result | What a screen reader gets |
 | --- | --- | --- |
-| Onboarding | Pass after #121 | Radio buttons « Langue de Windows », « Français », « English » in the group « Langue », with their selection. The target edit is « Objectif quotidien en heures et minutes ». The times are spinners « Heures » and « Minutes » in groups named after the time. The switches have their Toggle state. |
+| Onboarding | Pass after #121 | Radio buttons « Langue de Windows (français) » (or « (anglais) », or « (anglais à la place) » when Windows is in neither), « Français », « English » in the group « Langue », with their selection. The target edit is « Objectif quotidien en heures et minutes ». The times are spinners « Heures » and « Minutes » in groups named after the time. The switches have their Toggle state. |
 | Flyout | Pass | Status « En retard », status « Départ prévu : 03:13 », the explanation lines, « Temps travaillé : 0 min sur 7 h 00 min », a progress bar, and buttons named with their shortcut (« Mettre en pause, Ctrl+Alt+P »). |
 | Command palette | Pass | « Palette de commandes », the edit « Rechercher une commande », and the list « Commandes » whose items carry their selection and shortcut. |
 | Settings | Pass after #121 | Tabs per page with their selection, then edits with their value, switches with their Toggle state, and a combo box for the language. |

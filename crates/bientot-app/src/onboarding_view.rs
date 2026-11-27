@@ -23,7 +23,7 @@ use crate::settings_view::{
     self, Startup, TimeKey, field_error, filled, outlined, ping_details, row_frame,
     startup_apps_callout, switch_control, time_field, time_key, warning,
 };
-use crate::strings::{Key, Language};
+use crate::strings::{Key, Language, LanguageSources};
 use crate::text_input::TextInput;
 use crate::theme::spacing::*;
 use crate::theme::{Theme, TypeStyled as _, radius, size as token, text};
@@ -68,13 +68,13 @@ struct OnboardingWindow(Option<WindowHandle<OnboardingView>>);
 
 impl Global for OnboardingWindow {}
 
-/// Opens the onboarding on `settings`, the texts in `forced` if the launch fixed it. Closing it
+/// Opens the onboarding on `settings`, the texts in the language `sources` choose. Closing it
 /// before « Commencer » saves nothing and quits, so that it shows again at the next start; once
 /// saved, `on_complete` starts WorkTime and it closes. Its first step offers to import into
 /// `directory`, and an import restarts WorkTime on it instead.
 pub fn open(
     settings: Settings,
-    forced: Option<Language>,
+    sources: LanguageSources,
     directory: Option<DataDirectory>,
     save: SaveSettings,
     on_complete: OnComplete,
@@ -87,7 +87,7 @@ pub fn open(
         today: jiff::ZonedDateTime::now().date(),
         last_sent: None,
     };
-    let onboarding = Onboarding::new(settings, usage_ping, forced, directory);
+    let onboarding = Onboarding::new(settings, usage_ping, sources, directory);
     cx.set_global(onboarding.language());
     let options = WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(Bounds::centered(

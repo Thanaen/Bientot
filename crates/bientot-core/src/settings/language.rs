@@ -18,21 +18,24 @@ pub fn resolve<'a>(
         Some(ENGLISH) => return ENGLISH,
         _ => {}
     }
+    first_known(preferred).unwrap_or(ENGLISH)
+}
+
+/// The first of the user's `preferred` languages that is French or English, `None` when they
+/// name neither.
+pub fn first_known<'a>(preferred: impl IntoIterator<Item = &'a str>) -> Option<&'static str> {
     let starts_with = |language: &str, prefix: &str| {
         language
             .get(..prefix.len())
             .is_some_and(|start| start.eq_ignore_ascii_case(prefix))
     };
-    preferred
-        .into_iter()
-        .find_map(|language| {
-            if starts_with(language, "fr") {
-                Some(FRENCH)
-            } else if starts_with(language, "en") {
-                Some(ENGLISH)
-            } else {
-                None
-            }
-        })
-        .unwrap_or(ENGLISH)
+    preferred.into_iter().find_map(|language| {
+        if starts_with(language, "fr") {
+            Some(FRENCH)
+        } else if starts_with(language, "en") {
+            Some(ENGLISH)
+        } else {
+            None
+        }
+    })
 }

@@ -24,12 +24,20 @@ fn start_on_a_corrupt_ledger(folder: &Path) -> anyhow::Error {
     }
 }
 
-fn failed_start(folder: &Path, forced: Option<Language>) -> StartupFailure {
+/// The language `--french` or `--english` forces, on a system in French.
+fn forced(language: Option<Language>) -> LanguageSources {
+    LanguageSources {
+        forced: language,
+        system: Some(Language::French),
+    }
+}
+
+fn failed_start(folder: &Path, language: Option<Language>) -> StartupFailure {
     let error = start_on_a_corrupt_ledger(folder);
     StartupFailure::new(
         &error,
         Some(&DataDirectory::from(folder.to_owned())),
-        forced,
+        forced(language),
     )
 }
 
@@ -120,7 +128,7 @@ fn invalid_settings_stay_where_they_are() {
     std::fs::write(directory.settings_file(), "{broken").unwrap();
     let error = anyhow::anyhow!("cannot read the settings");
 
-    let failure = StartupFailure::new(&error, Some(&directory), Some(Language::English));
+    let failure = StartupFailure::new(&error, Some(&directory), forced(Some(Language::English)));
 
     assert_eq!(failure.contents().snapshot.settings, None);
     assert_eq!(
@@ -183,7 +191,7 @@ fn an_unreadable_data_folder_still_exports_the_failure() {
     let failure = StartupFailure::new(
         &error,
         Some(&DataDirectory::from(data.clone())),
-        Some(Language::English),
+        forced(Some(Language::English)),
     );
     assert_eq!(failure.contents().snapshot.settings, None);
     assert_eq!(failure.contents().logs, Some(data.join("logs")));
@@ -247,7 +255,7 @@ fn a_running_export_disables_its_button_then_tells_its_outcome() {
 /// reaches it as is or wrapped in another error.
 fn refused_demo(scenario: DemoScenario, folder: &Path) -> String {
     let message = |error: anyhow::Error| {
-        StartupFailure::new(&error, None, Some(Language::English))
+        StartupFailure::new(&error, None, forced(Some(Language::English)))
             .page()
             .message
             .to_owned()

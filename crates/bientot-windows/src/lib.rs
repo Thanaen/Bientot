@@ -11,6 +11,7 @@ pub mod diagnostics;
 pub mod dialogs;
 mod event_log;
 pub mod lifecycle;
+pub mod locale;
 pub mod notifications;
 pub mod power_history;
 pub mod process;
