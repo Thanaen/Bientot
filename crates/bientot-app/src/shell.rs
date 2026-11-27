@@ -288,6 +288,7 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
     }
     match opened {
         Ok(window) => {
+            window_opened();
             // `focus: true` only shows the window activated, and Windows keeps a window of a
             // background process out of the foreground: the flyout then never learns that a
             // click went elsewhere, and stays open. `activate_window` forces it to the front.
@@ -320,10 +321,42 @@ pub fn alert(language: Language, key: Key) {
     platform::show_fatal(language.text(Key::ShellWindowTitle), text);
 }
 
-/// No window opens, so Bientôt quits rather than run on unseen, and says why.
+/// Whether a window of Bientôt opened yet in this process, or none could. It lives on the thread
+/// GPUI runs on rather than in the app, which is gone when `main` reads it for the exit status.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Windows {
+    NoneYet,
+    Opened,
+    NoneOpens,
+}
+
+thread_local! {
+    static WINDOWS: Cell<Windows> = const { Cell::new(Windows::NoneYet) };
+}
+
+/// A window of Bientôt opened, so a window that fails to open later stops nothing.
+pub fn window_opened() {
+    if WINDOWS.get() == Windows::NoneYet {
+        WINDOWS.set(Windows::Opened);
+    }
+}
+
+/// A window cannot open. Until one has in this process none will, so Bientôt quits rather than
+/// run on unseen, and says why. Once one has, the caller's log is all: the tray stays, and the
+/// next click tries again.
 pub fn stop_without_graphics(language: Language, cx: &mut App) {
+    if WINDOWS.get() != Windows::NoneYet {
+        return;
+    }
+    WINDOWS.set(Windows::NoneOpens);
     alert(language, Key::NoGraphicsText);
     quit_once_running(cx);
+}
+
+/// Whether Bientôt stops because no window could open: it then writes no ready file, and exits
+/// with a failure, as a failed start does.
+pub fn stopped_without_graphics() -> bool {
+    WINDOWS.get() == Windows::NoneOpens
 }
 
 /// Quits once GPUI's event loop runs: on Linux the loop forgets a quit asked before it starts, as
@@ -904,5 +937,58 @@ mod tests {
     fn without_a_frame_the_window_is_the_client_rectangle() {
         let client = Bounds::new(point(1548, 420), size(360, 600));
         assert_eq!(window_bounds(client, FrameInsets::default()), client);
+    }
+
+    /// The flyout opened and closed, then a click finds no graphics: the flyout does not open,
+    /// Bientôt does not stop, and the next click opens it once graphics are back.
+    #[cfg(feature = "screenshots")]
+    #[test]
+    fn a_flyout_that_cannot_open_after_a_window_did_stops_nothing() {
+        use std::sync::Arc;
+
+        use bientot_core::demo::DemoScenario;
+        use gpui::HeadlessAppContext;
+
+        use crate::assets::{self, Assets};
+        use crate::demo::{self, DemoHost};
+        use crate::host::Source;
+        use crate::theme::ThemeMode;
+
+        let graphics = Rc::new(Cell::new(true));
+        let drivers = Rc::clone(&graphics);
+        let text_system = Arc::new(gpui_wgpu::CosmicTextSystem::new_without_system_fonts(
+            assets::FONT_FAMILY,
+        ));
+        let mut cx = HeadlessAppContext::with_platform(text_system, Arc::new(Assets), move || {
+            anyhow::ensure!(drivers.get(), "no graphics driver");
+            Ok(None)
+        });
+        let directory = demo::throwaway_directory();
+        let host = DemoHost::open(DemoScenario::OnTrack, &directory).unwrap();
+        cx.update(|cx| {
+            cx.set_global(ThemeMode::Light);
+            cx.set_global(Language::English);
+            assets::load_fonts(cx).unwrap();
+            cx.set_global(Today::open(Source::Demo(Box::new(host)), Language::English).unwrap());
+            open_flyout(cx);
+        });
+        assert_eq!(cx.update(|cx| cx.windows().len()), 1, "the flyout opens");
+        cx.update(toggle_flyout);
+        assert!(cx.update(|cx| cx.windows().is_empty()), "the flyout closes");
+
+        graphics.set(false);
+        cx.update(open_flyout);
+        cx.run_until_parked();
+        assert!(cx.update(|cx| cx.windows().is_empty()), "no window opens");
+        assert!(!stopped_without_graphics());
+
+        graphics.set(true);
+        cx.update(open_flyout);
+        assert_eq!(
+            cx.update(|cx| cx.windows().len()),
+            1,
+            "the next click opens it"
+        );
+        std::fs::remove_dir_all(directory).ok();
     }
 }

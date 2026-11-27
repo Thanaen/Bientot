@@ -43,8 +43,8 @@ fn the_portal_is_sent_the_delivery_id_as_the_notification_id() {
     );
 }
 
-const NO_GRAPHICS: &str =
-    "Bientôt could not open its window: no compatible graphics driver was found.";
+const NO_GRAPHICS: &str = "Bientôt could not open a window and has closed. Check that your \
+                           system’s graphics drivers are installed, then restart the app.";
 
 #[test]
 fn the_last_resort_reaches_the_server_as_any_notification_with_its_text() {
@@ -57,7 +57,8 @@ fn the_last_resort_reaches_the_server_as_any_notification_with_its_text() {
             replaces_id: 0,
             app_icon: "dev.bientot.Bientot",
             summary: "Bientôt",
-            body: "Bientôt could not open its window: no compatible graphics driver was found.",
+            body: "Bientôt could not open a window and has closed. Check that your system’s \
+                   graphics drivers are installed, then restart the app.",
             actions: ["default", ""],
             hints: [("desktop-entry", "dev.bientot.Bientot")],
             expire_timeout: -1,
@@ -74,7 +75,8 @@ fn the_last_resort_reaches_the_portal_under_an_id_of_its_own() {
         PortalNotification {
             id: "last-resort",
             title: "Bientôt",
-            body: "Bientôt could not open its window: no compatible graphics driver was found.",
+            body: "Bientôt could not open a window and has closed. Check that your system’s \
+                   graphics drivers are installed, then restart the app.",
             default_action: "open",
         }
     );

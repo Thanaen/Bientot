@@ -115,7 +115,10 @@ pub fn open(
     match cx.open_window(options, |window, cx| {
         cx.new(|cx| OnboardingView::new(onboarding, save, on_complete, window, cx))
     }) {
-        Ok(window) => cx.default_global::<OnboardingWindow>().0 = Some(window),
+        Ok(window) => {
+            crate::shell::window_opened();
+            cx.default_global::<OnboardingWindow>().0 = Some(window);
+        }
         Err(error) => {
             log::error!("cannot open the onboarding: {error:#}");
             if crate::platform::NO_WINDOW_MEANS_NO_GRAPHICS {

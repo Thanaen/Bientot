@@ -190,10 +190,19 @@ fn notified() -> Vec<(String, String)> {
         .collect()
 }
 
+const NO_GRAPHICS_FR: &str = "Bientôt n’a pas pu ouvrir de fenêtre et s’est fermé. Vérifiez que les \
+     pilotes graphiques de votre système sont installés, puis relancez l’application.";
+const NO_GRAPHICS_EN: &str = "Bientôt could not open a window and has closed. Check that your system’s \
+     graphics drivers are installed, then restart the app.";
+const START_FAILED: &str =
+    "Bientôt could not start. Check the local settings and database, then restart the app.";
+
 /// What a start without any graphics driver left: neither Vulkan nor EGL finds one.
 struct Stopped {
     status: ExitStatus,
     stderr: String,
+    /// Whether it wrote the ready file the CI startup measurement waits for.
+    ready: bool,
 }
 
 impl Stopped {
@@ -208,10 +217,12 @@ fn start_without_graphics(arguments: &[&str], prepare: impl FnOnce(&Path)) -> St
     let data = folder.path().join("data");
     std::fs::create_dir(&data).unwrap();
     prepare(&data);
+    let ready = folder.path().join("ready");
     let mut child = Command::new(env!("CARGO_BIN_EXE_worktime"))
         .args(arguments)
         .arg("--data-dir")
         .arg(&data)
+        .env("BIENTOT_READY_FILE", &ready)
         .env("VK_ICD_FILENAMES", folder.path().join("no-vulkan.json"))
         .env(
             "__EGL_VENDOR_LIBRARY_FILENAMES",
@@ -240,11 +251,20 @@ fn start_without_graphics(arguments: &[&str], prepare: impl FnOnce(&Path)) -> St
         .unwrap()
         .read_to_string(&mut stderr)
         .unwrap();
-    Stopped { status, stderr }
+    Stopped {
+        status,
+        stderr,
+        ready: ready.exists(),
+    }
 }
 
 fn settings(data: &Path) {
     std::fs::write(data.join("settings.json"), "{}").unwrap();
+}
+
+/// `text` as the server mock is sent it, under the app's name.
+fn under_the_name(text: &str) -> Vec<(String, String)> {
+    vec![("Bientôt".to_owned(), text.to_owned())]
 }
 
 #[test]
@@ -255,21 +275,10 @@ fn desktop_harness_without_graphics_the_flyout_says_why_and_the_app_quits() {
 
     let stopped = start_without_graphics(&["--open-flyout", "--french"], settings);
 
-    assert!(stopped.status.success(), "{}", stopped.stderr);
-    assert_eq!(
-        stopped.stderr,
-        "Bientôt n’a pas pu ouvrir sa fenêtre\u{a0}: aucun pilote graphique compatible n’a été \
-         trouvé.\n"
-    );
-    assert_eq!(
-        notified()[before..],
-        [(
-            "Bientôt".to_owned(),
-            "Bientôt n’a pas pu ouvrir sa fenêtre\u{a0}: aucun pilote graphique compatible n’a \
-             été trouvé."
-                .to_owned()
-        )]
-    );
+    assert_eq!(stopped.status.code(), Some(1), "{}", stopped.stderr);
+    assert_eq!(stopped.stderr, format!("{NO_GRAPHICS_FR}\n"));
+    assert_eq!(notified()[before..], under_the_name(NO_GRAPHICS_FR)[..]);
+    assert!(!stopped.ready, "the ready file is written");
 }
 
 #[test]
@@ -280,19 +289,10 @@ fn desktop_harness_without_graphics_the_onboarding_says_why_and_the_app_quits() 
 
     let stopped = start_without_graphics(&["--english"], |_| {});
 
-    assert!(stopped.status.success(), "{}", stopped.stderr);
-    assert_eq!(
-        stopped.stderr,
-        "Bientôt could not open its window: no compatible graphics driver was found.\n"
-    );
-    assert_eq!(
-        notified()[before..],
-        [(
-            "Bientôt".to_owned(),
-            "Bientôt could not open its window: no compatible graphics driver was found."
-                .to_owned()
-        )]
-    );
+    assert_eq!(stopped.status.code(), Some(1), "{}", stopped.stderr);
+    assert_eq!(stopped.stderr, format!("{NO_GRAPHICS_EN}\n"));
+    assert_eq!(notified()[before..], under_the_name(NO_GRAPHICS_EN)[..]);
+    assert!(!stopped.ready, "the ready file is written");
 }
 
 #[test]
@@ -306,17 +306,8 @@ fn desktop_harness_without_graphics_a_failed_start_keeps_its_own_text() {
         std::fs::write(data.join("worktime.db"), [0x5a; 4096]).unwrap();
     });
 
-    assert!(!stopped.status.success(), "{}", stopped.stderr);
-    assert_eq!(
-        stopped.first_line(),
-        "Bientôt could not start. Check the local settings and database, then restart the app."
-    );
-    assert_eq!(
-        notified()[before..],
-        [(
-            "Bientôt".to_owned(),
-            "Bientôt could not start. Check the local settings and database, then restart the app."
-                .to_owned()
-        )]
-    );
+    assert_eq!(stopped.status.code(), Some(1), "{}", stopped.stderr);
+    assert_eq!(stopped.first_line(), START_FAILED);
+    assert_eq!(notified()[before..], under_the_name(START_FAILED)[..]);
+    assert!(!stopped.ready, "the ready file is written");
 }

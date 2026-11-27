@@ -91,9 +91,9 @@ pub fn notify(request: &NotificationRequest) -> Notify<'_> {
 }
 
 /// The notification that tells why Bientôt stops when no window can, `body` under `title`, with
-/// an id of its own for the portal to name it by. It keeps the body's action: GNOME Shell starts
-/// the application of the `desktop-entry` hint for a click on a notification without one, which
-/// would start Bientôt again.
+/// an id of its own for the portal to name it by. It keeps the body's action: for a click on a
+/// notification without one, GNOME Shell activates the application of the `desktop-entry` hint,
+/// which would start Bientôt again (`js/ui/notificationDaemon.js`, `source.open()`).
 pub fn last_resort(title: &str, body: &str) -> NotificationRequest {
     NotificationRequest {
         delivery_id: "last-resort".into(),

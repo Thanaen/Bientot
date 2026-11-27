@@ -398,7 +398,8 @@ fn desktop_harness_shows_the_last_resort_before_it_returns() {
         .lock()
         .unwrap_or_else(PoisonError::into_inner);
     let bus = session();
-    let body = "Bientôt could not open its window: no compatible graphics driver was found.";
+    let body = "Bientôt could not open a window and has closed. Check that your system’s \
+                graphics drivers are installed, then restart the app.";
     let last_resort = crate::notifications::last_resort("Bientôt", body);
 
     show_once(Service::Server, &last_resort).unwrap();

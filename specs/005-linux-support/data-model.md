@@ -29,7 +29,7 @@ Tray          Present ⇄ Absent                (live, from the host)
 Idle          Backend(name) ⇄ None            (re-selected when the backend stops answering, and each minute while none)
 Lock          Live ⇄ Unavailable              (per session; may become Live on the first true LockedHint)
 PowerHistory  Journal | BootTimeOnly          (per start)
-Notifications Available ⇄ Unavailable         (re-checked when a show fails)
+Notifications Available | Unavailable         (per start; a show refused later changes nothing)
 Startup       StartupRegistrationState        (read when the settings open and after a change)
 ```
 

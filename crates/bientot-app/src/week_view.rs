@@ -147,7 +147,10 @@ pub fn open(cx: &mut App) {
     match cx.open_window(options, |window, cx| {
         cx.new(|cx| WeekView::new(week, language, window, cx))
     }) {
-        Ok(window) => cx.default_global::<WeekWindow>().0 = Some(window),
+        Ok(window) => {
+            crate::shell::window_opened();
+            cx.default_global::<WeekWindow>().0 = Some(window);
+        }
         Err(error) => log::error!("cannot open the week: {error:#}"),
     }
 }

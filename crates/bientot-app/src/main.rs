@@ -1,6 +1,7 @@
 // Release builds on Windows have no console window.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+use std::process::ExitCode;
 use std::rc::Rc;
 
 use bientot_app::assets::{self, Assets};
@@ -44,7 +45,7 @@ use gpui::{App, Global, QuitMode};
 static CLOCK: SystemClock = SystemClock;
 static ZONES: SystemZones = SystemZones;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<ExitCode> {
     // Before anything else: the uninstaller's cleanup, which then ends the process.
     let may_install = platform::run_update_hooks();
     let launch = Launch::parse(std::env::args().skip(1))?;
@@ -55,7 +56,11 @@ fn main() -> anyhow::Result<()> {
         instance,
     }) = run(launch.clone(), languages, may_install)
     else {
-        return Ok(());
+        return Ok(if shell::stopped_without_graphics() {
+            ExitCode::FAILURE
+        } else {
+            ExitCode::SUCCESS
+        });
     };
     let failure = StartupFailure::new(&error, directory.as_ref(), languages);
     application().run(move |cx| {
@@ -506,7 +511,9 @@ fn show(
         bientot_app::plugins::start(&directory, language, daily, cx);
     }
     // The CI startup measurement waits for this file: the shell is ready to be clicked.
-    if let Some(path) = std::env::var_os("BIENTOT_READY_FILE") {
+    if !shell::stopped_without_graphics()
+        && let Some(path) = std::env::var_os("BIENTOT_READY_FILE")
+    {
         std::fs::write(path, b"").ok();
     }
 }

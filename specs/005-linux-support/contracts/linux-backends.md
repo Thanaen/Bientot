@@ -257,10 +257,12 @@ export names `none`.
   `show_once` sends `last_resort(title, body)` as any notification, to the
   server or the portal, with delivery id `last-resort`, on a connection of
   its own, and returns once the service answered or a call timed out; the
-  process then exits. It keeps the body's action: GNOME Shell starts the
-  application of the `desktop-entry` hint for a click on a notification
-  without one, which would start Bientôt again. A demo shows it too, as
-  Windows shows its message box.
+  process then exits. It keeps the body's action: for a click on a
+  notification without one, GNOME Shell activates the application of the
+  `desktop-entry` hint, which would start Bientôt again (gnome-shell
+  `js/ui/notificationDaemon.js`: with no `default` action, `activated`
+  calls the source's `open()`, which calls `app.activate()`). A demo shows
+  it too, as Windows shows its message box.
 
 ## Start at sign-in
 
