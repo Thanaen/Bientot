@@ -43,6 +43,18 @@ pub enum FlyoutPlacement {
     Window,
 }
 
+/// Who draws the frame of the flyout's window: its rounded corners and its shadow.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Frame {
+    /// The system rounds and shadows the window (DWM on Windows).
+    System,
+    /// A compositor blends a transparent window over what lies behind it: the app draws both.
+    App,
+    /// Nothing blends a transparent window (X11 without a compositing manager): square corners,
+    /// no shadow.
+    Square,
+}
+
 /// The desktop the flyout opens on.
 pub trait Desktop {
     /// Where the flyout opens after a click at `click` on the tray icon.
@@ -52,8 +64,9 @@ pub trait Desktop {
     /// margin from both edges, and scrolls its body past that.
     fn usable_height(&self, click: Option<ScreenPoint>) -> Option<i32>;
 
-    /// Whether the system rounds and shadows the window, or the app draws both.
-    fn system_draws_frame(&self) -> bool;
+    /// Who draws the frame of the flyout's window, asked at each opening: a compositing manager
+    /// can start or stop between two.
+    fn frame(&self) -> Frame;
 }
 
 /// A desktop that gives the same answers whatever it is asked.
@@ -61,7 +74,7 @@ pub trait Desktop {
 pub struct InMemoryDesktop {
     pub placement: FlyoutPlacement,
     pub usable_height: Option<i32>,
-    pub system_draws_frame: bool,
+    pub frame: Frame,
 }
 
 impl Desktop for InMemoryDesktop {
@@ -73,7 +86,7 @@ impl Desktop for InMemoryDesktop {
         self.usable_height
     }
 
-    fn system_draws_frame(&self) -> bool {
-        self.system_draws_frame
+    fn frame(&self) -> Frame {
+        self.frame
     }
 }

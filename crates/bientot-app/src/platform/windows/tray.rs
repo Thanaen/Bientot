@@ -8,7 +8,7 @@ use std::cell::{Cell, RefCell};
 use std::num::NonZeroIsize;
 
 use bientot_core::diagnostics::DiagnosticLogLevel;
-use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Rect, WorkArea};
+use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Frame, Rect, WorkArea};
 use bientot_platform::tray::{
     MenuEntry, ScreenPoint, Tray, TrayEvent, TrayHost, TrayState, item_id,
 };
@@ -297,8 +297,8 @@ impl Desktop for TaskbarCorner {
     }
 
     /// DWM rounds the window's corners and draws its shadow.
-    fn system_draws_frame(&self) -> bool {
-        true
+    fn frame(&self) -> Frame {
+        Frame::System
     }
 }
 

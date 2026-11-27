@@ -14,7 +14,7 @@ use bientot_app::host::{self, Source, Today};
 use bientot_app::shell;
 use bientot_app::strings::Language;
 use bientot_core::demo::DemoScenario;
-use bientot_platform::placement::{Desktop, FlyoutPlacement};
+use bientot_platform::placement::{Desktop, FlyoutPlacement, Frame};
 use bientot_platform::tray::{ScreenPoint, TrayHost};
 use gpui::{AnyWindowHandle, HeadlessAppContext};
 
@@ -34,8 +34,8 @@ impl Desktop for Compositor {
         None
     }
 
-    fn system_draws_frame(&self) -> bool {
-        false
+    fn frame(&self) -> Frame {
+        Frame::App
     }
 }
 

@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use bientot_platform::placement::{Desktop, FlyoutPlacement};
+use bientot_platform::placement::{Desktop, FlyoutPlacement, Frame};
 use bientot_platform::tray::{ScreenPoint, TrayHost};
 
 use super::{Layout, WaylandShell, X11, desktops, wayland};
@@ -92,8 +92,17 @@ impl Desktop for LinuxDesktop {
     }
 
     /// No Linux desktop rounds and shadows a window without decorations: the app draws both
-    /// (T064).
-    fn system_draws_frame(&self) -> bool {
-        false
+    /// where a compositor blends its transparent window, which every Wayland compositor does and
+    /// an X server only with a compositing manager. GPUI's own test for one also passes on any
+    /// window manager that follows EWMH, so the app asks the X server itself.
+    fn frame(&self) -> Frame {
+        match &self.session {
+            Session::X11 { x11, .. } => match x11.compositing() {
+                Ok(true) => Frame::App,
+                Ok(false) | Err(_) => Frame::Square,
+            },
+            Session::Wayland(_) => Frame::App,
+            Session::None => Frame::Square,
+        }
     }
 }

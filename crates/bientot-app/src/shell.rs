@@ -10,12 +10,12 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use bientot_core::diagnostics::DiagnosticLogLevel;
-use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Rect};
+use bientot_platform::placement::{Corner, Desktop, FlyoutPlacement, Frame, Rect};
 use bientot_platform::tray::{ScreenPoint, TrayHost};
 use gpui::{
     App, AppContext as _, Bounds, DevicePixels, DisplayId, Global, Pixels, QuitMode, Size,
-    TitlebarOptions, WeakEntity, Window, WindowBounds, WindowHandle, WindowKind, WindowOptions,
-    point, px, size,
+    TitlebarOptions, WeakEntity, Window, WindowBackgroundAppearance, WindowBounds, WindowHandle,
+    WindowKind, WindowOptions, point, px, size,
 };
 
 use crate::flyout::Flyout;
@@ -29,6 +29,11 @@ use crate::{platform, theme};
 /// Gap between the flyout's panel and the taskbar or the screen edges, in physical pixels, as
 /// in the Windows 11 flyouts.
 const MARGIN: i32 = 12;
+
+/// How far the flyout's shadow spreads past its panel, in logical pixels, where the app draws it:
+/// as far as the margin, so that on X11 at 100 % and in a layer surface the window stops at the
+/// edge of the work area. The faint tail of `elevation-modal` past it is cut.
+const SHADOW_ROOM: Pixels = px(12.);
 
 /// A click on the tray icon first takes the focus away from an open flyout, which closes it.
 /// Without this delay the same click would open it again at once.
@@ -222,11 +227,55 @@ fn placement(cx: &App) -> FlyoutPlacement {
         })
 }
 
-/// Whether the system rounds and shadows the flyout's window, or the app draws both. Without a
-/// desktop, as in the screenshots, the app does.
-pub fn system_draws_frame(cx: &App) -> bool {
+/// How the flyout's window frames its panel.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PanelFrame {
+    /// The system rounds and shadows the opaque window, which the panel fills.
+    System,
+    /// The window is transparent around the panel, which is rounded and casts its shadow in the
+    /// `room` left on every side.
+    Drawn { room: Pixels },
+    /// The panel fills the opaque window, square: nothing could blend a rounded corner or a
+    /// shadow, or the window has the frame of an ordinary window (window mode).
+    Square,
+}
+
+impl PanelFrame {
+    /// Until the shell frames it, as in the screenshots and the tests: the panel fills its
+    /// window, rounded, with no room for a shadow.
+    pub const UNFRAMED: Self = Self::Drawn { room: px(0.) };
+
+    /// The transparent space between the panel and each edge of its window.
+    pub fn room(self) -> Pixels {
+        match self {
+            Self::Drawn { room } => room,
+            Self::System | Self::Square => px(0.),
+        }
+    }
+}
+
+/// How the flyout's window at `placement` frames its panel when `frame` draws its corners and its
+/// shadow. Where the app positions it, the shadow takes no more room than the margin, so that the
+/// window stays out of the panels around it: on X11, MARGIN physical pixels at the work area's
+/// scale; in a layer surface, the margin, which then shrinks to keep the panel where it was.
+pub fn panel_frame(frame: Frame, placement: FlyoutPlacement) -> PanelFrame {
+    match (frame, placement) {
+        (Frame::System, _) => PanelFrame::System,
+        (Frame::Square, _) | (Frame::App, FlyoutPlacement::Window) => PanelFrame::Square,
+        (Frame::App, FlyoutPlacement::At { work_area, .. }) => PanelFrame::Drawn {
+            room: SHADOW_ROOM.min(px(MARGIN as f32 / work_area.scale)),
+        },
+        (Frame::App, FlyoutPlacement::Layer { margin, .. }) => PanelFrame::Drawn {
+            room: SHADOW_ROOM.min(px(margin as f32)),
+        },
+        (Frame::App, FlyoutPlacement::CompositorPlaced) => PanelFrame::Drawn { room: SHADOW_ROOM },
+    }
+}
+
+/// Who draws the flyout's frame on this desktop. Without a desktop, the app.
+fn desktop_frame(cx: &App) -> Frame {
     cx.try_global::<Placement>()
-        .is_some_and(|placement| placement.desktop.system_draws_frame())
+        .map_or(Frame::App, |placement| placement.desktop.frame())
 }
 
 pub fn toggle_flyout(cx: &mut App) {
@@ -297,10 +346,15 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
     let open = |placement, cx: &mut App| {
         let (day, notice, alerts) = (day.clone(), notice.clone(), alerts.clone());
         let language = cx.try_global::<Language>().copied().unwrap_or_default();
+        let frame = panel_frame(desktop_frame(cx), placement);
         cx.open_window(
-            window_options(placement, last_panel(), language),
+            window_options(placement, frame, last_panel(), language),
             |window, cx| {
-                cx.new(|cx| Flyout::new(day, tracking, notice, window, cx).with_alerts(alerts))
+                cx.new(|cx| {
+                    Flyout::new(day, tracking, notice, window, cx)
+                        .with_alerts(alerts)
+                        .framed(frame)
+                })
             },
         )
     };
@@ -393,19 +447,22 @@ pub fn quit_once_running(cx: &mut App) {
     cx.spawn(async |cx| cx.update(|cx| cx.quit())).detach();
 }
 
-/// The window the flyout opens in at `placement`, its panel `panel` large. Windows shows the
-/// window as soon as GPUI creates it, empty until its first frame fits it: opened elsewhere than
-/// where that frame puts it, it would flash there, at the top left of the primary monitor. So in a
-/// work area it opens in the corner the frame will fit it in, at the size its panel last had.
+/// The window the flyout opens in at `placement`, framing its panel `panel` large with `frame`.
+/// Windows shows the window as soon as GPUI creates it, empty until its first frame fits it:
+/// opened elsewhere than where that frame puts it, it would flash there, at the top left of the
+/// primary monitor. So in a work area it opens in the corner the frame will fit it in, at the size
+/// its panel last had.
 fn window_options(
     placement: FlyoutPlacement,
+    frame: PanelFrame,
     panel: Size<Pixels>,
     language: Language,
 ) -> WindowOptions {
+    let room = frame.room();
     let popup = WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(Bounds::new(
             point(px(0.), px(0.)),
-            panel,
+            around(panel, room),
         ))),
         titlebar: None,
         focus: true,
@@ -414,13 +471,19 @@ fn window_options(
         is_movable: false,
         is_resizable: false,
         is_minimizable: false,
-        // Opaque, the default: on Windows, `Transparent` has Windows compose a frosted layer
-        // behind the whole window. The window is the panel, and Windows draws its shadow.
+        // Opaque unless the app draws the frame: on Windows, `Transparent` has Windows compose a
+        // frosted layer behind the whole window. The window is the panel, and Windows draws its
+        // shadow.
+        window_background: match frame {
+            PanelFrame::Drawn { .. } => WindowBackgroundAppearance::Transparent,
+            PanelFrame::System | PanelFrame::Square => WindowBackgroundAppearance::Opaque,
+        },
         ..Default::default()
     };
     match placement {
         FlyoutPlacement::At { work_area, corner } => {
             let client = flyout_bounds(bounds(work_area.bounds), corner, panel, work_area.scale);
+            let client = client.dilate(physical(room, work_area.scale));
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(logical_bounds(
                     client,
@@ -430,7 +493,9 @@ fn window_options(
                 ..popup
             }
         }
-        FlyoutPlacement::Layer { corner, margin } => layer_shell(popup, corner, margin),
+        FlyoutPlacement::Layer { corner, margin } => {
+            layer_shell(popup, corner, margin - f32::from(room) as i32)
+        }
         FlyoutPlacement::CompositorPlaced => popup,
         FlyoutPlacement::Window => WindowOptions {
             titlebar: Some(TitlebarOptions {
@@ -476,6 +541,16 @@ fn layer_shell(popup: WindowOptions, corner: Corner, margin: i32) -> WindowOptio
 #[cfg(not(target_os = "linux"))]
 fn layer_shell(popup: WindowOptions, _corner: Corner, _margin: i32) -> WindowOptions {
     popup
+}
+
+/// The size of a window that leaves `room` around `panel` on every side.
+fn around(panel: Size<Pixels>, room: Pixels) -> Size<Pixels> {
+    size(panel.width + room * 2., panel.height + room * 2.)
+}
+
+/// `logical` in whole physical pixels at `scale`.
+fn physical(logical: Pixels, scale: f32) -> i32 {
+    (f32::from(logical) * scale).round() as i32
 }
 
 /// `rect` in GPUI's bounds.
@@ -592,39 +667,40 @@ impl Fitted {
     }
 }
 
-/// Gives the window the measured content size and, in a work area, puts it in the corner next
-/// to the taskbar, like the Windows 11 flyouts: see [`flyout_bounds`].
-pub fn fit_window(window: &mut Window, content: Size<Pixels>, cx: &App) {
+/// Gives the window the measured panel size with `room` around it and, in a work area, puts the
+/// panel in the corner next to the taskbar, like the Windows 11 flyouts: see [`flyout_bounds`].
+pub fn fit_window(window: &mut Window, content: Size<Pixels>, room: Pixels, cx: &App) {
     *LAST_PANEL.lock().unwrap() = Some(content);
+    if room > px(0.) {
+        // A click on the shadow reaches what lies behind it, and closes the flyout as any click
+        // outside it does. Only GPUI's Wayland backend takes an input region.
+        window.set_input_region(Some(&[Bounds::new(point(room, room), content)]));
+    }
     match placement(cx) {
         FlyoutPlacement::At { work_area, corner } => {
-            let client = flyout_bounds(
-                bounds(work_area.bounds),
-                corner,
-                content,
-                window.scale_factor(),
-            );
-            platform::place_window(window, client);
+            let scale = window.scale_factor();
+            let client = flyout_bounds(bounds(work_area.bounds), corner, content, scale);
+            platform::place_window(window, client.dilate(physical(room, scale)));
         }
         FlyoutPlacement::Layer { .. }
         | FlyoutPlacement::CompositorPlaced
-        | FlyoutPlacement::Window => window.resize(content),
+        | FlyoutPlacement::Window => window.resize(around(content, room)),
     }
 }
 
 /// Whether the window lost the size [`fit_window`] gave it. A layer surface takes the size of the
 /// compositor's first configure, which GPUI applies over a resize asked before it came: the
 /// flyout's first fitting on Wayland, when its panel is not the size it opened at.
-pub fn lost_its_size(window: &Window, content: Size<Pixels>, cx: &App) -> bool {
+pub fn lost_its_size(window: &Window, content: Size<Pixels>, room: Pixels, cx: &App) -> bool {
     let layer = cx
         .try_global::<FlyoutState>()
         .and_then(|state| state.open.as_ref())
         .is_some_and(|open| matches!(open.placement, FlyoutPlacement::Layer { .. }));
-    let size = window.bounds().size;
+    let (size, fitted) = (window.bounds().size, around(content, room));
     // GPUI sizes a layer surface in whole logical pixels.
     layer
-        && ((size.width - content.width).abs() >= px(1.)
-            || (size.height - content.height).abs() >= px(1.))
+        && ((size.width - fitted.width).abs() >= px(1.)
+            || (size.height - fitted.height).abs() >= px(1.))
 }
 
 /// The height of the work area the flyout opens in, in physical pixels: its panel is no taller
@@ -856,6 +932,7 @@ mod tests {
                 work_area,
                 corner: Corner::BottomRight,
             },
+            PanelFrame::System,
             panel(613.),
             Language::French,
         );
@@ -878,6 +955,7 @@ mod tests {
     fn a_flyout_the_system_places_opens_at_its_panel_size() {
         let options = window_options(
             FlyoutPlacement::CompositorPlaced,
+            PanelFrame::System,
             panel(613.),
             Language::French,
         );
@@ -894,7 +972,12 @@ mod tests {
 
     #[test]
     fn without_a_tray_the_flyout_opens_in_an_ordinary_window() {
-        let options = window_options(FlyoutPlacement::Window, panel(613.), Language::French);
+        let options = window_options(
+            FlyoutPlacement::Window,
+            PanelFrame::Square,
+            panel(613.),
+            Language::French,
+        );
         assert_eq!(options.kind, WindowKind::Normal);
         assert!(options.is_minimizable);
         assert_eq!(
@@ -940,25 +1023,138 @@ mod tests {
     fn a_layer_surface_is_anchored_to_its_corner_on_the_layer_above_windows() {
         use gpui::layer_shell::{Anchor, KeyboardInteractivity, Layer};
 
-        let options = window_options(
-            FlyoutPlacement::Layer {
-                corner: Corner::BottomLeft,
-                margin: 12,
-            },
-            panel(613.),
-            Language::French,
-        );
+        let placement = FlyoutPlacement::Layer {
+            corner: Corner::BottomLeft,
+            margin: 12,
+        };
+        let frame = panel_frame(Frame::App, placement);
+        let options = window_options(placement, frame, panel(613.), Language::French);
         let WindowKind::LayerShell(layer) = options.kind else {
             panic!("a layer surface");
         };
         assert_eq!(layer.anchor, Anchor::BOTTOM | Anchor::LEFT);
         assert_eq!(layer.layer, Layer::Top);
-        assert_eq!(layer.margin, Some((px(12.), px(12.), px(12.), px(12.))));
+        // The shadow takes the margin: the panel stays 12 px from the edges.
+        assert_eq!(frame.room(), px(12.));
+        assert_eq!(layer.margin, Some((px(0.), px(0.), px(0.), px(0.))));
         assert_eq!(
             layer.keyboard_interactivity,
             KeyboardInteractivity::OnDemand
         );
         assert_eq!(layer.namespace, "bientot-flyout");
+    }
+
+    fn at(scale: f32) -> FlyoutPlacement {
+        FlyoutPlacement::At {
+            work_area: WorkArea {
+                display: 0,
+                bounds: Rect {
+                    x: 0,
+                    y: 0,
+                    width: 1920,
+                    height: 1047,
+                },
+                scale,
+            },
+            corner: Corner::BottomRight,
+        }
+    }
+
+    fn opening_bounds(options: &WindowOptions) -> Bounds<Pixels> {
+        let Some(WindowBounds::Windowed(bounds)) = options.window_bounds else {
+            panic!("a windowed flyout");
+        };
+        bounds
+    }
+
+    #[test]
+    fn where_the_system_draws_the_frame_the_window_is_the_opaque_panel_wherever_it_opens() {
+        for placement in [
+            at(1.),
+            at(1.5),
+            FlyoutPlacement::CompositorPlaced,
+            FlyoutPlacement::Window,
+        ] {
+            let frame = panel_frame(Frame::System, placement);
+            assert_eq!(frame, PanelFrame::System);
+            assert_eq!(frame.room(), px(0.));
+            let options = window_options(placement, frame, panel(613.), Language::French);
+            assert_eq!(
+                options.window_background,
+                WindowBackgroundAppearance::Opaque
+            );
+        }
+        let options = window_options(at(1.), PanelFrame::System, panel(613.), Language::French);
+        assert_eq!(
+            opening_bounds(&options),
+            logical_bounds(
+                flyout_bounds(area(0, 0, 1920, 1047), Corner::BottomRight, panel(613.), 1.),
+                1.
+            ),
+        );
+    }
+
+    #[test]
+    fn where_the_app_draws_the_frame_the_window_is_transparent_with_room_for_the_shadow() {
+        let frame = panel_frame(Frame::App, FlyoutPlacement::CompositorPlaced);
+        assert_eq!(frame, PanelFrame::Drawn { room: px(12.) });
+        let options = window_options(
+            FlyoutPlacement::CompositorPlaced,
+            frame,
+            panel(613.),
+            Language::French,
+        );
+        assert_eq!(
+            options.window_background,
+            WindowBackgroundAppearance::Transparent
+        );
+        assert_eq!(opening_bounds(&options).size, size(px(384.), px(637.)));
+    }
+
+    #[test]
+    fn on_x11_the_shadow_stays_in_the_margin_so_the_window_stays_in_the_work_area() {
+        for scale in [1., 1.25, 2.] {
+            let placement = at(scale);
+            let frame = panel_frame(Frame::App, placement);
+            let room = frame.room();
+            assert_eq!(physical(room, scale), MARGIN, "at {scale}");
+            let options = window_options(placement, frame, panel(613.), Language::French);
+            let opening = opening_bounds(&options).to_device_pixels(scale);
+            let panel_at = flyout_bounds(
+                area(0, 0, 1920, 1047),
+                Corner::BottomRight,
+                panel(613.),
+                scale,
+            );
+            // The window ends on the work area's edges, the panel a margin inside them.
+            assert_eq!(opening.right().0, 1920, "at {scale}");
+            assert_eq!(opening.bottom().0, 1047, "at {scale}");
+            assert_eq!(opening.origin.x.0, panel_at.origin.x - MARGIN, "at {scale}");
+        }
+        assert_eq!(panel_frame(Frame::App, at(1.)).room(), px(12.));
+        assert_eq!(panel_frame(Frame::App, at(2.)).room(), px(6.));
+    }
+
+    #[test]
+    fn without_a_compositing_manager_the_panel_fills_the_opaque_window_square() {
+        for placement in [at(1.), FlyoutPlacement::CompositorPlaced] {
+            let frame = panel_frame(Frame::Square, placement);
+            assert_eq!(frame, PanelFrame::Square);
+            let options = window_options(placement, frame, panel(613.), Language::French);
+            assert_eq!(
+                options.window_background,
+                WindowBackgroundAppearance::Opaque
+            );
+            assert_eq!(opening_bounds(&options).size.height, px(613.));
+        }
+    }
+
+    #[test]
+    fn window_mode_has_the_frame_of_an_ordinary_window() {
+        assert_eq!(
+            panel_frame(Frame::App, FlyoutPlacement::Window),
+            PanelFrame::Square
+        );
     }
 
     #[test]

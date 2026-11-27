@@ -18,7 +18,7 @@ use bientot_domain::sources::LastInputReading;
 use bientot_domain::time::{FixedTimeZoneProvider, SystemClock};
 use bientot_platform::activity::LastInputProbe;
 use bientot_platform::lifecycle::LockReporting;
-use bientot_platform::placement::{FlyoutPlacement, InMemoryDesktop};
+use bientot_platform::placement::{FlyoutPlacement, Frame, InMemoryDesktop};
 use bientot_platform::tray::{InMemoryTray, TrayEvent, TrayHost};
 use bientot_store::data_directory::DataDirectory;
 use futures::channel::mpsc;
@@ -78,7 +78,7 @@ fn installed(
         let desktop = Rc::new(InMemoryDesktop {
             placement: FlyoutPlacement::CompositorPlaced,
             usable_height: None,
-            system_draws_frame: false,
+            frame: Frame::App,
         });
         shell::install(desktop, TrayHost::Present, cx);
         let tray = Rc::new(InMemoryTray::new(vec![16], None, TrayHost::Present));

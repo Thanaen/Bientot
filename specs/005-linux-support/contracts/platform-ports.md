@@ -394,12 +394,17 @@ pub trait Desktop {
     /// Height of the area the flyout opens in, in physical pixels: the app
     /// keeps the panel 12 px from both edges, then scrolls its body.
     fn usable_height(&self, click: Option<ScreenPoint>) -> Option<i32>;
-    /// Whether the system rounds and shadows the window (DWM) or the app draws both.
-    fn system_draws_frame(&self) -> bool;
+    /// Who draws the frame of the window, asked at each opening.
+    fn frame(&self) -> Frame;
 }
 
+/// System: DWM rounds and shadows the window. App: a compositor blends a
+/// transparent window, and the app draws both. Square: nothing blends one
+/// (X11 without a compositing manager).
+pub enum Frame { System, App, Square }
+
 /// (new) In-memory: the same answers whatever it is asked.
-pub struct InMemoryDesktop { pub placement, pub usable_height, pub system_draws_frame }
+pub struct InMemoryDesktop { pub placement, pub usable_height, pub frame }
 ```
 
 `shell.rs` maps `FlyoutPlacement` to `WindowOptions` (`WindowKind::PopUp`,
@@ -417,9 +422,16 @@ with its last window only without a tray host (`shell::quit_mode`), and
 `shell::tray_changed` switches both on `HostChanged`
 (`contracts/linux-backends.md`).
 
-When `system_draws_frame` is true, the flyout paints the border's colour
-behind its panel, where the system's rounding leaves pixels; without a
-desktop, as in the screenshots, it does not.
+`shell::panel_frame` turns the frame and the placement into the panel's
+frame. `System`: an opaque window the panel fills, with the border's colour
+behind the panel, where the system's rounding leaves pixels. `App`: a
+`Transparent` window with 12 logical pixels of room around the rounded
+panel for its `elevation-modal` shadow, no more than the margin (12
+physical pixels at the work area's scale for `At`; a layer surface's
+margin shrinks by the room); window mode is `Square` whatever the
+compositor. `Square`: an opaque window the square panel fills. A flyout no
+shell framed, as in the screenshots and the tests, fills its window,
+rounded, without a shadow.
 
 GPUI resizes a window but cannot move it, and `bientot-platform` cannot
 name a GPUI window: `platform::place_window(window, client)` moves the open

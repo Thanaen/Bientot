@@ -1,6 +1,7 @@
 //! Where the real app opens its flyout in `scripts/linux-desktop-harness.sh` (T065): under openbox
 //! in the corner of the work area a panel leaves, as a layer surface anchored to the click's corner
-//! under sway, and as an ordinary window when no tray host shows the icon. Each test starts the
+//! under sway, with the shadow the app draws around it, and as an ordinary window when no tray host
+//! shows the icon. Each test starts the
 //! `worktime` executable hidden, as at sign-in, on a data folder of its own, and clicks its tray
 //! item over D-Bus as a host does. The tests share the session's bus and display, so they take
 //! turns.
@@ -494,8 +495,11 @@ fn screenshot(folder: &Path) -> (usize, usize, Vec<u8>) {
     (width, height, bytes[start..].to_vec())
 }
 
-/// The rows and columns of the output that hold something other than the background, which
-/// fills its centre.
+/// How much the flyout's shadow darkens the background at most, on any channel.
+const SHADOW_DEPTH: u8 = 32;
+
+/// The rows and columns of the output that hold the flyout's panel: what differs from the
+/// background, which fills its centre, by more than the shadow around the panel does.
 fn drawn(folder: &Path) -> Option<(usize, usize, usize, usize)> {
     let (width, height, pixels) = screenshot(folder);
     let pixel = |x: usize, y: usize| &pixels[(y * width + x) * 3..][..3];
@@ -503,13 +507,26 @@ fn drawn(folder: &Path) -> Option<(usize, usize, usize, usize)> {
     let (mut left, mut top, mut right, mut bottom) = (usize::MAX, usize::MAX, 0, 0);
     for y in 0..height {
         for x in 0..width {
-            if pixel(x, y) != background {
+            let differs = pixel(x, y)
+                .iter()
+                .zip(&background)
+                .any(|(pixel, background)| pixel.abs_diff(*background) > SHADOW_DEPTH);
+            if differs {
                 (left, top) = (left.min(x), top.min(y));
                 (right, bottom) = (right.max(x), bottom.max(y));
             }
         }
     }
     (left <= right).then_some((left, top, right, bottom))
+}
+
+/// The output at `x`, `y` and the background, which the flyout's shadow makes the first darker
+/// than.
+fn beside_and_background(folder: &Path, x: usize, y: usize) -> ([u8; 3], [u8; 3]) {
+    let (width, height, pixels) = screenshot(folder);
+    let pixel =
+        |x: usize, y: usize| <[u8; 3]>::try_from(&pixels[(y * width + x) * 3..][..3]).unwrap();
+    (pixel(x, y), pixel(width / 2, height / 2))
 }
 
 /// The windows of process `pid` in sway's tree: layer surfaces are not in it.
@@ -548,6 +565,17 @@ fn desktop_harness_wayland_flyout_is_a_layer_surface_anchored_to_the_clicked_cor
             assert_eq!(top, margin, "click at {x}, {y}");
         }
         assert_eq!(right_edge + 1 - left, WIDTH as usize, "click at {x}, {y}");
+        // In the transparent room, right against the panel, where its shadow is darkest.
+        let beside = if right { right_edge + 1 } else { left - 1 };
+        let (pixel, background) =
+            beside_and_background(folder.path(), beside, (top + bottom_edge) / 2);
+        assert!(
+            pixel
+                .iter()
+                .zip(background)
+                .all(|(pixel, background)| *pixel < background),
+            "the panel's shadow, click at {x}, {y}: {pixel:?} beside it, {background:?} behind"
+        );
         assert!(
             sway_toplevels(app.pid()).is_empty(),
             "a layer surface, no window"

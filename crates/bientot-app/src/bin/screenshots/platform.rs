@@ -174,6 +174,16 @@ const LINUX: &[Scene] = &[
         group: "flyout::capture_notices",
         name: "flyout-window-mode-alerts",
     },
+    // No words: the frame the app draws where no system frames the flyout's window, rounded
+    // with its shadow where a compositor blends it, square without one; Windows draws its own.
+    Scene {
+        group: "flyout::capture_notices",
+        name: "flyout-frame-drawn",
+    },
+    Scene {
+        group: "flyout::capture_notices",
+        name: "flyout-frame-square",
+    },
     // FlyoutRebuiltReviewText.
     Scene {
         group: "flyout::capture_rebuilt_review",

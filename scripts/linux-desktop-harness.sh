@@ -20,7 +20,7 @@
 # in the x11 session (scripts/measure-performance.sh).
 #
 # Needs dbus-run-session, python3-dbusmock, a Vulkan driver (Mesa's software one will do), and
-# Xvfb, openbox and xdotool or sway, wtype and grim.
+# Xvfb, openbox and xdotool or sway, swaybg, wtype and grim.
 set -euo pipefail
 
 usage() {
@@ -115,7 +115,10 @@ case $session in
     XDG_RUNTIME_DIR=$work/runtime
     export XDG_RUNTIME_DIR
     mkdir -m 700 "$XDG_RUNTIME_DIR"
-    printf 'output HEADLESS-1 resolution 1920x1080\nxwayland disable\n' > "$work/sway.conf"
+    # A grey desktop, drawn by swaybg: the flyout's shadow can only show over something lighter
+    # than black, which sway leaves behind without it.
+    printf 'output HEADLESS-1 resolution 1920x1080 bg #808080 solid_color\nxwayland disable\n' \
+      > "$work/sway.conf"
     WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
       sway -c "$work/sway.conf" > "$work/sway.log" 2>&1 &
     pids+=("$!")

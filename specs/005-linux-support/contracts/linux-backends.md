@@ -93,6 +93,10 @@ is, else none (`CompositorPlaced`). The maths is portable
 | Wayland, `zwlr_layer_shell_v1` offered | `Layer { corner, margin: 12 }` | `WindowKind::LayerShell`, layer `Top`, keyboard `OnDemand` (A-3: sway gives it the focus only once the pointer enters it; `Exclusive` would have it at map, which T043 decides), namespace `bientot-flyout`, the margin on every edge. Hosts give the click on the output, not on the layout, so the corner is the nearest one on every output large enough to hold the click when they agree; else, or without a position, bottom right on `kde`, top right elsewhere. A layer surface that fails to open falls back to `CompositorPlaced` |
 | Wayland otherwise | `CompositorPlaced` | `WindowKind::PopUp`, which GPUI's Wayland backend opens as an undecorated toplevel the compositor places (A-4, T044) |
 
+`frame`: Wayland, `App`. X11, `App` when the selection
+`_NET_WM_CM_S<screen>` has an owner, asked at each opening, else `Square`;
+GPUI's own test also counts any EWMH window manager. No session: `Square`.
+
 `usable_height`: X11, the height of the work area read at the last
 opening. Wayland, read once at start with `wl_output` (current mode,
 transform) and `xdg_output` (logical position and size): the shortest

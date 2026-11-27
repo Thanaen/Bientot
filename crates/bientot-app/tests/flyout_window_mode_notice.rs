@@ -22,7 +22,7 @@ use bientot_core::demo::DemoScenario;
 use bientot_domain::sources::LastInputReading;
 use bientot_domain::time::{FixedTimeZoneProvider, SystemClock};
 use bientot_platform::activity::LastInputProbe;
-use bientot_platform::placement::{FlyoutPlacement, InMemoryDesktop};
+use bientot_platform::placement::{FlyoutPlacement, Frame, InMemoryDesktop};
 use bientot_platform::tray::TrayHost;
 use bientot_store::data_directory::DataDirectory;
 use gpui::{HeadlessAppContext, WindowHandle};
@@ -53,7 +53,7 @@ fn started(today: Today, tray: TrayHost, help: &Rc<Cell<usize>>) -> HeadlessAppC
                 TrayHost::Absent => FlyoutPlacement::Window,
             },
             usable_height: None,
-            system_draws_frame: false,
+            frame: Frame::App,
         });
         shell::install(desktop, tray, cx);
         // Registered after the host's: the last listener of an action is the one that runs.

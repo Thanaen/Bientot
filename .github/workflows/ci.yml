@@ -153,14 +153,15 @@ jobs:
 
       # GPUI's X11 and Wayland backends link libxkbcommon, fontconfig and FreeType; clang and llvm
       # serve the Windows lint; the headless desktops the desktop tests: Xvfb, openbox and xdotool's
-      # synthetic input, sway, wtype's input and grim's screenshots, the D-Bus mocks, and the
-      # software Vulkan driver the app draws its flyout with.
+      # synthetic input, sway and swaybg's desktop, wtype's input and grim's screenshots, the D-Bus
+      # mocks, and the software Vulkan driver the app draws its flyout with.
       - name: Install the system packages
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
             libxkbcommon-dev libxkbcommon-x11-dev libfontconfig-dev libfreetype-dev clang llvm \
-            xvfb openbox x11-utils xdotool sway wtype grim mesa-vulkan-drivers dbus python3-dbusmock
+            xvfb openbox x11-utils xdotool sway swaybg wtype grim mesa-vulkan-drivers dbus \
+            python3-dbusmock
 
       - name: Check formatting
         run: cargo fmt --all --check
