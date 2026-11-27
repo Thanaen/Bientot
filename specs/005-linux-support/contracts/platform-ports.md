@@ -488,6 +488,9 @@ pub struct Platform {
     /// The diagnostic export's name of each backend: `None` where it names none (Windows). The
     /// tray's is also in the diagnostic log.
     pub backends: Backends,
+    /// The lines the backends write to the diagnostic log once the day opens, such as
+    /// `idle.backend`; closed where none come (Windows).
+    pub backend_notes: BackendNotes,             // UnboundedReceiver<BackendNote>
     pub desktop: Rc<dyn Desktop>,
 }
 
@@ -495,6 +498,14 @@ pub struct Backends {
     pub tray: Option<&'static str>,          // "status-notifier", "none"
     pub notifications: Option<&'static str>, // "notification-server", "notification-portal", "none"
     pub autostart: Option<&'static str>,     // "xdg-autostart", "none"
+    pub idle: Option<&'static str>,          // the backend chosen at start, "none"
+    pub lifecycle: Option<&'static str>,     // "logind", "none"
+}
+
+pub struct BackendNote {
+    pub level: DiagnosticLogLevel,
+    pub event: &'static str,
+    pub properties: Vec<(&'static str, DiagnosticValue<'static>)>,
 }
 
 impl Platform {

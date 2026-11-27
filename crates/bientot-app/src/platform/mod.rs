@@ -14,6 +14,7 @@ mod backend;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use bientot_core::diagnostics::{DiagnosticLogLevel, DiagnosticValue};
 use bientot_domain::sources::LastInputReading;
 use bientot_platform::activity::LastInputProbe;
 use bientot_platform::launcher::LauncherPort;
@@ -119,6 +120,18 @@ pub struct PlatformContext<'a> {
 /// The clicks on the tray icon and the menu items chosen, in the order they came.
 pub type TrayEvents = mpsc::UnboundedReceiver<TrayEvent>;
 
+/// The lines the backends write to the diagnostic log once the day opens, in the order they
+/// came. Closed where no backend writes any.
+pub type BackendNotes = mpsc::UnboundedReceiver<BackendNote>;
+
+/// A line of the diagnostic log from a backend, such as the idle backend chosen on Linux.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BackendNote {
+    pub level: DiagnosticLogLevel,
+    pub event: &'static str,
+    pub properties: Vec<(&'static str, DiagnosticValue<'static>)>,
+}
+
 /// The ports of the system, for one launch.
 pub struct Platform {
     /// How this launch started, by the user or at sign-in.
@@ -141,6 +154,7 @@ pub struct Platform {
     pub tray: Rc<dyn Tray<MenuCommand>>,
     pub tray_events: TrayEvents,
     pub backends: Backends,
+    pub backend_notes: BackendNotes,
     /// Where the flyout opens.
     pub desktop: Rc<dyn Desktop>,
 }
@@ -161,6 +175,7 @@ impl Platform {
             tray: Rc::new(InMemoryTray::new(Vec::new(), None, TrayHost::Absent)),
             tray_events: mpsc::unbounded().1,
             backends: Backends::default(),
+            backend_notes: mpsc::unbounded().1,
             desktop: Rc::new(InMemoryDesktop {
                 placement: FlyoutPlacement::CompositorPlaced,
                 usable_height: None,
@@ -178,6 +193,10 @@ pub struct Backends {
     pub tray: Option<&'static str>,
     pub notifications: Option<&'static str>,
     pub autostart: Option<&'static str>,
+    /// The idle time's, as chosen at start: the diagnostic log tells each later change.
+    pub idle: Option<&'static str>,
+    /// The lock, unlock, sleep and resume's.
+    pub lifecycle: Option<&'static str>,
 }
 
 impl Backends {
@@ -187,6 +206,8 @@ impl Backends {
             ("tray", self.tray),
             ("notifications", self.notifications),
             ("autostart", self.autostart),
+            ("idle", self.idle),
+            ("lifecycle", self.lifecycle),
         ]
         .into_iter()
         .filter_map(|(concern, backend)| Some((concern, backend?)))

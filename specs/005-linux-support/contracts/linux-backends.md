@@ -18,14 +18,15 @@ The diagnostic export (`snapshot.json`, `system`) names the install kind,
 the distribution, its version, the desktops, the session type and the
 backend in use for the tray (`status-notifier` or `none`), the
 notifications (`notification-server`, `notification-portal`, or `none`
-when refused or in a demo) and the autostart (`xdg-autostart`, or `none` in
-a demo and, until T112, in a Flatpak). Each name the system gives is
+when refused or in a demo), the autostart (`xdg-autostart`, or `none` in
+a demo and, until T112, in a Flatpak), the idle time (the backend chosen at
+start, under the names below, or `none` when none answers and in a demo)
+and the lifecycle (`logind`, or `none` in a demo). Each name the system gives is
 written only when it is 1 to 64 characters of `a-z`, `0-9`, `.`, `_` and
 `-`, as os-release allows in `ID`
 (`bientot_core::diagnostics::DiagnosticName`): free text, which could name
-the user or the computer, never reaches the archive. Idle and lock add
-their backends with T075 and T084. « À propos » names a Flatpak or an
-AppImage under the version.
+the user or the computer, never reaches the archive. « À propos » names
+a Flatpak or an AppImage under the version.
 
 ## Tray: StatusNotifierItem (`ksni`)
 
@@ -118,10 +119,14 @@ Each backend yields « idle for d » or nothing; `IdleProbe` turns it into a
 
 The selection runs at start, again at once when the backend in use stops
 answering (its bus or compositor went away), and every 60 s while none
-answers. Logged once: `idle.backend=<name>` (`none` when none answers); on
-change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
-`org.gnome.Mutter.IdleMonitor`, `org.cinnamon.Muffin.IdleMonitor`,
-`org.freedesktop.ScreenSaver`, `MIT-SCREEN-SAVER`.
+answers. Logged once: `idle.backend` (`name`: the backend, or `none` when
+none answers); on change: `idle.backend_changed` (`from`, `to`), and
+`idle.inhibitor_blind` (`value`: false) after the selection of ext-idle's
+version 1. A line that leaves no backend is a warning. Names:
+`ext-idle-notify-v1`, `org.gnome.Mutter.IdleMonitor`,
+`org.cinnamon.Muffin.IdleMonitor`, `org.freedesktop.ScreenSaver`,
+`MIT-SCREEN-SAVER`. The probe is made when the app starts, and a demo makes
+none: as on Windows, a demo does not read the input.
 
 `bientot_linux::idle`: `order` and `select` are the table (any OS, tested),
 `IdleProbe` the `LastInputProbe`, `SystemBackends` the backends (Linux).
@@ -129,7 +134,9 @@ change: `idle.backend_changed`. Names: `ext-idle-notify-v1`,
 ## Lock, sleep, session: logind (system bus)
 
 `bientot_linux::logind`: `SessionTracker` is the mapping (any OS, tested),
-`LogindSource` the `LifecycleSource` (Linux).
+`LogindSource` the `LifecycleSource` (Linux). A demo watches no session, as
+on Windows. The source writes nothing to the diagnostic log; the export
+names it in `system.backends`.
 
 - Service `org.freedesktop.login1`.
 - Session object: `PropertiesChanged` on `org.freedesktop.login1.Session`

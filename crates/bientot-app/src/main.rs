@@ -9,7 +9,7 @@ use bientot_app::host::{self, Source, Today};
 use bientot_app::launch::{Activation, Activations, Launch, Origin};
 use bientot_app::live::{self, Announcement, LiveHost};
 use bientot_app::notify::ToastSink;
-use bientot_app::platform::{self, Platform, PlatformContext, TrayEvents};
+use bientot_app::platform::{self, BackendNotes, Platform, PlatformContext, TrayEvents};
 use bientot_app::startup_failure::StartupFailure;
 use bientot_app::strings::{Key, Language, LanguageSources};
 use bientot_app::theme::ThemeMode;
@@ -342,11 +342,12 @@ struct Started {
     toast_clicks: Option<mpsc::UnboundedReceiver<Activation>>,
 }
 
-/// The tray the day shows in, and the desktop its flyout opens on.
+/// The tray the day shows in, the desktop its flyout opens on, and what the backends log.
 struct ShellPorts {
     tray: Rc<dyn Tray<MenuCommand>>,
     tray_events: TrayEvents,
     tray_backend: Option<&'static str>,
+    backend_notes: BackendNotes,
     desktop: Rc<dyn Desktop>,
 }
 
@@ -368,6 +369,7 @@ fn start(
         tray: platform.tray,
         tray_events: platform.tray_events,
         tray_backend: platform.backends.tray,
+        backend_notes: platform.backend_notes,
         desktop: platform.desktop,
     };
     let (source, language) = match launch.demo {
@@ -660,6 +662,7 @@ fn attach(
         tray,
         tray_events,
         tray_backend,
+        backend_notes,
         desktop,
     }: ShellPorts,
     lifecycle: Option<Lifecycle>,
@@ -668,6 +671,7 @@ fn attach(
 ) {
     shell::install(desktop, tray.host(), cx);
     host::install_tray(tray, tray_backend, tray_events, cx);
+    host::log_backend_notes(backend_notes, cx);
     if let Some(mut clicked) = toast_clicks {
         cx.spawn(async move |cx| {
             while let Some(activation) = clicked.next().await {

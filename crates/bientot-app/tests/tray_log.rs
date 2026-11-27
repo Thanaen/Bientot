@@ -1,6 +1,7 @@
 //! The diagnostic log of a live day names the tray's backend and whether a host shows the icon,
-//! then each change of the host, and so does the export, which holds the log. It needs the
-//! headless GPUI of the `screenshots` feature.
+//! then each change of the host, and so does the export, which holds the log. It also writes the
+//! lines the other backends send, such as the idle backend Linux chose. It needs the headless
+//! GPUI of the `screenshots` feature.
 #![cfg(all(feature = "screenshots", target_os = "linux"))]
 
 mod common;
@@ -9,8 +10,10 @@ use std::rc::Rc;
 
 use bientot_app::host::{self, Source, Today};
 use bientot_app::live::{self, LiveHost};
+use bientot_app::platform::BackendNote;
 use bientot_app::shell;
 use bientot_app::strings::Language;
+use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_domain::sources::LastInputReading;
 use bientot_domain::time::{FixedTimeZoneProvider, SystemClock};
 use bientot_platform::activity::LastInputProbe;
@@ -114,4 +117,39 @@ fn a_tray_without_a_backend_name_logs_nothing_at_start() {
     let (_cx, _events) = installed(folder.path(), None);
 
     assert_eq!(logged(folder.path()), Vec::<String>::new());
+}
+
+#[test]
+fn the_log_writes_each_line_the_backends_send_those_sent_before_the_day_included() {
+    let folder = tempfile::tempdir().unwrap();
+    let (mut cx, _events) = installed(folder.path(), None);
+    let (notes, received) = mpsc::unbounded();
+    let note = |event, properties: Vec<(&'static str, &'static str)>| BackendNote {
+        level: DiagnosticLogLevel::Information,
+        event,
+        properties: properties
+            .into_iter()
+            .map(|(name, value)| (name, value.into()))
+            .collect(),
+    };
+
+    notes
+        .unbounded_send(note("idle.backend", vec![("name", "none")]))
+        .unwrap();
+    cx.update(|cx| host::log_backend_notes(received, cx));
+    notes
+        .unbounded_send(note(
+            "idle.backend_changed",
+            vec![("from", "none"), ("to", "MIT-SCREEN-SAVER")],
+        ))
+        .unwrap();
+    cx.run_until_parked();
+
+    assert_eq!(
+        logged(folder.path()),
+        [
+            r#""Event":"idle.backend","Properties":{"name":"none"}}"#,
+            r#""Event":"idle.backend_changed","Properties":{"from":"none","to":"MIT-SCREEN-SAVER"}}"#,
+        ]
+    );
 }

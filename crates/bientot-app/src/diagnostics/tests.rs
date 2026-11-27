@@ -108,6 +108,8 @@ fn the_export_names_the_system_and_each_backend_in_use() {
         tray: Some("status-notifier"),
         notifications: Some("notification-portal"),
         autostart: None,
+        idle: Some("org.gnome.Mutter.IdleMonitor"),
+        lifecycle: Some("logind"),
     };
     let name = |text| DiagnosticName::new(text);
     assert_eq!(
@@ -121,6 +123,8 @@ fn the_export_names_the_system_and_each_backend_in_use() {
             backends: vec![
                 ("tray", "status-notifier"),
                 ("notifications", "notification-portal"),
+                ("idle", "org.gnome.Mutter.IdleMonitor"),
+                ("lifecycle", "logind"),
             ],
         }
     );
@@ -199,6 +203,8 @@ fn the_export_holds_no_host_name_user_name_home_or_machine_id() {
         tray: Some("status-notifier"),
         notifications: Some("notification-server"),
         autostart: Some("xdg-autostart"),
+        idle: Some("MIT-SCREEN-SAVER"),
+        lifecycle: Some("logind"),
     };
     let failed = Contents::of_failed_start(None, None);
     let contents = Contents {
@@ -214,7 +220,7 @@ fn the_export_holds_no_host_name_user_name_home_or_machine_id() {
     for personal in [user, "zoe", "gauthier", host, "bureau", machine_id, &home] {
         assert!(!exported.contains(personal), "{personal} in {exported}");
     }
-    let system = r#""system":{"installKind":"AppImage","distribution":"ubuntu","distributionVersion":"24.04","desktops":["ubuntu","gnome"],"sessionType":"Wayland","backends":{"tray":"status-notifier","notifications":"notification-server","autostart":"xdg-autostart"}}"#;
+    let system = r#""system":{"installKind":"AppImage","distribution":"ubuntu","distributionVersion":"24.04","desktops":["ubuntu","gnome"],"sessionType":"Wayland","backends":{"tray":"status-notifier","notifications":"notification-server","autostart":"xdg-autostart","idle":"MIT-SCREEN-SAVER","lifecycle":"logind"}}"#;
     assert!(exported.contains(system), "{exported}");
 }
 

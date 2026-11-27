@@ -87,6 +87,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         tray: Rc::new(tray),
         tray_events,
         backends: super::Backends::default(),
+        backend_notes: futures::channel::mpsc::unbounded().1,
         desktop: Rc::new(tray::TaskbarCorner),
     })
 }
