@@ -520,15 +520,13 @@ fn drawn(folder: &Path) -> Option<(usize, usize, usize, usize)> {
     (left <= right).then_some((left, top, right, bottom))
 }
 
-/// Whether the output at `x`, `y` is darker than the background, as the flyout's shadow makes it.
-fn shadowed(folder: &Path, x: usize, y: usize) -> bool {
+/// The output at `x`, `y` and the background, which the flyout's shadow makes the first darker
+/// than.
+fn beside_and_background(folder: &Path, x: usize, y: usize) -> ([u8; 3], [u8; 3]) {
     let (width, height, pixels) = screenshot(folder);
-    let pixel = |x: usize, y: usize| &pixels[(y * width + x) * 3..][..3];
-    let background = pixel(width / 2, height / 2);
-    pixel(x, y)
-        .iter()
-        .zip(background)
-        .all(|(pixel, background)| pixel < background)
+    let pixel =
+        |x: usize, y: usize| <[u8; 3]>::try_from(&pixels[(y * width + x) * 3..][..3]).unwrap();
+    (pixel(x, y), pixel(width / 2, height / 2))
 }
 
 /// The windows of process `pid` in sway's tree: layer surfaces are not in it.
@@ -567,11 +565,16 @@ fn desktop_harness_wayland_flyout_is_a_layer_surface_anchored_to_the_clicked_cor
             assert_eq!(top, margin, "click at {x}, {y}");
         }
         assert_eq!(right_edge + 1 - left, WIDTH as usize, "click at {x}, {y}");
-        // In the transparent room between the panel and the edge of the output.
-        let beside = if right { right_edge + 3 } else { left - 3 };
+        // In the transparent room, right against the panel, where its shadow is darkest.
+        let beside = if right { right_edge + 1 } else { left - 1 };
+        let (pixel, background) =
+            beside_and_background(folder.path(), beside, (top + bottom_edge) / 2);
         assert!(
-            shadowed(folder.path(), beside, (top + bottom_edge) / 2),
-            "the panel's shadow, click at {x}, {y}"
+            pixel
+                .iter()
+                .zip(background)
+                .all(|(pixel, background)| *pixel < background),
+            "the panel's shadow, click at {x}, {y}: {pixel:?} beside it, {background:?} behind"
         );
         assert!(
             sway_toplevels(app.pid()).is_empty(),
