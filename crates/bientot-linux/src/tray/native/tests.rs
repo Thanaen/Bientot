@@ -180,7 +180,7 @@ fn find(node: &Structure<'_>, label: &str) -> Option<i32> {
 
 fn served() -> (StatusNotifier, mpsc::Receiver<TrayEvent>) {
     let (sender, events) = mpsc::channel();
-    let tray = StatusNotifier::new(move |event| {
+    let tray = StatusNotifier::new(InstallKind::Development, move |event| {
         sender.send(event).ok();
     });
     (tray, events)

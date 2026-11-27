@@ -2,8 +2,10 @@
 //! where `bientot-linux` places it on this session, the reminders are desktop notifications, an
 //! XDG autostart entry starts the app at sign-in, the AppImage adds itself to the menu of
 //! applications, a lock and a socket keep one instance per data folder, the environment names the
-//! language, and Velopack updates the AppImage. The other ports answer « unknown » or do nothing,
-//! as on a system without a backend, until their lots wire them.
+//! language, and Velopack updates the AppImage. A Flatpak's sandbox shows the reminders through
+//! the notification portal and serves the tray icon without a bus name of its own. The other
+//! ports answer « unknown » or do nothing, as on a system without a backend, until their lots wire
+//! them.
 
 #[cfg(feature = "updates")]
 #[path = "direct.rs"]
@@ -15,7 +17,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use bientot_linux::autostart::XdgAutostart;
+use bientot_linux::autostart::{Autostart, XdgAutostart};
 use bientot_linux::launcher::LauncherEntry;
 use bientot_linux::notifications::{DesktopNotifications, Service};
 use bientot_linux::placement::LinuxDesktop;
@@ -23,7 +25,6 @@ use bientot_linux::tray::StatusNotifier;
 use bientot_platform::launcher::LauncherPort;
 use bientot_platform::notifications::{Notifier, QueuedClicks};
 use bientot_platform::startup::StartupPort;
-#[cfg(feature = "updates")]
 use bientot_platform::system::{InstallKind, SystemInfo as _};
 use futures::channel::mpsc;
 use gpui::{Bounds, Window};
@@ -61,23 +62,27 @@ thread_local! {
 pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     // A demo shows no notifications, as on Windows.
     let clicks = QueuedClicks::default();
-    let service = Service::of_this_process();
+    let kind = this_install_kind();
+    let service = Service::for_install(kind);
     let notifier = ctx.launch.demo.is_none().then(|| {
         DesktopNotifications::start(service, clicks.clone())
             .map(|notifications| Box::new(notifications) as Box<dyn Notifier>)
     });
     let (events, tray_events) = mpsc::unbounded();
-    let tray = StatusNotifier::new(move |event| {
+    let tray = StatusNotifier::new(kind, move |event| {
         events.unbounded_send(event).ok();
     });
     let desktop = Rc::new(LinuxDesktop::of_this_session());
     DESKTOP.with_borrow_mut(|shared| *shared = Some(Rc::clone(&desktop)));
-    // A demo leaves the user's registration alone, as on Windows.
-    let startup = ctx
-        .launch
-        .demo
-        .is_none()
-        .then(|| Arc::new(XdgAutostart::for_this_process()) as Arc<dyn StartupPort>);
+    // A demo leaves the user's registration alone, as on Windows. The Background portal's
+    // backend is T112's: until then a Flatpak gets no switch rather than an entry in the
+    // sandbox's own autostart folder, which no desktop reads.
+    let startup = match (ctx.launch.demo, Autostart::for_install(kind)) {
+        (None, Autostart::Entry) => {
+            Some(Arc::new(XdgAutostart::for_this_process()) as Arc<dyn StartupPort>)
+        }
+        (Some(_), _) | (None, Autostart::BackgroundPortal) => None,
+    };
     // The AppImage alone writes its own entry in the menu; a demo leaves the menu alone.
     let launcher = ctx
         .launch
@@ -153,7 +158,6 @@ fn packed_by_velopack(kind: InstallKind) -> bool {
     kind == InstallKind::AppImage
 }
 
-#[cfg(feature = "updates")]
 fn this_install_kind() -> InstallKind {
     bientot_linux::system::ThisSystem.install_kind()
 }
@@ -196,17 +200,10 @@ mod tests {
 
     #[test]
     fn velopack_updates_the_appimage_alone() {
-        let updated: Vec<_> = [
-            InstallKind::Store,
-            InstallKind::Direct,
-            InstallKind::Portable,
-            InstallKind::Flatpak,
-            InstallKind::AppImage,
-            InstallKind::Development,
-        ]
-        .into_iter()
-        .filter(|kind| packed_by_velopack(*kind))
-        .collect();
+        let updated: Vec<_> = InstallKind::ALL
+            .into_iter()
+            .filter(|kind| packed_by_velopack(*kind))
+            .collect();
         assert_eq!(updated, [InstallKind::AppImage]);
     }
 }

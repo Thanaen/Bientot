@@ -15,6 +15,7 @@ use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
+use bientot_platform::system::InstallKind;
 use bientot_platform::tray::{MenuEntry, ScreenPoint, TrayHost, TrayIcon, item_id};
 
 #[cfg(target_os = "linux")]
@@ -104,6 +105,14 @@ pub fn pixmaps(icon: TrayIcon<'_>) -> Vec<Pixmap> {
 /// « Spike results », A-5), so a Wayland session keeps it too.
 pub fn click_position(x: i32, y: i32) -> Option<ScreenPoint> {
     (x, y).ne(&(0, 0)).then_some(ScreenPoint { x, y })
+}
+
+/// Whether the item owns the well-known name the specification asks for,
+/// `org.kde.StatusNotifierItem-<pid>-<n>`. A Flatpak may own only the names its manifest
+/// declares, so there the item goes by its connection's unique name, which current hosts accept
+/// (A-6).
+pub fn owns_a_bus_name(kind: InstallKind) -> bool {
+    kind != InstallKind::Flatpak
 }
 
 /// What the item hears of the watcher.

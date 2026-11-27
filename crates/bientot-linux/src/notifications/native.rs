@@ -5,7 +5,6 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-use std::path::Path;
 use std::pin::pin;
 use std::sync::mpsc;
 use std::thread;
@@ -50,18 +49,6 @@ impl fmt::Display for Unavailable {
 }
 
 impl Error for Unavailable {}
-
-impl Service {
-    /// The portal in a Flatpak sandbox, the server elsewhere. The environment tells the sandbox
-    /// until `InstallKind` does (T114).
-    pub fn of_this_process() -> Self {
-        if Path::new("/.flatpak-info").exists() || std::env::var_os("FLATPAK_ID").is_some() {
-            Self::Portal
-        } else {
-            Self::Server
-        }
-    }
-}
 
 impl DesktopNotifications {
     /// Opens the session bus and waits, up to [`TIMEOUT`], for `service` to answer: the server's

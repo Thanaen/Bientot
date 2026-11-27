@@ -311,3 +311,12 @@ fn handing_never_waits_on_a_stalled_taker_which_then_takes_the_last_value_only()
     taker.join().unwrap();
     assert_eq!(taken.try_recv(), Err(mpsc::TryRecvError::Disconnected));
 }
+
+#[test]
+fn the_item_owns_a_bus_name_everywhere_but_in_a_flatpak() {
+    let without_a_name: Vec<_> = InstallKind::ALL
+        .into_iter()
+        .filter(|kind| !owns_a_bus_name(*kind))
+        .collect();
+    assert_eq!(without_a_name, [InstallKind::Flatpak]);
+}
