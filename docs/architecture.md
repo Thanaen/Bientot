@@ -23,7 +23,7 @@ it in this table.
 | `bientot-plugin-tool` | any OS | The `bientot-plugin` command for plugin authors and the maintainer: `pack`, `keygen`, `sign`, `check`, `install`, `sign-revocations`. |
 | `bientot-platform` | any OS | The platform-independent half of the system integration: the built-in activity source, the recording of session and power changes, the recovery of power and session history, the update check, the tray menu (`MenuEntry` and its item ids), the names of time zones on either system, `PowerState`. It defines the ports the app runs on ([Platforms](#platforms)). Those of the lifecycle, the single instance, the tray, the flyout placement, reduced motion, the languages, the system and the notifications have an in-memory implementation for tests. |
 | `bientot-windows` | Windows for its Win32 calls | The last-input query, the session and power message decoding, power and session history from the System and Winlogon event logs, start with Windows (the `Run` key and the MSIX startup task behind `StartupPort`), toast notifications, the single-instance claim, file dialogs, the Microsoft Store `StoreContext` call. |
-| `bientot-linux` | any OS; Linux for its system calls | The Linux integration (specs/005-linux-support): the tray icon as a StatusNotifierItem (`ksni`), where the flyout opens (X11, layer-shell on Wayland, or a window without a tray host), desktop notifications and the notification portal, the XDG autostart entry, the AppImage's entry in the menu of applications, the single instance, the install kind and the system the diagnostics describe, the language of the messages, the wait for a process to exit. Its idle readers (`idle`) and logind source (`logind`) are tested, but the app does not use them. `tests/support/` holds the D-Bus mocks of the desktop harness; `examples/shell-spike.rs` is the tray and flyout spike of Lot 4, never shipped. |
+| `bientot-linux` | any OS; Linux for its system calls | The Linux integration (specs/005-linux-support): the tray icon as a StatusNotifierItem (`ksni`), where the flyout opens (X11, layer-shell on Wayland, or a window without a tray host), desktop notifications and the notification portal, the XDG autostart entry, the AppImage's entry in the menu of applications, the single instance, the install kind and the system the diagnostics describe, the language of the messages, the wait for a process to exit. Its idle readers (`idle`) give the app the time since the last input, and its logind source (`logind`) the lock, unlock, sleep and resume. `tests/support/` holds the D-Bus mocks of the desktop harness; `examples/shell-spike.rs` is the tray and flyout spike of Lot 4, never shipped. |
 | `bientot-app` | Windows or Linux to run; tests on any OS | The `worktime` binary (`worktime.exe` on Windows): the composition root of the platform ports (`platform/`), the flyout, the week, « Corriger le temps… », settings, onboarding, the command palette, the theme and the FR/EN strings. It also holds the `bientot-screenshots` tool. |
 | `bientot-notices` | any OS | Writes `THIRD-PARTY-NOTICES.txt` for the release executable and fails on a license outside the allowed list. |
 
@@ -59,8 +59,8 @@ the string table ([CONTRIBUTING.md](../CONTRIBUTING.md#localization)).
 
 | Port | Windows | Linux |
 | --- | --- | --- |
-| `LastInputProbe` | `GetLastInputInfo` | None |
-| `LifecycleSource` | A message-only window that receives the session and power messages | None |
+| `LastInputProbe` | `GetLastInputInfo` | The first idle backend of the session that answers (`idle::IdleProbe`), read on a thread of its own (`idle::IdleWatch`); none in a demo |
+| `LifecycleSource` | A message-only window that receives the session and power messages | The process's logind session on the system bus (`logind::LogindSource`); none in a demo |
 | `PowerBoundaryLog`, `SessionBoundaryLog` | The System and Winlogon event logs | None |
 | `Notifier`, `NotificationClicks` | Toasts | `org.freedesktop.Notifications`; the notification portal in a Flatpak |
 | `StartupPort` | The `Run` key, or the MSIX startup task | An XDG autostart entry; none in a Flatpak |
@@ -75,11 +75,11 @@ the string table ([CONTRIBUTING.md](../CONTRIBUTING.md#localization)).
 « None » is the null port of `Platform::null()`. `linux.rs` reads the install
 kind once, from `/.flatpak-info`, `FLATPAK_ID` and `APPIMAGE`, and each
 `bientot-linux` module picks its backend from it. Only the AppImage writes a
-menu entry and updates through Velopack. The tray, notification and autostart
-backends in use go to the diagnostic export (`platform::Backends`), on Linux
-only. The Linux idle readers and logind source exist in `bientot-linux`
-(`idle::IdleProbe`, `logind::LogindSource`) but `linux.rs` does not build
-them, so a Linux build records no activity, lock or sleep.
+menu entry and updates through Velopack. The tray, notification, autostart,
+idle and lifecycle backends in use go to the diagnostic export
+(`platform::Backends`), on Linux only. The idle backend chosen, and each later
+change of it, also go to the diagnostic log (`idle.backend`), through
+`Platform::backend_notes`.
 
 ## Launch
 

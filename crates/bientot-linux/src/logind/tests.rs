@@ -247,3 +247,12 @@ fn a_session_read_locked_records_its_unlock_first() {
         [None, UNLOCKED]
     );
 }
+
+#[test]
+fn a_flatpak_looks_its_session_up_without_its_process_id_and_every_other_install_with_it() {
+    let without_the_process_id: Vec<_> = InstallKind::ALL
+        .into_iter()
+        .filter(|kind| SessionLookup::for_install(*kind) == SessionLookup::SessionId)
+        .collect();
+    assert_eq!(without_the_process_id, [InstallKind::Flatpak]);
+}

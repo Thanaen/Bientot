@@ -1,11 +1,12 @@
 //! The Linux backend: the tray icon is a StatusNotifierItem of `bientot-linux`, the flyout opens
-//! where `bientot-linux` places it on this session, the reminders are desktop notifications, an
-//! XDG autostart entry starts the app at sign-in, the AppImage adds itself to the menu of
-//! applications, a lock and a socket keep one instance per data folder, the environment names the
-//! language, and Velopack updates the AppImage. A Flatpak's sandbox shows the reminders through
-//! the notification portal and serves the tray icon without a bus name of its own. The other
-//! ports answer « unknown » or do nothing, as on a system without a backend, until their lots wire
-//! them.
+//! where `bientot-linux` places it on this session, the idle time comes from the first backend of
+//! the session that answers, lock, unlock, sleep and resume from logind, the reminders are desktop
+//! notifications, an XDG autostart entry starts the app at sign-in, the AppImage adds itself to
+//! the menu of applications, a lock and a socket keep one instance per data folder, the
+//! environment names the language, and Velopack updates the AppImage. A Flatpak's sandbox shows
+//! the reminders through the notification portal and serves the tray icon without a bus name of
+//! its own. The other ports answer « unknown » or do nothing, as on a system without a backend,
+//! until their lots wire them.
 
 #[cfg(feature = "updates")]
 #[path = "direct.rs"]
@@ -14,15 +15,23 @@ mod direct;
 mod null;
 
 use std::cell::RefCell;
+use std::io;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use anyhow::Context as _;
+use bientot_core::diagnostics::DiagnosticLogLevel;
+use bientot_domain::time::SystemClock;
 use bientot_linux::autostart::{Autostart, XdgAutostart};
+use bientot_linux::idle::{Backend, IdleNote, IdleWatch};
 use bientot_linux::launcher::LauncherEntry;
+use bientot_linux::logind::LogindSource;
 use bientot_linux::notifications::{DesktopNotifications, Service};
 use bientot_linux::placement::LinuxDesktop;
 use bientot_linux::tray::StatusNotifier;
+use bientot_platform::activity::LastInputProbe;
 use bientot_platform::launcher::LauncherPort;
+use bientot_platform::lifecycle::{LifecycleListener, LifecycleSource, SessionSnapshot};
 use bientot_platform::notifications::{Notifier, QueuedClicks};
 use bientot_platform::startup::StartupPort;
 use bientot_platform::system::{InstallKind, SystemInfo as _};
@@ -30,7 +39,8 @@ use futures::channel::mpsc;
 use gpui::{Bounds, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
-use super::{Backends, Platform, PlatformContext};
+use super::{BackendNote, Backends, Platform, PlatformContext};
+use crate::zones::SystemZones;
 
 // `build`, `place_window`, `activate_window`, `NotificationsRefused`, `Instance`,
 // `wait_for_exit`, `system_locale` and `system` below take the place of null's, and with `updates`
@@ -60,9 +70,25 @@ thread_local! {
 }
 
 pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
+    let demo = ctx.launch.demo.is_some();
+    let kind = this_install_kind();
+    // A demo neither reads the input nor watches the session: as on Windows, its day is the
+    // scenario's. The watch's thread opens the idle backend, so a demo starts none.
+    let (notes, backend_notes) = mpsc::unbounded();
+    let lifecycle = (!demo).then(|| Reported {
+        source: LogindSource::new(kind, SystemClock, SystemZones),
+        notes: notes.clone(),
+    });
+    let idle = (!demo)
+        .then(|| {
+            IdleWatch::of_this_session(move |note| {
+                notes.unbounded_send(idle_line(note)).ok();
+            })
+        })
+        .transpose()
+        .context("the idle watch's thread did not start")?;
     // A demo shows no notifications, as on Windows.
     let clicks = QueuedClicks::default();
-    let kind = this_install_kind();
     let service = Service::for_install(kind);
     let notifier = ctx.launch.demo.is_none().then(|| {
         DesktopNotifications::start(service, clicks.clone())
@@ -102,18 +128,110 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         } else {
             "none"
         }),
+        // The watch's first note names the backend once the thread has chosen it.
+        idle: demo.then_some("none"),
+        // Until a note says the watch did not start.
+        lifecycle: Some(if lifecycle.is_some() {
+            "logind"
+        } else {
+            "none"
+        }),
     };
+    let null = null::build(ctx)?;
     Ok(Platform {
+        last_input: match idle {
+            Some(watch) => Box::new(watch) as Box<dyn LastInputProbe + Send>,
+            None => null.last_input,
+        },
+        lifecycle: match lifecycle {
+            Some(source) => Arc::new(source) as Arc<dyn LifecycleSource + Send + Sync>,
+            None => null.lifecycle,
+        },
         notifier,
         startup,
         launcher,
         notification_clicks: Box::new(clicks),
         backends,
+        backend_notes,
         tray: Rc::new(tray),
         tray_events,
         desktop,
-        ..null::build(ctx)?
+        ..null
     })
+}
+
+/// The diagnostic log's line for what the idle probe noted (contracts/linux-backends.md,
+/// « Idle »). Without a backend the built-in source cannot count activity: a warning.
+fn idle_line(note: IdleNote) -> BackendNote {
+    let level = |backend: Option<Backend>| match backend {
+        Some(_) => DiagnosticLogLevel::Information,
+        None => DiagnosticLogLevel::Warning,
+    };
+    let name = |backend| backend_name(backend).into();
+    match note {
+        IdleNote::Selected(backend) => BackendNote {
+            level: level(backend),
+            event: "idle.backend",
+            properties: vec![("name", name(backend))],
+            idle: Some(backend_name(backend)),
+            lifecycle: None,
+        },
+        IdleNote::Changed { from, to } => BackendNote {
+            level: level(to),
+            event: "idle.backend_changed",
+            properties: vec![("from", name(from)), ("to", name(to))],
+            idle: Some(backend_name(to)),
+            lifecycle: None,
+        },
+        IdleNote::InhibitorsCount => BackendNote {
+            level: DiagnosticLogLevel::Information,
+            event: "idle.inhibitor_blind",
+            properties: vec![("value", false.into())],
+            idle: None,
+            lifecycle: None,
+        },
+    }
+}
+
+fn backend_name(backend: Option<Backend>) -> &'static str {
+    backend.map_or("none", Backend::name)
+}
+
+/// A lifecycle source that tells the diagnostic log, and the export through `Backends`, when its
+/// watch does not start: logind then records no lock and no sleep.
+struct Reported<S> {
+    source: S,
+    notes: mpsc::UnboundedSender<BackendNote>,
+}
+
+impl<S: LifecycleSource> LifecycleSource for Reported<S> {
+    fn snapshot(&self) -> SessionSnapshot {
+        self.source.snapshot()
+    }
+
+    fn watch(&self, listener: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>> {
+        self.source.watch(listener).inspect_err(|error| {
+            self.notes.unbounded_send(watch_failed(error)).ok();
+        })
+    }
+}
+
+/// The diagnostic log's line for a lifecycle watch that did not start (contracts/linux-backends.md,
+/// « Lock, sleep, session »). The error's text can name the user's session or bus, so the line
+/// gives its kind alone, from a fixed list.
+fn watch_failed(error: &io::Error) -> BackendNote {
+    let kind = match error.kind() {
+        io::ErrorKind::NotFound => "not_found",
+        io::ErrorKind::PermissionDenied => "permission_denied",
+        _ => "other",
+    };
+    BackendNote {
+        level: DiagnosticLogLevel::Warning,
+        event: "lifecycle.watch_failed",
+        properties: vec![("kind", kind.into())],
+        idle: None,
+        lifecycle: Some("none"),
+    }
 }
 
 /// Resizes `window` to `client`, and on X11 moves it there: elsewhere the compositor places it.
@@ -192,14 +310,149 @@ impl crate::updates::StoreError for velopack::Error {
     }
 }
 
-#[cfg(all(test, feature = "updates"))]
+#[cfg(test)]
 mod tests {
-    use bientot_platform::system::InstallKind;
+    use std::io;
 
-    use super::packed_by_velopack;
+    use bientot_core::diagnostics::DiagnosticLogLevel::{Information, Warning};
+    use bientot_linux::idle::{Backend, IdleNote};
+    use bientot_platform::lifecycle::{
+        InMemoryLifecycle, LifecycleListener, LifecycleSource, LifecycleTransition, SessionSnapshot,
+    };
+    use futures::channel::mpsc;
+
+    use super::{BackendNote, Reported, idle_line};
 
     #[test]
+    fn the_log_and_the_export_name_the_idle_backend_chosen_then_each_change() {
+        let line = |level, event, properties: &[(&'static str, &'static str)], idle| BackendNote {
+            level,
+            event,
+            properties: properties
+                .iter()
+                .map(|&(name, value)| (name, value.into()))
+                .collect(),
+            idle: Some(idle),
+            lifecycle: None,
+        };
+        assert_eq!(
+            [
+                IdleNote::Selected(Some(Backend::XScreenSaver)),
+                IdleNote::Changed {
+                    from: Some(Backend::XScreenSaver),
+                    to: None,
+                },
+                IdleNote::Selected(None),
+                IdleNote::Changed {
+                    from: None,
+                    to: Some(Backend::MutterIdleMonitor),
+                },
+            ]
+            .map(idle_line),
+            [
+                line(
+                    Information,
+                    "idle.backend",
+                    &[("name", "MIT-SCREEN-SAVER")],
+                    "MIT-SCREEN-SAVER",
+                ),
+                line(
+                    Warning,
+                    "idle.backend_changed",
+                    &[("from", "MIT-SCREEN-SAVER"), ("to", "none")],
+                    "none",
+                ),
+                line(Warning, "idle.backend", &[("name", "none")], "none"),
+                line(
+                    Information,
+                    "idle.backend_changed",
+                    &[("from", "none"), ("to", "org.gnome.Mutter.IdleMonitor")],
+                    "org.gnome.Mutter.IdleMonitor",
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn the_log_says_when_an_app_that_inhibits_idle_counts_as_activity() {
+        assert_eq!(
+            idle_line(IdleNote::InhibitorsCount),
+            BackendNote {
+                level: Information,
+                event: "idle.inhibitor_blind",
+                properties: vec![("value", false.into())],
+                idle: None,
+                lifecycle: None,
+            }
+        );
+    }
+
+    /// A source whose watch fails as logind's does without a system bus or a session.
+    struct Refused(io::ErrorKind);
+
+    impl LifecycleSource for Refused {
+        fn snapshot(&self) -> SessionSnapshot {
+            unreachable!()
+        }
+
+        fn watch(&self, _: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>> {
+            Err(io::Error::new(self.0, "no session for someone@host"))
+        }
+    }
+
+    struct Ignored;
+
+    impl LifecycleListener for Ignored {
+        fn changed(&mut self, _: LifecycleTransition) {}
+
+        fn ended(&mut self) {}
+    }
+
+    #[test]
+    fn a_watch_that_does_not_start_logs_its_kind_and_leaves_no_lifecycle_backend() {
+        let line = |kind: &'static str| BackendNote {
+            level: Warning,
+            event: "lifecycle.watch_failed",
+            properties: vec![("kind", kind.into())],
+            idle: None,
+            lifecycle: Some("none"),
+        };
+        for (kind, logged) in [
+            (io::ErrorKind::NotFound, "not_found"),
+            (io::ErrorKind::PermissionDenied, "permission_denied"),
+            (io::ErrorKind::Other, "other"),
+            (io::ErrorKind::ConnectionRefused, "other"),
+        ] {
+            let (notes, mut sent) = mpsc::unbounded();
+            let source = Reported {
+                source: Refused(kind),
+                notes,
+            };
+
+            assert!(source.watch(Box::new(Ignored)).is_err(), "{kind:?}");
+            assert_eq!(sent.try_recv().ok(), Some(line(logged)), "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn a_watch_that_starts_logs_nothing() {
+        let (notes, mut sent) = mpsc::unbounded();
+        let source = Reported {
+            source: InMemoryLifecycle::default(),
+            notes,
+        };
+
+        let _watch = source.watch(Box::new(Ignored)).unwrap();
+        assert_eq!(sent.try_recv().ok(), None);
+    }
+
+    #[cfg(feature = "updates")]
+    #[test]
     fn velopack_updates_the_appimage_alone() {
+        use bientot_platform::system::InstallKind;
+
+        use super::packed_by_velopack;
+
         let updated: Vec<_> = InstallKind::ALL
             .into_iter()
             .filter(|kind| packed_by_velopack(*kind))

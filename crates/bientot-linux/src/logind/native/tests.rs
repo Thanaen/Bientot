@@ -29,13 +29,23 @@ fn at() -> Timestamp {
 }
 
 fn source(pid: u32, session_id: Option<&str>) -> LogindSource<At, FixedTimeZoneProvider> {
+    source_of(InstallKind::AppImage, pid, session_id)
+}
+
+/// The source of an install of `kind` whose process has `pid` and `XDG_SESSION_ID`.
+fn source_of(
+    kind: InstallKind,
+    pid: u32,
+    session_id: Option<&str>,
+) -> LogindSource<At, FixedTimeZoneProvider> {
     LogindSource::for_session(
         At(at()),
         FixedTimeZoneProvider::new("Europe/Paris", TimeZone::UTC),
-        OwnSession {
+        OwnSession::new(
+            SessionLookup::for_install(kind),
             pid,
-            session_id: session_id.map(Into::into),
-        },
+            session_id.map(Into::into),
+        ),
     )
 }
 
@@ -246,6 +256,25 @@ fn desktop_harness_finds_the_session_of_the_process_then_of_xdg_session_id_then_
         refused.map(|error| error.kind()),
         Some(io::ErrorKind::NotFound)
     );
+}
+
+#[test]
+#[ignore = "desktop-harness"]
+fn desktop_harness_a_flatpak_skips_the_session_of_its_process_id() {
+    let _turn = crate::HARNESS_TURN
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    let logind = Logind::connect();
+    // In the sandbox the process id names another process on the host, here one of a session
+    // that never set `LockedHint`, whose lock state is unknown.
+    logind.add_session("p4105", true);
+    let own = logind.add_session("x4105", true);
+    logind.set(&own, &[("LockedHint", true)]);
+
+    let snapshots = [InstallKind::AppImage, InstallKind::Flatpak]
+        .map(|kind| source_of(kind, 4105, Some("x4105")).snapshot());
+
+    assert_eq!(snapshots, [unknown_snapshot(), live(SessionState::Locked)]);
 }
 
 #[test]

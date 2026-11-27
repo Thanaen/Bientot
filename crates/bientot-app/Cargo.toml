@@ -59,7 +59,7 @@ bientot-windows = { path = "../bientot-windows" }
 velopack = { version = "=1.2.161", features = ["public-utils"], optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-# The tray and the flyout's placement (`platform::linux`); the other Linux ports are not wired yet.
+# The Linux ports (`platform::linux`).
 bientot-linux = { path = "../bientot-linux" }
 # Names the flyout's X11 window, which `bientot-linux` moves and focuses: the version GPUI builds.
 raw-window-handle = "0.6"
