@@ -59,7 +59,7 @@ the string table ([CONTRIBUTING.md](../CONTRIBUTING.md#localization)).
 
 | Port | Windows | Linux |
 | --- | --- | --- |
-| `LastInputProbe` | `GetLastInputInfo` | The first idle backend of the session that answers (`idle::IdleProbe`); none in a demo |
+| `LastInputProbe` | `GetLastInputInfo` | The first idle backend of the session that answers (`idle::IdleProbe`), read on a thread of its own (`idle::IdleWatch`); none in a demo |
 | `LifecycleSource` | A message-only window that receives the session and power messages | The process's logind session on the system bus (`logind::LogindSource`); none in a demo |
 | `PowerBoundaryLog`, `SessionBoundaryLog` | The System and Winlogon event logs | None |
 | `Notifier`, `NotificationClicks` | Toasts | `org.freedesktop.Notifications`; the notification portal in a Flatpak |

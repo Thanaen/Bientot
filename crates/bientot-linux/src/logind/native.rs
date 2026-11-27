@@ -14,13 +14,14 @@ use bientot_domain::time::{Clock, TimeZoneProvider};
 use bientot_platform::lifecycle::{
     LifecycleListener, LifecycleSource, LifecycleTransition, LockReporting, SessionSnapshot,
 };
+use bientot_platform::system::InstallKind;
 use futures_lite::StreamExt;
 use futures_lite::stream::{self, Boxed};
 use zbus::message::Type;
 use zbus::zvariant::{DynamicType, ObjectPath, OwnedObjectPath, OwnedValue};
 use zbus::{Connection, MatchRule, Message, MessageStream, match_rule};
 
-use super::{SessionReadings, SessionTracker, Signal};
+use super::{SessionLookup, SessionReadings, SessionTracker, Signal};
 use crate::dbus::{BUS, BUS_PATH, call, has_owner};
 
 const LOGIN1: &str = "org.freedesktop.login1";
@@ -51,9 +52,10 @@ where
     C: Clock + Send + Sync + 'static,
     Z: TimeZoneProvider + Send + Sync + 'static,
 {
-    /// Stamps each change with `clock` and the local zone of `zones` as it arrives.
-    pub fn new(clock: C, zones: Z) -> Self {
-        Self::for_session(clock, zones, OwnSession::of_this_process())
+    /// Finds the session as an install of `kind` can, and stamps each change with `clock` and
+    /// the local zone of `zones` as it arrives.
+    pub fn new(kind: InstallKind, clock: C, zones: Z) -> Self {
+        Self::for_session(clock, zones, OwnSession::of_this_process(kind))
     }
 
     fn for_session(clock: C, zones: Z, own: OwnSession) -> Self {
@@ -281,26 +283,34 @@ async fn screensaver_active(bus: &Connection) -> Option<bool> {
 }
 
 /// How this process finds its logind session (contracts/linux-backends.md): the session of its
-/// process id; else `XDG_SESSION_ID`; else the user's display session, as when the user manager
-/// starts it outside any session.
+/// process id, when the lookup asks it; else `XDG_SESSION_ID`; else the user's display session,
+/// as when the user manager starts it outside any session.
 #[derive(Clone, Debug)]
 struct OwnSession {
-    pid: u32,
+    pid: Option<u32>,
     session_id: Option<String>,
 }
 
 impl OwnSession {
-    fn of_this_process() -> Self {
+    fn of_this_process(kind: InstallKind) -> Self {
+        Self::new(
+            SessionLookup::for_install(kind),
+            std::process::id(),
+            std::env::var("XDG_SESSION_ID").ok(),
+        )
+    }
+
+    fn new(lookup: SessionLookup, pid: u32, session_id: Option<String>) -> Self {
         Self {
-            pid: std::process::id(),
-            session_id: std::env::var("XDG_SESSION_ID")
-                .ok()
-                .filter(|id| !id.is_empty()),
+            pid: (lookup == SessionLookup::ProcessId).then_some(pid),
+            session_id: session_id.filter(|id| !id.is_empty()),
         }
     }
 
     async fn resolve(&self, system: &Connection) -> io::Result<OwnedObjectPath> {
-        if let Ok(session) = manager(system, "GetSessionByPID", &(self.pid,)).await {
+        if let Some(pid) = self.pid
+            && let Ok(session) = manager(system, "GetSessionByPID", &(pid,)).await
+        {
             return Ok(session);
         }
         if let Some(id) = &self.session_id

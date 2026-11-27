@@ -35,7 +35,7 @@ use crate::flyout::{
     UseBuiltInDetection,
 };
 use crate::live::{Announcement, LiveHost, Tracking, TrackingCommand};
-use crate::platform::{BackendNotes, TrayEvents};
+use crate::platform::{BackendNotes, Backends, TrayEvents};
 use crate::settings::Page;
 use crate::strings::{Key, Language};
 use crate::time_text::minutes_text;
@@ -763,11 +763,15 @@ pub fn install_tray(
     .detach();
 }
 
-/// Writes each line the backends send to the diagnostic log of the user's own day, as it comes.
+/// Writes each line the backends send to the diagnostic log of the user's own day, as it comes,
+/// and names in the export the idle backend a line says is in use.
 pub fn log_backend_notes(mut notes: BackendNotes, cx: &mut App) {
     cx.spawn(async move |cx| {
         while let Some(note) = notes.next().await {
             cx.update(|cx| {
+                if let Some(idle) = note.idle {
+                    cx.default_global::<Backends>().idle = Some(idle);
+                }
                 if let Some(host) = cx.global_mut::<Today>().live() {
                     host.log(note.level, note.event, &note.properties);
                 }

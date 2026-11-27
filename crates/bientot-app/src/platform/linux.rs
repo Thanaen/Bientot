@@ -18,10 +18,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use anyhow::Context as _;
 use bientot_core::diagnostics::DiagnosticLogLevel;
 use bientot_domain::time::SystemClock;
 use bientot_linux::autostart::{Autostart, XdgAutostart};
-use bientot_linux::idle::{Backend, IdleNote, IdleProbe};
+use bientot_linux::idle::{Backend, IdleNote, IdleWatch};
 use bientot_linux::launcher::LauncherEntry;
 use bientot_linux::logind::LogindSource;
 use bientot_linux::notifications::{DesktopNotifications, Service};
@@ -69,18 +70,21 @@ thread_local! {
 
 pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     let demo = ctx.launch.demo.is_some();
+    let kind = this_install_kind();
     // A demo neither reads the input nor watches the session: as on Windows, its day is the
-    // scenario's. The probe opens its backend now, so a demo does not make one.
+    // scenario's. The watch's thread opens the idle backend, so a demo starts none.
     let (notes, backend_notes) = mpsc::unbounded();
-    let idle = (!demo).then(|| {
-        IdleProbe::of_this_session(move |note| {
-            notes.unbounded_send(idle_line(note)).ok();
+    let idle = (!demo)
+        .then(|| {
+            IdleWatch::of_this_session(move |note| {
+                notes.unbounded_send(idle_line(note)).ok();
+            })
         })
-    });
-    let lifecycle = (!demo).then(|| LogindSource::new(SystemClock, SystemZones));
+        .transpose()
+        .context("the idle watch's thread did not start")?;
+    let lifecycle = (!demo).then(|| LogindSource::new(kind, SystemClock, SystemZones));
     // A demo shows no notifications, as on Windows.
     let clicks = QueuedClicks::default();
-    let kind = this_install_kind();
     let service = Service::for_install(kind);
     let notifier = ctx.launch.demo.is_none().then(|| {
         DesktopNotifications::start(service, clicks.clone())
@@ -120,7 +124,8 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         } else {
             "none"
         }),
-        idle: Some(backend_name(idle.as_ref().and_then(IdleProbe::backend))),
+        // The watch's first note names the backend once the thread has chosen it.
+        idle: demo.then_some("none"),
         lifecycle: Some(if lifecycle.is_some() {
             "logind"
         } else {
@@ -130,7 +135,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     let null = null::build(ctx)?;
     Ok(Platform {
         last_input: match idle {
-            Some(probe) => Box::new(probe) as Box<dyn LastInputProbe + Send>,
+            Some(watch) => Box::new(watch) as Box<dyn LastInputProbe + Send>,
             None => null.last_input,
         },
         lifecycle: match lifecycle {
@@ -163,16 +168,19 @@ fn idle_line(note: IdleNote) -> BackendNote {
             level: level(backend),
             event: "idle.backend",
             properties: vec![("name", name(backend))],
+            idle: Some(backend_name(backend)),
         },
         IdleNote::Changed { from, to } => BackendNote {
             level: level(to),
             event: "idle.backend_changed",
             properties: vec![("from", name(from)), ("to", name(to))],
+            idle: Some(backend_name(to)),
         },
         IdleNote::InhibitorsCount => BackendNote {
             level: DiagnosticLogLevel::Information,
             event: "idle.inhibitor_blind",
             properties: vec![("value", false.into())],
+            idle: None,
         },
     }
 }
@@ -265,14 +273,15 @@ mod tests {
     use super::{BackendNote, idle_line};
 
     #[test]
-    fn the_log_names_the_idle_backend_chosen_then_each_change() {
-        let line = |level, event, properties: &[(&'static str, &'static str)]| BackendNote {
+    fn the_log_and_the_export_name_the_idle_backend_chosen_then_each_change() {
+        let line = |level, event, properties: &[(&'static str, &'static str)], idle| BackendNote {
             level,
             event,
             properties: properties
                 .iter()
                 .map(|&(name, value)| (name, value.into()))
                 .collect(),
+            idle: Some(idle),
         };
         assert_eq!(
             [
@@ -289,17 +298,24 @@ mod tests {
             ]
             .map(idle_line),
             [
-                line(Information, "idle.backend", &[("name", "MIT-SCREEN-SAVER")]),
+                line(
+                    Information,
+                    "idle.backend",
+                    &[("name", "MIT-SCREEN-SAVER")],
+                    "MIT-SCREEN-SAVER",
+                ),
                 line(
                     Warning,
                     "idle.backend_changed",
                     &[("from", "MIT-SCREEN-SAVER"), ("to", "none")],
+                    "none",
                 ),
-                line(Warning, "idle.backend", &[("name", "none")]),
+                line(Warning, "idle.backend", &[("name", "none")], "none"),
                 line(
                     Information,
                     "idle.backend_changed",
                     &[("from", "none"), ("to", "org.gnome.Mutter.IdleMonitor")],
+                    "org.gnome.Mutter.IdleMonitor",
                 ),
             ]
         );
@@ -313,6 +329,7 @@ mod tests {
                 level: Information,
                 event: "idle.inhibitor_blind",
                 properties: vec![("value", false.into())],
+                idle: None,
             }
         );
     }

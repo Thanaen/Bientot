@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, mpsc};
+use std::time::Instant;
 
 use jiff::SignedDuration;
 
@@ -441,4 +442,171 @@ fn every_backend_has_a_name_of_its_own() {
 
     assert_eq!(names.len(), 5);
     assert_eq!(ExtIdleNotify.name(), "ext-idle-notify-v1");
+}
+
+/// How long a stuck backend waits for the test before it gives up: a read of the watch that
+/// waited on it would take that long.
+const STUCK: Duration = Duration::from_secs(10);
+
+/// A desktop whose backend, idle for 42 s at every read, opens once `opening` says so, as the
+/// screensaver's unit check takes a second, and whose reads after the first say so on `stuck`
+/// and then wait for `reading`, as a bus that hangs.
+struct Stuck {
+    opening: mpsc::Receiver<()>,
+    reader: Option<StuckReader>,
+}
+
+struct StuckReader {
+    reads: usize,
+    stuck: mpsc::Sender<()>,
+    reading: mpsc::Receiver<()>,
+}
+
+impl Backends for Stuck {
+    fn open(&mut self, _backend: Backend) -> Option<Opened> {
+        let _ = self.opening.recv_timeout(STUCK);
+        Some(Opened {
+            reader: Box::new(self.reader.take()?),
+            inhibitor_blind: true,
+        })
+    }
+}
+
+impl IdleReader for StuckReader {
+    fn idle(&mut self, _now: Duration) -> Option<Duration> {
+        self.reads += 1;
+        if self.reads > 1 {
+            let _ = self.stuck.send(());
+            let _ = self.reading.recv_timeout(STUCK);
+        }
+        Some(Duration::from_secs(42))
+    }
+}
+
+/// The watch of a Wayland session on `Stuck` at second 1 000, what it logged, and the ends the
+/// test holds: `open` lets the backend open, `stuck` hears each read that hangs, and dropping
+/// `release` ends them.
+struct StuckWatch {
+    watch: IdleWatch<Clock>,
+    notes: Arc<Mutex<Vec<IdleNote>>>,
+    open: mpsc::Sender<()>,
+    stuck: mpsc::Receiver<()>,
+    release: mpsc::Sender<()>,
+}
+
+fn stuck_watch(clock: &Clock) -> StuckWatch {
+    clock.set(1_000);
+    let (open, opening) = mpsc::channel();
+    let (stuck_sender, stuck) = mpsc::channel();
+    let (release, reading) = mpsc::channel();
+    let notes = Arc::new(Mutex::new(Vec::new()));
+    let log = {
+        let notes = Arc::clone(&notes);
+        move |note| notes.lock().unwrap().push(note)
+    };
+    let backends = Stuck {
+        opening,
+        reader: Some(StuckReader {
+            reads: 0,
+            stuck: stuck_sender,
+            reading,
+        }),
+    };
+    let watch = IdleWatch::new(WAYLAND, backends, clock.clone(), log).unwrap();
+    StuckWatch {
+        watch,
+        notes,
+        open,
+        stuck,
+        release,
+    }
+}
+
+/// The first reading of `watch`, once its thread has read the backend.
+fn first_reading(watch: &IdleWatch<Clock>) -> LastInputReading {
+    let deadline = Instant::now() + STUCK;
+    loop {
+        if let Some(reading) = watch.read() {
+            return reading;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "the watch never read the backend"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+/// `read` and how long it took.
+fn timed(watch: &IdleWatch<Clock>) -> (Option<LastInputReading>, Duration) {
+    let asked = Instant::now();
+    (watch.read(), asked.elapsed())
+}
+
+#[test]
+fn a_read_of_the_watch_waits_neither_on_the_selection_nor_on_the_backend() {
+    let clock = Clock::default();
+    let started = Instant::now();
+    let StuckWatch {
+        watch,
+        notes,
+        open,
+        stuck,
+        release: _release,
+    } = stuck_watch(&clock);
+    let made_in = started.elapsed();
+    let (while_selecting, selecting_read_in) = timed(&watch);
+
+    open.send(()).unwrap();
+    let first = first_reading(&watch);
+    stuck.recv_timeout(STUCK).expect("the second read hangs");
+    clock.set(1_007);
+    let (while_stuck, stuck_read_in) = timed(&watch);
+
+    for (what, took) in [
+        ("making the watch", made_in),
+        ("a read during the selection", selecting_read_in),
+        ("a read while the backend hangs", stuck_read_in),
+    ] {
+        assert!(took < STUCK / 2, "{what} took {took:?}");
+    }
+    assert_eq!(
+        (while_selecting, first, while_stuck),
+        (
+            None,
+            reading_from_idle(Duration::from_secs(1_000), Duration::from_secs(42)),
+            Some(reading_from_idle(
+                Duration::from_secs(1_007),
+                Duration::from_secs(49)
+            ))
+        ),
+        "the idle time at the instant of the read, from the last input the thread read"
+    );
+    assert_eq!(taken(&notes), [IdleNote::Selected(Some(ExtIdleNotify))]);
+}
+
+#[test]
+fn dropping_the_watch_ends_its_thread_and_closes_the_backend() {
+    let clock = Clock::default();
+    let StuckWatch {
+        watch,
+        open,
+        stuck,
+        release,
+        ..
+    } = stuck_watch(&clock);
+    open.send(()).unwrap();
+    first_reading(&watch);
+
+    drop(watch);
+    drop(release);
+
+    let deadline = Instant::now() + STUCK;
+    loop {
+        match stuck.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+            Ok(()) => continue,
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            Err(mpsc::RecvTimeoutError::Timeout) => panic!("the watch's thread still runs"),
+        }
+    }
 }

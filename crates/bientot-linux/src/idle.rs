@@ -4,7 +4,8 @@
 //! No single interface tells it on Linux. Each session type tries its backends in a fixed order
 //! and keeps the first that answers; [`IdleProbe`] turns that backend's « idle for d » into the
 //! reading Windows takes from `GetLastInputInfo`, so that `BuiltInActivitySource` and the
-//! domain's tracker stay as they are.
+//! domain's tracker stay as they are. [`IdleWatch`] runs the probe on a thread of its own, for
+//! the UI thread.
 
 pub mod ext_idle;
 pub mod screensaver;
@@ -19,7 +20,8 @@ mod xss;
 #[cfg(target_os = "linux")]
 pub use native::{Monotonic, SystemBackends};
 
-use std::sync::{Mutex, PoisonError};
+use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use bientot_domain::sources::LastInputReading;
@@ -121,7 +123,8 @@ pub enum IdleNote {
 ///
 /// The selection runs when the probe is made, again at once when the backend in use stops
 /// answering, and every [`RETRY`] while none answers. It may take a second or more (the
-/// screensaver's unit check), so the probe is best made and read off the UI thread.
+/// screensaver's unit check), and a read waits on a bus or a display server, so the UI thread
+/// reads an [`IdleWatch`] instead.
 pub struct IdleProbe<B, C> {
     session: Option<SessionType>,
     clock: C,
@@ -170,9 +173,7 @@ impl<B: Backends, C: MonotonicClock> IdleProbe<B, C> {
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Selection<B>> {
-        self.selection
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
+        lock(&self.selection)
     }
 }
 
@@ -209,8 +210,9 @@ impl<B: Backends> Selection<B> {
     }
 }
 
-impl<B: Backends, C: MonotonicClock> LastInputProbe for IdleProbe<B, C> {
-    fn read(&self) -> Option<LastInputReading> {
+impl<B: Backends, C: MonotonicClock> IdleProbe<B, C> {
+    /// The monotonic instant now, and the idle time at it.
+    fn idle(&self) -> Option<(Duration, Duration)> {
         let mut selection = self.lock();
         let now = self.clock.now();
         let idle = selection.idle(now).or_else(|| {
@@ -220,8 +222,76 @@ impl<B: Backends, C: MonotonicClock> LastInputProbe for IdleProbe<B, C> {
             selection.select(self.session, now, &self.log);
             selection.idle(now)
         })?;
-        Some(reading_from_idle(now, idle))
+        Some((now, idle))
     }
+}
+
+impl<B: Backends, C: MonotonicClock> LastInputProbe for IdleProbe<B, C> {
+    fn read(&self) -> Option<LastInputReading> {
+        self.idle().map(|(now, idle)| reading_from_idle(now, idle))
+    }
+}
+
+/// How often an [`IdleWatch`] reads its probe.
+pub const SAMPLE: Duration = Duration::from_secs(1);
+
+/// An [`IdleProbe`] made and read every [`SAMPLE`] on a thread of its own, so that a read never
+/// waits on the selection, a bus or a display server.
+///
+/// The thread keeps the monotonic instant of the last input it read, and [`LastInputProbe::read`]
+/// gives the idle time from it at the instant of the read: input since the thread's last read
+/// shows at its next. Until the first selection ends, and while no backend answers, `read`
+/// gives `None`. Dropping the watch ends the thread once it is done with the backend.
+pub struct IdleWatch<C> {
+    clock: C,
+    last_input: Arc<Mutex<Option<Duration>>>,
+    _stop: mpsc::Sender<()>,
+}
+
+impl<C: MonotonicClock + Clone + 'static> IdleWatch<C> {
+    /// Starts the thread, which makes the probe as [`IdleProbe::new`] does.
+    pub fn new<B: Backends + 'static>(
+        session: Option<SessionType>,
+        backends: B,
+        clock: C,
+        log: impl Fn(IdleNote) + Send + 'static,
+    ) -> std::io::Result<Self> {
+        let last_input = Arc::new(Mutex::new(None));
+        let (stop, stopped) = mpsc::channel();
+        std::thread::Builder::new()
+            .name("bientot-idle".into())
+            .spawn({
+                let clock = clock.clone();
+                let last_input = Arc::clone(&last_input);
+                move || {
+                    let probe = IdleProbe::new(session, backends, clock, log);
+                    loop {
+                        let read = probe.idle().map(|(now, idle)| now.saturating_sub(idle));
+                        *lock(&last_input) = read;
+                        if stopped.recv_timeout(SAMPLE) != Err(RecvTimeoutError::Timeout) {
+                            return;
+                        }
+                    }
+                }
+            })?;
+        Ok(Self {
+            clock,
+            last_input,
+            _stop: stop,
+        })
+    }
+}
+
+impl<C: MonotonicClock> LastInputProbe for IdleWatch<C> {
+    fn read(&self) -> Option<LastInputReading> {
+        let last_input = (*lock(&self.last_input))?;
+        let now = self.clock.now();
+        Some(reading_from_idle(now, now.saturating_sub(last_input)))
+    }
+}
+
+fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 #[cfg(test)]

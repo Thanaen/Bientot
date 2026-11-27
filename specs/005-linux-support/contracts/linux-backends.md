@@ -12,15 +12,16 @@ rest on an assumption that a task verifies first.
 | Desktop | `XDG_CURRENT_DESKTOP`, split on `:`; lower-cased; kept for diagnostics and for the default flyout corner |
 | Install kind | `/.flatpak-info` present or `FLATPAK_ID` set → Flatpak; else `APPIMAGE` set → AppImage; else development (`bientot_linux::system::install_kind`) |
 | Distribution | os-release's `ID` (`linux` when missing) and `VERSION_ID`, nothing else: `/run/host/os-release` first in a Flatpak, whose own `/etc` names the runtime, then `/etc/os-release`, then `/usr/lib/os-release`; kept for diagnostics |
-| Own logind session | `GetSessionByPID(own pid)`; else `XDG_SESSION_ID`; else the user's `Display` session |
+| Own logind session | `GetSessionByPID(own pid)`, except in a Flatpak; else `XDG_SESSION_ID`; else the user's `Display` session |
 
 The diagnostic export (`snapshot.json`, `system`) names the install kind,
 the distribution, its version, the desktops, the session type and the
 backend in use for the tray (`status-notifier` or `none`), the
 notifications (`notification-server`, `notification-portal`, or `none`
 when refused or in a demo), the autostart (`xdg-autostart`, or `none` in
-a demo and, until T112, in a Flatpak), the idle time (the backend chosen at
-start, under the names below, or `none` when none answers and in a demo)
+a demo and, until T112, in a Flatpak), the idle time (the backend in use,
+under the names below, or `none` when none answers and in a demo; absent
+until the first selection ends)
 and the lifecycle (`logind`, or `none` in a demo). Each name the system gives is
 written only when it is 1 to 64 characters of `a-z`, `0-9`, `.`, `_` and
 `-`, as os-release allows in `ID`
@@ -111,10 +112,10 @@ Each backend yields « idle for d » or nothing; `IdleProbe` turns it into a
 | Order | Backend | Probe that selects it | Reading |
 | --- | --- | --- | --- |
 | Wayland 1 | `ext_idle_notifier_v1` on a second Wayland connection | The global and a seat are advertised | `get_input_idle_notification` (version ≥ 2) with a 5 000 ms timeout, else `get_idle_notification` and `idle.inhibitor_blind=false` logged. `idled` at T means input stopped at T − 5 s; `resumed` means input now. Between events the idle time is computed from the last event: now − T + 5 s after `idled`; after `resumed` at R, now − R up to 5 s, since input went on within the timeout but not before R. The notification's creation counts as a `resumed` |
-| Wayland 2 | `org.gnome.Mutter.IdleMonitor`, path `/org/gnome/Mutter/IdleMonitor/Core`, method `GetIdletime` → `t` (ms), session bus | The call answers | Polled every 5 s |
-| Wayland 3 | `org.freedesktop.ScreenSaver`, path `/org/freedesktop/ScreenSaver` or `/ScreenSaver`, `GetSessionIdleTime` | Its name has an owner (it is not started for this), it answers, and it passes the unit check: 11 reads 100 ms apart, over 1 s. A count that goes down between two reads fails the check, since input reset it. Otherwise the count is in milliseconds when it grew by the elapsed milliseconds ± 250 from the first read to the last, and in seconds when it grew by the elapsed seconds ± 1, at least 1, and never by more than 1 between two reads. Anything else fails the check | Polled every 5 s |
-| X11 1 | `MIT-SCREEN-SAVER` `QueryInfo` on the root window (`x11rb`) | The extension is present | `ms_since_user_input`, polled every 5 s |
-| X11 2 | Mutter IdleMonitor, then `org.cinnamon.Muffin.IdleMonitor` (same shape) | The call answers | Polled every 5 s |
+| Wayland 2 | `org.gnome.Mutter.IdleMonitor`, path `/org/gnome/Mutter/IdleMonitor/Core`, method `GetIdletime` → `t` (ms), session bus | The call answers | Polled |
+| Wayland 3 | `org.freedesktop.ScreenSaver`, path `/org/freedesktop/ScreenSaver` or `/ScreenSaver`, `GetSessionIdleTime` | Its name has an owner (it is not started for this), it answers, and it passes the unit check: 11 reads 100 ms apart, over 1 s. A count that goes down between two reads fails the check, since input reset it. Otherwise the count is in milliseconds when it grew by the elapsed milliseconds ± 250 from the first read to the last, and in seconds when it grew by the elapsed seconds ± 1, at least 1, and never by more than 1 between two reads. Anything else fails the check | Polled |
+| X11 1 | `MIT-SCREEN-SAVER` `QueryInfo` on the root window (`x11rb`) | The extension is present | `ms_since_user_input`, polled |
+| X11 2 | Mutter IdleMonitor, then `org.cinnamon.Muffin.IdleMonitor` (same shape) | The call answers | Polled |
 | — | none | — | `read()` returns `None` |
 
 The selection runs at start, again at once when the backend in use stops
@@ -128,14 +129,24 @@ version 1. A line that leaves no backend is a warning. Names:
 `MIT-SCREEN-SAVER`. The probe is made when the app starts, and a demo makes
 none: as on Windows, a demo does not read the input.
 
+The app reads the probe through `IdleWatch`, whose thread makes the probe,
+then reads it every second and keeps the monotonic instant of the last
+input. The UI thread's `read()` takes the idle time from that instant at its
+own instant, so it never waits on the selection, a bus or a display server;
+input shows within a second. Until the first selection ends, `read()`
+returns `None`. Dropping the watch ends the thread.
+
 `bientot_linux::idle`: `order` and `select` are the table (any OS, tested),
-`IdleProbe` the `LastInputProbe`, `SystemBackends` the backends (Linux).
+`IdleProbe` the `LastInputProbe`, `IdleWatch` the probe off the UI thread,
+`SystemBackends` the backends (Linux).
 
 ## Lock, sleep, session: logind (system bus)
 
 `bientot_linux::logind`: `SessionTracker` is the mapping (any OS, tested),
 `LogindSource` the `LifecycleSource` (Linux). A demo watches no session, as
-on Windows. The source writes nothing to the diagnostic log; the export
+on Windows. A Flatpak skips `GetSessionByPID` and starts from
+`XDG_SESSION_ID`, since its own pid namespace gives the process an id that
+names another process on the host (`SessionLookup::for_install`). The source writes nothing to the diagnostic log; the export
 names it in `system.backends`.
 
 - Service `org.freedesktop.login1`.

@@ -1,7 +1,7 @@
 //! The diagnostic log of a live day names the tray's backend and whether a host shows the icon,
 //! then each change of the host, and so does the export, which holds the log. It also writes the
-//! lines the other backends send, such as the idle backend Linux chose. It needs the headless
-//! GPUI of the `screenshots` feature.
+//! lines the other backends send, such as the idle backend Linux chose, which the export then
+//! names. It needs the headless GPUI of the `screenshots` feature.
 #![cfg(all(feature = "screenshots", target_os = "linux"))]
 
 mod common;
@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use bientot_app::host::{self, Source, Today};
 use bientot_app::live::{self, LiveHost};
-use bientot_app::platform::BackendNote;
+use bientot_app::platform::{BackendNote, Backends};
 use bientot_app::shell;
 use bientot_app::strings::Language;
 use bientot_core::diagnostics::DiagnosticLogLevel;
@@ -124,24 +124,29 @@ fn the_log_writes_each_line_the_backends_send_those_sent_before_the_day_included
     let folder = tempfile::tempdir().unwrap();
     let (mut cx, _events) = installed(folder.path(), None);
     let (notes, received) = mpsc::unbounded();
-    let note = |event, properties: Vec<(&'static str, &'static str)>| BackendNote {
+    let note = |event, properties: Vec<(&'static str, &'static str)>, idle| BackendNote {
         level: DiagnosticLogLevel::Information,
         event,
         properties: properties
             .into_iter()
             .map(|(name, value)| (name, value.into()))
             .collect(),
+        idle,
     };
 
     notes
-        .unbounded_send(note("idle.backend", vec![("name", "none")]))
+        .unbounded_send(note("idle.backend", vec![("name", "none")], Some("none")))
         .unwrap();
     cx.update(|cx| host::log_backend_notes(received, cx));
     notes
         .unbounded_send(note(
             "idle.backend_changed",
             vec![("from", "none"), ("to", "MIT-SCREEN-SAVER")],
+            Some("MIT-SCREEN-SAVER"),
         ))
+        .unwrap();
+    notes
+        .unbounded_send(note("idle.inhibitor_blind", vec![("value", "false")], None))
         .unwrap();
     cx.run_until_parked();
 
@@ -150,6 +155,12 @@ fn the_log_writes_each_line_the_backends_send_those_sent_before_the_day_included
         [
             r#""Event":"idle.backend","Properties":{"name":"none"}}"#,
             r#""Event":"idle.backend_changed","Properties":{"from":"none","to":"MIT-SCREEN-SAVER"}}"#,
+            r#""Event":"idle.inhibitor_blind","Properties":{"value":"false"}}"#,
         ]
+    );
+    assert_eq!(
+        cx.update(|cx| cx.global::<Backends>().named()),
+        [("idle", "MIT-SCREEN-SAVER")],
+        "the export names the idle backend in use"
     );
 }

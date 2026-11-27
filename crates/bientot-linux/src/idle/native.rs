@@ -6,7 +6,7 @@ use bientot_platform::system::SessionType;
 use rustix::time::{ClockId, clock_gettime};
 
 use super::{
-    Backend, Backends, IdleNote, IdleProbe, IdleReader, MonotonicClock, Opened, ext_idle, mutter,
+    Backend, Backends, IdleNote, IdleReader, IdleWatch, MonotonicClock, Opened, ext_idle, mutter,
     screensaver, xss,
 };
 
@@ -41,9 +41,9 @@ impl Backends for SystemBackends {
     }
 }
 
-impl IdleProbe<SystemBackends, Monotonic> {
-    /// The probe of the session this process runs in.
-    pub fn of_this_session(log: impl Fn(IdleNote) + Send + 'static) -> Self {
+impl IdleWatch<Monotonic> {
+    /// The watch of the session this process runs in.
+    pub fn of_this_session(log: impl Fn(IdleNote) + Send + 'static) -> std::io::Result<Self> {
         Self::new(this_session(), SystemBackends, Monotonic, log)
     }
 }

@@ -15,9 +15,31 @@ use std::mem::replace;
 use bientot_domain::accounting::SessionState;
 use bientot_platform::PowerState;
 use bientot_platform::lifecycle::{LifecycleChange, LockReporting, SessionSnapshot};
+use bientot_platform::system::InstallKind;
 
 #[cfg(target_os = "linux")]
 pub use native::LogindSource;
+
+/// Where `LogindSource` starts looking for the session of this process; it then tries
+/// `XDG_SESSION_ID`, then the user's display session.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SessionLookup {
+    /// `GetSessionByPID` with the process id.
+    ProcessId,
+    /// `XDG_SESSION_ID` straight away.
+    SessionId,
+}
+
+impl SessionLookup {
+    /// `XDG_SESSION_ID` in a Flatpak, whose own pid namespace gives the process an id that names
+    /// another process on the host; the process id elsewhere.
+    pub fn for_install(kind: InstallKind) -> Self {
+        match kind {
+            InstallKind::Flatpak => Self::SessionId,
+            _ => Self::ProcessId,
+        }
+    }
+}
 
 /// A signal from logind or from the session's screensaver, already decoded.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

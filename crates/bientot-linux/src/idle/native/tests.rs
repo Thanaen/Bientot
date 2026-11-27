@@ -12,6 +12,7 @@ use bientot_platform::activity::LastInputProbe;
 use zbus::Connection;
 
 use super::*;
+use crate::idle::IdleProbe;
 use crate::idle::screensaver::Unit;
 
 /// The idle time the probe reads now.
@@ -56,7 +57,7 @@ fn desktop_harness_selects_the_first_backend_of_the_session_and_follows_its_inpu
         .unwrap_or_else(PoisonError::into_inner);
     let session = this_session().expect("the harness runs a display server");
     let (notes, log) = noted();
-    let probe = IdleProbe::of_this_session(log);
+    let probe = IdleProbe::new(Some(session), SystemBackends, Monotonic, log);
     let expected = match session {
         SessionType::X11 => vec![IdleNote::Selected(Some(Backend::XScreenSaver))],
         // Sway 1.9 offers version 1 of the protocol only, which counts inhibitors (research.md,

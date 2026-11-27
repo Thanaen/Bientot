@@ -498,7 +498,7 @@ pub struct Backends {
     pub tray: Option<&'static str>,          // "status-notifier", "none"
     pub notifications: Option<&'static str>, // "notification-server", "notification-portal", "none"
     pub autostart: Option<&'static str>,     // "xdg-autostart", "none"
-    pub idle: Option<&'static str>,          // the backend chosen at start, "none"
+    pub idle: Option<&'static str>,          // the backend in use, "none"
     pub lifecycle: Option<&'static str>,     // "logind", "none"
 }
 
@@ -506,6 +506,7 @@ pub struct BackendNote {
     pub level: DiagnosticLogLevel,
     pub event: &'static str,
     pub properties: Vec<(&'static str, DiagnosticValue<'static>)>,
+    pub idle: Option<&'static str>,          // the idle backend in use from this line on
 }
 
 impl Platform {

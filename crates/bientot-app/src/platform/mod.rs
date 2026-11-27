@@ -130,6 +130,8 @@ pub struct BackendNote {
     pub level: DiagnosticLogLevel,
     pub event: &'static str,
     pub properties: Vec<(&'static str, DiagnosticValue<'static>)>,
+    /// The idle backend in use from this line on, which the export names in `Backends::idle`.
+    pub idle: Option<&'static str>,
 }
 
 /// The ports of the system, for one launch.
@@ -193,7 +195,8 @@ pub struct Backends {
     pub tray: Option<&'static str>,
     pub notifications: Option<&'static str>,
     pub autostart: Option<&'static str>,
-    /// The idle time's, as chosen at start: the diagnostic log tells each later change.
+    /// The idle time's, as the last `BackendNote` naming one says, and `None` before the first:
+    /// the diagnostic log tells each change.
     pub idle: Option<&'static str>,
     /// The lock, unlock, sleep and resume's.
     pub lifecycle: Option<&'static str>,
