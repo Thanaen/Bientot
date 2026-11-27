@@ -346,7 +346,7 @@ fn modal_shadow_is_three_soft_layers_and_a_contact_line() {
     assert_eq!(shadow.len(), 4);
     assert_eq!(shadow[3].offset, point(px(0.), px(1.)));
     assert_eq!(shadow[3].blur_radius, px(0.));
-    assert_eq!(shadow[3].color, hsla(0., 0., 0., 0.04));
+    assert_eq!(shadow[3].color, hsla(0., 0., 0., 0.12));
 }
 
 /// The WCAG contrast ratio of two opaque colors.

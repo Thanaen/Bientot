@@ -495,8 +495,9 @@ fn screenshot(folder: &Path) -> (usize, usize, Vec<u8>) {
     (width, height, bytes[start..].to_vec())
 }
 
-/// How much the flyout's shadow darkens the background at most, on any channel.
-const SHADOW_DEPTH: u8 = 32;
+/// How much the flyout's shadow darkens the harness's grey desktop at most, on any channel: 33,
+/// right under the panel, with `elevation-modal`. The panel's border differs from it by 73.
+const SHADOW_DEPTH: u8 = 48;
 
 /// The rows and columns of the output that hold the flyout's panel: what differs from the
 /// background, which fills its centre, by more than the shadow around the panel does.
