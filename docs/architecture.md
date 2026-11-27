@@ -77,9 +77,12 @@ kind once, from `/.flatpak-info`, `FLATPAK_ID` and `APPIMAGE`, and each
 `bientot-linux` module picks its backend from it. Only the AppImage writes a
 menu entry and updates through Velopack. The tray, notification, autostart,
 idle and lifecycle backends in use go to the diagnostic export
-(`platform::Backends`), on Linux only. The idle backend chosen, and each later
-change of it, also go to the diagnostic log (`idle.backend`), through
-`Platform::backend_notes`.
+(`platform::Backends`), on Linux only, with whether the desktop reports
+screen locks. The idle backend chosen, and each later change of it, also go to
+the diagnostic log (`idle.backend`), through `Platform::backend_notes`, as does
+whether locks are reported (`lifecycle.lock_reporting`). Settings › Général ›
+« Diagnostic » shows both, and the flyout says so while no idle backend
+answers.
 
 ## Launch
 

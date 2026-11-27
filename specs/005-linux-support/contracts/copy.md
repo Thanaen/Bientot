@@ -61,7 +61,10 @@ They are on the same list of the test.
 | `ActivityUndetectable.Title` | Flyout, while no idle backend answers | Bientôt ne détecte pas votre activité sur ce bureau | Bientôt cannot detect your activity on this desktop | T075 |
 | `ActivityUndetectable.Text` | Same | Rien n’est compté automatiquement. Vous pouvez déclarer votre temps à la main. | Nothing is counted automatically. You can declare your time by hand. | T075 |
 | `ActivityUndetectable.Action` | Same | Déclarer du temps | Declare time | T075 |
-| `LockStateUnknown.Text` | Settings › Diagnostic, and the export | Ce bureau ne signale pas le verrouillage de l’écran. Bientôt se fie à votre activité. | This desktop does not report screen locks. Bientôt relies on your activity. | T084 |
+| `LockStateUnknown.Text` | Settings › Diagnostic, under `DiagnosticSection.Locks`; the export says `lockReporting: unavailable`, since it holds no free text | Ce bureau ne signale pas le verrouillage de l’écran. Bientôt se fie à votre activité. | This desktop does not report screen locks. Bientôt relies on your activity. | T084 |
+| `DiagnosticSection.Header` | Settings › Général, the group under « À propos », Linux only; its first row is titled `SettingsDetectionGroup` (« Détection de l’activité ») with the idle backend's name as its value | Diagnostic | Diagnostics | T075 |
+| `DiagnosticSection.ActivityNone` | Same, the row's value while no idle backend answers | Aucune | None | T075 |
+| `DiagnosticSection.Locks` | Same, the title of the row of `LockStateUnknown.Text` | Verrouillage de l’écran | Screen lock | T084 |
 | `PowerHistoryPartial.Text` | Day details, on the unknown span after a start without a readable journal | L’ordinateur a été en veille à un moment que Bientôt ne peut pas connaître. | The computer slept at a time Bientôt cannot know. | T094 |
 | `StartupMismatchAppImage.Text` | Settings › Startup, state « registration mismatch » on an AppImage | Le démarrage pointe vers un autre emplacement de Bientôt. Le fichier a peut-être été déplacé. | Startup points to another location of Bientôt. The file may have been moved. | T115 |
 | `StartupMismatch.Action` | Same | Corriger | Fix | T115 |

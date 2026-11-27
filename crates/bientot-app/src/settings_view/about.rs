@@ -1,10 +1,10 @@
 //! « À propos » in « Général »: the version and the day it was published, then how Bientôt was
-//! installed where the system tells.
+//! installed where the system tells; then « Diagnostic », where the backends tell.
 
 use gpui::{Role, SharedString, div, prelude::*};
 
 use super::{group, row_line, row_text};
-use crate::settings::AboutView;
+use crate::settings::{AboutView, DiagnosticView};
 use crate::theme::Theme;
 use crate::theme::spacing::*;
 
@@ -36,6 +36,39 @@ pub(super) fn section(about: AboutView, theme: &Theme) -> impl IntoElement {
         "about",
         Some(about.heading),
         std::iter::once(version.into_any_element()).chain(install),
+        theme,
+    )
+}
+
+/// « Diagnostic »: the idle backend's name at the end of its row, and the sentence that says the
+/// desktop does not report locks under its title.
+pub(super) fn diagnostic_section(diagnostic: DiagnosticView, theme: &Theme) -> impl IntoElement {
+    let activity = diagnostic.activity.map(|activity| {
+        let text = row_text(activity.title, theme.text, None, theme.text_muted);
+        let label = format!("{} {}", activity.title, activity.value);
+        div()
+            .py(BASE_12)
+            .when(diagnostic.locks.is_some(), |row| {
+                row.border_b_1().border_color(theme.border_variant)
+            })
+            .child(row_line(text, value("idle-backend", label, activity.value)))
+            .into_any_element()
+    });
+    let locks = diagnostic.locks.map(|locks| {
+        div()
+            .py(BASE_12)
+            .child(row_text(
+                locks.title,
+                theme.text,
+                Some(locks.description.into_any_element()),
+                theme.text_muted,
+            ))
+            .into_any_element()
+    });
+    group(
+        "diagnostic",
+        Some(diagnostic.heading),
+        activity.into_iter().chain(locks),
         theme,
     )
 }

@@ -7,6 +7,9 @@ use super::Entry;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Key {
     ActivitySourceSwitchFailed,
+    ActivityUndetectableAction,
+    ActivityUndetectableText,
+    ActivityUndetectableTitle,
     AdjustTimeAddDurationContent,
     AdjustTimeAddIntervalContent,
     AdjustTimeClassificationHeader,
@@ -79,6 +82,9 @@ pub enum Key {
     DemoWarning,
     DiagnosticExportFailed,
     DiagnosticExportSucceeded,
+    DiagnosticSectionActivityNone,
+    DiagnosticSectionHeader,
+    DiagnosticSectionLocks,
     DiagnosticZipFileType,
     FlyoutAdjustButton,
     FlyoutAdjustTime,
@@ -278,6 +284,7 @@ pub enum Key {
     LauncherEntryDescription,
     LauncherEntryHeader,
     LauncherEntryInputAutomationPropertiesName,
+    LockStateUnknownText,
     NotificationCombinedBody,
     NotificationCompleteBody,
     NotificationCompletionBody,
@@ -880,8 +887,11 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 872] = [
+pub(super) static ENTRIES: [Entry; 879] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
+    Entry { name: "ActivityUndetectable.Action", fr: "Déclarer du temps", en: "Declare time", linux: None },
+    Entry { name: "ActivityUndetectable.Text", fr: "Rien n’est compté automatiquement. Vous pouvez déclarer votre temps à la main.", en: "Nothing is counted automatically. You can declare your time by hand.", linux: None },
+    Entry { name: "ActivityUndetectable.Title", fr: "Bientôt ne détecte pas votre activité sur ce bureau", en: "Bientôt cannot detect your activity on this desktop", linux: None },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration", linux: None },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval", linux: None },
     Entry { name: "AdjustTimeClassification.Header", fr: "Classement", en: "Classification", linux: None },
@@ -954,6 +964,9 @@ pub(super) static ENTRIES: [Entry; 872] = [
     Entry { name: "DemoWarning", fr: "Proche de la limite · 16:00", en: "Near the limit · 16:00", linux: None },
     Entry { name: "DiagnosticExportFailed", fr: "Bientôt n’a pas pu enregistrer le ZIP de diagnostic. Choisissez un autre emplacement et réessayez.", en: "Bientôt could not save the diagnostic ZIP. Choose another location and try again.", linux: None },
     Entry { name: "DiagnosticExportSucceeded", fr: "Le ZIP de diagnostic a été enregistré.", en: "The diagnostic ZIP was saved.", linux: None },
+    Entry { name: "DiagnosticSection.ActivityNone", fr: "Aucune", en: "None", linux: None },
+    Entry { name: "DiagnosticSection.Header", fr: "Diagnostic", en: "Diagnostics", linux: None },
+    Entry { name: "DiagnosticSection.Locks", fr: "Verrouillage de l’écran", en: "Screen lock", linux: None },
     Entry { name: "DiagnosticZipFileType", fr: "Archive ZIP", en: "ZIP archive", linux: None },
     Entry { name: "FlyoutAdjustButton", fr: "Corriger…", en: "Adjust time…", linux: None },
     Entry { name: "FlyoutAdjustTime", fr: "Corriger le temps…", en: "Adjust time…", linux: None },
@@ -1153,6 +1166,7 @@ pub(super) static ENTRIES: [Entry; 872] = [
     Entry { name: "LauncherEntry.Description", fr: "Afficher Bientôt dans le menu de votre bureau, pour l’ouvrir sans chercher le fichier AppImage.", en: "Show Bientôt in your desktop’s menu so you can open it without looking for the AppImage file.", linux: None },
     Entry { name: "LauncherEntry.Header", fr: "Menu des applications", en: "App menu", linux: None },
     Entry { name: "LauncherEntry.Input.AutomationProperties.Name", fr: "Afficher Bientôt dans le menu des applications", en: "Show Bientôt in the app menu", linux: None },
+    Entry { name: "LockStateUnknown.Text", fr: "Ce bureau ne signale pas le verrouillage de l’écran. Bientôt se fie à votre activité.", en: "This desktop does not report screen locks. Bientôt relies on your activity.", linux: None },
     Entry { name: "NotificationCombinedBody", fr: "Il reste {0} minutes et votre heure limite de départ approche. Départ prévu\u{a0}: {1}.", en: "{0} minutes remain and your preferred departure time is approaching. Projected departure: {1}.", linux: None },
     Entry { name: "NotificationCompleteBody", fr: "Votre objectif quotidien est atteint.", en: "Your daily target is complete.", linux: None },
     Entry { name: "NotificationCompletionBody", fr: "Il reste {0} minutes avant votre objectif. Départ prévu\u{a0}: {1}.", en: "{0} minutes remain toward your daily target. Projected departure: {1}.", linux: None },

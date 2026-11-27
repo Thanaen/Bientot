@@ -11,6 +11,7 @@ use gpui::{
 };
 
 use super::{BODY_PADDING, Flyout, InstallUpdate, UndoNotice, readable};
+use crate::platform::Backends;
 use crate::settings_view;
 use crate::strings::Key;
 use crate::theme::spacing::*;
@@ -406,8 +407,11 @@ impl Flyout {
         theme: &Theme,
     ) -> Vec<AnyElement> {
         let mut parts = self.notices(window, cx, theme);
+        let undetectable = cx
+            .try_global::<Backends>()
+            .is_some_and(|backends| backends.activity_undetectable);
         parts.extend(
-            self.source_callout(theme)
+            self.source_callout(undetectable, theme)
                 .map(|callout| (Part::SourceCallout, callout)),
         );
         parts.extend(

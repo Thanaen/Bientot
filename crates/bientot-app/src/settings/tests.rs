@@ -2,11 +2,13 @@ use std::io;
 
 use bientot_core::settings::SettingsPort;
 use bientot_domain::configuration::Settings;
+use bientot_platform::lifecycle::LockReporting;
 use bientot_store::settings::SaveSettingsError;
 use jiff::SignedDuration;
 use jiff::civil::Date;
 
 use super::*;
+use crate::platform::Backends;
 
 /// Records the saves; fails them while `fail`, and the recalculations while `stale`.
 #[derive(Default)]
@@ -342,6 +344,71 @@ fn a_flatpak_or_an_appimage_names_itself_under_the_version() {
             "{install_kind:?}"
         );
     }
+}
+
+fn diagnostic(backends: Backends, language: Language) -> Option<DiagnosticView> {
+    let mut form = SettingsForm::new(built_in(), usage_ping(None, Channel::Zip), language);
+    form.show_backends(backends);
+    form.view().diagnostic
+}
+
+#[test]
+fn diagnostic_names_the_idle_backend_in_use_and_says_when_locks_are_not_reported() {
+    let backends = Backends {
+        idle: Some("ext-idle-notify-v1"),
+        lifecycle: Some("logind"),
+        lock_reporting: Some(LockReporting::Unavailable),
+        ..Backends::default()
+    };
+    assert_eq!(
+        diagnostic(backends, Language::French),
+        Some(DiagnosticView {
+            heading: "Diagnostic",
+            activity: Some(AboutRow {
+                title: "Détection de l’activité",
+                value: "ext-idle-notify-v1",
+            }),
+            locks: Some(DiagnosticRow {
+                title: "Verrouillage de l’écran",
+                description: "Ce bureau ne signale pas le verrouillage de l’écran. \
+                              Bientôt se fie à votre activité.",
+            }),
+        })
+    );
+    let live = Backends {
+        idle: Some("none"),
+        activity_undetectable: true,
+        lock_reporting: Some(LockReporting::Live),
+        ..backends
+    };
+    assert_eq!(
+        diagnostic(live, Language::English),
+        Some(DiagnosticView {
+            heading: "Diagnostics",
+            activity: Some(AboutRow {
+                title: "Activity detection",
+                value: "None",
+            }),
+            locks: None,
+        })
+    );
+}
+
+#[test]
+fn diagnostic_shows_nowhere_the_backends_tell_nothing() {
+    assert_eq!(
+        diagnostic(Backends::default(), Language::French),
+        None,
+        "Windows"
+    );
+    let backends = Backends {
+        idle: Some("MIT-SCREEN-SAVER"),
+        ..Backends::default()
+    };
+    let mut form = SettingsForm::new(built_in(), usage_ping(None, Channel::Zip), Language::French);
+    form.show_backends(backends);
+    form.go_to(Page::Schedule);
+    assert_eq!(form.view().diagnostic, None, "only « Général » shows it");
 }
 
 /// « Menu des applications » on each group of « Général », by heading.

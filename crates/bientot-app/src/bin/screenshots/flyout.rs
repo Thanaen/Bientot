@@ -15,6 +15,7 @@
 //! - `flyout-source-switch-failed-motion-<0|8|17|50|100>.png`, its entrance;
 //! - `flyout-diagnostics-<saved|failed>.png`;
 //! - `flyout-<settings-restored|notifications-unavailable|refresh-failed|alerts>.png`;
+//! - `flyout-activity-undetectable.png`, without an idle backend, on Linux only;
 //! - `flyout-update-<offered|installing|failed>.png` and `flyout-update-direct-<…>.png`;
 //! - `flyout-alerts-short.png` and `flyout-alerts-short-update.png`;
 //! - `palette-flyout.png`, `palette-flyout-query.png` and `palette-flyout-empty.png`.
@@ -26,6 +27,7 @@ use bientot_app::diagnostics::Outcome;
 use bientot_app::flyout::{Alerts, CountUnrecorded, Flyout};
 use bientot_app::host::{Source, Today};
 use bientot_app::live::{Announcement, Tracking};
+use bientot_app::platform::Backends;
 use bientot_app::shell;
 use bientot_app::strings::{Key, Language};
 use bientot_app::theme::motion;
@@ -43,6 +45,7 @@ use bientot_domain::time::LocalWorkday;
 use gpui::{AppContext as _, HeadlessAppContext, px, size};
 use jiff::SignedDuration;
 
+use super::platform::{Platform, Shots};
 use super::shared::{blank_form, capture_flyout, open_flyout, working};
 use super::{MENU_FRAMES, capture, capture_entrance};
 
@@ -393,6 +396,23 @@ pub fn capture_notices(
         })?;
         let path = output.join(format!("flyout-{slug}.png"));
         capture(cx, window.into(), &path)?;
+    }
+
+    // No idle backend answers: a state only Linux has, where the built-in source fails all day.
+    if cx.update(|cx| cx.global::<Shots>().platform) == Platform::Linux {
+        let directory = demo::throwaway_directory();
+        let day = DemoHost::open(DemoScenario::Unavailable, &directory)?.refresh(language);
+        std::fs::remove_dir_all(&directory).ok();
+        cx.update(|cx| {
+            cx.set_global(Backends {
+                idle: Some("none"),
+                activity_undetectable: true,
+                ..Backends::default()
+            })
+        });
+        let path = output.join("flyout-activity-undetectable.png");
+        capture_flyout(cx, day?, None, &path)?;
+        cx.update(|cx| cx.set_global(Backends::default()));
     }
     Ok(())
 }

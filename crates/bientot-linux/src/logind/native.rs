@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 use std::io;
+use std::mem::replace;
 use std::sync::{Arc, mpsc};
 use std::thread::JoinHandle;
 
@@ -106,12 +107,18 @@ where
                             return;
                         }
                     };
+                    let mut reporting = tracker.snapshot().lock_reporting;
+                    listener.lock_reporting(reporting);
                     while let Some(event) = events.next().await {
                         let change = match event {
                             Event::Signal(signal) => tracker.apply(signal),
                             Event::SystemBusClosed => return listener.ended(),
                             Event::Stop => return,
                         };
+                        let now = tracker.snapshot().lock_reporting;
+                        if replace(&mut reporting, now) != now {
+                            listener.lock_reporting(now);
+                        }
                         if let Some(change) = change {
                             listener.changed(LifecycleTransition {
                                 change,

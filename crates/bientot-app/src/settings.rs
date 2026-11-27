@@ -26,12 +26,14 @@ use bientot_domain::configuration::{
 };
 use bientot_domain::sources::ActivitySourceKind;
 use bientot_domain::usage_ping::{Build, Channel, usage_ping_due};
+use bientot_platform::lifecycle::LockReporting;
 use bientot_platform::startup::{StartupRegistrationState, SystemPage};
 use bientot_platform::system::InstallKind;
 use jiff::SignedDuration;
 use jiff::civil::Date;
 
 use crate::adjust::TimeField;
+use crate::platform::{Backends, NO_BACKEND};
 use crate::strings::{Key, Language};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -633,6 +635,9 @@ pub struct PageView {
     pub sections: Vec<SectionView>,
     /// Under the groups of « Général ».
     pub about: Option<AboutView>,
+    /// Under « À propos », where the backends tell what Bientôt reads the activity from or that
+    /// the desktop reports no lock: Linux.
+    pub diagnostic: Option<DiagnosticView>,
 }
 
 /// « À propos »: the version, and the day it was published when the build knows it.
@@ -647,6 +652,24 @@ pub struct AboutView {
     pub released: Option<String>,
     /// « Type d’installation » and « Flatpak », under the version: a Flatpak or an AppImage only.
     pub install: Option<AboutRow>,
+}
+
+/// « Diagnostic »: the idle backend in use, by its name or « Aucune », and a row that says so
+/// when the desktop does not report screen locks.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticView {
+    pub heading: &'static str,
+    /// « Détection de l’activité » and the backend's name.
+    pub activity: Option<AboutRow>,
+    /// « Verrouillage de l’écran » and why the day rests on activity alone.
+    pub locks: Option<DiagnosticRow>,
+}
+
+/// A row of « Diagnostic » that tells a fact in a sentence under its title.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticRow {
+    pub title: &'static str,
+    pub description: &'static str,
 }
 
 /// A row of « À propos »: its title, and its value where a row has its control.
@@ -933,6 +956,8 @@ pub struct SettingsForm {
     startup_changes: u64,
     /// `None` where the copy writes no entry of its own, and until the entry has been read.
     launcher: Option<Launcher>,
+    /// What « Diagnostic » tells, as last shown.
+    backends: Backends,
 }
 
 impl SettingsForm {
@@ -952,7 +977,13 @@ impl SettingsForm {
             startup_page: None,
             startup_changes: 0,
             launcher: None,
+            backends: Backends::default(),
         }
+    }
+
+    /// The backends in use, which « Diagnostic » follows.
+    pub fn show_backends(&mut self, backends: Backends) {
+        self.backends = backends;
     }
 
     /// The system's page of startup apps, which the startup switch can send the user to.
@@ -1436,7 +1467,32 @@ impl SettingsForm {
             source: self.source_callout(),
             sections,
             about: (self.page == Page::General).then(|| self.about()),
+            diagnostic: (self.page == Page::General)
+                .then(|| self.diagnostic())
+                .flatten(),
         }
+    }
+
+    fn diagnostic(&self) -> Option<DiagnosticView> {
+        let language = self.language;
+        let activity = self.backends.idle.map(|backend| AboutRow {
+            title: language.text(Key::SettingsDetectionGroup),
+            value: match backend {
+                NO_BACKEND => language.text(Key::DiagnosticSectionActivityNone),
+                name => name,
+            },
+        });
+        let locks = (self.backends.lock_reporting == Some(LockReporting::Unavailable)).then(|| {
+            DiagnosticRow {
+                title: language.text(Key::DiagnosticSectionLocks),
+                description: language.text(Key::LockStateUnknownText),
+            }
+        });
+        (activity.is_some() || locks.is_some()).then(|| DiagnosticView {
+            heading: language.text(Key::DiagnosticSectionHeader),
+            activity,
+            locks,
+        })
     }
 
     fn about(&self) -> AboutView {

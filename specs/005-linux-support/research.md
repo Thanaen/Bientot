@@ -416,8 +416,12 @@ recorded. On GNOME with the automatic lock off, `ActiveChanged(true)` may
 mark a blank screen, which the fallback then records as a lock (T082). The
 snapshot is read fresh and knows nothing of the watch, so a desktop that set
 `LockedHint` earlier but answers no screensaver reads `Unavailable` again
-once unlocked; `LifecycleSource` has no way to report `LockReporting`
-changing, which T084 needs. The mock's `GetUser` fails (it adds a number to
+once unlocked; `LifecycleSource` had no way to report `LockReporting`
+changing, which T084 needs. **T084, 2026-11-27**: the listener gets
+`lock_reporting(LockReporting)`, a default method that Windows never
+calls; the logind watch calls it with its own tracker's answer when it
+starts and at each change, and the app shows that answer, not the
+snapshot's. The mock's `GetUser` fails (it adds a number to
 a string) and it has no `GetSessionByPID`; the harness tests give it both.
 A system bus that closes ends the watch, checked once by killing the
 harness's bus (not kept as a test: the bus is shared by every test).
