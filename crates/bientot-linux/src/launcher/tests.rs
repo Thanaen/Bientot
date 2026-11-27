@@ -191,6 +191,22 @@ fn an_entry_hidden_as_deleted_is_not_in_the_menu_and_a_start_leaves_it() {
 }
 
 #[test]
+fn an_entry_hidden_for_a_moved_appimage_stays_hidden() {
+    let home = Home::new();
+    home.launcher("/home/ana/Downloads/Bientot.AppImage")
+        .settle(true)
+        .unwrap();
+    let hidden = format!("{}Hidden=true\n", home.entry().unwrap());
+    std::fs::write(home.entry_file(), &hidden).unwrap();
+
+    let moved = home.launcher(APPIMAGE);
+    moved.settle(false).unwrap();
+
+    assert_eq!(home.entry().unwrap(), hidden);
+    assert!(!moved.is_added());
+}
+
+#[test]
 fn without_the_mount_the_entry_is_written_without_an_icon() {
     let home = Home::new();
     let launcher = LauncherEntry::new(home.data.path(), Path::new(APPIMAGE), None).unwrap();

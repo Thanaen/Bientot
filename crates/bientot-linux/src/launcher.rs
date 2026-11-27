@@ -111,11 +111,11 @@ impl LauncherPort for LauncherEntry {
     }
 
     /// An entry that starts this AppImage is left as it is, with what the user's menu editor
-    /// changed in it.
+    /// changed in it, and so is a `Hidden` one, which the user deleted wherever it pointed.
     fn settle(&self, first_run: bool) -> io::Result<()> {
         match self.read()? {
             None if first_run => self.add(),
-            Some(entry) if !entry.starts(&self.appimage) => self.add(),
+            Some(entry) if !entry.turned_off && !entry.starts(&self.appimage) => self.add(),
             None | Some(_) => Ok(()),
         }
     }
