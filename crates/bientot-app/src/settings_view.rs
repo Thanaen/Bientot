@@ -21,6 +21,7 @@ use bientot_core::settings::{EditGroup, Pending, SettingsPort};
 use bientot_domain::configuration::{AppointmentProposal, RecurringAppointment, Settings};
 use bientot_domain::usage_ping::{Build, Channel};
 use bientot_platform::startup::{StartupPort, StartupRegistrationState};
+use bientot_platform::system::{InstallKind, SystemInfo as _};
 use bientot_store::settings::SaveSettingsError;
 use gpui::{
     Animation, AnimationExt as _, App, AppContext as _, Bounds, Context, Entity, FocusHandle,
@@ -32,6 +33,7 @@ use gpui::{
 
 use crate::adjust::{TimeField, TimePart};
 use crate::host::{self, Today};
+use crate::platform;
 use crate::settings::data::DataPage;
 use crate::settings::startup;
 use crate::settings::{
@@ -116,6 +118,7 @@ pub fn open(cx: &mut App) {
         released: released(),
         today: date,
         last_sent,
+        install_kind: install_kind(),
     };
     let form = SettingsForm::new(today.settings().clone(), usage_ping, language);
     let settings_file = today.settings_file().map(PathBuf::from);
@@ -216,6 +219,11 @@ pub fn build() -> Build {
     };
     let version = option_env!("BIENTOT_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
     Build::new(version, channel).expect("the build version is one the usage service accepts")
+}
+
+/// How this copy was installed, where the system tells.
+pub fn install_kind() -> Option<InstallKind> {
+    platform::system().map(|system| system.install_kind())
 }
 
 /// The day the release was published, which scripts/release-direct.sh passes as

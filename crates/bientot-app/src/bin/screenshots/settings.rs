@@ -9,7 +9,7 @@ use anyhow::Context as _;
 use bientot_app::plugins::{Consent, Installed, Offered, Refused};
 use bientot_app::settings::data::{Action, Backup, Chosen, DataPage, Exported, Refusal};
 use bientot_app::settings::plugins::PluginsPage;
-use bientot_app::settings::{Page, SettingsForm};
+use bientot_app::settings::{Page, SettingsForm, UsagePingFacts};
 use bientot_app::settings_view::{self, SettingsView};
 use bientot_app::strings::Language;
 use bientot_app::theme::motion;
@@ -24,6 +24,7 @@ use gpui::{AppContext as _, HeadlessAppContext, size};
 use jiff::civil::date;
 
 use super::fixtures::SettingsState;
+use super::platform::Shots;
 use super::{capture, capture_entrance};
 
 pub fn capture_pages(
@@ -528,7 +529,11 @@ fn capture_settings(
     let window = cx.open_window(
         size(settings_view::WINDOW_WIDTH, settings_view::WINDOW_HEIGHT),
         |window, cx| {
-            let mut form = SettingsForm::new(state.settings(), state.usage_ping(), language);
+            let usage_ping = UsagePingFacts {
+                install_kind: cx.global::<Shots>().platform.install_kind(),
+                ..state.usage_ping()
+            };
+            let mut form = SettingsForm::new(state.settings(), usage_ping, language);
             form.go_to(page);
             cx.new(|cx| {
                 let mut view = SettingsView::new(form, Some(file), window, cx);

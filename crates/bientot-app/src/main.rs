@@ -236,6 +236,7 @@ fn run_on(
     let may_send = launch.may_send_usage_ping();
     let update_source = UpdateSourceKind::of(&launch, settings_view::build().channel());
     let startup = platform.startup.take();
+    let backends = platform.backends;
     // As in .NET, nothing else starts before the onboarding is saved: the day, the tray and
     // the refreshes all begin from its choices.
     let opening = if first_run {
@@ -254,6 +255,7 @@ fn run_on(
     let store = SettingsStore::new(directory.settings_file())?;
 
     let boot = move |directory: DataDirectory, exportable: bool, cx: &mut App| {
+        cx.set_global(backends);
         if let Some(startup) = startup {
             cx.set_global(settings_view::Startup(startup));
         }
@@ -354,7 +356,7 @@ fn start(
     let ports = ShellPorts {
         tray: platform.tray,
         tray_events: platform.tray_events,
-        tray_backend: platform.tray_backend,
+        tray_backend: platform.backends.tray,
         desktop: platform.desktop,
     };
     let (source, language) = match launch.demo {

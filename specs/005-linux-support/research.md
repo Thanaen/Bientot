@@ -609,6 +609,20 @@ filters that refuse the call. Both halves are tested on their own.
   (its T040) belongs on the same port; the Linux tags already carry the
   territory (`fr-FR`). The 17 strings that name Windows get Linux variants
   (`contracts/copy.md`).
+- **Diagnostics (T121).** The export's `snapshot.json` gains a `system`
+  object on Linux only, so the Windows archive stays byte for byte the one
+  .NET wrote. From os-release it takes `ID` and `VERSION_ID` alone, the two
+  fields os-release(5) restricts to `a-z`, `0-9`, `.`, `_` and `-`;
+  `PRETTY_NAME`, `VERSION` and the rest are free text. In a Flatpak the
+  sandbox's `/etc/os-release` names the runtime (`org.freedesktop.platform`),
+  so `/run/host/os-release`, the host's, is read first. The desktops come
+  from `XDG_CURRENT_DESKTOP`, the session type from `WAYLAND_DISPLAY` and
+  `DISPLAY` as GPUI chooses, the install kind from `/.flatpak-info`,
+  `FLATPAK_ID` and `APPIMAGE`. `uname` is not read: the architectures stay
+  those of `runtime`, the process's from the build target, and the system's
+  version stays zeros. Every name is written only when it fits the os-release
+  alphabet in 1 to 64 characters, which free text such as a host name with
+  a space or a home path cannot.
 - **Opening URLs, files and folders.** `cx.open_url` and
   `cx.open_with_system` use the OpenURI portal or `xdg-open`. Nothing to
   write.

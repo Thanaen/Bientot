@@ -71,6 +71,9 @@ pub use backend::place_window;
 pub use backend::run_update_hooks;
 /// Tells the user why Bientôt cannot start when no window can open.
 pub use backend::show_fatal;
+/// The system as « À propos » and the diagnostic export describe it: `None` where they describe
+/// none, as on Windows, whose export keeps the one .NET wrote.
+pub use backend::system;
 /// The languages the user set the system to, which [`crate::strings::LanguageSources`] reads:
 /// the display languages of Windows, the POSIX locale of the messages on Linux.
 pub use backend::system_locale;
@@ -132,9 +135,7 @@ pub struct Platform {
     /// Shows nothing until the app first publishes the day to it.
     pub tray: Rc<dyn Tray<MenuCommand>>,
     pub tray_events: TrayEvents,
-    /// The name of the tray's backend, which the diagnostic log gives with whether a host shows
-    /// the icon: `None` where the log names neither.
-    pub tray_backend: Option<&'static str>,
+    pub backends: Backends,
     /// Where the flyout opens.
     pub desktop: Rc<dyn Desktop>,
 }
@@ -153,7 +154,7 @@ impl Platform {
             startup: None,
             tray: Rc::new(InMemoryTray::new(Vec::new(), None, TrayHost::Absent)),
             tray_events: mpsc::unbounded().1,
-            tray_backend: None,
+            backends: Backends::default(),
             desktop: Rc::new(InMemoryDesktop {
                 placement: FlyoutPlacement::CompositorPlaced,
                 usable_height: None,
@@ -162,6 +163,32 @@ impl Platform {
         }
     }
 }
+
+/// The name of the backend in use for each concern, which the diagnostic export gives: `None`
+/// where it names none, as on Windows.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Backends {
+    /// Also in the diagnostic log, with whether a host shows the icon.
+    pub tray: Option<&'static str>,
+    pub notifications: Option<&'static str>,
+    pub autostart: Option<&'static str>,
+}
+
+impl Backends {
+    /// Each concern with its backend's name, as the export writes them.
+    pub fn named(self) -> Vec<(&'static str, &'static str)> {
+        [
+            ("tray", self.tray),
+            ("notifications", self.notifications),
+            ("autostart", self.autostart),
+        ]
+        .into_iter()
+        .filter_map(|(concern, backend)| Some((concern, backend?)))
+        .collect()
+    }
+}
+
+impl gpui::Global for Backends {}
 
 /// A system that tells nothing of the last input nor of its history.
 struct Unknown;

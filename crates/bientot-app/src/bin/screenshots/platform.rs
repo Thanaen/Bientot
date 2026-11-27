@@ -6,6 +6,7 @@ use std::collections::HashSet;
 
 use bientot_app::strings::Wording;
 use bientot_platform::startup::SystemPage;
+use bientot_platform::system::InstallKind;
 use gpui::Global;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,6 +39,15 @@ impl Platform {
                 uri: "ms-settings:startupapps",
             }),
             Self::Linux => None,
+        }
+    }
+
+    /// How its `SystemInfo` says the app was installed: an AppImage on Linux, whose « Paramètres »
+    /// keep the update setting the screenshots show; nothing on Windows.
+    pub fn install_kind(self) -> Option<InstallKind> {
+        match self {
+            Self::Windows => None,
+            Self::Linux => Some(InstallKind::AppImage),
         }
     }
 
@@ -78,6 +88,11 @@ const LINUX: &[Scene] = &[
     Scene {
         group: "settings::capture_pages",
         name: "settings-general-startup-change-failed",
+    },
+    // InstallKind.Header and InstallKind.AppImage, under the version in « À propos ».
+    Scene {
+        group: "settings::capture_pages",
+        name: "settings-general-end",
     },
     // SettingsStartupCard.Header, in the two other states Linux reaches.
     Scene {

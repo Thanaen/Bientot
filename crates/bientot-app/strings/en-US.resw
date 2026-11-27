@@ -354,6 +354,9 @@
   <data name="SettingsAboutGroup" xml:space="preserve"><value>About</value></data>
   <data name="SettingsVersionCard.Header" xml:space="preserve"><value>Version</value></data>
   <data name="SettingsVersionReleasedFormat" xml:space="preserve"><value>Released {0:MMMM d, yyyy}</value></data>
+  <data name="InstallKind.Header" xml:space="preserve"><value>Installation type</value></data>
+  <data name="InstallKind.Flatpak" xml:space="preserve"><value>Flatpak</value></data>
+  <data name="InstallKind.AppImage" xml:space="preserve"><value>AppImage</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Send an anonymous usage signal</value></data>
   <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Once a day, with no identifier and no data about your working time. This count helps the developer know how many people use Bientôt.</value></data>

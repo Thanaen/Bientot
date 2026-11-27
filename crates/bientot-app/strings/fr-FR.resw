@@ -354,6 +354,9 @@
   <data name="SettingsAboutGroup" xml:space="preserve"><value>À propos</value></data>
   <data name="SettingsVersionCard.Header" xml:space="preserve"><value>Version</value></data>
   <data name="SettingsVersionReleasedFormat" xml:space="preserve"><value>Publiée le {0:d MMMM yyyy}</value></data>
+  <data name="InstallKind.Header" xml:space="preserve"><value>Type d’installation</value></data>
+  <data name="InstallKind.Flatpak" xml:space="preserve"><value>Flatpak</value></data>
+  <data name="InstallKind.AppImage" xml:space="preserve"><value>AppImage</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Envoyer un signal d’utilisation anonyme</value></data>
   <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Une fois par jour, sans identifiant ni donnée sur votre temps de travail. Ce décompte aide le développeur à savoir combien de personnes utilisent Bientôt.</value></data>

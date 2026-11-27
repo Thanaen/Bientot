@@ -124,6 +124,7 @@ fn a_click_on_the_minutes_of_the_schedule_lets_digits_change_them() {
         released: None,
         today: jiff::civil::date(2026, 10, 13),
         last_sent: None,
+        install_kind: None,
     };
     let mut form = SettingsForm::new(Default::default(), usage_ping, Language::French);
     form.go_to(Page::Schedule);

@@ -29,6 +29,16 @@ pub enum Service {
     Portal,
 }
 
+impl Service {
+    /// Its name in the diagnostic export.
+    pub fn backend(self) -> &'static str {
+        match self {
+            Self::Server => "notification-server",
+            Self::Portal => "notification-portal",
+        }
+    }
+}
+
 /// The action a server invokes for a click on the body of a notification.
 pub const SERVER_BODY_ACTION: &str = "default";
 

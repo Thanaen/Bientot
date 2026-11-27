@@ -32,6 +32,7 @@ fn on_system(forced: Option<Language>, system: Option<Language>) -> Onboarding {
             released: None,
             today: TODAY,
             last_sent: None,
+            install_kind: None,
         },
         LanguageSources { forced, system },
         Some(here()),
@@ -515,6 +516,7 @@ fn the_zip_build_leaves_the_updates_out() {
             released: None,
             today: TODAY,
             last_sent: None,
+            install_kind: None,
         },
         LanguageSources {
             forced: Some(Language::French),
@@ -640,6 +642,7 @@ fn a_demo_offers_no_import() {
             released: None,
             today: TODAY,
             last_sent: None,
+            install_kind: None,
         },
         LanguageSources {
             forced: Some(Language::French),

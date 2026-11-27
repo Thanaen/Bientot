@@ -262,6 +262,9 @@ pub enum Key {
     HistoryWindowTitle,
     ImportWaitsForNextStart,
     InitializationFailed,
+    InstallKindAppImage,
+    InstallKindFlatpak,
+    InstallKindHeader,
     KeyAlt,
     KeyComma,
     KeyControl,
@@ -873,7 +876,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 865] = [
+pub(super) static ENTRIES: [Entry; 868] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration", linux: None },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval", linux: None },
@@ -1130,6 +1133,9 @@ pub(super) static ENTRIES: [Entry; 865] = [
     Entry { name: "HistoryWindowTitle", fr: "Historique de la semaine actuelle", en: "Current week history", linux: None },
     Entry { name: "ImportWaitsForNextStart", fr: "Bientôt n’a pas pu redémarrer. Vos données seront importées au prochain démarrage. Si l’icône de Bientôt est encore dans la zone de notification, choisissez «\u{a0}Quitter Bientôt\u{a0}» dans son menu. Relancez ensuite l’application.", en: "Bientôt could not restart. Your data will be imported the next time it starts. If the Bientôt icon is still in the notification area, choose “Quit Bientôt” from its menu. Then open Bientôt again.", linux: None },
     Entry { name: "InitializationFailed", fr: "Bientôt n’a pas pu démarrer. Vérifiez les paramètres et la base locale, puis relancez l’application.", en: "Bientôt could not start. Check the local settings and database, then restart the app.", linux: None },
+    Entry { name: "InstallKind.AppImage", fr: "AppImage", en: "AppImage", linux: None },
+    Entry { name: "InstallKind.Flatpak", fr: "Flatpak", en: "Flatpak", linux: None },
+    Entry { name: "InstallKind.Header", fr: "Type d’installation", en: "Installation type", linux: None },
     Entry { name: "KeyAlt", fr: "Alt", en: "Alt", linux: None },
     Entry { name: "KeyComma", fr: "Virgule", en: "Comma", linux: None },
     Entry { name: "KeyControl", fr: "Ctrl", en: "Ctrl", linux: None },

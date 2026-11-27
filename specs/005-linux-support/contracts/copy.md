@@ -67,8 +67,15 @@ They are on the same list of the test.
 | `StartupMismatch.Action` | Same | Corriger | Fix | T115 |
 | `StartupPortalReason` | The desktop’s own permission prompt (Flatpak) | Bientôt démarre à l’ouverture de session pour compter votre journée dès le début. | Bientôt starts when you sign in so that your day is counted from its beginning. | T112 |
 | `LauncherEntry.Remove` | Settings › General, AppImage only | Retirer Bientôt du menu des applications | Remove Bientôt from the app menu | T144 |
-| `InstallKind.Flatpak` / `.AppImage` | Settings › About | Installé depuis Flathub / Fichier AppImage | Installed from Flathub / AppImage file | T121 |
+| `InstallKind.Header` | Settings › About, a row under the version, for a Flatpak or an AppImage only; the version row is unchanged, and Windows shows no such row | Type d’installation | Installation type | T121 |
+| `InstallKind.Flatpak` / `.AppImage` | Same, the row’s value | Flatpak / AppImage | Flatpak / AppImage | T121 |
 | `NoGraphics.Text` | Last-resort message when no window can open | Bientôt n’a pas pu ouvrir sa fenêtre : aucun pilote graphique compatible n’a été trouvé. | Bientôt could not open its window: no compatible graphics driver was found. | T117 |
+
+`InstallKind.*` replaces the earlier proposal « Installé depuis Flathub /
+Fichier AppImage »: the app can tell that it runs in a Flatpak, not which
+remote installed it, and a row titled like « Version » above it, with its
+value at the end, reads in one line in both languages. The panel decides
+the final wording.
 
 Texts of the site (download section, help page « Afficher l’icône de
 Bientôt sur GNOME », FAQ « Mac ou Linux ? ») and of the Flathub listing

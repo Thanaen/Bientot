@@ -9,6 +9,7 @@ use anyhow::Context as _;
 use bientot_core::diagnostics::{FinalPaths, NoFinalPathCheck};
 use bientot_platform::locale::InMemoryLocale;
 use bientot_platform::startup::LaunchIntent;
+use bientot_platform::system::InMemorySystem;
 use gpui::{App, AsyncApp, Bounds, PathPromptOptions, Window, px, size};
 
 use super::{Platform, PlatformContext};
@@ -90,6 +91,15 @@ pub fn wait_for_exit(_pid: u32, _timeout: Duration) -> bool {
 )]
 pub fn system_locale() -> InMemoryLocale {
     InMemoryLocale::default()
+}
+
+/// Describes no system.
+#[cfg_attr(
+    target_os = "linux",
+    allow(dead_code, reason = "the Linux backend has its own")
+)]
+pub fn system() -> Option<InMemorySystem> {
+    None
 }
 
 pub fn store_updates() -> Result<Option<NoUpdates>, Infallible> {
