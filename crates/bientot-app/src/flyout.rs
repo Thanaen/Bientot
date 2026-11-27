@@ -890,6 +890,7 @@ impl Render for Flyout {
                 palette
                     .overlay(&theme)
                     .rounded((corner - px(1.)).max(px(0.)))
+                    .when(window_bar, |overlay| overlay.top(size::TITLEBAR_HEIGHT))
             }));
 
         let fitted = self.fitted.clone();

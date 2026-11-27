@@ -89,3 +89,18 @@ fn the_title_bars_close_button_quits() {
     common::click(&mut cx, window, close);
     assert_eq!(quits.get(), 1, "« Fermer » quits");
 }
+
+#[test]
+fn the_palette_leaves_the_title_bar_within_reach() {
+    let quits = Rc::default();
+    let (mut cx, window) = window_mode(UNDECORATED, &quits);
+    common::press(&mut cx, window, "ctrl-shift-p");
+    let open = cx
+        .update(|cx| window.read(cx).map(|flyout| flyout.palette().is_some()))
+        .unwrap();
+    assert!(open, "the palette opens");
+    let width = size(&mut cx, window).width;
+    let close = point(width - WINDOW_CONTROL_WIDTH / 2., TITLEBAR_HEIGHT / 2.);
+    common::click(&mut cx, window, close);
+    assert_eq!(quits.get(), 1, "« Fermer » quits over the open palette");
+}
