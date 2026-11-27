@@ -170,6 +170,12 @@ for the table they generate). The tests in
 in one language, when format placeholders differ, when French punctuation lacks
 its no-break space, or when a text uses a straight apostrophe.
 
+A key whose text names Windows gets a Linux variant under the same name with
+`.Linux` added, such as `SettingsStartupCard.Header.Linux`, in both files: Linux
+shows it in place of the base text, and Windows shows the base. The tests fail
+when a text Linux shows names Windows or Microsoft, or a text Windows shows
+names Linux.
+
 ## Commits and pull requests
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) with a

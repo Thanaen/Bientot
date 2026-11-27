@@ -1,8 +1,9 @@
 # Contract: texts that differ on Linux
 
-Every text below is a **proposal** for the three-reviewer panel (designer
-critique, UX writing, screenshot review), which approves the final wording
-in the pull request of the task named. French is the source; English
+Every text below goes to the three-reviewer panel (designer critique, UX
+writing, screenshot review), which approves the final wording in the pull
+request of the task named. The State column says where each variant
+stands; the new texts are still proposals. French is the source; English
 follows it.
 
 Rules:
@@ -10,35 +11,44 @@ Rules:
 - A text shown on Linux never says « Windows » or « Microsoft »; a text
   shown on Windows never says « Linux » (FR-019, SC-012).
 - A Linux text names the user's **session** or **desktop** (« votre
-  session », « votre bureau »), not a distribution or a toolkit.
+  session », « votre bureau »), not a distribution or a toolkit. It may
+  say « système » (« la langue du système ») where it means the user's
+  system settings in general, as Settings › Langue › « Système » does.
 - The words « tray », « StatusNotifierItem », « Wayland », « X11 »,
   « D-Bus », « logind », « portal » never appear in the interface. They may
   appear in the diagnostic export.
 - The mechanism: a resource may have a `.Linux` variant; the string table
   resolves the variant on Linux and the base on Windows. A test fails when
-  a base text contains « Windows » or « Microsoft » and has no variant.
+  a base text contains « Windows » or « Microsoft » and has no variant,
+  unless the resource is in the test's short list of texts Linux never
+  shows, each with its reason (`SHOWN_ON_WINDOWS_ONLY` in
+  `crates/bientot-app/src/strings/tests.rs`).
 
 ## Variants of the 17 existing texts
 
-| Resource | Windows, French (unchanged) | Linux, French | Linux, English | Task |
-| --- | --- | --- | --- | --- |
-| `StartupDisabledByUser` | Bientôt est désactivé dans les applications de démarrage. Réactivez-le dans Windows. | *(not shown: the state does not exist on Linux)* | — | T115 |
-| `SettingsStartupChangeFailed` | Windows n’a pas modifié le démarrage. Vérifiez l’état ci-dessus et réessayez. | Le démarrage n’a pas pu être modifié. Vérifiez l’état ci-dessus et réessayez. | Startup could not be changed. Check the status above and try again. | T115 |
-| `SettingsStartupOtherCopyMessage` | Une autre copie de Bientôt démarre aussi avec Windows. Désactivez-la : elle peut s’appeler WorkTime ou Bientôt. | Une autre copie de Bientôt démarre aussi à l’ouverture de session. Désactivez-la dans l’une des deux. | Another copy of Bientôt also starts when you sign in. Turn it off in one of them. | T115 |
-| `NotificationRegistrationFailed` | Les notifications Windows sont indisponibles. Le suivi continue. | Les notifications sont indisponibles sur ce bureau. Le suivi continue. | Notifications are unavailable on this desktop. Workday tracking continues. | T103 |
-| `SettingsGeneralDescriptionDemoText` | La langue change après le redémarrage de Bientôt. Le démarrage Windows est indisponible en mode démo. | La langue change après le redémarrage de Bientôt. Le démarrage à l’ouverture de session est indisponible en mode démo. | Language changes apply after Bientôt restarts. Starting at sign-in is unavailable in demo mode. | T120 |
-| `SettingsStartupInput.AutomationProperties.Name` | Démarrer Bientôt avec Windows | Démarrer Bientôt à l’ouverture de session | Start Bientôt when you sign in | T115 |
-| `SettingsStartupCard.Header` | Démarrage Windows | Démarrage à l’ouverture de session | Start at sign-in | T115 |
-| `OnboardingActivityWatchApiKeyHelp.Text` | … la clé chiffrée pour votre compte Windows … | *(not shown: the ActivityWatch step is no longer reachable; the resource is deleted on both platforms if T120 confirms it is dead)* | — | T120 |
-| `OnboardingLanguageIntro.Text` | Bientôt suit la langue de Windows. Vous pourrez la changer dans Paramètres. | Bientôt suit la langue de votre session. Vous pourrez la changer dans Paramètres. | Bientôt follows your session’s language by default. You can change it later in Settings. | T126 |
-| `OnboardingLanguageSystemFrench` | Langue de Windows (français) | Langue de la session (français) | Session language (French) | T126 |
-| `OnboardingLanguageSystemEnglish` | Langue de Windows (anglais) | Langue de la session (anglais) | Session language (English) | T126 |
-| `OnboardingLanguageSystem` | Langue de Windows | Langue de la session | Session language | T126 |
-| `OnboardingStartupTitle.Text` | Démarrer avec Windows | Démarrer à l’ouverture de session | Start when you sign in | T115 |
-| `OnboardingStartupCard.Header` | Démarrage Windows | Démarrage à l’ouverture de session | Start at sign-in | T115 |
-| `OnboardingStartupInput.AutomationProperties.Name` | Démarrer Bientôt avec Windows | Démarrer Bientôt à l’ouverture de session | Start Bientôt when you sign in | T115 |
-| `UpdateAvailableDialogMessage.Text` | Une nouvelle version de Bientôt est disponible dans le Microsoft Store. … | *(not shown: the Flatpak has no in-app update; the AppImage uses the installer build’s texts, which name no platform)* | — | T143 |
-| `FlyoutRebuiltReviewText` | Votre session Windows était ouverte avant l’installation de Bientôt. Ce temps est compté provisoirement comme du travail. | Votre session était ouverte avant l’installation de Bientôt. Bientôt ne sait pas si l’écran a été verrouillé entre-temps : ce temps est compté provisoirement comme du travail. | Your session was open before Bientôt was installed. Bientôt cannot tell whether the screen was locked in the meantime, so this time counts as work for now. | T094 |
+| Resource | Windows, French (unchanged) | Linux, French | Linux, English | Task | State |
+| --- | --- | --- | --- | --- | --- |
+| `StartupDisabledByUser` | Bientôt est désactivé dans les applications de démarrage. Réactivez-le dans Windows. | *(not shown: the state does not exist on Linux)* | — | T115 | No variant; in the test’s list of texts Linux never shows |
+| `SettingsStartupChangeFailed` | Windows n’a pas modifié le démarrage. Vérifiez l’état ci-dessus et réessayez. | Le démarrage automatique n’a pas pu être modifié. Vérifiez l’état et réessayez. | Automatic startup could not be changed. Check the status above and try again. | T115 | Approved by the panel (T120) |
+| `SettingsStartupOtherCopyMessage` | Une autre copie de Bientôt démarre aussi avec Windows. Désactivez-la : elle peut s’appeler WorkTime ou Bientôt. | Une autre copie de Bientôt démarre aussi à l’ouverture de session. Désactivez le démarrage automatique dans l’une des deux. | Another copy of Bientôt also starts when you sign in. Turn off automatic startup in one of them. | T115 | Approved by the panel (T120) |
+| `NotificationRegistrationFailed` | Les notifications Windows sont indisponibles. Le suivi continue. | Les notifications sont indisponibles sur ce bureau. Le suivi continue. | Notifications are unavailable on this desktop. Workday tracking continues. | T103 | Approved by the panel (T120) |
+| `SettingsGeneralDescriptionDemoText` | La langue change après le redémarrage de Bientôt. Le démarrage Windows est indisponible en mode démo. | *(not shown: no code read it)* | — | T120 | Deleted on both platforms (T120): no code read it |
+| `SettingsStartupInput.AutomationProperties.Name` | Démarrer Bientôt avec Windows | Démarrer Bientôt à l’ouverture de session | Start Bientôt when you sign in | T115 | Approved by the panel (T120) |
+| `SettingsStartupCard.Header` | Démarrage Windows | Démarrage automatique | Automatic startup | T115 | Approved by the panel (T120) |
+| `OnboardingActivityWatchApiKeyHelp.Text` | … la clé chiffrée pour votre compte Windows … | *(not shown: the ActivityWatch step is no longer reachable; the resource is deleted on both platforms if T120 confirms it is dead)* | — | T120 | Deleted on both platforms (T120): no code read it |
+| `OnboardingLanguageIntro.Text` | Bientôt suit la langue de Windows. Vous pourrez la changer dans Paramètres. | Bientôt suit la langue du système. Vous pourrez la changer dans Paramètres. | Bientôt follows your system language by default. You can change it later in Settings. | T126 | Approved by the panel (T120) |
+| `OnboardingLanguageSystemFrench` | Langue de Windows (français) | *(not shown: no code read it)* | — | T126 | Deleted on both platforms (T120): no code read it |
+| `OnboardingLanguageSystemEnglish` | Langue de Windows (anglais) | *(not shown: no code read it)* | — | T126 | Deleted on both platforms (T120): no code read it |
+| `OnboardingLanguageSystem` | Langue de Windows | Langue du système | System language | T126 | Approved by the panel (T120) |
+| `OnboardingStartupTitle.Text` | Démarrer avec Windows | *(not shown: no code read it)* | — | T115 | Deleted on both platforms (T120): no code read it |
+| `OnboardingStartupCard.Header` | Démarrage Windows | *(not shown: no code read it)* | — | T115 | Deleted on both platforms (T120): no code read it |
+| `OnboardingStartupInput.AutomationProperties.Name` | Démarrer Bientôt avec Windows | *(not shown: no code read it)* | — | T115 | Deleted on both platforms (T120): no code read it |
+| `UpdateAvailableDialogMessage.Text` | Une nouvelle version de Bientôt est disponible dans le Microsoft Store. … | *(not shown: no code read it)* | — | T143 | Deleted on both platforms (T120): no code read it |
+| `FlyoutRebuiltReviewText` | Votre session Windows était ouverte avant l’installation de Bientôt. Ce temps est compté provisoirement comme du travail. | Votre session était ouverte avant l’installation de Bientôt, qui ne peut donc pas savoir si l’écran a été verrouillé. Ce temps est compté provisoirement comme du travail. | Your session was open before Bientôt was installed, so Bientôt cannot tell whether the screen was locked. This time counts as work for now. | T094 | Approved by the panel (T120) |
+
+Two more texts name the Microsoft Store and have no variant, because no
+Linux build has a Store: `UpdateNotice.Message` and `UsagePingChannelStore`.
+They are on the same list of the test.
 
 ## New texts
 

@@ -2,10 +2,14 @@
 //! `crates/bientot-app/strings/{fr-FR,en-US}.resw`. A key missing from the `.resw` files is a
 //! missing [`Key`] variant: a build error.
 //!
+//! A key may have a `.Linux` variant, `SettingsStartupCard.Header.Linux`, which Linux shows in
+//! place of the base text; Windows shows the base.
+//!
 //! After editing a `.resw` file, regenerate the table with
 //! `BIENTOT_UPDATE_STRINGS=1 cargo test -p bientot-app strings`; the tests fail while it lags.
 
 use std::fmt::Display;
+use std::sync::OnceLock;
 
 use bientot_core::settings::language;
 use gpui::Global;
@@ -54,12 +58,9 @@ impl Language {
             .unwrap_or_default()
     }
 
+    /// `key` as the system of [`Wording::current`] words it.
     pub fn text(self, key: Key) -> &'static str {
-        let entry = &table::ENTRIES[key as usize];
-        match self {
-            Language::French => entry.fr,
-            Language::English => entry.en,
-        }
+        table::ENTRIES[key as usize].text(self, Wording::current())
     }
 
     /// `key` with its .NET composite-format holes filled: `{0}` takes the first argument, and
@@ -172,6 +173,38 @@ fn nth(list: &'static str, index: usize) -> &'static str {
         .expect("the tests check the length of every name list")
 }
 
+/// The system whose words the texts take: Linux takes a key's `.Linux` variant, Windows and
+/// the systems without a backend its base.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Wording {
+    Windows,
+    Linux,
+}
+
+/// The wording [`Wording::choose`] set, once, for the whole process.
+static CHOSEN: OnceLock<Wording> = OnceLock::new();
+
+impl Wording {
+    /// The wording of the system the app is built for. The unit tests read the base texts on
+    /// every system, so that what they expect does not depend on where they run.
+    const BUILT: Wording = if cfg!(test) {
+        Wording::Windows
+    } else {
+        crate::platform::WORDING
+    };
+
+    /// The wording every text takes: the one chosen, else the build's.
+    pub fn current() -> Self {
+        CHOSEN.get().copied().unwrap_or(Self::BUILT)
+    }
+
+    /// Makes `self` the wording of every text of the process: the screenshots of one system are
+    /// taken on another. Call it before the first text; a second call is refused.
+    pub fn choose(self) -> Result<(), Wording> {
+        CHOSEN.set(self).map_err(|_| Self::current())
+    }
+}
+
 impl Key {
     /// The key as the `.resw` files spell it, `ShellTitle.Text` for [`Key::ShellTitleText`].
     pub fn name(self) -> &'static str {
@@ -183,6 +216,22 @@ pub(crate) struct Entry {
     pub name: &'static str,
     pub fr: &'static str,
     pub en: &'static str,
+    /// The `.Linux` variant, French then English.
+    pub linux: Option<(&'static str, &'static str)>,
+}
+
+impl Entry {
+    /// Its `.Linux` variant on Linux when it has one, else its base.
+    fn text(&self, language: Language, wording: Wording) -> &'static str {
+        let (fr, en) = match (wording, self.linux) {
+            (Wording::Linux, Some(linux)) => linux,
+            _ => (self.fr, self.en),
+        };
+        match language {
+            Language::French => fr,
+            Language::English => en,
+        }
+    }
 }
 
 /// Replaces each space with a no-break space, so that a number and its unit never wrap apart.

@@ -74,6 +74,10 @@ fn main() -> anyhow::Result<()> {
             rest.push(argument);
         }
     }
+    platform
+        .wording()
+        .choose()
+        .map_err(|chosen| anyhow::anyhow!("the texts already took {chosen:?}"))?;
     let launch = Launch::parse(rest).context(USAGE)?;
     anyhow::ensure!(launch.theme != ThemeMode::System, USAGE);
     let language = launch.language.context(USAGE)?;

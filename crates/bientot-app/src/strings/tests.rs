@@ -9,6 +9,9 @@ use super::*;
 
 const UPDATE_VARIABLE: &str = "BIENTOT_UPDATE_STRINGS";
 
+/// The suffix of a key's Linux variant.
+const LINUX_SUFFIX: &str = ".Linux";
+
 fn resw_path(language: Language) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("strings")
@@ -72,17 +75,32 @@ fn generate() -> String {
             .collect::<Vec<_>>()
     );
 
+    for name in french.keys() {
+        if let Some(base) = name.strip_suffix(LINUX_SUFFIX) {
+            assert!(french.contains_key(base), "{name} is the variant of no key");
+        }
+    }
     let mut variants = BTreeSet::new();
     let mut enumeration = String::new();
     let mut entries = String::new();
-    for (name, fr) in &french {
+    let mut count = 0;
+    for (name, fr) in french
+        .iter()
+        .filter(|(name, _)| !name.ends_with(LINUX_SUFFIX))
+    {
         let variant = variant(name);
         assert!(variants.insert(variant.clone()), "two keys give {variant}");
         enumeration.push_str(&format!("    {variant},\n"));
+        let linux_name = format!("{name}{LINUX_SUFFIX}");
+        let linux = match french.get(&linux_name) {
+            Some(linux_fr) => format!("Some(({linux_fr:?}, {:?}))", english[&linux_name]),
+            None => "None".to_owned(),
+        };
         entries.push_str(&format!(
-            "    Entry {{ name: {name:?}, fr: {fr:?}, en: {:?} }},\n",
+            "    Entry {{ name: {name:?}, fr: {fr:?}, en: {:?}, linux: {linux} }},\n",
             english[name]
         ));
+        count += 1;
     }
     format!(
         "// Generated from crates/bientot-app/strings/{{fr-FR,en-US}}.resw by\n\
@@ -94,8 +112,7 @@ fn generate() -> String {
          #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]\n\
          pub enum Key {{\n{enumeration}}}\n\
          \n\
-         pub(super) static ENTRIES: [Entry; {}] = [\n{entries}];\n",
-        french.len()
+         pub(super) static ENTRIES: [Entry; {count}] = [\n{entries}];\n"
     )
 }
 
@@ -114,6 +131,19 @@ fn the_table_matches_the_resw_files() {
     );
 }
 
+/// Every text of `entry`, with the file and the system it is for: the base in each language,
+/// then the Linux variant if any.
+fn texts(entry: &Entry) -> Vec<(&'static str, Wording, &'static str)> {
+    let mut texts = vec![
+        ("fr-FR", Wording::Windows, entry.fr),
+        ("en-US", Wording::Windows, entry.en),
+    ];
+    if let Some((fr, en)) = entry.linux {
+        texts.extend([("fr-FR", Wording::Linux, fr), ("en-US", Wording::Linux, en)]);
+    }
+    texts
+}
+
 #[test]
 fn every_key_reads_its_value_in_each_language() {
     let french = read_resw(Language::French);
@@ -121,6 +151,11 @@ fn every_key_reads_its_value_in_each_language() {
     for entry in &table::ENTRIES {
         assert_eq!(entry.fr, french[entry.name], "{}", entry.name);
         assert_eq!(entry.en, english[entry.name], "{}", entry.name);
+        let linux_name = format!("{}{LINUX_SUFFIX}", entry.name);
+        let linux = french
+            .get(&linux_name)
+            .map(|fr| (fr.as_str(), english[&linux_name].as_str()));
+        assert_eq!(entry.linux, linux, "{linux_name}");
     }
     assert_eq!(
         Language::French.text(Key::WorkdayStatusDegraded),
@@ -147,11 +182,16 @@ fn holes(value: &str) -> BTreeSet<usize> {
         .collect()
 }
 
+/// The code fills a key's holes the same way in each language and on each system.
 #[test]
-fn both_languages_fill_the_same_holes() {
+fn both_languages_and_both_systems_fill_the_same_holes() {
     let mismatched: Vec<_> = table::ENTRIES
         .iter()
-        .filter(|entry| holes(entry.fr) != holes(entry.en))
+        .filter(|entry| {
+            texts(entry)
+                .iter()
+                .any(|(_, _, text)| holes(text) != holes(entry.fr))
+        })
         .map(|entry| entry.name)
         .collect();
     assert_eq!(mismatched, Vec::<&str>::new());
@@ -161,9 +201,9 @@ fn both_languages_fill_the_same_holes() {
 fn no_value_is_empty() {
     let mut empty = Vec::new();
     for entry in &table::ENTRIES {
-        for (tag, value) in [("fr-FR", entry.fr), ("en-US", entry.en)] {
+        for (tag, wording, value) in texts(entry) {
             if value.trim().is_empty() {
-                empty.push(format!("{tag}: {}", entry.name));
+                empty.push(format!("{tag} {wording:?}: {}", entry.name));
             }
         }
     }
@@ -179,13 +219,13 @@ fn no_value_names_the_app_worktime() {
         .iter()
         .filter(|entry| entry.name != "SettingsStartupOtherCopyMessage")
     {
-        for (tag, value) in [("fr-FR", entry.fr), ("en-US", entry.en)] {
+        for (tag, wording, value) in texts(entry) {
             if value
                 .to_lowercase()
                 .replace(".worktime", "")
                 .contains("worktime")
             {
-                faults.push(format!("{tag}: {}", entry.name));
+                faults.push(format!("{tag} {wording:?}: {}", entry.name));
             }
         }
     }
@@ -221,13 +261,18 @@ fn french_spacing_faults(value: &str) -> Vec<String> {
 fn values_use_typographic_apostrophes_and_french_spacing() {
     let mut faults = Vec::new();
     for entry in &table::ENTRIES {
-        for (tag, value) in [("fr-FR", entry.fr), ("en-US", entry.en)] {
+        for (tag, wording, value) in texts(entry) {
             if value.contains('\'') {
-                faults.push(format!("{tag}: {} uses ' instead of ’", entry.name));
+                faults.push(format!(
+                    "{tag} {wording:?}: {} uses ' instead of ’",
+                    entry.name
+                ));
             }
-        }
-        for fault in french_spacing_faults(entry.fr) {
-            faults.push(format!("fr-FR: {}: {fault}", entry.name));
+            if tag == "fr-FR" {
+                for fault in french_spacing_faults(value) {
+                    faults.push(format!("fr-FR {wording:?}: {}: {fault}", entry.name));
+                }
+            }
         }
     }
     assert_eq!(faults, Vec::<String>::new());
@@ -358,5 +403,96 @@ fn writes_a_release_date_with_its_year_and_the_french_first_of_the_month() {
             &[first, jiff::civil::date(2026, 10, 2)]
         ),
         "Semaine du 1er au 2\u{a0}octobre"
+    );
+}
+
+/// The keys whose base names Windows or Microsoft and that Linux never shows, so that they
+/// need no `.Linux` variant, each with the reason (`contracts/copy.md` of
+/// specs/005-linux-support, « not shown »).
+const SHOWN_ON_WINDOWS_ONLY: &[(&str, &str)] = &[
+    (
+        "StartupDisabledByUser",
+        "the Linux autostart entry has no state turned off by the system",
+    ),
+    (
+        "UpdateNotice.Message",
+        "the Store's update notice: a Linux build has no Store",
+    ),
+    (
+        "UsagePingChannelStore",
+        "the Store channel of the usage signal: a Linux build is never a Store build",
+    ),
+];
+
+fn names_windows(text: &str) -> bool {
+    text.contains("Windows") || text.contains("Microsoft")
+}
+
+/// SC-012 of specs/005-linux-support: no text Linux shows names Windows or Microsoft, and no
+/// text Windows shows names Linux.
+#[test]
+fn each_system_reads_only_its_own_name() {
+    let mut faults = Vec::new();
+    for entry in &table::ENTRIES {
+        let shown_on_windows_only = SHOWN_ON_WINDOWS_ONLY
+            .iter()
+            .any(|(name, _)| *name == entry.name);
+        for language in Language::ALL {
+            let windows = entry.text(language, Wording::Windows);
+            if windows.contains("Linux") {
+                faults.push(format!("{} on Windows: {windows}", entry.name));
+            }
+            let linux = entry.text(language, Wording::Linux);
+            if names_windows(linux) && !shown_on_windows_only {
+                faults.push(format!("{} on Linux: {linux}", entry.name));
+            }
+        }
+    }
+    assert_eq!(faults, Vec::<String>::new());
+
+    for (name, reason) in SHOWN_ON_WINDOWS_ONLY {
+        let entry = table::ENTRIES
+            .iter()
+            .find(|entry| entry.name == *name)
+            .unwrap_or_else(|| panic!("{name} is gone: drop it from the list"));
+        assert!(
+            entry.linux.is_none() && names_windows(entry.fr) && names_windows(entry.en),
+            "{name} ({reason}) no longer needs its place in the list"
+        );
+    }
+}
+
+fn worded(language: Language, key: Key, wording: Wording) -> &'static str {
+    table::ENTRIES[key as usize].text(language, wording)
+}
+
+#[test]
+fn linux_reads_the_variant_and_windows_the_base() {
+    let key = Key::SettingsStartupCardHeader;
+    assert_eq!(
+        worded(Language::French, key, Wording::Windows),
+        "Démarrage Windows"
+    );
+    assert_eq!(
+        worded(Language::French, key, Wording::Linux),
+        "Démarrage automatique"
+    );
+    assert_eq!(
+        worded(Language::English, key, Wording::Linux),
+        "Automatic startup"
+    );
+    assert_eq!(
+        worded(
+            Language::English,
+            Key::WorkdayStatusDegraded,
+            Wording::Linux
+        ),
+        "Check activity tracking",
+        "a key without a variant reads its base"
+    );
+    assert_eq!(
+        Language::French.text(key),
+        "Démarrage Windows",
+        "unit tests read the base"
     );
 }
