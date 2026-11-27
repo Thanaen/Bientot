@@ -64,7 +64,7 @@ jobs:
             rust=true
           fi
 
-          app_files='^crates/bientot-(app|platform|windows|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^packaging/|^\.github/workflows/ci\.yml$'
+          app_files='^crates/bientot-(app|platform|windows|linux|store|plugins|plugin-api)/|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^packaging/|^\.github/workflows/ci\.yml$'
 
           rust_windows=false
           if grep -qE "${app_files}|^scripts/(measure-performance|package-rust|verify-package-executables|verify-package-data)\.ps1$" <<< "$files"; then
