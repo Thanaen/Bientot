@@ -10,10 +10,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use bientot_platform::single_instance::{Acquired, InstanceLock};
+use bientot_platform::single_instance::Acquired;
 use bientot_store::data_directory::DataDirectory;
 
-use super::{file_stem, instance_folder};
+use super::{InstanceNote, file_stem, instance_folder};
 
 /// How long a later launch tries to reach the owner before it exits anyway, as if accepted. Its
 /// request waits in the socket meanwhile, so an owner still starting shows itself once it
@@ -30,6 +30,8 @@ pub struct PrimaryInstance {
     // Dropped before the lock, so that no later owner's socket is ever removed.
     socket: Option<Socket>,
     lock: File,
+    /// What went wrong with the socket, told once it listens.
+    notes: Vec<InstanceNote>,
 }
 
 /// The socket a later launch reaches the owner on; its file goes with it.
@@ -64,9 +66,11 @@ impl PrimaryInstance {
         loop {
             match lock.try_lock() {
                 Ok(()) => {
+                    let mut notes = Vec::new();
                     return Ok(Acquired::Primary(Self {
-                        socket: bind(socket),
+                        socket: bind(socket, &mut notes),
                         lock,
+                        notes,
                     }));
                 }
                 Err(TryLockError::WouldBlock) => {}
@@ -85,24 +89,28 @@ impl PrimaryInstance {
             thread::sleep(until(deadline).min(RETRY));
         }
     }
-}
 
-impl InstanceLock for PrimaryInstance {
-    type Listener = ActivationListener;
-
-    /// In the folder [`instance_folder`] names for this session.
-    fn acquire(directory: &DataDirectory) -> io::Result<Acquired<Self>> {
+    /// Holds `directory`, in the folder [`instance_folder`] names for this session.
+    pub fn acquire(directory: &DataDirectory) -> io::Result<Acquired<Self>> {
         let folder = instance_folder(std::env::var_os("XDG_RUNTIME_DIR"), directory.path());
         Self::claim(&folder, file_stem(&directory.case_sensitive_instance_key()))
     }
 
     /// Calls `on_activation` on a thread of its own for each request of a later launch. The
-    /// folder stays held until the listener is dropped.
-    fn listen(
+    /// folder stays held until the listener is dropped. `on_note` is told at once what went
+    /// wrong with the socket when the folder was claimed, then, on that thread, a failure to
+    /// receive a launch.
+    pub fn listen(
         self,
         mut on_activation: impl FnMut() + Send + 'static,
+        mut on_note: impl FnMut(InstanceNote) + Send + 'static,
     ) -> io::Result<ActivationListener> {
-        let Self { socket, lock } = self;
+        let Self {
+            socket,
+            lock,
+            notes,
+        } = self;
+        notes.into_iter().for_each(&mut on_note);
         let stop = Arc::new(AtomicBool::new(false));
         let socket = socket.map(Arc::new);
         let thread = socket
@@ -112,7 +120,9 @@ impl InstanceLock for PrimaryInstance {
                 thread::Builder::new()
                     .name("bientot-activation".into())
                     .spawn(move || {
-                        while let Some(accepted) = next_launch(&socket.listener, &stop) {
+                        while let Some(accepted) =
+                            next_launch(&socket.listener, &stop, &mut on_note)
+                        {
                             if accept(accepted) {
                                 on_activation();
                             }
@@ -154,14 +164,19 @@ impl Drop for ActivationListener {
     }
 }
 
-/// The next connection of a later launch, `None` once the listener stops or `accept` fails.
-fn next_launch(listener: &UnixListener, stop: &AtomicBool) -> Option<UnixStream> {
+/// The next connection of a later launch, `None` once the listener stops or `accept` fails,
+/// which `on_note` is told.
+fn next_launch(
+    listener: &UnixListener,
+    stop: &AtomicBool,
+    on_note: &mut impl FnMut(InstanceNote),
+) -> Option<UnixStream> {
     let accepted = listener.accept();
     if stop.load(Ordering::Acquire) {
         return None;
     }
     accepted
-        .inspect_err(|error| log::warn!("cannot receive later launches: {error}"))
+        .inspect_err(|error| on_note(InstanceNote::AcceptFailed(error.kind())))
         .ok()
         .map(|(stream, _)| stream)
 }
@@ -219,22 +234,18 @@ fn ask(mut stream: UnixStream, deadline: Instant) -> Answer {
     }
 }
 
-/// Listens at `path` in place of the socket a dead owner left there. Without a socket the folder
-/// is still held, and a later launch exits without showing this one.
-fn bind(path: PathBuf) -> Option<Socket> {
+/// Listens at `path` in place of the socket a dead owner left there, and adds to `notes` what
+/// went wrong. Without a socket the folder is still held, and a later launch exits without
+/// showing this one.
+fn bind(path: PathBuf, notes: &mut Vec<InstanceNote>) -> Option<Socket> {
     match std::fs::remove_file(&path) {
         Err(error) if error.kind() != io::ErrorKind::NotFound => {
-            log::warn!("cannot remove the stale socket {}: {error}", path.display());
+            notes.push(InstanceNote::StaleSocketKept(error.kind()));
         }
         _ => {}
     }
     UnixListener::bind(&path)
-        .inspect_err(|error| {
-            log::warn!(
-                "cannot receive later launches at {}: {error}",
-                path.display()
-            );
-        })
+        .inspect_err(|error| notes.push(InstanceNote::Unbound(error.kind())))
         .ok()
         .map(|listener| Socket { listener, path })
 }

@@ -163,8 +163,8 @@ names another process on the host (`SessionLookup::for_install`). The export
 names the source in `system.backends`. When its watch does not start (no
 system bus, no logind, no session, or a Flatpak without the permission), the
 diagnostic log gets the warning `lifecycle.watch_failed` (`kind`:
-`not_found`, `permission_denied` or `other`; never the error's text) and the
-export names `none`.
+`not_found`, `permission_denied`, `address_in_use`, `invalid_input` or
+`other`; never the error's text) and the export names `none`.
 
 - Service `org.freedesktop.login1`.
 - Session object: `PropertiesChanged` on `org.freedesktop.login1.Session`
@@ -251,7 +251,11 @@ export names `none`.
 - `Unavailable` is `platform::NotificationsRefused`: the app reserves no
   reminder (`notification.registration_failed` in the log). A `Notify` or
   `AddNotification` refused later leaves its reminder reserved, as a toast
-  that fails on Windows; it is logged with `log`, not in the diagnostic log.
+  that fails on Windows, and is logged as one: `notification.failed`
+  (level `Error`, `exceptionType` the type a refused toast names), through
+  `Platform::backend_notes`. The bus's error text is left out, as it can
+  name the user's session or bus. The export keeps the line, as it keeps a
+  Windows one.
 - A demo shows none, as on Windows.
 - The last resort, `platform::show_fatal` when no window can open:
   `show_once` sends `last_resort(title, body)`, with delivery id
@@ -334,10 +338,10 @@ export names `none`.
 
 ## Single instance
 
-- `bientot_linux::single_instance::PrimaryInstance`, `platform::Instance`
-  on Linux. Directory `$XDG_RUNTIME_DIR/bientot/` (mode 0700;
-  `$XDG_RUNTIME_DIR` only when absolute); fallback `<data folder>/run/`
-  (mode 0700, the data folder itself created as usual).
+- `bientot_linux::single_instance::PrimaryInstance`, which
+  `platform::Instance` wraps on Linux. Directory `$XDG_RUNTIME_DIR/bientot/`
+  (mode 0700; `$XDG_RUNTIME_DIR` only when absolute); fallback
+  `<data folder>/run/` (mode 0700, the data folder itself created as usual).
 - The files are named by the first 41 characters of the case-sensitive
   instance key (`WorkTime-` and 128 bits of the hash), the stem: a
   socket's path must fit the 108 bytes of `sun_path`, which the whole key
@@ -357,6 +361,15 @@ export names `none`.
 - A first instance that gets the lock removes a stale socket before
   binding. One that cannot bind (a path still too long) logs it and keeps
   the lock: later launches exit after 2 s without showing it.
+- Diagnostic log, through `Platform::backend_notes`, each a warning with the
+  error's `kind` alone (`not_found`, `permission_denied`, `address_in_use`,
+  `invalid_input` or `other`), as its text can name the folder:
+  `instance.stale_socket_kept` (a dead owner's socket not removed),
+  `instance.listen_failed` (no socket) and `instance.accept_failed` (no
+  later launch received from then on). The folder is claimed before the
+  platform is built, so `PrimaryInstance` keeps what went wrong until it
+  listens. The export's projection of the log keeps only its fixed list of
+  events, which has none of them.
 - Dropping the listener wakes its thread with a connection of its own,
   joins it, removes the socket, then releases the lock.
 - A restart for an import waits for the old process

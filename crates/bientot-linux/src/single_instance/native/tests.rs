@@ -25,19 +25,37 @@ fn is_secondary(acquired: &Acquired<PrimaryInstance>) -> bool {
 
 /// Listens on `instance` and sends a value for each activation.
 fn listen(instance: PrimaryInstance) -> (ActivationListener, mpsc::Receiver<()>) {
-    let (activated, activations) = mpsc::channel();
-    let listener = instance
-        .listen(move || {
-            activated.send(()).ok();
-        })
-        .unwrap();
+    let (listener, activations, _notes) = listen_noting(instance);
     (listener, activations)
+}
+
+/// Listens on `instance`, and sends a value for each activation and each note.
+fn listen_noting(
+    instance: PrimaryInstance,
+) -> (
+    ActivationListener,
+    mpsc::Receiver<()>,
+    mpsc::Receiver<InstanceNote>,
+) {
+    let (activated, activations) = mpsc::channel();
+    let (noted, notes) = mpsc::channel();
+    let listener = instance
+        .listen(
+            move || {
+                activated.send(()).ok();
+            },
+            move |note| {
+                noted.send(note).ok();
+            },
+        )
+        .unwrap();
+    (listener, activations, notes)
 }
 
 #[test]
 fn a_later_launch_hands_over_to_the_owner_and_is_secondary() {
     let folder = TempDir::new().unwrap();
-    let (_listener, activations) = listen(primary(folder.path()));
+    let (_listener, activations, notes) = listen_noting(primary(folder.path()));
 
     for _ in 0..2 {
         let started = Instant::now();
@@ -51,6 +69,7 @@ fn a_later_launch_hands_over_to_the_owner_and_is_secondary() {
             .expect("the owner is activated");
     }
     assert!(activations.try_recv().is_err(), "once per launch");
+    assert_eq!(notes.try_recv().ok(), None, "nothing went wrong");
 }
 
 #[test]
@@ -117,9 +136,29 @@ fn the_socket_a_killed_owner_left_is_replaced() {
     std::fs::write(folder.path().join(format!("{STEM}.lock")), "").unwrap();
     assert!(UnixStream::connect(&socket).is_err(), "stale");
 
-    let (_listener, activations) = listen(primary(folder.path()));
+    let (_listener, activations, notes) = listen_noting(primary(folder.path()));
     assert!(is_secondary(&claim(folder.path())));
     activations.recv_timeout(SOON).unwrap();
+    assert_eq!(notes.try_recv().ok(), None, "a stale socket is no failure");
+}
+
+#[test]
+fn a_stale_socket_that_cannot_be_removed_is_noted_and_leaves_no_socket() {
+    let folder = TempDir::new().unwrap();
+    let socket = folder.path().join(format!("{STEM}.sock"));
+    std::fs::create_dir(&socket).unwrap();
+    std::fs::write(socket.join("kept"), "").unwrap();
+
+    let (_listener, activations, notes) = listen_noting(primary(folder.path()));
+    assert_eq!(
+        notes.try_iter().collect::<Vec<_>>(),
+        [
+            InstanceNote::StaleSocketKept(io::ErrorKind::IsADirectory),
+            InstanceNote::Unbound(io::ErrorKind::AddrInUse),
+        ]
+    );
+    assert!(is_secondary(&claim(folder.path())));
+    assert!(activations.try_recv().is_err());
 }
 
 #[test]
@@ -151,7 +190,11 @@ fn the_folder_is_private_to_the_user_and_made_under_a_data_folder_not_yet_there(
 fn without_a_socket_the_folder_is_still_held() {
     let root = TempDir::new().unwrap();
     let folder = root.path().join("a".repeat(120));
-    let (_listener, activations) = listen(primary(&folder));
+    let (_listener, activations, notes) = listen_noting(primary(&folder));
+    assert_eq!(
+        notes.try_iter().collect::<Vec<_>>(),
+        [InstanceNote::Unbound(io::ErrorKind::InvalidInput)]
+    );
     assert!(is_secondary(&claim(&folder)));
     assert!(activations.try_recv().is_err());
 }

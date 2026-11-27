@@ -42,7 +42,17 @@ fn started(
     clicks.on_click(Box::new(move |delivery_id| {
         sender.send(delivery_id.map(str::to_owned)).ok();
     }));
-    DesktopNotifications::start(service, clicks).map(|notifications| (notifications, received))
+    DesktopNotifications::start(service, clicks, || {})
+        .map(|notifications| (notifications, received))
+}
+
+/// Started on `service`, with a value for each show the service refused.
+fn started_refusing(service: Service) -> Result<(DesktopNotifications, Receiver<()>), Unavailable> {
+    let (refused, refusals) = mpsc::channel();
+    DesktopNotifications::start(service, QueuedClicks::default(), move || {
+        refused.send(()).ok();
+    })
+    .map(|notifications| (notifications, refusals))
 }
 
 /// Waits up to [`WAIT`] for `check` to give a value.
@@ -268,7 +278,7 @@ fn desktop_harness_keeps_showing_after_the_server_refused_one() {
         .lock()
         .unwrap_or_else(PoisonError::into_inner);
     let bus = session();
-    let (notifications, _clicks) = started(Service::Server).unwrap();
+    let (notifications, refusals) = started_refusing(Service::Server).unwrap();
     let refused = request("refused:first");
 
     {
@@ -281,11 +291,17 @@ fn desktop_harness_keeps_showing_after_the_server_refused_one() {
                 .then_some(())
         });
     }
+    assert_eq!(refusals.recv_timeout(WAIT), Ok(()), "the refusal is told");
     notifications.show(&request("refused:next")).unwrap();
 
     eventually("the next notification", || {
         notified(&bus, &request("refused:next").body)
     });
+    assert_eq!(
+        refusals.recv_timeout(QUIET),
+        Err(mpsc::RecvTimeoutError::Timeout),
+        "a notification shown is no refusal"
+    );
 }
 
 /// A notification portal on the session bus for the life of the value: python-dbusmock serving

@@ -211,9 +211,11 @@ Whether the system shows the notifications is asked once, at start
 (`Platform::notifier`). A show refused later changes nothing: its reminder
 stays reserved, the flyout shows no notice and nothing asks again, as for a
 toast that fails on Windows (T103: the panel kept that parity). The refusal
-is logged: on Windows `show` returns it, as `notification.failed` in the
-diagnostic log; on Linux `show` returns before the service answers, and the
-notification thread logs the refusal with `log`.
+is logged as `notification.failed` in the diagnostic log: on Windows `show`
+returns it; on Linux `show` returns before the service answers, and the
+notification thread hands the refusal to `Platform::backend_notes`. The
+Linux line names the `exceptionType` the Windows one names, without its
+`message`, whose text can name the user's session or bus.
 
 ## Start at sign-in
 
@@ -494,7 +496,8 @@ pub struct Platform {
     /// tray's is also in the diagnostic log.
     pub backends: Backends,
     /// The lines the backends write to the diagnostic log once the day opens, such as
-    /// `idle.backend`; closed where none come (Windows).
+    /// `idle.backend`, `notification.failed` or `instance.listen_failed`; closed where none
+    /// come (Windows).
     pub backend_notes: BackendNotes,             // UnboundedReceiver<BackendNote>
     pub desktop: Rc<dyn Desktop>,
 }
