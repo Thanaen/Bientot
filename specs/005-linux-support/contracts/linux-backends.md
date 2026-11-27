@@ -22,7 +22,8 @@ when refused or in a demo), the autostart (`xdg-autostart`, or `none` in
 a demo and, until T112, in a Flatpak), the idle time (the backend in use,
 under the names below, or `none` when none answers and in a demo; absent
 until the first selection ends)
-and the lifecycle (`logind`, or `none` in a demo). Each name the system gives is
+and the lifecycle (`logind`, or `none` in a demo and once its watch did
+not start). Each name the system gives is
 written only when it is 1 to 64 characters of `a-z`, `0-9`, `.`, `_` and
 `-`, as os-release allows in `ID`
 (`bientot_core::diagnostics::DiagnosticName`): free text, which could name
@@ -146,8 +147,12 @@ returns `None`. Dropping the watch ends the thread.
 `LogindSource` the `LifecycleSource` (Linux). A demo watches no session, as
 on Windows. A Flatpak skips `GetSessionByPID` and starts from
 `XDG_SESSION_ID`, since its own pid namespace gives the process an id that
-names another process on the host (`SessionLookup::for_install`). The source writes nothing to the diagnostic log; the export
-names it in `system.backends`.
+names another process on the host (`SessionLookup::for_install`). The export
+names the source in `system.backends`. When its watch does not start (no
+system bus, no logind, no session, or a Flatpak without the permission), the
+diagnostic log gets the warning `lifecycle.watch_failed` (`kind`:
+`not_found`, `permission_denied` or `other`; never the error's text) and the
+export names `none`.
 
 - Service `org.freedesktop.login1`.
 - Session object: `PropertiesChanged` on `org.freedesktop.login1.Session`

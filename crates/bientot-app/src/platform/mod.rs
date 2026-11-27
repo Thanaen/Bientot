@@ -132,6 +132,9 @@ pub struct BackendNote {
     pub properties: Vec<(&'static str, DiagnosticValue<'static>)>,
     /// The idle backend in use from this line on, which the export names in `Backends::idle`.
     pub idle: Option<&'static str>,
+    /// The lifecycle backend in use from this line on, which the export names in
+    /// `Backends::lifecycle`.
+    pub lifecycle: Option<&'static str>,
 }
 
 /// The ports of the system, for one launch.
@@ -198,7 +201,7 @@ pub struct Backends {
     /// The idle time's, as the last `BackendNote` naming one says, and `None` before the first:
     /// the diagnostic log tells each change.
     pub idle: Option<&'static str>,
-    /// The lock, unlock, sleep and resume's.
+    /// The lock, unlock, sleep and resume's, until a `BackendNote` says its watch did not start.
     pub lifecycle: Option<&'static str>,
 }
 

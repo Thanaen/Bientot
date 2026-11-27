@@ -15,6 +15,7 @@ mod direct;
 mod null;
 
 use std::cell::RefCell;
+use std::io;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -30,7 +31,7 @@ use bientot_linux::placement::LinuxDesktop;
 use bientot_linux::tray::StatusNotifier;
 use bientot_platform::activity::LastInputProbe;
 use bientot_platform::launcher::LauncherPort;
-use bientot_platform::lifecycle::LifecycleSource;
+use bientot_platform::lifecycle::{LifecycleListener, LifecycleSource, SessionSnapshot};
 use bientot_platform::notifications::{Notifier, QueuedClicks};
 use bientot_platform::startup::StartupPort;
 use bientot_platform::system::{InstallKind, SystemInfo as _};
@@ -74,6 +75,10 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     // A demo neither reads the input nor watches the session: as on Windows, its day is the
     // scenario's. The watch's thread opens the idle backend, so a demo starts none.
     let (notes, backend_notes) = mpsc::unbounded();
+    let lifecycle = (!demo).then(|| Reported {
+        source: LogindSource::new(kind, SystemClock, SystemZones),
+        notes: notes.clone(),
+    });
     let idle = (!demo)
         .then(|| {
             IdleWatch::of_this_session(move |note| {
@@ -82,7 +87,6 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         })
         .transpose()
         .context("the idle watch's thread did not start")?;
-    let lifecycle = (!demo).then(|| LogindSource::new(kind, SystemClock, SystemZones));
     // A demo shows no notifications, as on Windows.
     let clicks = QueuedClicks::default();
     let service = Service::for_install(kind);
@@ -126,6 +130,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         }),
         // The watch's first note names the backend once the thread has chosen it.
         idle: demo.then_some("none"),
+        // Until a note says the watch did not start.
         lifecycle: Some(if lifecycle.is_some() {
             "logind"
         } else {
@@ -169,24 +174,64 @@ fn idle_line(note: IdleNote) -> BackendNote {
             event: "idle.backend",
             properties: vec![("name", name(backend))],
             idle: Some(backend_name(backend)),
+            lifecycle: None,
         },
         IdleNote::Changed { from, to } => BackendNote {
             level: level(to),
             event: "idle.backend_changed",
             properties: vec![("from", name(from)), ("to", name(to))],
             idle: Some(backend_name(to)),
+            lifecycle: None,
         },
         IdleNote::InhibitorsCount => BackendNote {
             level: DiagnosticLogLevel::Information,
             event: "idle.inhibitor_blind",
             properties: vec![("value", false.into())],
             idle: None,
+            lifecycle: None,
         },
     }
 }
 
 fn backend_name(backend: Option<Backend>) -> &'static str {
     backend.map_or("none", Backend::name)
+}
+
+/// A lifecycle source that tells the diagnostic log, and the export through `Backends`, when its
+/// watch does not start: logind then records no lock and no sleep.
+struct Reported<S> {
+    source: S,
+    notes: mpsc::UnboundedSender<BackendNote>,
+}
+
+impl<S: LifecycleSource> LifecycleSource for Reported<S> {
+    fn snapshot(&self) -> SessionSnapshot {
+        self.source.snapshot()
+    }
+
+    fn watch(&self, listener: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>> {
+        self.source.watch(listener).inspect_err(|error| {
+            self.notes.unbounded_send(watch_failed(error)).ok();
+        })
+    }
+}
+
+/// The diagnostic log's line for a lifecycle watch that did not start (contracts/linux-backends.md,
+/// « Lock, sleep, session »). The error's text can name the user's session or bus, so the line
+/// gives its kind alone, from a fixed list.
+fn watch_failed(error: &io::Error) -> BackendNote {
+    let kind = match error.kind() {
+        io::ErrorKind::NotFound => "not_found",
+        io::ErrorKind::PermissionDenied => "permission_denied",
+        _ => "other",
+    };
+    BackendNote {
+        level: DiagnosticLogLevel::Warning,
+        event: "lifecycle.watch_failed",
+        properties: vec![("kind", kind.into())],
+        idle: None,
+        lifecycle: Some("none"),
+    }
 }
 
 /// Resizes `window` to `client`, and on X11 moves it there: elsewhere the compositor places it.
@@ -267,10 +312,16 @@ impl crate::updates::StoreError for velopack::Error {
 
 #[cfg(test)]
 mod tests {
+    use std::io;
+
     use bientot_core::diagnostics::DiagnosticLogLevel::{Information, Warning};
     use bientot_linux::idle::{Backend, IdleNote};
+    use bientot_platform::lifecycle::{
+        InMemoryLifecycle, LifecycleListener, LifecycleSource, LifecycleTransition, SessionSnapshot,
+    };
+    use futures::channel::mpsc;
 
-    use super::{BackendNote, idle_line};
+    use super::{BackendNote, Reported, idle_line};
 
     #[test]
     fn the_log_and_the_export_name_the_idle_backend_chosen_then_each_change() {
@@ -282,6 +333,7 @@ mod tests {
                 .map(|&(name, value)| (name, value.into()))
                 .collect(),
             idle: Some(idle),
+            lifecycle: None,
         };
         assert_eq!(
             [
@@ -330,8 +382,68 @@ mod tests {
                 event: "idle.inhibitor_blind",
                 properties: vec![("value", false.into())],
                 idle: None,
+                lifecycle: None,
             }
         );
+    }
+
+    /// A source whose watch fails as logind's does without a system bus or a session.
+    struct Refused(io::ErrorKind);
+
+    impl LifecycleSource for Refused {
+        fn snapshot(&self) -> SessionSnapshot {
+            unreachable!()
+        }
+
+        fn watch(&self, _: Box<dyn LifecycleListener>) -> io::Result<Box<dyn Send>> {
+            Err(io::Error::new(self.0, "no session for someone@host"))
+        }
+    }
+
+    struct Ignored;
+
+    impl LifecycleListener for Ignored {
+        fn changed(&mut self, _: LifecycleTransition) {}
+
+        fn ended(&mut self) {}
+    }
+
+    #[test]
+    fn a_watch_that_does_not_start_logs_its_kind_and_leaves_no_lifecycle_backend() {
+        let line = |kind: &'static str| BackendNote {
+            level: Warning,
+            event: "lifecycle.watch_failed",
+            properties: vec![("kind", kind.into())],
+            idle: None,
+            lifecycle: Some("none"),
+        };
+        for (kind, logged) in [
+            (io::ErrorKind::NotFound, "not_found"),
+            (io::ErrorKind::PermissionDenied, "permission_denied"),
+            (io::ErrorKind::Other, "other"),
+            (io::ErrorKind::ConnectionRefused, "other"),
+        ] {
+            let (notes, mut sent) = mpsc::unbounded();
+            let source = Reported {
+                source: Refused(kind),
+                notes,
+            };
+
+            assert!(source.watch(Box::new(Ignored)).is_err(), "{kind:?}");
+            assert_eq!(sent.try_recv().ok(), Some(line(logged)), "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn a_watch_that_starts_logs_nothing() {
+        let (notes, mut sent) = mpsc::unbounded();
+        let source = Reported {
+            source: InMemoryLifecycle::default(),
+            notes,
+        };
+
+        let _watch = source.watch(Box::new(Ignored)).unwrap();
+        assert_eq!(sent.try_recv().ok(), None);
     }
 
     #[cfg(feature = "updates")]

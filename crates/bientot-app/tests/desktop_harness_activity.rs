@@ -59,7 +59,7 @@ fn logind(path: &str, method: &str, arguments: &[&str]) {
         .expect("busctl runs");
     assert!(
         output.status.success(),
-        "{method} {arguments:?}: {}",
+        "{method}: {}",
         String::from_utf8_lossy(&output.stderr)
     );
 }

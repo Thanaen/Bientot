@@ -507,6 +507,7 @@ pub struct BackendNote {
     pub event: &'static str,
     pub properties: Vec<(&'static str, DiagnosticValue<'static>)>,
     pub idle: Option<&'static str>,          // the idle backend in use from this line on
+    pub lifecycle: Option<&'static str>,     // "none" once the lifecycle watch did not start
 }
 
 impl Platform {
