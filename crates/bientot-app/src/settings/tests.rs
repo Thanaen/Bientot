@@ -344,6 +344,105 @@ fn a_flatpak_or_an_appimage_names_itself_under_the_version() {
     }
 }
 
+/// « Menu des applications » on each group of « Général », by heading.
+fn launchers(form: &SettingsForm) -> Vec<(Option<&'static str>, Option<LauncherView>)> {
+    form.view()
+        .sections
+        .into_iter()
+        .map(|section| (section.heading, section.launcher))
+        .collect()
+}
+
+fn launcher(form: &SettingsForm) -> Option<LauncherView> {
+    launchers(form)
+        .into_iter()
+        .find_map(|(_, launcher)| launcher)
+}
+
+#[test]
+fn only_a_copy_that_writes_its_own_entry_shows_the_app_menu_under_application() {
+    let mut form = form(Language::French);
+    assert!(
+        launchers(&form)
+            .iter()
+            .all(|(_, launcher)| launcher.is_none()),
+        "no row before the entry is read, nor where the copy writes none"
+    );
+
+    form.show_launcher(true);
+
+    let shown: Vec<_> = launchers(&form)
+        .into_iter()
+        .filter_map(|(heading, launcher)| Some((heading, launcher?)))
+        .collect();
+    assert_eq!(
+        shown,
+        [(
+            Some("Application"),
+            LauncherView {
+                title: "Menu des applications",
+                description: "Afficher Bientôt dans le menu de votre bureau, \
+                              pour l’ouvrir sans chercher le fichier AppImage.",
+                name: "Afficher Bientôt dans le menu des applications",
+                on: true,
+                enabled: true,
+                error: None,
+            }
+        )]
+    );
+    assert!(form.go_to(Page::Schedule));
+    assert_eq!(launcher(&form), None);
+}
+
+/// The switch of « Menu des applications »: on, enabled, and its error line.
+fn launcher_switch(form: &SettingsForm) -> (bool, bool, Option<&'static str>) {
+    let launcher = launcher(form).expect("the row shows");
+    (launcher.on, launcher.enabled, launcher.error)
+}
+
+#[test]
+fn the_app_menu_switch_shows_the_change_and_waits_while_it_runs() {
+    let mut form = form(Language::English);
+    assert_eq!(form.change_launcher(), None, "no row yet");
+    form.show_launcher(true);
+    assert_eq!(
+        launcher(&form).unwrap().name,
+        "Show Bientôt in the app menu"
+    );
+
+    assert_eq!(form.change_launcher(), Some(false));
+    assert_eq!(launcher_switch(&form), (false, false, None));
+    assert_eq!(form.change_launcher(), None, "one change at a time");
+
+    form.finish_launcher(false, true);
+    assert_eq!(launcher_switch(&form), (false, true, None));
+
+    assert_eq!(form.change_launcher(), Some(true));
+    assert_eq!(launcher_switch(&form), (true, false, None));
+    form.finish_launcher(true, true);
+    assert_eq!(launcher_switch(&form), (true, true, None));
+}
+
+#[test]
+fn a_refused_app_menu_change_puts_the_switch_back_and_says_so_until_the_next_one_is_made() {
+    let mut form = form(Language::English);
+    form.show_launcher(false);
+    let failed = Some("The app menu could not be changed. Try again.");
+
+    assert_eq!(form.change_launcher(), Some(true));
+    form.finish_launcher(false, false);
+    assert_eq!(
+        launcher_switch(&form),
+        (false, true, failed),
+        "back to the menu as read, and switching again tries again"
+    );
+
+    assert_eq!(form.change_launcher(), Some(true));
+    assert_eq!(launcher_switch(&form), (true, false, None));
+    form.finish_launcher(true, true);
+    assert_eq!(launcher_switch(&form), (true, true, None));
+}
+
 fn startup_switch(form: &SettingsForm) -> (Control, Option<&'static str>) {
     let view = form.view();
     let row = row(&view, Setting::Startup);

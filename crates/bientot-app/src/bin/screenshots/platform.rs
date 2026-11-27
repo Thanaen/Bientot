@@ -1,6 +1,7 @@
 //! The system the screenshots are taken for (`--platform`): what its ports answer the scenes,
-//! and which scenes show something that differs from Windows. Windows takes every scene; Linux
-//! only those of [`LINUX`], which the comparison in CI puts beside their Windows twin.
+//! and which scenes show something that differs from Windows. Windows takes every scene but those
+//! of a state only Linux has, as the AppImage's row « Menu des applications »; Linux only those of
+//! [`LINUX`], which the comparison in CI puts beside their Windows twin when there is one.
 
 use std::collections::HashSet;
 
@@ -43,7 +44,8 @@ impl Platform {
     }
 
     /// How its `SystemInfo` says the app was installed: an AppImage on Linux, whose « Paramètres »
-    /// keep the update setting the screenshots show; nothing on Windows.
+    /// keep the update setting the screenshots show and add « Menu des applications »; nothing on
+    /// Windows.
     pub fn install_kind(self) -> Option<InstallKind> {
         match self {
             Self::Windows => None,
@@ -79,10 +81,20 @@ struct Scene {
 /// words apart for Linux, named beside each. A scene whose state Linux never reaches, as a
 /// startup turned off in the system's page of startup apps, stays out.
 const LINUX: &[Scene] = &[
-    // SettingsStartupCard.Header, SettingsStartupInput.AutomationProperties.Name.
+    // SettingsStartupCard.Header, SettingsStartupInput.AutomationProperties.Name; the row of an
+    // AppImage above it, LauncherEntry.Header and .Description, its switch on.
     Scene {
         group: "settings::capture_pages",
         name: "settings-general",
+    },
+    // The AppImage's switch off, then LauncherEntry.ChangeFailed: states only Linux has.
+    Scene {
+        group: "settings::capture_pages",
+        name: "settings-general-launcher-off",
+    },
+    Scene {
+        group: "settings::capture_pages",
+        name: "settings-general-launcher-failed",
     },
     // SettingsStartupChangeFailed.
     Scene {

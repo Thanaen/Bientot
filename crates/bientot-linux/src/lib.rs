@@ -6,7 +6,9 @@
 pub mod autostart;
 #[cfg(target_os = "linux")]
 mod dbus;
+mod desktop_entry;
 pub mod idle;
+pub mod launcher;
 pub mod locale;
 pub mod logind;
 pub mod notifications;

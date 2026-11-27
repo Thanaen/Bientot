@@ -357,6 +357,10 @@
   <data name="InstallKind.Header" xml:space="preserve"><value>Type d’installation</value></data>
   <data name="InstallKind.Flatpak" xml:space="preserve"><value>Flatpak</value></data>
   <data name="InstallKind.AppImage" xml:space="preserve"><value>AppImage</value></data>
+  <data name="LauncherEntry.Header" xml:space="preserve"><value>Menu des applications</value></data>
+  <data name="LauncherEntry.Description" xml:space="preserve"><value>Afficher Bientôt dans le menu de votre bureau, pour l’ouvrir sans chercher le fichier AppImage.</value></data>
+  <data name="LauncherEntry.Input.AutomationProperties.Name" xml:space="preserve"><value>Afficher Bientôt dans le menu des applications</value></data>
+  <data name="LauncherEntry.ChangeFailed" xml:space="preserve"><value>Le menu des applications n’a pas pu être modifié. Réessayez.</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Envoyer un signal d’utilisation anonyme</value></data>
   <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Une fois par jour, sans identifiant ni donnée sur votre temps de travail. Ce décompte aide le développeur à savoir combien de personnes utilisent Bientôt.</value></data>

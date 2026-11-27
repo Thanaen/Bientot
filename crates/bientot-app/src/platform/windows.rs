@@ -83,6 +83,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         notifier: toasts.map(|toasts| toasts.map(|toasts| Box::new(toasts) as Box<dyn Notifier>)),
         notification_clicks: Box::new(clicks),
         startup,
+        launcher: None,
         tray: Rc::new(tray),
         tray_events,
         backends: super::Backends::default(),

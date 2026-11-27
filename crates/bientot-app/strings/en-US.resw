@@ -357,6 +357,10 @@
   <data name="InstallKind.Header" xml:space="preserve"><value>Installation type</value></data>
   <data name="InstallKind.Flatpak" xml:space="preserve"><value>Flatpak</value></data>
   <data name="InstallKind.AppImage" xml:space="preserve"><value>AppImage</value></data>
+  <data name="LauncherEntry.Header" xml:space="preserve"><value>App menu</value></data>
+  <data name="LauncherEntry.Description" xml:space="preserve"><value>Show Bientôt in your desktop’s menu so you can open it without looking for the AppImage file.</value></data>
+  <data name="LauncherEntry.Input.AutomationProperties.Name" xml:space="preserve"><value>Show Bientôt in the app menu</value></data>
+  <data name="LauncherEntry.ChangeFailed" xml:space="preserve"><value>The app menu could not be changed. Try again.</value></data>
   <data name="SettingsSecondsUnit" xml:space="preserve"><value>s</value></data>
   <data name="SettingsUsagePingCard.Header" xml:space="preserve"><value>Send an anonymous usage signal</value></data>
   <data name="SettingsUsagePingCard.Description" xml:space="preserve"><value>Once a day, with no identifier and no data about your working time. This count helps the developer know how many people use Bientôt.</value></data>

@@ -3,11 +3,13 @@
 //! update check, the port that registers the app to start at sign-in, the tray menu, the names of
 //! time zones on either platform, the port that reads the user's languages, and the types the
 //! platform crates share. Each port has an in-memory implementation here; `bientot-windows` makes
-//! the Windows calls behind them.
+//! the Windows calls behind them. The port of the entry in the menu of applications has none:
+//! only the AppImage, in `bientot-linux`, writes its own.
 
 #![forbid(unsafe_code)]
 
 pub mod activity;
+pub mod launcher;
 pub mod lifecycle;
 pub mod locale;
 pub mod motion;

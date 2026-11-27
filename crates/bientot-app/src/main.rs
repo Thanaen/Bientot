@@ -236,6 +236,14 @@ fn run_on(
     let may_send = launch.may_send_usage_ping();
     let update_source = UpdateSourceKind::of(&launch, settings_view::build().channel());
     let startup = platform.startup.take();
+    let launcher = platform.launcher.take();
+    // The first run of the user's own folder adds the copy to the menu of applications; a later
+    // start only follows a move, so that an entry the user removed stays removed.
+    if let Some(launcher) = launcher.as_ref().filter(|_| launch.data_dir.is_none())
+        && let Err(error) = launcher.settle(!saved)
+    {
+        log::warn!("launcher_entry.failed: {error}");
+    }
     let backends = platform.backends;
     // As in .NET, nothing else starts before the onboarding is saved: the day, the tray and
     // the refreshes all begin from its choices.
@@ -258,6 +266,9 @@ fn run_on(
         cx.set_global(backends);
         if let Some(startup) = startup {
             cx.set_global(settings_view::Startup(startup));
+        }
+        if let Some(launcher) = launcher {
+            cx.set_global(settings_view::Launcher(launcher));
         }
         let (loaded, platform) = match opening {
             Opening::Day(started) => {

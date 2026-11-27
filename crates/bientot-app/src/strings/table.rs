@@ -274,6 +274,10 @@ pub enum Key {
     KeyEscape,
     KeyShift,
     KeyUp,
+    LauncherEntryChangeFailed,
+    LauncherEntryDescription,
+    LauncherEntryHeader,
+    LauncherEntryInputAutomationPropertiesName,
     NotificationCombinedBody,
     NotificationCompleteBody,
     NotificationCompletionBody,
@@ -876,7 +880,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 868] = [
+pub(super) static ENTRIES: [Entry; 872] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
     Entry { name: "AdjustTimeAddDuration.Content", fr: "Ajouter une durée", en: "Add a duration", linux: None },
     Entry { name: "AdjustTimeAddInterval.Content", fr: "Ajouter une plage travaillée", en: "Add a work interval", linux: None },
@@ -1145,6 +1149,10 @@ pub(super) static ENTRIES: [Entry; 868] = [
     Entry { name: "KeyEscape", fr: "Échap", en: "Esc", linux: None },
     Entry { name: "KeyShift", fr: "Maj", en: "Shift", linux: None },
     Entry { name: "KeyUp", fr: "↑", en: "↑", linux: None },
+    Entry { name: "LauncherEntry.ChangeFailed", fr: "Le menu des applications n’a pas pu être modifié. Réessayez.", en: "The app menu could not be changed. Try again.", linux: None },
+    Entry { name: "LauncherEntry.Description", fr: "Afficher Bientôt dans le menu de votre bureau, pour l’ouvrir sans chercher le fichier AppImage.", en: "Show Bientôt in your desktop’s menu so you can open it without looking for the AppImage file.", linux: None },
+    Entry { name: "LauncherEntry.Header", fr: "Menu des applications", en: "App menu", linux: None },
+    Entry { name: "LauncherEntry.Input.AutomationProperties.Name", fr: "Afficher Bientôt dans le menu des applications", en: "Show Bientôt in the app menu", linux: None },
     Entry { name: "NotificationCombinedBody", fr: "Il reste {0} minutes et votre heure limite de départ approche. Départ prévu\u{a0}: {1}.", en: "{0} minutes remain and your preferred departure time is approaching. Projected departure: {1}.", linux: None },
     Entry { name: "NotificationCompleteBody", fr: "Votre objectif quotidien est atteint.", en: "Your daily target is complete.", linux: None },
     Entry { name: "NotificationCompletionBody", fr: "Il reste {0} minutes avant votre objectif. Départ prévu\u{a0}: {1}.", en: "{0} minutes remain toward your daily target. Projected departure: {1}.", linux: None },

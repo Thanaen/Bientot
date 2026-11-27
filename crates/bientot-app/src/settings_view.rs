@@ -20,6 +20,7 @@ use std::time::Duration;
 use bientot_core::settings::{EditGroup, Pending, SettingsPort};
 use bientot_domain::configuration::{AppointmentProposal, RecurringAppointment, Settings};
 use bientot_domain::usage_ping::{Build, Channel};
+use bientot_platform::launcher::LauncherPort;
 use bientot_platform::startup::{StartupPort, StartupRegistrationState};
 use bientot_platform::system::{InstallKind, SystemInfo as _};
 use bientot_store::settings::SaveSettingsError;
@@ -37,9 +38,9 @@ use crate::platform;
 use crate::settings::data::DataPage;
 use crate::settings::startup;
 use crate::settings::{
-    CalloutView, Clock, Control, Details, Field, LanguageChoice, Leaving, Link, Page, PingDetails,
-    RowTone, RowView, SectionView, SettingsForm, SourceCallout, StartupAppsView, Switch, Tone,
-    UsagePingFacts,
+    CalloutView, Clock, Control, Details, Field, LanguageChoice, LauncherView, Leaving, Link, Page,
+    PingDetails, RowTone, RowView, SectionView, Setting, SettingsForm, SourceCallout,
+    StartupAppsView, Switch, Tone, UsagePingFacts,
 };
 use crate::shell;
 use crate::strings::{Key, Language};
@@ -98,6 +99,12 @@ impl Global for SettingsWindow {}
 pub struct Startup(pub Arc<dyn StartupPort>);
 
 impl Global for Startup {}
+
+/// The entry « Menu des applications » adds or removes, where this copy writes its own: the
+/// AppImage. Without it the row does not show.
+pub struct Launcher(pub Arc<dyn LauncherPort>);
+
+impl Global for Launcher {}
 
 /// Opens « Paramètres » on the settings in use, or brings the open window to the front.
 pub fn open(cx: &mut App) {
@@ -351,6 +358,7 @@ pub struct SettingsView {
     focus_dialog: bool,
     content_scroll: ScrollHandle,
     startup: Option<Arc<dyn StartupPort>>,
+    launcher: Option<Arc<dyn LauncherPort>>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -459,10 +467,61 @@ impl SettingsView {
             focus_dialog: false,
             content_scroll: ScrollHandle::new(),
             startup,
+            launcher: cx
+                .try_global::<Launcher>()
+                .map(|launcher| launcher.0.clone()),
             _subscriptions: subscriptions,
         };
         view.read_startup(cx);
+        view.read_launcher(cx);
         view
+    }
+
+    /// Reads whether the menu of applications shows this copy, off the window's thread.
+    fn read_launcher(&mut self, cx: &mut Context<Self>) {
+        let Some(port) = self.launcher.clone() else {
+            return;
+        };
+        cx.spawn(async move |view, cx| {
+            let added = cx
+                .background_executor()
+                .spawn(async move { port.is_added() })
+                .await;
+            view.update(cx, |view, cx| {
+                view.form.show_launcher(added);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    /// Adds this copy to the menu of applications or removes it, off the window's thread, then
+    /// shows the menu as it then is.
+    fn change_launcher(&mut self, cx: &mut Context<Self>) {
+        let (Some(port), Some(requested)) = (self.launcher.clone(), self.form.change_launcher())
+        else {
+            return;
+        };
+        cx.notify();
+        cx.spawn(async move |view, cx| {
+            let (made, added) = cx
+                .background_executor()
+                .spawn(async move {
+                    let made = port.set_added(requested);
+                    if let Err(error) = &made {
+                        log::warn!("launcher_entry.failed: {error}");
+                    }
+                    (made.is_ok(), port.is_added())
+                })
+                .await;
+            view.update(cx, |view, cx| {
+                view.form.finish_launcher(added, made);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
     }
 
     /// Reads the registration off the window's thread: on opening, and whenever the window
@@ -983,15 +1042,20 @@ impl SettingsView {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let count = section.rows.len();
-        let rows: Vec<_> = section
-            .rows
-            .into_iter()
-            .enumerate()
-            .map(|(index, row)| {
-                self.row(row, index + 1 == count, language_time, theme, cx)
-                    .into_any_element()
-            })
-            .collect();
+        let mut launcher = section.launcher;
+        let mut rows = Vec::with_capacity(count + 1);
+        for (index, row) in section.rows.into_iter().enumerate() {
+            let last = index + 1 == count;
+            // « Menu des applications » follows « Langue ».
+            let after = launcher.take_if(|_| row.setting == Setting::Language);
+            rows.push(
+                self.row(row, last && after.is_none(), language_time, theme, cx)
+                    .into_any_element(),
+            );
+            rows.extend(
+                after.map(|launcher| launcher_row(launcher, last, theme, cx).into_any_element()),
+            );
+        }
         let callouts: Vec<_> = section
             .callouts
             .into_iter()
@@ -1020,6 +1084,37 @@ impl SettingsView {
         });
         row_frame((&row).into(), control, details, last, theme)
     }
+}
+
+/// « Menu des applications »: its switch adds Bientôt to the menu or removes it, and waits while
+/// a change runs, as the startup switch does.
+fn launcher_row(
+    launcher: LauncherView,
+    last: bool,
+    theme: &Theme,
+    cx: &mut Context<SettingsView>,
+) -> gpui::Div {
+    let control = switch_frame(
+        "launcher-entry",
+        launcher.name,
+        launcher.on,
+        launcher.enabled,
+        theme,
+    );
+    let control = if launcher.enabled {
+        control.on_click(cx.listener(|view, _, _, cx| view.change_launcher(cx)))
+    } else {
+        control
+    };
+    let text = RowText {
+        title: launcher.title.into(),
+        description: launcher.description.into(),
+        tone: RowTone::Normal,
+        link: None,
+        status: None,
+        error: launcher.error,
+    };
+    row_frame(text, control.into_any_element(), None, last, theme)
 }
 
 /// What only the system's page of startup apps can change, and the button that opens it.

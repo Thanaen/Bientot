@@ -1,8 +1,9 @@
 //! The Linux backend: the tray icon is a StatusNotifierItem of `bientot-linux`, the flyout opens
 //! where `bientot-linux` places it on this session, the reminders are desktop notifications, an
-//! XDG autostart entry starts the app at sign-in, a lock and a socket keep one instance per data
-//! folder, the environment names the language, and Velopack updates the AppImage. The other ports
-//! answer « unknown » or do nothing, as on a system without a backend, until their lots wire them.
+//! XDG autostart entry starts the app at sign-in, the AppImage adds itself to the menu of
+//! applications, a lock and a socket keep one instance per data folder, the environment names the
+//! language, and Velopack updates the AppImage. The other ports answer « unknown » or do nothing,
+//! as on a system without a backend, until their lots wire them.
 
 #[cfg(feature = "updates")]
 #[path = "direct.rs"]
@@ -15,9 +16,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use bientot_linux::autostart::XdgAutostart;
+use bientot_linux::launcher::LauncherEntry;
 use bientot_linux::notifications::{DesktopNotifications, Service};
 use bientot_linux::placement::LinuxDesktop;
 use bientot_linux::tray::StatusNotifier;
+use bientot_platform::launcher::LauncherPort;
 use bientot_platform::notifications::{Notifier, QueuedClicks};
 use bientot_platform::startup::StartupPort;
 #[cfg(feature = "updates")]
@@ -75,6 +78,14 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
         .demo
         .is_none()
         .then(|| Arc::new(XdgAutostart::for_this_process()) as Arc<dyn StartupPort>);
+    // The AppImage alone writes its own entry in the menu; a demo leaves the menu alone.
+    let launcher = ctx
+        .launch
+        .demo
+        .is_none()
+        .then(LauncherEntry::for_this_process)
+        .flatten()
+        .map(|launcher| Arc::new(launcher) as Arc<dyn LauncherPort>);
     let backends = Backends {
         tray: Some(tray.backend()),
         notifications: Some(match &notifier {
@@ -90,6 +101,7 @@ pub fn build(ctx: &PlatformContext<'_>) -> anyhow::Result<Platform> {
     Ok(Platform {
         notifier,
         startup,
+        launcher,
         notification_clicks: Box::new(clicks),
         backends,
         tray: Rc::new(tray),

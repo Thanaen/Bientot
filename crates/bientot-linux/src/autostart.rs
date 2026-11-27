@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use bientot_platform::startup::{AUTOSTART_ARGUMENT, StartupPort, StartupRegistrationState};
 
 use crate::APP_ID;
+use crate::desktop_entry::{Entry, base_directory, exec_value, read, write};
 
 /// The autostart entry of the executable `executable`, in the folder `config_home` stands for.
 /// Every failure to read or write it reads as [`StartupRegistrationState::Unavailable`], as on
@@ -61,7 +62,7 @@ impl XdgAutostart {
             if entry
                 .is_none_or(|entry| entry.state(executable) != StartupRegistrationState::Enabled)
             {
-                write(file, &desktop_file(executable))?;
+                write(file, desktop_file(executable).as_bytes())?;
             }
         } else if entry.is_some_and(|entry| entry.starts(executable)) {
             std::fs::remove_file(file)?;
@@ -93,14 +94,8 @@ impl StartupPort for XdgAutostart {
 }
 
 /// The user's configuration folder: `$XDG_CONFIG_HOME` when it is absolute, else `~/.config`.
-/// The base directory specification has a relative value ignored.
 fn config_home(variable: impl Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
-    let absolute = |name| {
-        variable(name)
-            .map(PathBuf::from)
-            .filter(|path| crate::is_absolute(path))
-    };
-    absolute("XDG_CONFIG_HOME").or_else(|| absolute("HOME").map(|home| home.join(".config")))
+    base_directory(variable, "XDG_CONFIG_HOME", ".config")
 }
 
 /// What the entry starts: the AppImage file itself, since its executable lives in a mount that
@@ -117,50 +112,16 @@ fn installed_executable(
 
 /// The entry that starts `executable` at sign-in, as Bientôt writes it.
 fn desktop_file(executable: &str) -> String {
-    let exec = escape_value(&format!("{} {AUTOSTART_ARGUMENT}", quoted(executable)));
+    let exec = exec_value(executable, AUTOSTART_ARGUMENT);
     format!(
         "[Desktop Entry]\nType=Application\nName=Bientôt\nExec={exec}\nIcon={APP_ID}\n\
          X-GNOME-Autostart-enabled=true\n"
     )
 }
 
-/// What an autostart entry holds that tells its state.
-#[derive(Debug, Default)]
-struct Entry {
-    /// `Hidden=true`, or `X-GNOME-Autostart-enabled=false`.
-    turned_off: bool,
-    /// The program and arguments of `Exec`; `None` without one, or when it cannot be read.
-    exec: Option<Vec<String>>,
-}
-
 impl Entry {
-    /// Reads the keys of the `[Desktop Entry]` group of `text`.
-    fn parse(text: &str) -> Self {
-        let mut entry = Self::default();
-        let mut in_main_group = false;
-        for line in text.lines().map(str::trim) {
-            if line.starts_with('[') {
-                in_main_group = line == "[Desktop Entry]";
-                continue;
-            }
-            let Some((key, value)) = line.split_once('=') else {
-                continue;
-            };
-            if !in_main_group || line.starts_with('#') {
-                continue;
-            }
-            let value = value.trim_start();
-            match key.trim() {
-                "Hidden" => entry.turned_off |= value == "true",
-                "X-GNOME-Autostart-enabled" => entry.turned_off |= value == "false",
-                "Exec" => entry.exec = unescape_value(value).as_deref().and_then(split_exec),
-                _ => {}
-            }
-        }
-        entry
-    }
-
-    /// The state the table of the contract gives the entry for this install's `executable`.
+    /// The state the table of the contract gives an autostart entry for this install's
+    /// `executable`.
     fn state(&self, executable: &str) -> StartupRegistrationState {
         if self.turned_off {
             StartupRegistrationState::Disabled
@@ -170,118 +131,6 @@ impl Entry {
             StartupRegistrationState::RegistrationMismatch
         }
     }
-
-    fn starts(&self, executable: &str) -> bool {
-        self.exec
-            .as_ref()
-            .and_then(|exec| exec.first())
-            .is_some_and(|program| program == executable)
-    }
-}
-
-/// The entry in `file`, `None` when there is none.
-fn read(file: &Path) -> io::Result<Option<Entry>> {
-    match std::fs::read_to_string(file) {
-        Ok(text) => Ok(Some(Entry::parse(&text))),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(error) => Err(error),
-    }
-}
-
-/// Writes `text` to `file` through a file beside it, so that a desktop starting at that moment
-/// reads the old entry or the new one, never half of one. The desktop reads only `*.desktop`.
-fn write(file: &Path, text: &str) -> io::Result<()> {
-    if let Some(folder) = file.parent() {
-        std::fs::create_dir_all(folder)?;
-    }
-    let mut partial = file.as_os_str().to_owned();
-    partial.push(".partial");
-    std::fs::write(&partial, text)?;
-    std::fs::rename(&partial, file)
-}
-
-/// `argument` quoted as the `Exec` key's own rules have it, before the escapes of a string
-/// value: in double quotes, with `"`, `` ` ``, `$` and `\` escaped by a backslash, and `%`
-/// doubled, since a single one starts a field code.
-fn quoted(argument: &str) -> String {
-    let mut quoted = String::from('"');
-    for character in argument.chars() {
-        match character {
-            '"' | '`' | '$' | '\\' => quoted.extend(['\\', character]),
-            '%' => quoted.push_str("%%"),
-            _ => quoted.push(character),
-        }
-    }
-    quoted.push('"');
-    quoted
-}
-
-/// The program and arguments of an `Exec` value, its string escapes already undone. Field codes
-/// such as `%u` expand to nothing: an autostart entry has no file to open. `None` when a quote
-/// is left open.
-fn split_exec(exec: &str) -> Option<Vec<String>> {
-    let mut arguments = Vec::new();
-    let mut current: Option<String> = None;
-    let mut quoted = false;
-    let mut characters = exec.chars();
-    while let Some(character) = characters.next() {
-        match character {
-            ' ' | '\t' if !quoted => arguments.extend(current.take()),
-            '"' => {
-                quoted = !quoted;
-                current.get_or_insert_default();
-            }
-            '\\' => current.get_or_insert_default().extend(characters.next()),
-            '%' => {
-                if characters.next() == Some('%') {
-                    current.get_or_insert_default().push('%');
-                }
-            }
-            _ => current.get_or_insert_default().push(character),
-        }
-    }
-    if quoted {
-        return None;
-    }
-    arguments.extend(current);
-    Some(arguments)
-}
-
-/// A string value as a desktop file holds it: `\` doubled, and the line breaks and tabs a value
-/// cannot hold written as escapes.
-fn escape_value(value: &str) -> String {
-    let mut escaped = String::with_capacity(value.len());
-    for character in value.chars() {
-        match character {
-            '\\' => escaped.push_str("\\\\"),
-            '\n' => escaped.push_str("\\n"),
-            '\t' => escaped.push_str("\\t"),
-            '\r' => escaped.push_str("\\r"),
-            _ => escaped.push(character),
-        }
-    }
-    escaped
-}
-
-/// The escapes of a string value undone; `None` for one the specification does not define.
-fn unescape_value(value: &str) -> Option<String> {
-    let mut text = String::with_capacity(value.len());
-    let mut characters = value.chars();
-    while let Some(character) = characters.next() {
-        if character != '\\' {
-            text.push(character);
-            continue;
-        }
-        text.push(match characters.next()? {
-            's' => ' ',
-            'n' => '\n',
-            't' => '\t',
-            'r' => '\r',
-            '\\' => '\\',
-            _ => return None,
-        });
-    }
-    Some(text)
 }
 
 #[cfg(test)]

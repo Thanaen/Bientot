@@ -13,6 +13,7 @@ use bientot_domain::sources::{ActivitySourceKind, ActivitySourceSelection, IdleS
 use bientot_domain::time::{Clock, FixedTimeZoneProvider, FrozenClock};
 use bientot_domain::usage_ping::{Build, Channel};
 use bientot_platform::startup::StartupRegistrationState;
+use bientot_platform::system::InstallKind;
 use bientot_store::activity::{ActivitySourceSelectionRepository, ActivitySpanRepository};
 use bientot_store::data_directory::DataDirectory;
 use bientot_store::settings::SaveSettingsError;
@@ -148,6 +149,10 @@ pub(super) enum SettingsState {
     Wrapped,
     /// The language list open under its button.
     LanguageOpen,
+    /// The AppImage left out of the menu of applications: its switch off.
+    LauncherOff,
+    /// The AppImage's change of the menu of applications refused.
+    LauncherFailed,
     /// Two recurring appointments, the second switched off.
     Appointments,
     /// `Appointments` with the editor open on a new one.
@@ -192,6 +197,8 @@ impl SettingsState {
             Self::End => Some("end"),
             Self::Wrapped => Some("wrapped"),
             Self::LanguageOpen => Some("language-open"),
+            Self::LauncherOff => Some("launcher-off"),
+            Self::LauncherFailed => Some("launcher-failed"),
             Self::Appointments => Some("appointments"),
             Self::AppointmentNew => Some("appointment-new"),
             Self::AppointmentEdit => Some("appointment-edit"),
@@ -326,10 +333,14 @@ impl SettingsState {
             }
             _ => {}
         }
-        let startup_page = cx.global::<Shots>().platform.startup_page();
+        let platform = cx.global::<Shots>().platform;
         let form = view.form_mut();
-        if let Some(page) = startup_page {
+        if let Some(page) = platform.startup_page() {
             form.show_startup_page(page);
+        }
+        // An AppImage adds itself to the menu on its first run.
+        if platform.install_kind() == Some(InstallKind::AppImage) {
+            form.show_launcher(!matches!(self, Self::LauncherOff));
         }
         form.show_startup(match self {
             Self::Startup(state) => state,
@@ -347,7 +358,13 @@ impl SettingsState {
             | Self::Appointments
             | Self::AppointmentNew
             | Self::AppointmentEdit
-            | Self::AppointmentAlternate => {}
+            | Self::AppointmentAlternate
+            | Self::LauncherOff => {}
+            Self::LauncherFailed => {
+                let added = form.change_launcher();
+                assert_eq!(added, Some(false), "the switch removes the AppImage");
+                form.finish_launcher(true, false);
+            }
             Self::AppointmentHoursError => {
                 *form.time_mut(bientot_app::settings::Clock::AppointmentEnd) =
                     bientot_app::adjust::TimeField::new(13, 0);
