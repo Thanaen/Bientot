@@ -495,6 +495,12 @@ fn keeps_the_failures_of_this_app_without_their_properties() {
         log_line(
             now() - minutes(1),
             "Warning",
+            "lifecycle.watch_failed",
+            Some(r#"{"kind":"other"}"#),
+        ),
+        log_line(
+            now() - minutes(1),
+            "Warning",
             "instance.listen_failed",
             Some(r#"{"kind":"other"}"#),
         ),
@@ -514,6 +520,7 @@ fn keeps_the_failures_of_this_app_without_their_properties() {
         [
             r#"{"timestampUtc":"2026-09-10T12:31:00+00:00","level":"Error","event":"flyout.open_failed"}"#,
             r#"{"timestampUtc":"2026-09-10T12:32:00+00:00","level":"Error","event":"settings.save_failed"}"#,
+            r#"{"timestampUtc":"2026-09-10T12:33:00+00:00","level":"Warning","event":"lifecycle.watch_failed"}"#,
         ]
     );
     assert_eq!(value(&archive.text("manifest.json"), "unknownEvents"), "1");

@@ -32,7 +32,7 @@ const MAXIMUM_RECORD_DEPTH: usize = 8;
 const LEVELS: [&str; 4] = ["Debug", "Information", "Warning", "Error"];
 /// The .NET app's events, then the failures only this app logs, which the export keeps by name
 /// alone.
-const EVENTS: [&str; 28] = [
+const EVENTS: [&str; 29] = [
     "notification.activated",
     "notification.smoke_registered",
     "notification.smoke_accepted",
@@ -61,6 +61,7 @@ const EVENTS: [&str; 28] = [
     "tray.create_failed",
     "tray.update_failed",
     "launcher_entry.failed",
+    "lifecycle.watch_failed",
 ];
 /// The events whose `exceptionType` property is kept as a failure category.
 const FAILURE_EVENTS: [&str; 9] = [
