@@ -5,7 +5,7 @@
 //! a Flatpak the notification portal does. [`notify`] and [`portal_notification`] write what each
 //! is sent for a request; [`Delivered`] tells which of the signals they send back are clicks on
 //! the body of a notification this process showed, and its delivery id. On Linux,
-//! `DesktopNotifications` talks to them.
+//! `DesktopNotifications` talks to them, and `show_once` shows the [`last_resort`] notification.
 
 #[cfg(target_os = "linux")]
 mod native;
@@ -19,7 +19,7 @@ use bientot_platform::system::InstallKind;
 use crate::APP_ID;
 
 #[cfg(target_os = "linux")]
-pub use native::{DesktopNotifications, Unavailable};
+pub use native::{DesktopNotifications, Unavailable, show_once};
 
 /// What shows the notifications.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -87,6 +87,18 @@ pub fn notify(request: &NotificationRequest) -> Notify<'_> {
         actions: [SERVER_BODY_ACTION, ""],
         hints: [("desktop-entry", APP_ID)],
         expire_timeout: -1,
+    }
+}
+
+/// The notification that tells why Bientôt stops when no window can, `body` under `title`, with
+/// an id of its own for the portal to name it by. It keeps the body's action: GNOME Shell starts
+/// the application of the `desktop-entry` hint for a click on a notification without one, which
+/// would start Bientôt again.
+pub fn last_resort(title: &str, body: &str) -> NotificationRequest {
+    NotificationRequest {
+        delivery_id: "last-resort".into(),
+        title: title.into(),
+        body: body.into(),
     }
 }
 

@@ -87,6 +87,23 @@ impl Notifier for DesktopNotifications {
     }
 }
 
+/// Shows `request` through `service` on a connection of its own, and returns once the service
+/// took it or refused it, each call waiting up to [`TIMEOUT`]: for a process about to exit, which
+/// hears no click. The notification stays after the connection closes.
+pub fn show_once(service: Service, request: &NotificationRequest) -> Result<(), Unavailable> {
+    async_io::block_on(async {
+        let bus = zbus::connection::Builder::session()?
+            .method_timeout(TIMEOUT)
+            .build()
+            .await?;
+        match service {
+            Service::Server => show(&bus, request).await.map(drop),
+            Service::Portal => add(&bus, request).await,
+        }
+    })
+    .map_err(|error| Unavailable(format!("{}: {error}", service.interface())))
+}
+
 /// Whether the service answered, which [`DesktopNotifications::start`] waits for.
 type Answer = mpsc::SyncSender<Result<(), Unavailable>>;
 

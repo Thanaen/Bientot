@@ -100,13 +100,14 @@ fn prepare(theme: ThemeMode, cx: &mut App) {
 }
 
 /// Shows why WorkTime does not start, in a window that offers the diagnostic ZIP, as the .NET
-/// main window does; a message box when that window cannot open.
+/// main window does; when that window cannot open, the system's last resort, a message box on
+/// Windows and a notification on Linux.
 fn fail(failure: StartupFailure, cx: &mut App) {
     let language = failure.language();
     if let Err(error) = startup_failure_view::open(failure, cx) {
         log::error!("cannot show the startup failure: {error:#}");
-        alert(language, Key::InitializationFailed);
-        cx.quit();
+        shell::alert(language, Key::InitializationFailed);
+        shell::quit_once_running(cx);
     }
 }
 
@@ -129,7 +130,7 @@ fn run(launch: Launch, languages: LanguageSources, may_install: bool) -> Result<
             if let Some(language) =
                 transfer::import_left_waiting(launch.restarted_from, &directory, languages)
             {
-                alert(language, Key::ImportWaitsForNextStart);
+                shell::alert(language, Key::ImportWaitsForNextStart);
             }
             return Ok(());
         }
@@ -508,13 +509,6 @@ fn show(
     if let Some(path) = std::env::var_os("BIENTOT_READY_FILE") {
         std::fs::write(path, b"").ok();
     }
-}
-
-/// Tells the user why WorkTime does not start. Release builds on Windows have no console.
-fn alert(language: Language, key: Key) {
-    let text = language.text(key);
-    eprintln!("{text}");
-    platform::show_fatal(language.text(Key::ShellWindowTitle), text);
 }
 
 /// The session and power changes of a live day, queued in `arrived` from the moment the watch

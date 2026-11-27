@@ -68,6 +68,18 @@ nothing to standard error or to its log: `shell::open_new_flyout` reports
 the failure with `log::error!`, and no logger is installed. That silent
 process is the case T117 must turn into a message.
 
+**Run (T117, 2026-11-27).** Under `scripts/linux-desktop-harness.sh`, on
+X11 and on Wayland, with `VK_ICD_FILENAMES` and
+`__EGL_VENDOR_LIBRARY_FILENAMES` naming no file: when the flyout
+(`--open-flyout`) or a first start's onboarding cannot open, the app writes
+`NoGraphics.Text` to standard error, sends it to the notification server and
+quits; a start that failed and cannot open its window does the same with
+`InitializationFailed`. Found on the way: GPUI's Linux event loop (`calloop`)
+clears a quit asked before it runs, so `cx.quit()` from the launch's own
+callback left the process running, unseen, after a failed start whose window
+did not open, and after an onboarding that did not open. Those quits now
+wait for the loop (`shell::quit_once_running`).
+
 So a Linux user who built Bientôt today would get a silent process that
 counts nothing: `main.rs` substitutes `NoLastInput`, no lifecycle is watched,
 no notification sink is registered and `tray::install` is never called

@@ -80,6 +80,12 @@ A sign-in launch opens no window, only the tray icon. See
 - If startup fails, Bientôt opens a window with "Bientôt could not start.
   Check the local settings and database, then restart the app." Export
   diagnostics from that window.
+- On Linux, Bientôt draws its windows with a graphics driver that Vulkan or
+  OpenGL can use. Without one it shows "Bientôt could not open its window: no
+  compatible graphics driver was found." as a desktop notification and on the
+  standard error, then quits. Install the Mesa drivers of your distribution.
+  When the window of a failed start cannot open either, the notification shows
+  the startup failure message instead.
 - Windows 11 can hide notification-area icons behind the overflow arrow. Turn
   Bientôt on under **Settings > Personalization > Taskbar > Other system tray
   icons**. This is a Windows setting, not a Bientôt one.

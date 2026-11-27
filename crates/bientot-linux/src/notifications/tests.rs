@@ -43,6 +43,43 @@ fn the_portal_is_sent_the_delivery_id_as_the_notification_id() {
     );
 }
 
+const NO_GRAPHICS: &str =
+    "Bientôt could not open its window: no compatible graphics driver was found.";
+
+#[test]
+fn the_last_resort_reaches_the_server_as_any_notification_with_its_text() {
+    let request = last_resort("Bientôt", NO_GRAPHICS);
+
+    assert_eq!(
+        notify(&request),
+        Notify {
+            app_name: "Bientôt",
+            replaces_id: 0,
+            app_icon: "dev.bientot.Bientot",
+            summary: "Bientôt",
+            body: "Bientôt could not open its window: no compatible graphics driver was found.",
+            actions: ["default", ""],
+            hints: [("desktop-entry", "dev.bientot.Bientot")],
+            expire_timeout: -1,
+        }
+    );
+}
+
+#[test]
+fn the_last_resort_reaches_the_portal_under_an_id_of_its_own() {
+    let request = last_resort("Bientôt", NO_GRAPHICS);
+
+    assert_eq!(
+        portal_notification(&request),
+        PortalNotification {
+            id: "last-resort",
+            title: "Bientôt",
+            body: "Bientôt could not open its window: no compatible graphics driver was found.",
+            default_action: "open",
+        }
+    );
+}
+
 #[test]
 fn a_click_on_the_body_gives_the_delivery_id_of_that_notification() {
     let mut delivered = Delivered::new(SERVER_BODY_ACTION);

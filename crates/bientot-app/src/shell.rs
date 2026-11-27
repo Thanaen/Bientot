@@ -302,8 +302,34 @@ fn open_new_flyout(notice: Option<Notice>, cx: &mut App) {
                 placement,
             });
         }
-        Err(error) => log::error!("cannot open the flyout: {error:#}"),
+        Err(error) => {
+            log::error!("cannot open the flyout: {error:#}");
+            if platform::NO_WINDOW_MEANS_NO_GRAPHICS {
+                let language = cx.try_global::<Language>().copied().unwrap_or_default();
+                stop_without_graphics(language, cx);
+            }
+        }
     }
+}
+
+/// Tells the user why Bientôt stops when no window of its own can: on the standard error, which
+/// release builds on Windows have no console for, and through the system.
+pub fn alert(language: Language, key: Key) {
+    let text = language.text(key);
+    eprintln!("{text}");
+    platform::show_fatal(language.text(Key::ShellWindowTitle), text);
+}
+
+/// No window opens, so Bientôt quits rather than run on unseen, and says why.
+pub fn stop_without_graphics(language: Language, cx: &mut App) {
+    alert(language, Key::NoGraphicsText);
+    quit_once_running(cx);
+}
+
+/// Quits once GPUI's event loop runs: on Linux the loop forgets a quit asked before it starts, as
+/// from the launch's own callback.
+pub fn quit_once_running(cx: &mut App) {
+    cx.spawn(async |cx| cx.update(|cx| cx.quit())).detach();
 }
 
 /// The window the flyout opens in at `placement`, its panel `panel` large. Windows shows the

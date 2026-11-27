@@ -45,8 +45,8 @@ use super::{BackendNote, Backends, NO_BACKEND, Platform, PlatformContext, lock_r
 use crate::zones::SystemZones;
 
 // `build`, `place_window`, `activate_window`, `NotificationsRefused`, `Instance`,
-// `wait_for_exit`, `system_locale` and `system` below take the place of null's, and with `updates`
-// `run_update_hooks`, `install_pending_update` and `direct_updates`.
+// `wait_for_exit`, `show_fatal`, `system_locale` and `system` below take the place of null's, and
+// with `updates` `run_update_hooks`, `install_pending_update` and `direct_updates`.
 pub use null::*;
 
 pub use bientot_linux::process::wait_for_exit;
@@ -60,6 +60,16 @@ pub fn system_locale() -> bientot_linux::locale::EnvironmentLocale {
 /// The install kind and the session from the environment, the distribution from os-release.
 pub fn system() -> Option<bientot_linux::system::ThisSystem> {
     Some(bientot_linux::system::ThisSystem)
+}
+
+/// The caller already wrote it to the standard error, which a desktop launch shows nowhere: a
+/// notification tells it too, when a server answers, or the portal in a Flatpak.
+pub fn show_fatal(title: &str, body: &str) {
+    let service = Service::for_install(this_install_kind());
+    let request = bientot_linux::notifications::last_resort(title, body);
+    if let Err(error) = bientot_linux::notifications::show_once(service, &request) {
+        log::warn!("cannot show why Bientôt stops: {error}");
+    }
 }
 
 /// No notification server, or no portal in a Flatpak, answered at start: the app shows no

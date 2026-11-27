@@ -253,6 +253,14 @@ export names `none`.
   `AddNotification` refused later leaves its reminder reserved, as a toast
   that fails on Windows; it is logged with `log`, not in the diagnostic log.
 - A demo shows none, as on Windows.
+- The last resort, `platform::show_fatal` when no window can open:
+  `show_once` sends `last_resort(title, body)` as any notification, to the
+  server or the portal, with delivery id `last-resort`, on a connection of
+  its own, and returns once the service answered or a call timed out; the
+  process then exits. It keeps the body's action: GNOME Shell starts the
+  application of the `desktop-entry` hint for a click on a notification
+  without one, which would start Bientôt again. A demo shows it too, as
+  Windows shows its message box.
 
 ## Start at sign-in
 

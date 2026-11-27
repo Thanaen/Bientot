@@ -390,3 +390,32 @@ fn desktop_harness_shows_through_the_portal_and_reports_the_clicks_on_the_body()
         Err(mpsc::RecvTimeoutError::Timeout)
     );
 }
+
+#[test]
+#[ignore = "desktop-harness"]
+fn desktop_harness_shows_the_last_resort_before_it_returns() {
+    let _turn = crate::HARNESS_TURN
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    let bus = session();
+    let body = "Bientôt could not open its window: no compatible graphics driver was found.";
+    let last_resort = crate::notifications::last_resort("Bientôt", body);
+
+    show_once(Service::Server, &last_resort).unwrap();
+    let arguments = notified(&bus, body).expect("the server was sent the last resort");
+    assert_eq!(text(&arguments[3]), "Bientôt");
+
+    assert!(
+        show_once(Service::Portal, &last_resort).is_err(),
+        "no portal is unavailable"
+    );
+    let _portal = Portal::start(&bus);
+    show_once(Service::Portal, &last_resort).unwrap();
+    let arguments = calls(&bus, PORTAL_DESKTOP, PORTAL_PATH, "AddNotification")
+        .pop()
+        .expect("the portal was sent the last resort");
+    assert_eq!(text(&arguments[0]), "last-resort");
+    let notification =
+        <HashMap<String, OwnedValue>>::try_from(arguments[1].try_clone().unwrap()).unwrap();
+    assert_eq!(text(&notification["body"]), body);
+}

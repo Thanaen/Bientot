@@ -39,6 +39,14 @@ pub const WORDING: Wording = Wording::Linux;
 #[cfg(not(target_os = "linux"))]
 pub const WORDING: Wording = Wording::Windows;
 
+/// Whether a window that does not open means that none will, so that Bientôt stops and says why
+/// rather than run on unseen: without a graphics driver GPUI opens no window on Linux
+/// (research.md, A-13), where Direct3D on Windows falls back to its software renderer.
+#[cfg(target_os = "linux")]
+pub const NO_WINDOW_MEANS_NO_GRAPHICS: bool = true;
+#[cfg(not(target_os = "linux"))]
+pub const NO_WINDOW_MEANS_NO_GRAPHICS: bool = false;
+
 /// Holds the data folder: a later launch on it shows this one.
 pub use backend::Instance;
 /// Why the system refused to show this app's notifications.

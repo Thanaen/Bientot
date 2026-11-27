@@ -1,12 +1,14 @@
 //! What the real app does with the notification server of `scripts/linux-desktop-harness.sh`,
 //! python-dbusmock's: it asks the server at start whether it answers, and when it does not, the
-//! diagnostic log says the notifications are unavailable. Each test starts the `worktime`
-//! executable hidden, on a data folder of its own. The tests share the session's bus, so they
-//! take turns.
+//! diagnostic log says the notifications are unavailable; when no window can open, it says why
+//! through the server and on the standard error, then quits. Each test starts the `worktime`
+//! executable on a data folder of its own. The tests share the session's bus, so they take
+//! turns.
 #![cfg(target_os = "linux")]
 
+use std::io::Read as _;
 use std::path::Path;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::{Mutex, PoisonError};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -162,4 +164,159 @@ fn desktop_harness_logs_the_notifications_unavailable_only_when_no_server_answer
     let refused = App::start();
     drop(refusing);
     assert!(refused.log().contains(REFUSED), "{}", refused.log());
+}
+
+/// The summary and body of each `Notify` the server mock was sent, in order.
+fn notified() -> Vec<(String, String)> {
+    let calls: serde_json::Value = serde_json::from_str(&busctl(&[
+        "--json=short",
+        "call",
+        SERVER,
+        SERVER_PATH,
+        "org.freedesktop.DBus.Mock",
+        "GetMethodCalls",
+        "s",
+        "Notify",
+    ]))
+    .unwrap();
+    calls["data"][0]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|call| {
+            let text = |index: usize| call[1][index]["data"].as_str().unwrap().to_owned();
+            (text(3), text(4))
+        })
+        .collect()
+}
+
+/// What a start without any graphics driver left: neither Vulkan nor EGL finds one.
+struct Stopped {
+    status: ExitStatus,
+    stderr: String,
+}
+
+impl Stopped {
+    fn first_line(&self) -> &str {
+        self.stderr.lines().next().unwrap_or_default()
+    }
+}
+
+/// Starts the app without graphics on a data folder `prepare` fills, and waits for it to end.
+fn start_without_graphics(arguments: &[&str], prepare: impl FnOnce(&Path)) -> Stopped {
+    let folder = TempDir::new().unwrap();
+    let data = folder.path().join("data");
+    std::fs::create_dir(&data).unwrap();
+    prepare(&data);
+    let mut child = Command::new(env!("CARGO_BIN_EXE_worktime"))
+        .args(arguments)
+        .arg("--data-dir")
+        .arg(&data)
+        .env("VK_ICD_FILENAMES", folder.path().join("no-vulkan.json"))
+        .env(
+            "__EGL_VENDOR_LIBRARY_FILENAMES",
+            folder.path().join("no-egl.json"),
+        )
+        .env("EGL_LOG_LEVEL", "fatal")
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + WAIT;
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() > deadline {
+            let _ = child.kill();
+            panic!("the app runs on without a window");
+        }
+        sleep(Duration::from_millis(100));
+    };
+    let mut stderr = String::new();
+    child
+        .stderr
+        .take()
+        .unwrap()
+        .read_to_string(&mut stderr)
+        .unwrap();
+    Stopped { status, stderr }
+}
+
+fn settings(data: &Path) {
+    std::fs::write(data.join("settings.json"), "{}").unwrap();
+}
+
+#[test]
+#[ignore = "desktop-harness"]
+fn desktop_harness_without_graphics_the_flyout_says_why_and_the_app_quits() {
+    let _turn = HARNESS_TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    let before = notified().len();
+
+    let stopped = start_without_graphics(&["--open-flyout", "--french"], settings);
+
+    assert!(stopped.status.success(), "{}", stopped.stderr);
+    assert_eq!(
+        stopped.stderr,
+        "Bientôt n’a pas pu ouvrir sa fenêtre\u{a0}: aucun pilote graphique compatible n’a été \
+         trouvé.\n"
+    );
+    assert_eq!(
+        notified()[before..],
+        [(
+            "Bientôt".to_owned(),
+            "Bientôt n’a pas pu ouvrir sa fenêtre\u{a0}: aucun pilote graphique compatible n’a \
+             été trouvé."
+                .to_owned()
+        )]
+    );
+}
+
+#[test]
+#[ignore = "desktop-harness"]
+fn desktop_harness_without_graphics_the_onboarding_says_why_and_the_app_quits() {
+    let _turn = HARNESS_TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    let before = notified().len();
+
+    let stopped = start_without_graphics(&["--english"], |_| {});
+
+    assert!(stopped.status.success(), "{}", stopped.stderr);
+    assert_eq!(
+        stopped.stderr,
+        "Bientôt could not open its window: no compatible graphics driver was found.\n"
+    );
+    assert_eq!(
+        notified()[before..],
+        [(
+            "Bientôt".to_owned(),
+            "Bientôt could not open its window: no compatible graphics driver was found."
+                .to_owned()
+        )]
+    );
+}
+
+#[test]
+#[ignore = "desktop-harness"]
+fn desktop_harness_without_graphics_a_failed_start_keeps_its_own_text() {
+    let _turn = HARNESS_TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    let before = notified().len();
+
+    let stopped = start_without_graphics(&["--english"], |data| {
+        settings(data);
+        std::fs::write(data.join("worktime.db"), [0x5a; 4096]).unwrap();
+    });
+
+    assert!(!stopped.status.success(), "{}", stopped.stderr);
+    assert_eq!(
+        stopped.first_line(),
+        "Bientôt could not start. Check the local settings and database, then restart the app."
+    );
+    assert_eq!(
+        notified()[before..],
+        [(
+            "Bientôt".to_owned(),
+            "Bientôt could not start. Check the local settings and database, then restart the app."
+                .to_owned()
+        )]
+    );
 }
