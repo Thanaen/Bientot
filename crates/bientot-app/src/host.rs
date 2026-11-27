@@ -728,11 +728,12 @@ impl ShownTray {
         Ok(())
     }
 
-    /// Dark when the system does not say.
+    /// The panel's colour, when the system says it; Linux does not.
     fn taskbar(&self) -> Taskbar {
         match self.tray.panel_is_dark() {
             Some(false) => Taskbar::Light,
-            Some(true) | None => Taskbar::Dark,
+            Some(true) => Taskbar::Dark,
+            None => Taskbar::Unknown,
         }
     }
 

@@ -78,8 +78,9 @@ struct Scene {
 }
 
 /// The scenes Linux takes: those that show a text `contracts/copy.md` of specs/005-linux-support
-/// words apart for Linux, named beside each. A scene whose state Linux never reaches, as a
-/// startup turned off in the system's page of startup apps, stays out.
+/// words apart for Linux, named beside each, and those of a drawing only Linux shows. A scene
+/// whose state Linux never reaches, as a startup turned off in the system's page of startup apps,
+/// stays out.
 const LINUX: &[Scene] = &[
     // SettingsStartupCard.Header, SettingsStartupInput.AutomationProperties.Name; the row of an
     // AppImage above it, LauncherEntry.Header and .Description, its switch on.
@@ -167,6 +168,13 @@ const LINUX: &[Scene] = &[
     Scene {
         group: "flyout::capture_rebuilt_review",
         name: "flyout-rebuilt-review",
+    },
+    // No words: the tray icon for a panel whose colour Linux does not tell, which Windows never
+    // draws, its panels captioned with their colour and the sizes in pixels, alike in every
+    // language.
+    Scene {
+        group: "tray::capture_icons",
+        name: "tray-icons-any-panel",
     },
 ];
 

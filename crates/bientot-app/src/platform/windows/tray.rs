@@ -122,7 +122,7 @@ impl<C> Tray<C> for NotificationArea {
     }
 
     fn panel_is_dark(&self) -> Option<bool> {
-        taskbar_is_dark()
+        Some(taskbar_is_dark())
     }
 
     /// The notification area is always there.
@@ -218,8 +218,9 @@ fn small_icon_size() -> u32 {
 }
 
 /// Whether the taskbar is dark: its colour mode, « Choisir votre mode Windows » in the settings,
-/// can differ from the apps' mode. `None` when Windows does not say.
-fn taskbar_is_dark() -> Option<bool> {
+/// can differ from the apps' mode. Dark when Windows does not say, as a taskbar was before
+/// Windows 10 1903 gave it a light mode.
+fn taskbar_is_dark() -> bool {
     let mut light = 0u32;
     let mut size = size_of::<u32>() as u32;
     // SAFETY: the key and value names are static NUL-terminated strings; `light` holds the
@@ -235,7 +236,7 @@ fn taskbar_is_dark() -> Option<bool> {
             Some(&raw mut size),
         )
     };
-    read.is_ok().then_some(light == 0)
+    read.is_err() || light == 0
 }
 
 /// Hands `append` the items of `entries`, the entries at `path` in the menu of `generation`.

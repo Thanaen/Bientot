@@ -1023,9 +1023,29 @@ fn the_tray_shows_the_day_at_each_size_it_asks_for() {
     tray.show(today.view(), today.menu()).unwrap();
 
     let shown = port.published().unwrap();
-    assert_eq!(shown.icon_sizes, [16, 24]);
+    let sizes: Vec<u32> = shown.pixmaps.iter().map(|(size, _)| *size).collect();
+    assert_eq!(sizes, [16, 24]);
     assert_eq!(shown.tooltip, today.view().tray_tooltip);
     assert_eq!(shown.menu, today.menu());
+}
+
+#[test]
+fn a_panel_of_unknown_colour_shows_the_icon_drawn_for_any_panel() {
+    let folder = tempfile::tempdir().unwrap();
+    let today = start(folder.path(), clock());
+    let port = Rc::new(InMemoryTray::new(vec![22, 32], None, TrayHost::Present));
+    let mut tray = ShownTray::new(port.clone(), today.menu());
+
+    tray.show(today.view(), today.menu()).unwrap();
+
+    let icon = today.view().tray_icon;
+    assert_eq!(
+        port.published().unwrap().pixmaps,
+        [
+            (22, tray_art::rgba(icon, 22, Taskbar::Unknown).unwrap()),
+            (32, tray_art::rgba(icon, 32, Taskbar::Unknown).unwrap()),
+        ]
+    );
 }
 
 #[test]
