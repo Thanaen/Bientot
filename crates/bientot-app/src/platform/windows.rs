@@ -4,7 +4,7 @@
 //! and the message box of last resort.
 
 #[cfg(feature = "updates")]
-#[path = "windows/direct.rs"]
+#[path = "direct.rs"]
 mod direct;
 #[path = "windows/tray.rs"]
 mod tray;
@@ -47,7 +47,7 @@ pub use bientot_windows::diagnostics::{final_directory, native_machine, operatin
 pub use bientot_windows::process::wait_for_exit;
 pub use bientot_windows::single_instance::PrimaryInstance as Instance;
 #[cfg(feature = "updates")]
-pub use direct::{install_pending as install_pending_update, run_hooks as run_update_hooks};
+pub use direct::install_pending as install_pending_update;
 pub use tray::place_window;
 
 /// Windows shows a toast only for a sender it knows: the MSIX package, or the AppUserModelID
@@ -163,6 +163,38 @@ impl ReducedMotion for Motion {
 
 pub fn activate_window(window: &mut gpui::Window) {
     window.activate_window();
+}
+
+/// Velopack's hooks, run before anything else: the uninstaller's cleanup ends the process.
+#[cfg(feature = "updates")]
+pub fn run_update_hooks() -> bool {
+    direct::run_hooks(
+        velopack::VelopackApp::build().on_before_uninstall_fast_callback(|_| unregister()),
+    )
+}
+
+/// Removes what WorkTime wrote under `HKEY_CURRENT_USER` for the installed exe: its
+/// start-with-Windows value and its toast registration. The data folder stays.
+#[cfg(feature = "updates")]
+fn unregister() {
+    let startup = bientot_windows::startup::PortableStartupRegistration::for_current_process();
+    let state = startup.set_enabled(false);
+    if state == bientot_platform::startup::StartupRegistrationState::Unavailable {
+        log::warn!("cannot remove the startup registration");
+    }
+    if let Err(error) = bientot_windows::notifications::portable::unregister() {
+        log::warn!("cannot remove the toast registration: {error}");
+    }
+}
+
+#[cfg(feature = "updates")]
+impl StoreError for velopack::Error {
+    fn hresult(&self) -> Option<i32> {
+        match self {
+            Self::Win32(error) => Some(error.code().0),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(not(feature = "updates"))]

@@ -530,8 +530,9 @@ pub async fn pick_save(suggested: String, file_type: String, extension: &'static
 pub async fn pick_open(file_type: String, extensions: &'static [&'static str],
     cx: &mut AsyncApp) -> anyhow::Result<Option<PathBuf>>;
 /// The Store (`None` before the tray icon's window, which owns its prompts, exists, or
-/// without package identity) and the Velopack feed. Elsewhere `updates::NoUpdates`, never
-/// returned.
+/// without package identity) and the Velopack feed: on Linux only in an AppImage, as the
+/// hooks and the pending install (`platform/direct.rs`). Elsewhere `updates::NoUpdates`,
+/// never returned.
 pub fn store_updates() -> Result<Option<impl UpdateSource>, impl Display>;
 pub fn direct_updates() -> Option<impl UpdateSource>;
 /// The system as « À propos » and the diagnostic export describe it: `None` on Windows, whose

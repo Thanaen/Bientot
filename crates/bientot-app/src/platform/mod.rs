@@ -84,8 +84,9 @@ pub use backend::system_zone_id;
 pub use backend::wait_for_exit;
 /// Whether the user asked the system for less motion: [`motion`] reads it.
 pub use backend::{Motion, motion};
-/// The updates of the build Velopack's `Setup.exe` installed, and of the Microsoft Store, whose
-/// prompts the notification-area icon's window owns: `None` when this build has none.
+/// The updates of the build Velopack installed (`Setup.exe`'s, or the AppImage), and of the
+/// Microsoft Store, whose prompts the notification-area icon's window owns: `None` when this build
+/// has none.
 pub use backend::{direct_updates, store_updates};
 /// The save and open dialogs: `None` once the user cancels. On Windows the dialog blocks until
 /// closed, so it runs on a thread of its own; elsewhere GPUI's own dialogs keep the flow.

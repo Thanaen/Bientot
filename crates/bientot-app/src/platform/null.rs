@@ -59,10 +59,18 @@ pub fn activate_window(window: &mut Window) {
     window.activate_window();
 }
 
+#[cfg_attr(
+    all(target_os = "linux", feature = "updates"),
+    allow(dead_code, reason = "the Linux backend has its own with `updates`")
+)]
 pub fn run_update_hooks() -> bool {
     false
 }
 
+#[cfg_attr(
+    all(target_os = "linux", feature = "updates"),
+    allow(dead_code, reason = "the Linux backend has its own with `updates`")
+)]
 pub fn install_pending_update() {}
 
 pub fn local_app_data() -> anyhow::Result<PathBuf> {
@@ -106,6 +114,10 @@ pub fn store_updates() -> Result<Option<NoUpdates>, Infallible> {
     Ok(None)
 }
 
+#[cfg_attr(
+    all(target_os = "linux", feature = "updates"),
+    allow(dead_code, reason = "the Linux backend has its own with `updates`")
+)]
 pub fn direct_updates() -> Option<NoUpdates> {
     None
 }

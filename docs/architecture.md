@@ -151,8 +151,10 @@ folder and a demo folder never move.
 - The Microsoft Store build asks the Store, at most once a day.
 - The portable ZIP never checks; its settings link to the GitHub releases page.
 - « Rechercher les mises à jour » in Settings turns the checks off.
-- Only the `Setup.exe` build carries Velopack: it is built with bientot-app's
-  `direct` feature, the Store package and the ZIP with its `release` feature.
+- Only the `Setup.exe` build and the Linux AppImage carry Velopack: they are
+  built with bientot-app's `direct` feature, the Store package and the ZIP
+  with its `release` feature. A `direct` build on Linux checks only when it
+  runs as an AppImage (`platform/direct.rs`, `platform/linux.rs`).
 
 ## Testability
 
