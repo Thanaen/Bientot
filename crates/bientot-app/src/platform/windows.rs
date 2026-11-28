@@ -237,12 +237,13 @@ pub fn direct_updates() -> Option<crate::updates::NoUpdates> {
 
 /// The Microsoft Store, whose prompts the notification-area icon's window owns: the flyout
 /// closes when Windows' prompt takes the focus. `None` before the icon shows, and for a build
-/// without package identity, which has no Store to ask.
+/// without package identity, which has no Store to ask. An install that closes WorkTime starts
+/// it again with the flyout open, as the direct channel's does.
 pub fn store_updates() -> windows::core::Result<Option<StoreUpdates>> {
     let Some(owner) = tray::tray_window() else {
         return Ok(None);
     };
-    StoreUpdates::for_window(owner)
+    StoreUpdates::for_window(owner, &crate::launch::restart_arguments(false))
 }
 
 impl StoreError for windows::core::Error {
