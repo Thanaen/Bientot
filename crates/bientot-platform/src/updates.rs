@@ -44,7 +44,8 @@ pub trait UpdateOffer {
     const RESTARTS: bool = false;
 
     /// Hands the update to the Store. Windows asks the user before downloading, and installing
-    /// may close WorkTime. Completes without error when the user declines.
+    /// may close WorkTime, which then starts again. Completes without error when the user
+    /// declines.
     fn download_and_install(&self) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
