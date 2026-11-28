@@ -4,6 +4,7 @@ pub mod adjust;
 pub mod adjust_view;
 pub mod assets;
 pub mod automatic;
+pub mod chrome;
 pub mod demo;
 pub mod diagnostics;
 pub mod flyout;

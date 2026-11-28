@@ -16,6 +16,7 @@ use gpui::{
 };
 
 use crate::adjust::Closed;
+use crate::chrome::{self, Chrome};
 use crate::flyout::{self, AdjustTime, OpenCommands, Refresh};
 use crate::host::{self, Today};
 use crate::live::Tracking;
@@ -825,9 +826,7 @@ impl WeekView {
             .border_b_1()
             .border_color(theme.border_variant)
             .child(
-                div()
-                    .id("title")
-                    .window_control_area(WindowControlArea::Drag)
+                crate::chrome::drag_area(div().id("title"))
                     .flex_1()
                     .h_full()
                     .pl(BASE_08)
@@ -1180,6 +1179,7 @@ impl WeekView {
 impl Render for WeekView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = Theme::current(window, cx);
+        let chrome = Chrome::of(window, cx);
         if let Some(today) = cx.try_global::<Today>() {
             self.tracking = today.tracking();
         }
@@ -1312,14 +1312,17 @@ impl Render for WeekView {
             .bg(theme.editor)
             .text_color(theme.text)
             .type_style(text::LABEL_MD)
-            .child(self.title_bar(&theme))
+            .when(chrome.draws_title_bar(), |root| {
+                root.child(self.title_bar(&theme))
+            })
             .child(main)
             .child(self.status_bar(&theme))
             .children(
                 self.palette
                     .as_ref()
-                    .map(|palette| palette.overlay(&theme).top(size::TITLEBAR_HEIGHT)),
+                    .map(|palette| palette.overlay(&theme).top(chrome.title_bar_height())),
             )
+            .map(|root| chrome::framed(root, chrome, window, theme.border))
     }
 }
 

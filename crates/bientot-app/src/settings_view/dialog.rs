@@ -19,6 +19,7 @@ impl SettingsView {
         &self,
         dialog: Dialog,
         time: f32,
+        below: Pixels,
         theme: &Theme,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
@@ -64,7 +65,7 @@ impl SettingsView {
         div()
             .id("scrim")
             .absolute()
-            .top(token::TITLEBAR_HEIGHT)
+            .top(below)
             .left_0()
             .right_0()
             .bottom_0()

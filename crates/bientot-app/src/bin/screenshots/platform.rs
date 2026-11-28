@@ -5,10 +5,11 @@
 
 use std::collections::HashSet;
 
+use bientot_app::chrome::Chrome;
 use bientot_app::strings::Wording;
 use bientot_platform::startup::SystemPage;
 use bientot_platform::system::InstallKind;
-use gpui::Global;
+use gpui::{Global, Tiling};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Platform {
@@ -22,6 +23,17 @@ impl Platform {
             "windows" => Some(Self::Windows),
             "linux" => Some(Self::Linux),
             _ => None,
+        }
+    }
+
+    /// How its windows are decorated, whichever system renders them: the Linux scenes show
+    /// GNOME's, where the app draws the title bar and the border.
+    pub fn chrome(self) -> Chrome {
+        match self {
+            Self::Windows => Chrome::Caption,
+            Self::Linux => Chrome::App {
+                tiling: Tiling::default(),
+            },
         }
     }
 

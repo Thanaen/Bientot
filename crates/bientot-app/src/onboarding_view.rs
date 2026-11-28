@@ -16,6 +16,7 @@ use gpui::{
 };
 
 use crate::adjust::TimePart;
+use crate::chrome::{self, Chrome};
 use crate::onboarding::{self, Body, ImportOffer, LanguageOption, Onboarding, PageView, Step};
 use crate::settings::data::{Action, Chosen, DataPage, ImportDialog, Refusal};
 use crate::settings::{Clock, Control, Field, LanguageChoice, RowView, Switch, UsagePingFacts};
@@ -900,6 +901,7 @@ impl OnboardingView {
 impl Render for OnboardingView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = Theme::current(window, cx);
+        let chrome = Chrome::of(window, cx);
         let language = self.onboarding.language();
         if language != self.language {
             self.language = language;
@@ -988,9 +990,12 @@ impl Render for OnboardingView {
             .bg(theme.editor)
             .text_color(theme.text)
             .type_style(text::LABEL_MD)
-            .child(self.title_bar(&theme, cx))
+            .when(chrome.draws_title_bar(), |root| {
+                root.child(self.title_bar(&theme, cx))
+            })
             .child(scrolled)
             .child(self.footer(&page, &theme, cx))
+            .map(|root| chrome::framed(root, chrome, window, theme.border))
     }
 }
 

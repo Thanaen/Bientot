@@ -8,10 +8,12 @@ use bientot_domain::intervals::UtcInterval;
 use bientot_domain::time::LocalWorkday;
 use gpui::{
     App, Context, Entity, FocusHandle, Focusable, FontWeight, Hsla, KeyBinding, Pixels, Role,
-    ScrollHandle, SharedString, Subscription, Text, Window, actions, div, prelude::*, px,
+    ScrollHandle, SharedString, Subscription, Text, Window, WindowControlArea, actions, div,
+    prelude::*, px,
 };
 use jiff::civil::Date;
 
+use crate::chrome::{self, Chrome};
 use crate::live::Tracking;
 use crate::palette::{Host, Situation};
 use crate::palette_view::{Opened, PaletteView};
@@ -640,6 +642,21 @@ impl Flyout {
             .child(label)
     }
 
+    /// The title bar of window mode's window, where the desktop draws none: « Bientôt », which
+    /// drags it, then minimize, and close, which quits, as a desktop's own close button does when
+    /// the flyout is the app's only window, and also when « Paramètres » or the week is open.
+    fn window_bar(&self, theme: &Theme) -> impl IntoElement {
+        widgets::title_bar(
+            self.text(Key::ShellWindowTitle),
+            [
+                widgets::control("minimize", "minus", WindowControlArea::Min, theme)
+                    .on_click(|_, window, _| window.minimize_window()),
+            ],
+            |_, window, cx| window.dispatch_action(Box::new(Quit), cx),
+            theme,
+        )
+    }
+
     fn header(&self, theme: &Theme) -> impl IntoElement {
         let shown = self.day.shown_while(self.tracking.state());
         let tone = tone_style(shown.tone, theme);
@@ -775,6 +792,9 @@ impl Render for Flyout {
                 .map(|height| shell::panel_max_height(height, window.scale_factor()))
         });
         let body = self.body(window, cx, &theme);
+        // Where the desktop leaves window mode's window undecorated, as GNOME does.
+        let chrome = Chrome::of(window, cx);
+        let window_bar = shell::window_mode(cx) && chrome != Chrome::Desktop;
         let frame = self.frame;
         let corner = match frame {
             shell::PanelFrame::Square => px(0.),
@@ -826,8 +846,13 @@ impl Render for Flyout {
             .type_style(text::LABEL_MD)
             .text_color(theme.text)
             .bg(theme.surface)
-            .border_1()
-            .border_color(theme.border)
+            // Window mode's window, where the app decorates it, leaves its tiled edges bare.
+            .map(|content| match chrome {
+                Chrome::App { tiling } if window_bar => {
+                    chrome::bordered(content, tiling, theme.border)
+                }
+                _ => content.border_1().border_color(theme.border),
+            })
             .rounded(corner)
             // A shadow needs room in the window to fall into.
             .when(frame.room() > px(0.), |content| {
@@ -838,6 +863,7 @@ impl Render for Flyout {
                 content.min_h(max_height.map_or(PALETTE_ROOM, |height| PALETTE_ROOM.min(height)))
             })
             .when_some(max_height, |content, height| content.max_h(height))
+            .when(window_bar, |content| content.child(self.window_bar(&theme)))
             .child(self.header(&theme))
             .child(
                 div()
@@ -864,6 +890,7 @@ impl Render for Flyout {
                 palette
                     .overlay(&theme)
                     .rounded((corner - px(1.)).max(px(0.)))
+                    .when(window_bar, |overlay| overlay.top(size::TITLEBAR_HEIGHT))
             }));
 
         let fitted = self.fitted.clone();

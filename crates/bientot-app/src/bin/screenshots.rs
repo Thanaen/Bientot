@@ -16,6 +16,7 @@ use std::time::Duration;
 use anyhow::Context as _;
 use bientot_app::adjust_view;
 use bientot_app::assets::{self, Assets};
+use bientot_app::chrome::ChromeOverride;
 use bientot_app::launch::Launch;
 use bientot_app::onboarding_view;
 use bientot_app::palette_view;
@@ -98,6 +99,7 @@ fn main() -> anyhow::Result<()> {
         cx.set_global(launch.theme);
         cx.set_global(language);
         cx.set_global(Shots::new(platform));
+        cx.set_global(ChromeOverride(platform.chrome()));
         assets::load_fonts(cx)?;
         bientot_app::flyout::bind_keys(cx);
         week_view::bind_keys(cx);

@@ -8,6 +8,7 @@ use gpui::{
     actions, div, prelude::*, px, size,
 };
 
+use crate::chrome::{self, Chrome};
 use crate::diagnostics;
 use crate::flyout;
 use crate::settings_view::{outlined, spinner};
@@ -241,6 +242,7 @@ fn exporting(action: &Action, theme: &Theme) -> Stateful<Div> {
 impl Render for StartupFailureView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = Theme::current(window, cx);
+        let chrome = Chrome::of(window, cx);
         let page = self.failure.page();
         let header = div()
             .flex_none()
@@ -308,13 +310,16 @@ impl Render for StartupFailureView {
             .bg(theme.editor)
             .text_color(theme.text)
             .type_style(text::LABEL_MD)
-            .child(widgets::title_bar(
-                page.title,
-                [],
-                cx.listener(|_, _, _, cx| cx.quit()),
-                &theme,
-            ))
+            .when(chrome.draws_title_bar(), |root| {
+                root.child(widgets::title_bar(
+                    page.title,
+                    [],
+                    cx.listener(|_, _, _, cx| cx.quit()),
+                    &theme,
+                ))
+            })
             .child(content)
             .child(self.footer(&page, &theme, cx))
+            .map(|root| chrome::framed(root, chrome, window, theme.border))
     }
 }

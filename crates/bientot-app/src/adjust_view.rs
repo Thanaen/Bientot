@@ -9,6 +9,7 @@ use gpui::{
 
 use crate::adjust::window::Opener;
 use crate::adjust::{AdjustForm, Closed, REASON_MAX_LENGTH, TimeField, TimePart};
+use crate::chrome::Chrome;
 use crate::flyout;
 use crate::host::{self, Today};
 use crate::strings::{Key, Language};
@@ -292,6 +293,7 @@ fn label(text: &'static str, theme: &Theme) -> impl IntoElement {
 impl Render for AdjustView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = Theme::current(window, cx);
+        let chrome = Chrome::of(window, cx);
         let page = self.form.page();
         let locked = page.locked;
         self.duration.update(cx, |input, _| {
@@ -370,9 +372,12 @@ impl Render for AdjustView {
             .bg(theme.editor)
             .text_color(theme.text)
             .type_style(text::LABEL_MD)
-            .child(self.title_bar(&theme, cx))
+            .when(chrome.draws_title_bar(), |root| {
+                root.child(self.title_bar(&theme, cx))
+            })
             .child(body)
             .children(self.callout(&page, &theme))
             .child(self.footer(&page, &theme, cx))
+            .map(|root| crate::chrome::framed(root, chrome, window, theme.border))
     }
 }
