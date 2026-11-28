@@ -6,7 +6,7 @@
 //! The Store closes the app to install an update. A packaged desktop app comes back only if it
 //! called `RegisterApplicationRestart` before: the offer registers right before it hands the
 //! update to the Store, and takes the registration back when nothing was installed, so that a
-//! sign-out never restarts the app.
+//! sign-out with Windows' « restart my apps » setting does not restart it after a declined update.
 
 #![allow(unsafe_code)]
 
@@ -99,8 +99,10 @@ impl UpdateOffer for StoreUpdateOffer {
         async move {
             let state = installing.await.inspect_err(|_| unregister_restart())?;
             match state {
-                // The app usually closes before this; when it still runs, the update applies
-                // once it closes, and the registration starts it again then.
+                // The deployment usually closes the app before this. Should it still run, the
+                // registration stays for the rest of the session: it restarts the app only if
+                // Windows closes it to apply the update, not if the user quits it, and a
+                // sign-out with « restart my apps » turned on would start it again too.
                 StorePackageUpdateState::Completed => Ok(()),
                 // The user declined Windows' permission prompt.
                 StorePackageUpdateState::Canceled => {
