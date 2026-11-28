@@ -450,7 +450,9 @@ Windows.
 - **FR-039**: V1 MUST send at most one anonymous usage signal per day, holding
   only the app version, the install channel and a first-of-month flag. The
   signal MUST be on by default, disclosed at onboarding and switchable off in
-  Settings, and turning it off MUST stop every send. WorkTime MUST send no
+  Settings, and turning it off MUST stop every send. It MUST stay off, and
+  Settings MUST say why, while the `DO_NOT_TRACK` environment variable asks for
+  no telemetry. WorkTime MUST send no
   identifier and no time-tracking data, MUST never send from debug builds, demo
   launches or launches with `--data-dir`, and MUST perform no automatic crash
   upload.

@@ -57,6 +57,8 @@ enum OnboardingShot {
     ConnectionsDetails,
     /// The ZIP build, which leaves the updates out.
     ConnectionsZip,
+    /// `DO_NOT_TRACK` set, which keeps the signal off.
+    ConnectionsDoNotTrack,
     /// « Commencer » pressed, and the settings not saved.
     ConnectionsSaveFailed,
     /// The AppImage's entry starts another file, and the switch turned off, so the row names it.
@@ -64,7 +66,7 @@ enum OnboardingShot {
 }
 
 impl OnboardingShot {
-    const ALL: [OnboardingShot; 10] = [
+    const ALL: [OnboardingShot; 11] = [
         Self::Language,
         Self::LanguageImportReading,
         Self::LanguageImportConfirm,
@@ -74,6 +76,7 @@ impl OnboardingShot {
         Self::Connections,
         Self::ConnectionsDetails,
         Self::ConnectionsZip,
+        Self::ConnectionsDoNotTrack,
         Self::ConnectionsSaveFailed,
     ];
 
@@ -88,6 +91,7 @@ impl OnboardingShot {
             Self::Connections => "connections",
             Self::ConnectionsDetails => "connections-details",
             Self::ConnectionsZip => "connections-zip",
+            Self::ConnectionsDoNotTrack => "connections-do-not-track",
             Self::ConnectionsSaveFailed => "connections-save-failed",
             Self::ConnectionsStartupMoved => "connections-startup-moved",
         }
@@ -107,6 +111,7 @@ impl OnboardingShot {
             Self::Connections
             | Self::ConnectionsDetails
             | Self::ConnectionsZip
+            | Self::ConnectionsDoNotTrack
             | Self::ConnectionsSaveFailed
             | Self::ConnectionsStartupMoved => 2,
         };
@@ -166,6 +171,7 @@ fn capture_onboarding(
             if let OnboardingShot::ConnectionsZip = shot {
                 usage_ping.build = SettingsState::Zip.usage_ping().build;
             }
+            usage_ping.do_not_track = matches!(shot, OnboardingShot::ConnectionsDoNotTrack);
             let directory =
                 DataDirectory::from(PathBuf::from(r"C:\Users\Camille\AppData\Local\Bientot"));
             let onboarding = Onboarding::new(

@@ -63,7 +63,8 @@ a { color: var(--accent); text-underline-offset: 3px; }
 h1, h2, h3 { text-wrap: balance; margin: 0; }
 p { margin: 0; text-wrap: pretty; }
 .tnum { font-variant-numeric: tabular-nums; }
-.mono { font-family: var(--font-mono); }
+.mono, code { font-family: var(--font-mono); }
+code { font-size: .92em; }
 .wrap { max-width: var(--page); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .nb { white-space: nowrap; }
 .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 4px; font: 500 15px/1 var(--font-sans); text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--element); white-space: nowrap; }
@@ -302,7 +303,7 @@ footer .foot-note { flex-basis: 100%; }
       <div class="panel">
         <h2>Vos heures restent chez vous</h2>
         <p>Tout est enregistré sur votre PC, sans compte. Vous pouvez exporter vos données, puis les importer sur un autre ordinateur.</p>
-        <p>Une fois par jour, l’application envoie un signal anonyme (sa version, son mode d’installation et s’il s’agit du premier envoi du mois) pour compter les PC qui l’utilisent. Il est activé par défaut&nbsp;; vous pouvez le couper dans Paramètres&nbsp;›&nbsp;Général. Les totaux sont publics, sur la page <a href="/statistiques">Statistiques</a>.</p>
+        <p>Une fois par jour, l’application envoie un signal anonyme (sa version, son mode d’installation et s’il s’agit du premier envoi du mois) pour compter les PC qui l’utilisent. Il est activé par défaut&nbsp;; vous pouvez le couper dans Paramètres&nbsp;›&nbsp;Général. Si la variable d’environnement DO_NOT_TRACK est définie sur votre PC (par exemple <code>DO_NOT_TRACK=1</code>), Bientôt la respecte et n’envoie jamais le signal. Les totaux sont publics, sur la page <a href="/statistiques">Statistiques</a>.</p>
       </div>
       <div class="panel">
         <h2>Libre et gratuit</h2>

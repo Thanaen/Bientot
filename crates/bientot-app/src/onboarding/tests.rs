@@ -33,6 +33,7 @@ fn on_system(forced: Option<Language>, system: Option<Language>) -> Onboarding {
             today: TODAY,
             last_sent: None,
             install_kind: None,
+            do_not_track: false,
         },
         LanguageSources { forced, system },
         Some(here()),
@@ -551,6 +552,7 @@ fn the_zip_build_leaves_the_updates_out() {
             today: TODAY,
             last_sent: None,
             install_kind: None,
+            do_not_track: false,
         },
         LanguageSources {
             forced: Some(Language::French),
@@ -570,6 +572,48 @@ fn the_zip_build_leaves_the_updates_out() {
     );
     let saved = onboarding.advance().expect("« Commencer » saves");
     assert!(saved.updates.check_for_updates);
+}
+
+#[test]
+fn do_not_track_keeps_the_signal_off_says_why_and_saves_it_off() {
+    let mut onboarding = Onboarding::new(
+        Settings::default(),
+        UsagePingFacts {
+            build: Build::new("1.0.0", Channel::Store).unwrap(),
+            released: None,
+            today: TODAY,
+            last_sent: None,
+            install_kind: None,
+            do_not_track: true,
+        },
+        LanguageSources {
+            forced: Some(Language::English),
+            system: Some(Language::French),
+        },
+        None,
+    );
+    onboarding.advance();
+    onboarding.advance();
+    onboarding.toggle(Switch::UsagePing);
+
+    assert_eq!(switch(&onboarding, Setting::UsagePing), (false, false));
+    let usage_ping = row(&onboarding, Setting::UsagePing);
+    assert_eq!(
+        (
+            usage_ping.tone,
+            usage_ping.description,
+            usage_ping.link,
+            usage_ping.details
+        ),
+        (
+            RowTone::Unavailable,
+            Language::English.text(Key::SettingsUsagePingDoNotTrackText),
+            Some(crate::settings::DO_NOT_TRACK_LINK),
+            None
+        )
+    );
+    let saved = onboarding.advance().expect("« Commencer » saves");
+    assert!(!saved.usage_ping);
 }
 
 #[test]
@@ -677,6 +721,7 @@ fn a_demo_offers_no_import() {
             today: TODAY,
             last_sent: None,
             install_kind: None,
+            do_not_track: false,
         },
         LanguageSources {
             forced: Some(Language::French),

@@ -1,6 +1,8 @@
 //! The anonymous daily usage signal: whether one is due today, and what it holds. Its contract
 //! with the service is `services/bientot/src/ping.ts`.
 
+use std::ffi::OsStr;
+
 use jiff::civil::Date;
 
 /// Where WorkTime was installed from, fixed at build time.
@@ -93,6 +95,24 @@ pub fn usage_ping_due(
     })
 }
 
+/// Whether the `DO_NOT_TRACK` environment variable, holding `value`, asks every app to send no
+/// telemetry (<https://consoledonottrack.com>). Any value asks, `1` as the convention writes it,
+/// except an empty one and those that clearly mean no: `0`, `false`, `no` and `off`, in any
+/// case and around spaces.
+pub fn do_not_track(value: Option<&OsStr>) -> bool {
+    let Some(value) = value else {
+        return false;
+    };
+    let Some(value) = value.to_str() else {
+        return true;
+    };
+    let value = value.trim();
+    !(value.is_empty()
+        || ["0", "false", "no", "off"]
+            .iter()
+            .any(|no| value.eq_ignore_ascii_case(no)))
+}
+
 #[cfg(test)]
 mod tests {
     use jiff::civil::date;
@@ -175,6 +195,25 @@ mod tests {
                 first_this_month: true,
             })
         );
+    }
+
+    #[test]
+    fn do_not_track_asks_with_any_value_but_one_that_means_no() {
+        for asks in ["1", "true", "yes", "TRUE", " 1 ", "2", "on"] {
+            assert!(do_not_track(Some(OsStr::new(asks))), "{asks:?}");
+        }
+        for does_not in ["", "  ", "0", "false", "False", "no", "NO", "off", " 0 "] {
+            assert!(!do_not_track(Some(OsStr::new(does_not))), "{does_not:?}");
+        }
+        assert!(!do_not_track(None));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn do_not_track_asks_with_a_value_that_is_not_unicode() {
+        use std::os::unix::ffi::OsStrExt;
+
+        assert!(do_not_track(Some(OsStr::from_bytes(b"\xff"))));
     }
 
     #[test]
