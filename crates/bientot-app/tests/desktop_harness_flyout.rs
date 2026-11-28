@@ -1,7 +1,7 @@
 //! Where the real app opens its flyout in `scripts/linux-desktop-harness.sh` (T065): under openbox
 //! in the corner of the work area a panel leaves, as a layer surface anchored to the click's corner
 //! under sway, with the shadow the app draws around it, and as an ordinary window when no tray host
-//! shows the icon. Each test starts the
+//! shows the icon. Under openbox with a compositing manager, clicks on that shadow go through. Each test starts the
 //! `worktime` executable hidden, as at sign-in, on a data folder of its own, and clicks its tray
 //! item over D-Bus as a host does. The tests share the session's bus and display, so they take
 //! turns.
@@ -185,6 +185,7 @@ impl Drop for NoWatcher {
 
 mod x11 {
     use x11rb::connection::Connection;
+    use x11rb::protocol::shape::{ConnectionExt as _, SK};
     use x11rb::protocol::xproto::{
         AtomEnum, ConnectionExt as _, CreateWindowAux, InputFocus, MapState, PropMode, Window,
         WindowClass,
@@ -205,6 +206,7 @@ mod x11 {
 
     pub struct Display {
         pub connection: RustConnection,
+        pub screen: usize,
         pub root: Window,
         pub atoms: Atoms,
     }
@@ -229,6 +231,7 @@ mod x11 {
             let atoms = Atoms::new(&connection).unwrap().reply().unwrap();
             Self {
                 connection,
+                screen,
                 root,
                 atoms,
             }
@@ -374,6 +377,53 @@ mod x11 {
             id
         }
 
+        /// Claims the selection a compositing manager owns, so that the app draws its own frame
+        /// as under one: the returned window holds it until destroyed.
+        pub fn pose_as_compositor(&self) -> Window {
+            let name = format!("_NET_WM_CM_S{}", self.screen);
+            let selection = self
+                .connection
+                .intern_atom(false, name.as_bytes())
+                .unwrap()
+                .reply()
+                .unwrap()
+                .atom;
+            let id = self.connection.generate_id().unwrap();
+            self.connection
+                .create_window(
+                    0,
+                    id,
+                    self.root,
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    WindowClass::INPUT_ONLY,
+                    x11rb::COPY_FROM_PARENT,
+                    &CreateWindowAux::new(),
+                )
+                .unwrap();
+            self.connection
+                .set_selection_owner(id, selection, x11rb::CURRENT_TIME)
+                .unwrap();
+            self.connection.flush().unwrap();
+            id
+        }
+
+        /// The rectangles of `window` that take clicks: the whole window unless it was shaped.
+        pub fn input_shape(&self, window: Window) -> Vec<(i32, i32, i32, i32)> {
+            self.connection
+                .shape_get_rectangles(window, SK::INPUT)
+                .unwrap()
+                .reply()
+                .unwrap()
+                .rectangles
+                .iter()
+                .map(|r| (r.x.into(), r.y.into(), r.width.into(), r.height.into()))
+                .collect()
+        }
+
         pub fn give_focus(&self, window: Window) {
             self.connection
                 .set_input_focus(InputFocus::PARENT, window, x11rb::CURRENT_TIME)
@@ -472,6 +522,39 @@ fn desktop_harness_x11_flyout_opens_by_the_panel_in_the_corner_of_the_work_area(
         "{flyout:?}"
     );
     display.destroy(dock);
+}
+
+#[test]
+#[ignore = "desktop-harness"]
+fn desktop_harness_x11_clicks_on_the_flyouts_shadow_reach_what_lies_behind() {
+    let _turn = HARNESS_TURN.lock().unwrap_or_else(PoisonError::into_inner);
+    if session() != "x11" {
+        return;
+    }
+    let display = x11::Display::open();
+    let compositor = display.pose_as_compositor();
+    let app = App::start();
+    let dock = display.dock(false, 33);
+    eventually("openbox to leave the dock out", || {
+        (display.work_area() == [0, 0, 1920, 1047]).then_some(())
+    });
+
+    app.click(1909, 1064);
+    let flyout = x11_flyout(&display, &app);
+    let room = (flyout.width - WIDTH) / 2;
+    assert_eq!(room, MARGIN, "room for the shadow on each side: {flyout:?}");
+    assert_eq!(
+        display.input_shape(flyout.id),
+        [(room, room, WIDTH, flyout.height - 2 * room)],
+        "only the panel takes clicks: {flyout:?}"
+    );
+
+    app.click(1909, 1064);
+    eventually("the flyout to close", || {
+        display.shown(app.pid()).is_empty().then_some(())
+    });
+    display.destroy(dock);
+    display.destroy(compositor);
 }
 
 /// A screenshot of the output, by `grim`: its width, height and RGB pixels.

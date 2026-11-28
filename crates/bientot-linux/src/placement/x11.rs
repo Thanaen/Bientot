@@ -3,8 +3,9 @@ use std::error::Error;
 use bientot_platform::placement::Rect;
 use x11rb::connection::Connection;
 use x11rb::protocol::randr::ConnectionExt as _;
+use x11rb::protocol::shape::{self, ConnectionExt as _};
 use x11rb::protocol::xproto::{
-    AtomEnum, ConfigureWindowAux, ConnectionExt as _, InputFocus, Window,
+    AtomEnum, ClipOrdering, ConfigureWindowAux, ConnectionExt as _, InputFocus, Rectangle, Window,
 };
 use x11rb::rust_connection::RustConnection;
 
@@ -83,6 +84,30 @@ impl X11 {
                 .set_input_focus(InputFocus::PARENT, window, x11rb::CURRENT_TIME)?
                 .check()?;
         }
+        Ok(())
+    }
+
+    /// Takes the clicks on `window` only within `panel`, in the window's physical pixels: a click
+    /// beside it, on the shadow the flyout draws in its transparent room, reaches what lies
+    /// behind, as the input region does on Wayland.
+    pub fn take_input_within(&self, window: Window, panel: Rect) -> Result<(), Failure> {
+        let rectangle = Rectangle {
+            x: panel.x.try_into()?,
+            y: panel.y.try_into()?,
+            width: panel.width.try_into()?,
+            height: panel.height.try_into()?,
+        };
+        self.connection
+            .shape_rectangles(
+                shape::SO::SET,
+                shape::SK::INPUT,
+                ClipOrdering::UNSORTED,
+                window,
+                0,
+                0,
+                &[rectangle],
+            )?
+            .check()?;
         Ok(())
     }
 }

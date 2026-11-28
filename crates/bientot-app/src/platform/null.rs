@@ -59,6 +59,14 @@ pub fn activate_window(window: &mut Window) {
     window.activate_window();
 }
 
+/// Takes the clicks on `window` only within `panel`, in its physical pixels, where GPUI's input
+/// region does not reach: nowhere here.
+#[cfg_attr(
+    target_os = "linux",
+    allow(dead_code, reason = "the Linux backend has its own")
+)]
+pub fn take_input_within(_window: &Window, _panel: Bounds<i32>) {}
+
 #[cfg_attr(
     all(target_os = "linux", feature = "updates"),
     allow(dead_code, reason = "the Linux backend has its own with `updates`")

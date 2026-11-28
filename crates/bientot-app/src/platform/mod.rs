@@ -90,6 +90,9 @@ pub use backend::system_locale;
 /// The system's name for its own time zone when it is not an IANA name: the Windows key, which
 /// the ledger keeps as .NET's `TimeZoneInfo.Local.Id`.
 pub use backend::system_zone_id;
+/// Takes the clicks on a window only within `panel`, in its physical pixels, where GPUI's input
+/// region does not reach: on X11.
+pub use backend::take_input_within;
 /// Waits up to a timeout for a process to exit; whether it did.
 pub use backend::wait_for_exit;
 /// Whether the user asked the system for less motion: [`motion`] reads it.

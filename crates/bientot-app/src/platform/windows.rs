@@ -184,6 +184,9 @@ pub fn activate_window(window: &mut gpui::Window) {
     window.activate_window();
 }
 
+/// The flyout's window has no transparent room on Windows, which draws its frame.
+pub fn take_input_within(_window: &gpui::Window, _panel: gpui::Bounds<i32>) {}
+
 /// Velopack's hooks, run before anything else: the uninstaller's cleanup ends the process.
 #[cfg(feature = "updates")]
 pub fn run_update_hooks() -> bool {
