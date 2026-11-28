@@ -41,7 +41,8 @@ application names or window titles.
 
 ## Download
 
-Bientôt runs on Windows 11 x64.
+Bientôt runs on Windows 11 x64. Linux: in progress, see
+[supported platforms](docs/platforms.md).
 
 - **Microsoft Store**: install
   [Bientôt from the Microsoft Store](https://apps.microsoft.com/detail/9N4FL1HRF4KL).
