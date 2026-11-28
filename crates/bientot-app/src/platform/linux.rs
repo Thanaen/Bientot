@@ -37,12 +37,13 @@ use bientot_platform::lifecycle::{
     LifecycleListener, LifecycleSource, LifecycleTransition, LockReporting, SessionSnapshot,
 };
 use bientot_platform::notifications::{Notifier, QueuedClicks};
+use bientot_platform::placement::Corner;
 use bientot_platform::single_instance::{Acquired, InstanceLock};
 use bientot_platform::startup::StartupPort;
 use bientot_platform::system::{InstallKind, SystemInfo as _};
 use bientot_store::data_directory::DataDirectory;
 use futures::channel::mpsc;
-use gpui::{Bounds, Window};
+use gpui::{Bounds, Window, WindowOptions};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 use super::{BackendNote, Backends, NO_BACKEND, Platform, PlatformContext, lock_reporting_name};
@@ -430,6 +431,33 @@ pub fn place_window(window: &mut Window, client: Bounds<i32>) {
 pub fn activate_window(window: &mut Window) {
     null::activate_window(window);
     with_x11_window(window, |x11, id| x11.focus(id));
+}
+
+/// `popup` as a layer-shell surface in `corner` of the output, `margin` logical pixels from both
+/// edges, on the layer above windows, with the keyboard once the user points at it or clicks it
+/// (A-3).
+pub fn layer_shell(popup: WindowOptions, corner: Corner, margin: i32) -> WindowOptions {
+    use gpui::layer_shell::{Anchor, KeyboardInteractivity, Layer, LayerShellOptions};
+    use gpui::{WindowKind, px};
+
+    let anchor = match corner {
+        Corner::TopLeft => Anchor::TOP | Anchor::LEFT,
+        Corner::TopRight => Anchor::TOP | Anchor::RIGHT,
+        Corner::BottomLeft => Anchor::BOTTOM | Anchor::LEFT,
+        Corner::BottomRight => Anchor::BOTTOM | Anchor::RIGHT,
+    };
+    let margin = px(margin as f32);
+    WindowOptions {
+        kind: WindowKind::LayerShell(LayerShellOptions {
+            namespace: "bientot-flyout".into(),
+            layer: Layer::Top,
+            anchor,
+            margin: Some((margin, margin, margin, margin)),
+            keyboard_interactivity: KeyboardInteractivity::OnDemand,
+            ..Default::default()
+        }),
+        ..popup
+    }
 }
 
 /// On X11, shapes the window's input to `panel`: GPUI's input region is Wayland's only.

@@ -47,6 +47,35 @@ pub const NO_WINDOW_MEANS_NO_GRAPHICS: bool = true;
 #[cfg(not(target_os = "linux"))]
 pub const NO_WINDOW_MEANS_NO_GRAPHICS: bool = false;
 
+/// Whether GPUI's report of a window's decorations says who draws its frame. On Windows it
+/// reports server-side decorations, and the app's title bar is the caption all the same.
+#[cfg(target_os = "linux")]
+pub const DECORATIONS_AS_REPORTED: bool = true;
+#[cfg(not(target_os = "linux"))]
+pub const DECORATIONS_AS_REPORTED: bool = false;
+
+/// Whether a press on a title bar hands the move to the desktop: Windows moves a window by its
+/// caption area, which GPUI ignores on Linux.
+#[cfg(target_os = "linux")]
+pub const MOVE_ON_PRESS: bool = true;
+#[cfg(not(target_os = "linux"))]
+pub const MOVE_ON_PRESS: bool = false;
+
+/// `popup` as a layer-shell surface in `corner` of the output, `margin` logical pixels from both
+/// edges (A-3).
+#[cfg(target_os = "linux")]
+pub use backend::layer_shell;
+
+/// GPUI has `WindowKind::LayerShell` only on Linux, and no other backend answers `Layer`.
+#[cfg(not(target_os = "linux"))]
+pub fn layer_shell(
+    popup: gpui::WindowOptions,
+    _corner: bientot_platform::placement::Corner,
+    _margin: i32,
+) -> gpui::WindowOptions {
+    popup
+}
+
 /// Holds the data folder: a later launch on it shows this one.
 pub use backend::Instance;
 /// Why the system refused to show this app's notifications.
@@ -119,6 +148,19 @@ pub fn system_tls() -> ureq::tls::TlsConfig {
         })
         .root_certs(RootCerts::PlatformVerifier)
         .build()
+}
+
+/// Whether `error` comes from the TLS of [`system_tls`]: ureq hands rustls's errors over inside
+/// I/O errors.
+#[cfg(all(test, feature = "usage-ping"))]
+pub fn refused_by_tls(error: &ureq::Error) -> bool {
+    #[cfg(windows)]
+    return matches!(error, ureq::Error::NativeTls(_));
+    #[cfg(not(windows))]
+    return matches!(
+        error,
+        ureq::Error::Io(io) if io.get_ref().is_some_and(|inner| inner.is::<rustls::Error>())
+    );
 }
 
 /// What [`build`] knows of the launch.

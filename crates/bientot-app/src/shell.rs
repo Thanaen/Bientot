@@ -494,7 +494,7 @@ fn window_options(
             }
         }
         FlyoutPlacement::Layer { corner, margin } => {
-            layer_shell(popup, corner, margin - f32::from(room) as i32)
+            platform::layer_shell(popup, corner, margin - f32::from(room) as i32)
         }
         FlyoutPlacement::CompositorPlaced => popup,
         FlyoutPlacement::Window => WindowOptions {
@@ -508,39 +508,6 @@ fn window_options(
             ..popup
         },
     }
-}
-
-/// `popup` as a layer-shell surface in `corner` of the output, `margin` logical pixels from both
-/// edges, on the layer above windows, with the keyboard once the user points at it or clicks it
-/// (A-3).
-#[cfg(target_os = "linux")]
-fn layer_shell(popup: WindowOptions, corner: Corner, margin: i32) -> WindowOptions {
-    use gpui::layer_shell::{Anchor, KeyboardInteractivity, Layer, LayerShellOptions};
-
-    let anchor = match corner {
-        Corner::TopLeft => Anchor::TOP | Anchor::LEFT,
-        Corner::TopRight => Anchor::TOP | Anchor::RIGHT,
-        Corner::BottomLeft => Anchor::BOTTOM | Anchor::LEFT,
-        Corner::BottomRight => Anchor::BOTTOM | Anchor::RIGHT,
-    };
-    let margin = px(margin as f32);
-    WindowOptions {
-        kind: WindowKind::LayerShell(LayerShellOptions {
-            namespace: "bientot-flyout".into(),
-            layer: Layer::Top,
-            anchor,
-            margin: Some((margin, margin, margin, margin)),
-            keyboard_interactivity: KeyboardInteractivity::OnDemand,
-            ..Default::default()
-        }),
-        ..popup
-    }
-}
-
-/// GPUI has `WindowKind::LayerShell` only on Linux, and no other backend answers `Layer`.
-#[cfg(not(target_os = "linux"))]
-fn layer_shell(popup: WindowOptions, _corner: Corner, _margin: i32) -> WindowOptions {
-    popup
 }
 
 /// The size of a window that leaves `room` around `panel` on every side.

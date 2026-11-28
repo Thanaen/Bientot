@@ -173,6 +173,25 @@ RELEASE_ANY_BRANCH=1 FIRST_RELEASE=1 scripts/release-direct.sh --target linux-x6
 `FIRST_RELEASE=1` skips the delta package, which needs the previous release.
 Use `--target linux-arm64` on Arm.
 
+### Platform code
+
+A platform condition (`cfg`, `cfg!` or `cfg_attr` on `windows`, `unix`,
+`target_os` or `target_family`) belongs in `bientot-windows`,
+`bientot-linux`, `crates/bientot-app/src/platform/` or a `build.rs`
+(constitution, Principle VII). Elsewhere, take a port of
+`bientot-platform`, or a function or constant of
+`crates/bientot-app/src/platform/mod.rs`, which picks each system's value.
+The `Rust` CI job refuses any other condition. Run the same check:
+
+```bash
+scripts/check-platform-cfg.sh
+```
+
+When a condition cannot move, as in a test that only one system can run,
+add its line to `scripts/platform-cfg-allowlist.txt` with its reason. The
+check also fails on an entry that matches no line, so remove the entry
+with the code.
+
 ### What only Windows checks
 
 A green Linux run does not prove these:
