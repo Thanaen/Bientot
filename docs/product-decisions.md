@@ -534,6 +534,31 @@ which stay out of scope. Specified in `specs/004-weekly-schedule-days-off/`.
   exceptionally on a non-working day, closures, calendars fetched from the
   network.
 
+### D-026 — Evidence on Linux
+
+Decided on 2026-11-28 by the owner (question Q4 of
+`specs/005-linux-support/lots.md`). Specified in `specs/005-linux-support/`.
+
+The accounting rules of Linux are those of Windows. Evidence comes from the
+desktop: input idle time from the compositor or the desktop shell, lock and
+unlock from logind's `LockedHint`, sleep and resume from logind, past sleep
+from the journal when the user may read it.
+
+Linux keeps no record of past locks. The first-start rebuild (« Avant
+Bientôt ») therefore covers the time from the opening of the session to the
+first start, minus known sleep, as one provisional review whose text says
+that locked time is not known. It is never credited without the review. When
+the session opening is not known, nothing is rebuilt.
+
+When a desktop reports no idle time, nothing is counted automatically. When
+it reports no lock state, the session state is unknown and the day is
+accounted from activity alone. Both are shown.
+
+On a compositor that offers only version 1 of the idle protocol, an app that
+inhibits idle (a video call) makes the user look active. That is accepted,
+written to the diagnostic log and documented in `docs/platforms.md` (question
+Q12).
+
 ## Later decisions
 
 - whether and under which license to open-source the repository;
