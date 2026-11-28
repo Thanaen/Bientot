@@ -395,6 +395,7 @@
   <data name="SettingsUsagePingLastSentYesterday" xml:space="preserve"><value>hier</value></data>
   <data name="SettingsUsagePingLastSentDateFormat" xml:space="preserve"><value>{0:d MMMM}</value></data>
   <data name="SettingsUsagePingOffText" xml:space="preserve"><value>Désactivé : Bientôt n’envoie aucun signal.</value></data>
+  <data name="SettingsUsagePingDoNotTrackText" xml:space="preserve"><value>Votre système demande aux applications de ne pas vous pister (DO_NOT_TRACK). Bientôt respecte ce réglage et n’envoie aucun signal.</value></data>
   <data name="SettingsActivityWatchCalloutTitle" xml:space="preserve"><value>ActivityWatch n’est plus pris en charge</value></data>
   <data name="SettingsActivityWatchCalloutMessage" xml:space="preserve"><value>Bientôt détecte désormais l’activité lui-même. Passez à la détection intégrée pour que votre temps continue d’être compté.</value></data>
   <data name="SettingsActivityWatchCalloutAction" xml:space="preserve"><value>Utiliser la détection intégrée</value></data>

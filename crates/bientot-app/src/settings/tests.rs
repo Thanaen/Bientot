@@ -41,6 +41,7 @@ fn usage_ping(last_sent: Option<Date>, channel: Channel) -> UsagePingFacts {
         today: TODAY,
         last_sent,
         install_kind: None,
+        do_not_track: false,
     }
 }
 
@@ -956,6 +957,51 @@ fn the_updates_and_the_usage_signal_switch_off_on_their_own() {
     assert!(port.saved[0].usage_ping);
     assert!(!port.saved[1].updates.check_for_updates);
     assert!(!port.saved[1].usage_ping);
+}
+
+#[test]
+fn do_not_track_greys_the_signal_off_without_changing_its_setting() {
+    let mut form = SettingsForm::new(
+        built_in(),
+        UsagePingFacts {
+            do_not_track: true,
+            ..usage_ping(Some(TODAY), Channel::Store)
+        },
+        Language::English,
+    );
+    form.toggle_details();
+
+    assert!(form.toggle(Switch::UsagePing).is_none());
+    assert_eq!(
+        row(&form.view(), Setting::UsagePing),
+        &RowView {
+            setting: Setting::UsagePing,
+            title: "Send an anonymous usage signal",
+            description: Language::English.text(Key::SettingsUsagePingDoNotTrackText),
+            tone: RowTone::Unavailable,
+            link: Some(DO_NOT_TRACK_LINK),
+            status: None,
+            error: None,
+            control: Control::Switch {
+                switch: Switch::UsagePing,
+                name: "Anonymous usage signal",
+                on: false,
+                enabled: false,
+            },
+            details: None,
+            startup_apps: None,
+            repair: None,
+        }
+    );
+    assert!(form.current().usage_ping);
+}
+
+#[test]
+fn the_do_not_track_text_names_its_link_once() {
+    for language in [Language::French, Language::English] {
+        let text = language.text(Key::SettingsUsagePingDoNotTrackText);
+        assert_eq!(text.matches(DO_NOT_TRACK_LINK.label).count(), 1, "{text}");
+    }
 }
 
 #[test]

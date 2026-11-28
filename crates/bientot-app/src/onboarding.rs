@@ -20,7 +20,7 @@ use crate::settings::data::{DataPage, ImportDialog, Row};
 use crate::settings::startup;
 use crate::settings::{
     Clock, Control, Details, Field, LanguageChoice, PingDetails, RowView, Setting, StartupAppsView,
-    Switch, UsagePingFacts, error_text, ping_body,
+    Switch, UsagePingFacts, do_not_track_row, error_text, ping_body,
 };
 use crate::strings::{Key, Language, LanguageSources};
 
@@ -174,6 +174,11 @@ impl Onboarding {
         settings
             .activity_source
             .get_or_insert(ActivitySourceKind::BuiltIn);
+        // Nobody chose to send it: the signal stays off once `DO_NOT_TRACK` is gone, until
+        // turned on in « Paramètres ».
+        if usage_ping.do_not_track {
+            settings.usage_ping = false;
+        }
         let language = Language::resolve(sources, settings.language_override.as_deref());
         Self {
             step: Step::Language,
@@ -369,6 +374,7 @@ impl Onboarding {
     fn is_enabled(&self, switch: Switch) -> bool {
         match switch {
             Switch::Startup => self.startup.is_some_and(startup::can_change),
+            Switch::UsagePing => !self.usage_ping.do_not_track,
             _ => true,
         }
     }
@@ -539,6 +545,9 @@ impl Onboarding {
             switch(Switch::UsagePing, self.settings.usage_ping),
         );
         usage_ping.details = Some(self.details(language));
+        if self.usage_ping.do_not_track {
+            usage_ping = do_not_track_row(usage_ping, language);
+        }
         [Some(startup), updates, Some(usage_ping)]
             .into_iter()
             .flatten()

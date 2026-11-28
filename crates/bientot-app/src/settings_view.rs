@@ -128,6 +128,7 @@ pub fn open(cx: &mut App) {
         today: date,
         last_sent,
         install_kind: install_kind(),
+        do_not_track: crate::usage_ping::do_not_track(),
     };
     let form = SettingsForm::new(today.settings().clone(), usage_ping, language);
     let settings_file = today.settings_file().map(PathBuf::from);

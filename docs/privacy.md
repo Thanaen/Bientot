@@ -2,7 +2,8 @@
 
 Bientôt is local-first. It has no account and no cloud sync. Its only
 telemetry is one anonymous usage signal a day. It is on by default, shown
-during setup, and you can turn it off. This page lists what Bientôt stores,
+during setup, and you can turn it off. It stays off while the
+[`DO_NOT_TRACK`](#do_not_track) environment variable is set. This page lists what Bientôt stores,
 what it sends, and how to remove it.
 
 ## What stays on the machine
@@ -116,7 +117,8 @@ Bientôt makes three kinds of request.
    launches and launches with `--data-dir` never send it. Turn off **Send an
    anonymous usage signal** in the General settings to stop it at once,
    without a restart. The toggle saves `"usagePing": false` in
-   `settings.json`.
+   `settings.json`. Bientôt never sends it while the
+   [`DO_NOT_TRACK`](#do_not_track) environment variable is set.
 
    These counts are public, at `https://bientot.dev/statistiques`, as a
    page and as CSV and JSON files under CC0. The page shows only finished days
@@ -133,6 +135,31 @@ Bientôt makes three kinds of request.
    the plugins and signing keys Bientôt turns off; Bientôt keeps the last good
    one in `plugins\revocations.json`. The server stores nothing and logs nothing
    about the request. Debug builds and demo launches never send it.
+
+## `DO_NOT_TRACK`
+
+Bientôt follows the [`DO_NOT_TRACK`](https://consoledonottrack.com/)
+convention, an environment variable that asks every program to send no
+telemetry. While it is set to `1`, or to any value other than an empty one,
+`0`, `false`, `no` or `off` (in any case), Bientôt sends no usage signal,
+whatever **Send an anonymous usage signal** says:
+
+- The General settings show the switch off and greyed, and say why. The
+  saved setting does not change: once the variable is gone, the signal follows
+  it again.
+- The setup shows the switch the same way and saves the signal off, so that it
+  stays off until you turn it on.
+
+Bientôt reads the variable when it starts. After setting or removing it, quit
+Bientôt from the tray menu and start it again; on Windows, a variable set with
+`setx DO_NOT_TRACK 1` or in the system's environment variables reaches the
+programs started after it, and on Linux one set in
+`~/.config/environment.d/` or your shell profile reaches the programs of your
+next session.
+
+The update check and the plugin revocation list are not telemetry: they send
+no identifier and nothing about you, so `DO_NOT_TRACK` leaves them on. Turn
+off **Check for updates** to stop them.
 
 ## The website
 

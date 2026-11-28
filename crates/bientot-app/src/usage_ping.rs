@@ -14,6 +14,12 @@ use crate::live::LiveHost;
 #[cfg(feature = "usage-ping")]
 mod https;
 
+/// Whether the system asks every app for no telemetry, through the `DO_NOT_TRACK` environment
+/// variable. Bientôt then sends no signal, whatever its setting says, until a start without it.
+pub fn do_not_track() -> bool {
+    bientot_domain::usage_ping::do_not_track(std::env::var_os("DO_NOT_TRACK").as_deref())
+}
+
 /// The longest wait between two attempts while the date stays the same.
 pub const RETRY_INTERVAL: Duration = Duration::from_secs(60 * 60);
 
@@ -61,10 +67,10 @@ const FAILED: &str = "usage_ping.failed";
 /// Sends the signal from the user's data at startup, then whenever [`Schedule`] says, one send
 /// at a time on a background thread. Reads the `usage_ping` setting at each attempt, so that
 /// turning it off stops the sends without a restart. Does nothing in a build without the
-/// `usage-ping` feature, in a debug build, nor for a demo.
+/// `usage-ping` feature, in a debug build, for a demo, nor when [`do_not_track`].
 pub fn install(cx: &mut App) {
     #[cfg(feature = "usage-ping")]
-    if !cfg!(debug_assertions) {
+    if !cfg!(debug_assertions) && !do_not_track() {
         sending::install(cx);
     }
     #[cfg(not(feature = "usage-ping"))]

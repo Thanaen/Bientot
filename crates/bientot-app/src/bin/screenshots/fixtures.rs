@@ -144,6 +144,8 @@ pub(super) enum SettingsState {
     Zip,
     /// `DetailsOpen` on the ZIP build.
     ZipDetailsOpen,
+    /// `DO_NOT_TRACK` set, which keeps the signal off, scrolled to the end.
+    DoNotTrack,
     /// `DetailsOpen` on the build Velopack's `Setup.exe` installed.
     DirectDetailsOpen,
     /// Scrolled to the end.
@@ -201,6 +203,7 @@ impl SettingsState {
             Self::StartupRefused => Some("startup-change-failed"),
             Self::StartupOtherCopy => Some("startup-other-copy"),
             Self::Zip => Some("zip"),
+            Self::DoNotTrack => Some("do-not-track"),
             Self::ZipDetailsOpen => Some("zip-details-open"),
             Self::DirectDetailsOpen => Some("direct-details-open"),
             Self::End => Some("end"),
@@ -306,6 +309,7 @@ impl SettingsState {
             today,
             last_sent: (!matches!(self, Self::NeverSent)).then_some(today),
             install_kind: None,
+            do_not_track: matches!(self, Self::DoNotTrack),
         }
     }
 
@@ -329,7 +333,7 @@ impl SettingsState {
                 | Self::ZipDetailsOpen
                 | Self::DirectDetailsOpen
         );
-        if details || matches!(self, Self::End | Self::Zip) {
+        if details || matches!(self, Self::End | Self::Zip | Self::DoNotTrack) {
             view.scroll_to_end();
         }
         if matches!(self, Self::Diagnostic | Self::DiagnosticUndetectable) {
@@ -368,6 +372,7 @@ impl SettingsState {
             | Self::End
             | Self::Wrapped
             | Self::Zip
+            | Self::DoNotTrack
             | Self::Startup(_)
             | Self::Appointments
             | Self::AppointmentNew

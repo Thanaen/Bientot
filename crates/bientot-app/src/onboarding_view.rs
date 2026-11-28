@@ -88,6 +88,7 @@ pub fn open(
         today: jiff::ZonedDateTime::now().date(),
         last_sent: None,
         install_kind: settings_view::install_kind(),
+        do_not_track: crate::usage_ping::do_not_track(),
     };
     let onboarding = Onboarding::new(settings, usage_ping, sources, directory);
     cx.set_global(onboarding.language());

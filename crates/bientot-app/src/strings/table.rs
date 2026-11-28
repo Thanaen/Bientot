@@ -708,6 +708,7 @@ pub enum Key {
     SettingsUsagePingCardDescription,
     SettingsUsagePingCardHeader,
     SettingsUsagePingDetails,
+    SettingsUsagePingDoNotTrackText,
     SettingsUsagePingFieldsFormat,
     SettingsUsagePingInputAutomationPropertiesName,
     SettingsUsagePingLastSentDateFormat,
@@ -899,7 +900,7 @@ pub enum Key {
     WorkdayTooltipNoTargetFormat,
 }
 
-pub(super) static ENTRIES: [Entry; 891] = [
+pub(super) static ENTRIES: [Entry; 892] = [
     Entry { name: "ActivitySourceSwitchFailed", fr: "Impossible de passer à la détection intégrée. Vérifiez l’accès au disque et réessayez.", en: "Couldn’t switch to built-in detection. Check disk access and try again.", linux: None },
     Entry { name: "ActivityUndetectable.Action", fr: "Déclarer du temps", en: "Log time", linux: None },
     Entry { name: "ActivityUndetectable.ForecastPaused", fr: "Pas de prévision sans détection de l’activité", en: "No forecast without activity detection", linux: None },
@@ -1602,6 +1603,7 @@ pub(super) static ENTRIES: [Entry; 891] = [
     Entry { name: "SettingsUsagePingCard.Description", fr: "Une fois par jour, sans identifiant ni donnée sur votre temps de travail. Ce décompte aide le développeur à savoir combien de personnes utilisent Bientôt.", en: "Once a day, with no identifier and no data about your working time. This count helps the developer know how many people use Bientôt.", linux: None },
     Entry { name: "SettingsUsagePingCard.Header", fr: "Envoyer un signal d’utilisation anonyme", en: "Send an anonymous usage signal", linux: None },
     Entry { name: "SettingsUsagePingDetails", fr: "Voir ce qui est envoyé", en: "See what is sent", linux: None },
+    Entry { name: "SettingsUsagePingDoNotTrackText", fr: "Votre système demande aux applications de ne pas vous pister (DO_NOT_TRACK). Bientôt respecte ce réglage et n’envoie aucun signal.", en: "Your system asks apps not to track you (DO_NOT_TRACK). Bientôt respects this and sends no signal.", linux: None },
     Entry { name: "SettingsUsagePingFieldsFormat", fr: "C’est tout ce qui est envoyé. «\u{a0}channel\u{a0}» indique où vous avez installé Bientôt (ici, {0}) et «\u{a0}first_this_month\u{a0}» vaut true pour le premier envoi du mois.", en: "That’s everything that gets sent. “channel” says where you installed Bientôt (here, {0}) and “first_this_month” is true for the first signal of the month.", linux: None },
     Entry { name: "SettingsUsagePingInput.AutomationProperties.Name", fr: "Signal d’utilisation anonyme", en: "Anonymous usage signal", linux: None },
     Entry { name: "SettingsUsagePingLastSentDateFormat", fr: "{0:d MMMM}", en: "{0:MMMM d}", linux: None },

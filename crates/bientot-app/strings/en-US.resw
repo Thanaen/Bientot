@@ -395,6 +395,7 @@
   <data name="SettingsUsagePingLastSentYesterday" xml:space="preserve"><value>yesterday</value></data>
   <data name="SettingsUsagePingLastSentDateFormat" xml:space="preserve"><value>{0:MMMM d}</value></data>
   <data name="SettingsUsagePingOffText" xml:space="preserve"><value>Off: Bientôt sends no signal.</value></data>
+  <data name="SettingsUsagePingDoNotTrackText" xml:space="preserve"><value>Your system asks apps not to track you (DO_NOT_TRACK). Bientôt respects this and sends no signal.</value></data>
   <data name="SettingsActivityWatchCalloutTitle" xml:space="preserve"><value>ActivityWatch is no longer supported</value></data>
   <data name="SettingsActivityWatchCalloutMessage" xml:space="preserve"><value>Bientôt now detects activity itself. Switch to built-in detection so your time keeps being counted.</value></data>
   <data name="SettingsActivityWatchCalloutAction" xml:space="preserve"><value>Use built-in detection</value></data>

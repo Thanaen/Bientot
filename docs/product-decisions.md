@@ -342,6 +342,10 @@ history.
 Revised on 2026-10-12 (#158): the anonymous daily usage signal replaces "no
 usage telemetry".
 
+Revised on 2026-11-28: the signal stays off while the `DO_NOT_TRACK`
+environment variable asks for no telemetry (any value but an empty one, `0`,
+`false`, `no` or `off`). Settings show why; the saved setting does not change.
+
 ### D-020 — Packaging boundaries
 
 Packaging differences MUST NOT leak into the calculation core. Portable alpha

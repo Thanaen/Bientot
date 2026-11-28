@@ -63,7 +63,8 @@ a { color: var(--accent); text-underline-offset: 3px; }
 h1, h2, h3 { text-wrap: balance; margin: 0; }
 p { margin: 0; text-wrap: pretty; }
 .tnum { font-variant-numeric: tabular-nums; }
-.mono { font-family: var(--font-mono); }
+.mono, code { font-family: var(--font-mono); }
+code { font-size: .92em; }
 .wrap { max-width: var(--page); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .nb { white-space: nowrap; }
 .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 4px; font: 500 15px/1 var(--font-sans); text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--element); white-space: nowrap; }
@@ -302,7 +303,7 @@ footer .foot-note { flex-basis: 100%; }
       <div class="panel">
         <h2>Your hours stay with you</h2>
         <p>Everything is stored on your PC, with no account. You can export your data and import it on another computer.</p>
-        <p>Once a day, the app sends an anonymous signal (its version, how it was installed, and whether it’s the first signal of the month) to count the PCs that use it. It’s on by default; you can turn it off in Settings&nbsp;›&nbsp;General. The totals are public on the <a href="/statistiques" hreflang="fr">Statistics</a> page,&nbsp;in&nbsp;French.</p>
+        <p>Once a day, the app sends an anonymous signal (its version, how it was installed, and whether it’s the first signal of the month) to count the PCs that use it. It’s on by default; you can turn it off in Settings&nbsp;›&nbsp;General. If the DO_NOT_TRACK environment variable is set on your PC (for example, <code>DO_NOT_TRACK=1</code>), Bientôt respects it and never sends the signal. The totals are public on the <a href="/statistiques" hreflang="fr">Statistics</a> page,&nbsp;in&nbsp;French.</p>
       </div>
       <div class="panel">
         <h2>Free and open source</h2>

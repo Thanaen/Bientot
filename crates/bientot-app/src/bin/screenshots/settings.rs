@@ -66,6 +66,7 @@ pub fn capture_pages(
         SettingsState::StartupOtherCopy,
         SettingsState::Zip,
         SettingsState::ZipDetailsOpen,
+        SettingsState::DoNotTrack,
         SettingsState::End,
         SettingsState::DirectDetailsOpen,
         SettingsState::LanguageOpen,

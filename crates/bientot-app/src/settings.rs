@@ -730,6 +730,9 @@ pub struct UsagePingFacts {
     /// How this copy was installed, where the system tells: Linux, where « À propos » names a
     /// Flatpak or an AppImage.
     pub install_kind: Option<InstallKind>,
+    /// `DO_NOT_TRACK` asks for no telemetry: the signal stays off whatever its setting says, and
+    /// its switch says why (`crate::usage_ping::do_not_track`).
+    pub do_not_track: bool,
 }
 
 impl UsagePingFacts {
@@ -882,6 +885,12 @@ pub struct Link {
 pub const RELEASES_LINK: Link = Link {
     label: "GitHub",
     url: "https://github.com/Thanaen/Bientot/releases",
+};
+
+/// Where the privacy page says how Bientôt follows `DO_NOT_TRACK`.
+pub const DO_NOT_TRACK_LINK: Link = Link {
+    label: "DO_NOT_TRACK",
+    url: "https://github.com/Thanaen/Bientot/blob/main/docs/privacy.md#do_not_track",
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -1206,7 +1215,7 @@ impl SettingsForm {
             Switch::DepartureNotification => self.drafts.departure_notification,
             Switch::DayComplete => self.drafts.day_complete,
             Switch::Updates => self.drafts.updates && self.usage_ping.checks_updates(),
-            Switch::UsagePing => self.drafts.usage_ping,
+            Switch::UsagePing => self.drafts.usage_ping && !self.usage_ping.do_not_track,
             Switch::AppointmentProposals => self.drafts.appointment_proposals.enabled,
         }
     }
@@ -1221,6 +1230,7 @@ impl SettingsForm {
                     && self.workspace.state(EditGroup::Startup).status != EditStatus::Saving
             }
             Switch::Updates => self.usage_ping.checks_updates(),
+            Switch::UsagePing => !self.usage_ping.do_not_track,
             _ => true,
         }
     }
@@ -1727,6 +1737,9 @@ impl SettingsForm {
             }),
             ..setting.row(language, control)
         };
+        if setting == Setting::UsagePing && self.usage_ping.do_not_track {
+            return do_not_track_row(row, language);
+        }
         if setting == Setting::Updates && !self.usage_ping.checks_updates() {
             return RowView {
                 tone: RowTone::Unavailable,
@@ -1742,6 +1755,18 @@ impl SettingsForm {
             };
         }
         row
+    }
+}
+
+/// The usage signal's row when `DO_NOT_TRACK` keeps it off: greyed and off, it says why instead
+/// of what it would send, and links to what Bientôt does about it.
+pub(crate) fn do_not_track_row(row: RowView, language: Language) -> RowView {
+    RowView {
+        tone: RowTone::Unavailable,
+        description: language.text(Key::SettingsUsagePingDoNotTrackText),
+        link: Some(DO_NOT_TRACK_LINK),
+        details: None,
+        ..row
     }
 }
 
