@@ -127,15 +127,10 @@ mod tests {
         server.join().unwrap();
 
         let error = error.downcast_ref::<ureq::Error>();
-        #[cfg(windows)]
-        let from_tls = matches!(error, Some(ureq::Error::NativeTls(_)));
-        // ureq hands rustls's errors over inside I/O errors.
-        #[cfg(not(windows))]
-        let from_tls = matches!(
-            error,
-            Some(ureq::Error::Io(io)) if io.get_ref().is_some_and(|inner| inner.is::<rustls::Error>())
+        assert!(
+            error.is_some_and(crate::platform::refused_by_tls),
+            "{error:?}"
         );
-        assert!(from_tls, "{error:?}");
     }
 
     #[test]

@@ -9,6 +9,7 @@ use gpui::{
     ResizeEdge, Stateful, Styled, Tiling, Window, WindowControlArea, div, prelude::*, px,
 };
 
+use crate::platform;
 use crate::theme::size::TITLEBAR_HEIGHT;
 
 /// Who decorates a window, and so what the app draws of its frame.
@@ -37,7 +38,12 @@ impl Chrome {
     /// The chrome of `window` now: the desktop can switch its decorations while it is open.
     pub fn of(window: &Window, cx: &App) -> Self {
         cx.try_global::<ChromeOverride>().map_or_else(
-            || Self::reported(cfg!(target_os = "linux"), window.window_decorations()),
+            || {
+                Self::reported(
+                    platform::DECORATIONS_AS_REPORTED,
+                    window.window_decorations(),
+                )
+            },
             |chrome| chrome.0,
         )
     }
@@ -165,11 +171,12 @@ fn cursor(edge: ResizeEdge) -> CursorStyle {
 /// on Linux, where GPUI ignores that, a press hands the move to the desktop.
 pub(crate) fn drag_area(title: Stateful<Div>) -> Stateful<Div> {
     let title = title.window_control_area(WindowControlArea::Drag);
-    #[cfg(target_os = "linux")]
-    let title = title.on_mouse_down(MouseButton::Left, |_, window, _| {
+    if !platform::MOVE_ON_PRESS {
+        return title;
+    }
+    title.on_mouse_down(MouseButton::Left, |_, window, _| {
         window.start_window_move();
-    });
-    title
+    })
 }
 
 #[cfg(test)]

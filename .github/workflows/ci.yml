@@ -57,7 +57,7 @@ jobs:
             gpui_screenshots=true
           fi
 
-          rust_files='^crates/|^packaging/|^plugins/|^scripts/(check-sample-plugins|check-plugin-skill|lint-windows)\.sh$|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$'
+          rust_files='^crates/|^packaging/|^plugins/|^scripts/(check-sample-plugins|check-plugin-skill|lint-windows|check-platform-cfg)\.sh$|^scripts/platform-cfg-allowlist\.txt$|^Cargo\.(toml|lock)$|^rust-toolchain\.toml$'
 
           rust=false
           if grep -qE "${rust_files}|^\.github/workflows/ci\.yml$" <<< "$files"; then
@@ -141,6 +141,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Platform code stays in the platform crates and the app's composition root (constitution,
+      # Principle VII); the self-test proves the check still fails on a seeded violation.
+      - name: Check where platform conditions are
+        run: |
+          scripts/check-platform-cfg.sh --self-test
+          scripts/check-platform-cfg.sh
 
       # Installs the toolchain pinned in rust-toolchain.toml.
       - name: Install Rust toolchain
