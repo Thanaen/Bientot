@@ -1,30 +1,32 @@
 # Platform conditions allowed outside the platform crates and crates/bientot-app/src/platform/,
-# read by scripts/check-platform-cfg.sh. One entry per line: the path (a glob), the line as written
-# without its indentation, and why it cannot move. Keep the list short: a new entry needs a reason
-# a reviewer accepts, and an entry that matches no line fails the check.
+# read by scripts/check-platform-cfg.sh. One entry per line: the path (a glob); the line as written
+# without its indentation, a wrapped attribute with its lines trimmed and joined; how many lines
+# the entry covers; and why they cannot move. Keep the list short: a new entry needs a reason a
+# reviewer accepts, and an entry that covers more or fewer lines than its count fails the check.
 #
-# path | line | reason
+# path | line | count | reason
 
 # The app
-crates/bientot-app/src/main.rs | #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")] | Only the crate root can carry the subsystem attribute.
-crates/bientot-app/tests/*.rs | #![cfg(all(feature = "screenshots", target_os = "linux"))] | The screenshot tests draw with GPUI's Linux backend, off screen.
-crates/bientot-app/tests/plugins_start.rs | #![cfg(all(feature = "screenshots", feature = "plugins", target_os = "linux"))] | The screenshot tests draw with GPUI's Linux backend, off screen.
-crates/bientot-app/tests/desktop_harness_*.rs | #![cfg(target_os = "linux")] | The desktop harness runs Linux sessions (scripts/linux-desktop-harness.sh).
-crates/bientot-app/src/shell.rs | #[cfg(target_os = "linux")] | The test of the flyout's layer surface: GPUI has WindowKind::LayerShell only on Linux.
-crates/bientot-app/src/diagnostics/tests.rs | #[cfg(all(target_os = "linux", feature = "plugins"))] | Tests that the export of the Linux system description holds no personal name; they read the export's private parts.
+crates/bientot-app/src/main.rs | #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")] | 1 | Only the crate root can carry the subsystem attribute.
+crates/bientot-app/tests/*.rs | #![cfg(all(feature = "screenshots", target_os = "linux"))] | 21 | The screenshot tests draw with GPUI's Linux backend, off screen.
+crates/bientot-app/tests/plugins_start.rs | #![cfg(all(feature = "screenshots", feature = "plugins", target_os = "linux"))] | 1 | The screenshot tests draw with GPUI's Linux backend, off screen.
+crates/bientot-app/tests/desktop_harness_*.rs | #![cfg(target_os = "linux")] | 4 | The desktop harness runs Linux sessions (scripts/linux-desktop-harness.sh).
+crates/bientot-app/src/shell.rs | #[cfg(target_os = "linux")] | 1 | The test of the flyout's layer surface: GPUI has WindowKind::LayerShell only on Linux.
+crates/bientot-app/src/diagnostics/tests.rs | #[cfg(all(target_os = "linux", feature = "plugins"))] | 3 | Tests that the export of the Linux system description holds no personal name; they read the export's private parts.
 
 # Ports of the .NET app's file handling, whose behaviour differs by file system
-crates/bientot-core/src/diagnostics/export.rs | #[cfg(windows)] | Directory and link tests read Windows file attributes, as .NET does.
-crates/bientot-core/src/diagnostics/export.rs | #[cfg(not(windows))] | Directory and link tests read Windows file attributes, as .NET does.
-crates/bientot-core/tests/diagnostics_export.rs | #[cfg(unix)] | Tests that make symbolic links, which Windows restricts.
-crates/bientot-store/src/settings.rs | const NEWLINE: &str = if cfg!(windows) { "\r\n" } else { "\n" }; | settings.json keeps .NET's Environment.NewLine.
-crates/bientot-store/src/secrets.rs | #[cfg(windows)] | The secret store uses DPAPI on Windows.
-crates/bientot-store/src/data_migration/tests.rs | #[cfg(windows)] | A test of a ledger held open without delete sharing, which only Windows has.
-crates/bientot-store/src/data_directory/tests.rs | #[cfg(windows)] | A test of the Windows folder names of the .NET app.
-crates/bientot-store/src/data_directory/tests.rs | #[cfg(unix)] | A test that makes a symbolic link, which Windows restricts.
+crates/bientot-core/src/diagnostics/export.rs | #[cfg(windows)] | 2 | Directory and link tests read Windows file attributes, as .NET does.
+crates/bientot-core/src/diagnostics/export.rs | #[cfg(not(windows))] | 2 | Directory and link tests read Windows file attributes, as .NET does.
+crates/bientot-core/tests/diagnostics_export.rs | #[cfg(unix)] | 2 | Tests that make symbolic links, which Windows restricts.
+crates/bientot-store/src/settings.rs | const NEWLINE: &str = if cfg!(windows) { "\r\n" } else { "\n" }; | 1 | settings.json keeps .NET's Environment.NewLine.
+crates/bientot-store/src/secrets.rs | #[cfg(windows)] | 2 | The secret store uses DPAPI on Windows.
+crates/bientot-store/src/secrets.rs | #[cfg_attr(not(windows),allow(dead_code, reason = "only DPAPI uses it outside the tests"))] | 2 | The secret store uses DPAPI on Windows.
+crates/bientot-store/src/data_migration/tests.rs | #[cfg(windows)] | 1 | A test of a ledger held open without delete sharing, which only Windows has.
+crates/bientot-store/src/data_directory/tests.rs | #[cfg(windows)] | 1 | A test of the Windows folder names of the .NET app.
+crates/bientot-store/src/data_directory/tests.rs | #[cfg(unix)] | 1 | A test that makes a symbolic link, which Windows restricts.
 
 # Tools that are not the app
-crates/bientot-plugin-tool/src/keys.rs | #[cfg(unix)] | The private key's file is made readable by its owner only.
-crates/bientot-plugins/examples/hostile-corpus.rs | #[cfg(windows)] | The example measures its own memory with each system's call.
-crates/bientot-plugins/examples/hostile-corpus.rs | #[cfg(target_os = "linux")] | The example measures its own memory with each system's call.
-crates/bientot-plugins/examples/hostile-corpus.rs | #[cfg(not(any(windows, target_os = "linux")))] | The example measures its own memory with each system's call.
+crates/bientot-plugin-tool/src/keys.rs | #[cfg(unix)] | 2 | The private key's file is made readable by its owner only.
+crates/bientot-plugins/examples/hostile-corpus.rs | #[cfg(windows)] | 1 | The example measures its own memory with each system's call.
+crates/bientot-plugins/examples/hostile-corpus.rs | #[cfg(target_os = "linux")] | 1 | The example measures its own memory with each system's call.
+crates/bientot-plugins/examples/hostile-corpus.rs | #[cfg(not(any(windows, target_os = "linux")))] | 1 | The example measures its own memory with each system's call.

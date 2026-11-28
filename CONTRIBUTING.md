@@ -188,9 +188,10 @@ scripts/check-platform-cfg.sh
 ```
 
 When a condition cannot move, as in a test that only one system can run,
-add its line to `scripts/platform-cfg-allowlist.txt` with its reason. The
-check also fails on an entry that matches no line, so remove the entry
-with the code.
+add its line to `scripts/platform-cfg-allowlist.txt` with how many lines the
+entry covers and why. The check reads an attribute that rustfmt wrapped as
+one line, its lines trimmed and joined. It also fails when an entry covers
+more or fewer lines than its count, so update the count with the code.
 
 ### What only Windows checks
 

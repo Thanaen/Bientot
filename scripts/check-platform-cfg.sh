@@ -2,9 +2,11 @@
 # Fails on a platform condition outside the places the constitution allows (Principle VII):
 # `cfg`, `cfg!` and `cfg_attr` on `windows`, `unix`, `target_os` or `target_family` belong in
 # crates/bientot-windows/, crates/bientot-linux/, crates/bientot-app/src/platform/ and build.rs
-# files. Cargo.toml target tables are not Rust and are not read. Anything else must be a line of
-# scripts/platform-cfg-allowlist.txt, which gives its reason; an entry that matches no line fails
-# too, so the list shrinks with the code. An attribute split over several lines is not seen.
+# files. Cargo.toml target tables are not Rust and are not read. An attribute that rustfmt wrapped
+# is read as one line, its lines trimmed and joined. Anything else must be an entry of
+# scripts/platform-cfg-allowlist.txt, which gives how many lines it covers and why; an entry that
+# covers more or fewer lines fails too, so a copy cannot slip in under it and the list shrinks
+# with the code.
 #
 #   scripts/check-platform-cfg.sh [<root> [<allowlist>]]
 #   scripts/check-platform-cfg.sh --self-test
@@ -26,8 +28,8 @@ if [[ ${1:-} == --self-test ]]; then
         fi
     }
     mkdir -p "$work/crates/core/src" "$work/crates/bientot-linux/src" \
-        "$work/crates/bientot-app/src/platform" "$work/crates/core/tests"
-    printf '# path | line | reason\n' > "$work/allowlist.txt"
+        "$work/crates/bientot-app/src/platform"
+    printf '# path | line | count | reason\n' > "$work/allowlist.txt"
     printf 'pub fn add() {}\n// cfg(windows) in a comment\n' > "$work/crates/core/src/lib.rs"
     printf '#[cfg(target_os = "linux")]\nmod x;\n' > "$work/crates/bientot-linux/src/lib.rs"
     printf 'pub const X: bool = cfg!(windows);\n' > "$work/crates/bientot-app/src/platform/mod.rs"
@@ -37,21 +39,26 @@ if [[ ${1:-} == --self-test ]]; then
     printf '#[cfg(windows)]\nfn seeded() {}\n' >> "$work/crates/core/src/lib.rs"
     expect fail "a seeded violation"
 
-    printf 'crates/core/src/lib.rs | #[cfg(windows)] | a reason\n' >> "$work/allowlist.txt"
+    printf 'crates/core/src/lib.rs | #[cfg(windows)] | 1 | a reason\n' >> "$work/allowlist.txt"
     expect pass "the violation, allowed with a reason"
 
-    printf '    #[cfg(windows)]\n' > "$work/crates/core/tests/a.rs"
-    expect fail "the same line in another file"
+    printf '#[cfg(windows)]\nfn copy() {}\n' >> "$work/crates/core/src/lib.rs"
+    expect fail "a second copy of an allowed line"
 
-    printf 'crates/core/tests/*.rs | #[cfg(windows)] |\n' >> "$work/allowlist.txt"
+    sed -i 's/| 1 |/| 2 |/' "$work/allowlist.txt"
+    expect pass "both copies counted"
+
+    printf '#[cfg_attr(\n    not(unix),\n    allow(dead_code)\n)]\nfn wrapped() {}\n' > "$work/crates/core/src/wrapped.rs"
+    expect fail "an attribute rustfmt wrapped"
+
+    printf 'crates/core/src/wrapped.rs | #[cfg_attr(not(unix),allow(dead_code))] | 1 |\n' >> "$work/allowlist.txt"
     expect fail "an entry without a reason"
 
-    printf 'crates/core/tests/*.rs | #[cfg(windows)] | a reason\n' > "$work/entry"
     sed -i '$d' "$work/allowlist.txt"
-    cat "$work/entry" >> "$work/allowlist.txt"
-    expect pass "a glob entry"
+    printf 'crates/core/src/wrapped.rs | #[cfg_attr(not(unix),allow(dead_code))] | 1 | a reason\n' >> "$work/allowlist.txt"
+    expect pass "the wrapped attribute, allowed as one line"
 
-    printf 'crates/core/src/gone.rs | #[cfg(unix)] | a reason\n' >> "$work/allowlist.txt"
+    printf 'crates/core/src/gone.rs | #[cfg(unix)] | 1 | a reason\n' >> "$work/allowlist.txt"
     expect fail "an entry that matches nothing"
 
     ((status == 0)) && echo "check-platform-cfg self-test passed."
@@ -62,38 +69,68 @@ root=${1:-$(dirname "$script")/..}
 allowlist=$(realpath "${2:-$root/scripts/platform-cfg-allowlist.txt}")
 cd "$root"
 
+trim() {
+    local t=$1
+    t=${t#"${t%%[![:space:]]*}"}
+    printf '%s' "${t%"${t##*[![:space:]]}"}"
+}
+
 failed=0
 globs=()
 lines=()
-reasons=()
-used=()
+counts=()
+seen=()
 while IFS= read -r entry || [[ -n $entry ]]; do
     [[ -z ${entry//[[:space:]]/} || $entry == '#'* ]] && continue
-    IFS='|' read -r glob line reason <<< "$entry"
-    trim() { local t=$1; t=${t#"${t%%[![:space:]]*}"}; printf '%s' "${t%"${t##*[![:space:]]}"}"; }
+    IFS='|' read -r glob line count reason <<< "$entry"
     glob=$(trim "$glob")
     line=$(trim "$line")
+    count=$(trim "${count:-}")
     reason=$(trim "${reason:-}")
-    if [[ -z $glob || -z $line || -z $reason ]]; then
-        echo "::error file=$allowlist::Each entry is « path | line | reason »: $entry"
+    if [[ -z $glob || -z $line || ! $count =~ ^[1-9][0-9]*$ || -z $reason ]]; then
+        echo "::error file=$allowlist::Each entry is « path | line | count | reason »: $entry"
         failed=1
         continue
     fi
     globs+=("$glob")
     lines+=("$line")
-    reasons+=("$reason")
-    used+=(0)
+    counts+=("$count")
+    seen+=(0)
 done < "$allowlist"
 
-condition='cfg(_attr)?!?[[:space:]]*\(.*\b(windows|unix|target_os|target_family)\b'
+# Prints path:line:text for each platform condition, a wrapped attribute joined from the line of
+# its `cfg` until its parentheses close.
+# shellcheck disable=SC2016 # an awk program, not shell
+scan='
+function depth(s,   opened) { opened = gsub(/\(/, "(", s); return opened - gsub(/\)/, ")", s) }
+function emit(line, s) {
+    if (s ~ /cfg(_attr)?!?[[:space:]]*\((.*[^[:alnum:]_])?(windows|unix|target_os|target_family)([^[:alnum:]_]|$)/)
+        print FILENAME ":" line ":" s
+}
+FNR == 1 { open = 0 }
+{
+    text = $0
+    sub(/^[[:space:]]+/, "", text)
+    sub(/[[:space:]]+$/, "", text)
+    if (open) {
+        joined = joined text
+        level += depth(text)
+        if (level <= 0) { open = 0; emit(start, joined) }
+        next
+    }
+    if (text ~ /^\/\//) next
+    if (text ~ /cfg(_attr)?!?[[:space:]]*\(/) {
+        level = depth(text)
+        if (level > 0) { open = 1; start = FNR; joined = text; next }
+        emit(FNR, text)
+    }
+}'
+
 while IFS= read -r hit; do
     path=${hit%%:*}
     rest=${hit#*:}
     number=${rest%%:*}
     text=${rest#*:}
-    text=${text#"${text%%[![:space:]]*}"}
-    text=${text%"${text##*[![:space:]]}"}
-    [[ $text == //* ]] && continue
     case $path in
         crates/bientot-windows/* | crates/bientot-linux/* | crates/bientot-app/src/platform/* | */build.rs) continue ;;
     esac
@@ -102,18 +139,19 @@ while IFS= read -r hit; do
         # shellcheck disable=SC2053 # the entry's path is a glob
         if [[ $path == ${globs[$i]} && $text == "${lines[$i]}" ]]; then
             allowed=1
-            used[i]=1
+            seen[i]=$((seen[i] + 1))
+            break
         fi
     done
     if ((allowed == 0)); then
         echo "::error file=$path,line=$number::A platform condition outside the platform crates and crates/bientot-app/src/platform/ (constitution, Principle VII). Move it behind a port or a constant of the composition root, or list it with its reason in scripts/platform-cfg-allowlist.txt: $text"
         failed=1
     fi
-done < <(grep -rnE --include='*.rs' "$condition" crates | sort)
+done < <(find crates -name '*.rs' -print0 | sort -z | xargs -0 awk "$scan")
 
 for i in "${!globs[@]}"; do
-    if ((used[i] == 0)); then
-        echo "::error file=$allowlist::An entry matches no line; remove it: ${globs[$i]} | ${lines[$i]}"
+    if ((seen[i] != counts[i])); then
+        echo "::error file=$allowlist::An entry covers ${counts[$i]} line(s) and matches ${seen[$i]}; correct its count, or move the new condition to the platform code: ${globs[$i]} | ${lines[$i]}"
         failed=1
     fi
 done
