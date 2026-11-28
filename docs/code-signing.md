@@ -1,8 +1,9 @@
 # Code signing
 
-Bientôt has no code-signing certificate. Only the Microsoft Store build is
-signed, by Microsoft. This page lists what each build is, who signs it, and
-what Windows shows when it is installed.
+Bientôt has no code-signing certificate yet. Only the Microsoft Store package
+is signed, by Microsoft. This page lists what each build is, who signs it, and
+what Windows shows when it is installed. It is also the project's
+[code signing policy](#code-signing-policy).
 
 ## Why there is no certificate
 
@@ -81,8 +82,50 @@ it; nothing in this repository or its CI holds one.
 See the [package contract](../specs/003-plugin-runtime/contracts/package.md)
 and the [revocation contract](../specs/003-plugin-runtime/contracts/revocations.md).
 
+## Code signing policy
+
+Bientôt has applied to the [SignPath Foundation](https://signpath.org) for
+free code signing of open source projects. If the application is accepted,
+this applies to the Windows builds:
+
+> Free code signing provided by [SignPath.io](https://about.signpath.io),
+> certificate by [SignPath Foundation](https://signpath.org).
+
+Until then, no build is signed this way, and the [Builds](#builds) table
+holds.
+
+### Team roles
+
+- **Committers and reviewers:** [Thanaen](https://github.com/Thanaen), the
+  maintainer. Every change reaches `main` through a pull request that passes
+  CI and an automated review. A pull request from anyone else is reviewed by
+  the maintainer before it is merged.
+- **Approvers:** [Thanaen](https://github.com/Thanaen). Each signing request
+  is approved by hand on SignPath.
+
+Signed files are built only by the GitHub Actions workflows of this
+repository, from a commit on `main`.
+
+### Privacy
+
+Bientôt checks for updates and sends an anonymous daily usage signal. The
+first start shows the usage signal with a switch to turn it off, and
+**Settings › General** turns either one off at any time. With plugins
+installed, it also fetches the plugin revocation list.
+[docs/privacy.md](privacy.md) is the privacy policy: it lists every request
+the app makes and every file it stores.
+
 ## If this changes
 
-A certificate, or Azure Artifact Signing through a company, would let the
-`Release` workflow sign `worktime.exe` and `Bientot-Setup.exe`. That would
-change this page, the download notes in the README, and D-016.
+A certificate from the SignPath Foundation, or Azure Artifact Signing through a
+company, would let the `Release` workflow sign `worktime.exe` and
+`Bientot-Setup.exe`, and the **Store package** workflow sign the `worktime.exe`
+it packages. That would change this page, the download notes in the
+README, and D-016.
+
+A signed `worktime.exe` also lets the notification-area icon keep its place in
+the taskbar across Store updates: Windows binds an icon's settings to the
+executable's path unless the executable is signed by the same publisher in both
+versions, and the Store installs each version in a new folder
+([#273](https://github.com/Thanaen/Bientot/issues/273)). The Store signs the
+package, not the executable inside it.

@@ -41,7 +41,8 @@ application names or window titles.
 
 ## Download
 
-Bientôt runs on Windows 11 x64.
+Bientôt runs on Windows 11 x64. Linux: in progress, see
+[supported platforms](docs/platforms.md).
 
 - **Microsoft Store**: install
   [Bientôt from the Microsoft Store](https://apps.microsoft.com/detail/9N4FL1HRF4KL).
@@ -50,7 +51,8 @@ Bientôt runs on Windows 11 x64.
   [bientot.dev/download](https://bientot.dev/download). The
   app then updates itself. The installer is not signed yet, so Windows
   SmartScreen may ask you to confirm with **More info › Run anyway**
-  ([why](docs/code-signing.md)).
+  ([why](docs/code-signing.md);
+  [code signing policy](docs/code-signing.md#code-signing-policy)).
 
 If you used the installer first, the Store build reads and writes the same
 folder, so you can move to the Store build without losing your history

@@ -4,14 +4,48 @@
 
 **Created**: 2026-11-24
 
-**Status**: Draft, waiting for the owner's answers to the open questions of
-`lots.md` before planning review
+**Status**: Approved: the owner answered the open questions of `lots.md` on
+2026-11-28 (« Clarifications » below)
 
 **Input**: The owner asked for Bientôt on Linux, as a platform of the same
 standing as Windows: « Linux n'est pas une plateforme secondaire », both
 platforms have the same importance, and the work is to be done properly,
 with a specification. This document says what « the same product on Linux »
 means, feature by feature, and what it cannot mean on some desktops.
+
+## Clarifications
+
+### Session 2026-11-28
+
+The owner answered Q1 to Q14 of `lots.md`, one at a time. Every answer is the
+recommended one, with two additions (Q8, Q11).
+
+- Q1, Q10: the official packages are Flathub and the AppImage, nothing else.
+  The project maintains no `.deb`, `.rpm`, Snap or AUR package;
+  `docs/platforms.md` welcomes community packages.
+- Q2: the app id is `dev.bientot.Bientot`.
+- Q3: Linux builds add the closed-list fields `desktop` and `session` to the
+  usage signal, documented before the code sends them.
+- Q4: « Avant Bientôt » covers the session opening to the first start, minus
+  known sleep, as one provisional review that says locks are unknown (D-026).
+- Q5: without a tray host, Bientôt runs in a window and says so (FR-012).
+- Q6: one release for both platforms or none. Linux files ship in releases
+  as « preview » from Lot 15, unlisted on the site until the launch.
+- Q7: a release-summary line may name one platform; notes print the common
+  lines, then « Windows », then « Linux ».
+- Q8: the Tier 1 desktops are checked in virtual machines on the owner's
+  Windows PC, which Claude drives once the PC is connected to the project.
+  Suspend and two monitors are simulated there, and the validation record
+  says so. aarch64 ships as Tier 2.
+- Q9: constitution 1.3.0 is ratified (Principle VII, Platform parity).
+- Q11: the Linux executable is `bientot`. The owner also wants the Windows
+  executable renamed from `worktime.exe` to `bientot.exe`, with a migration
+  of existing installs; that is issue #269, outside this spec.
+- Q12: on a compositor with only version 1 of the idle protocol, an app that
+  inhibits idle counts as activity; this is logged and documented.
+- Q13: Flathub gets a weekly update with the Store, built by Flathub from the
+  tagged source.
+- Q14: attestations only; the AppImage gets no GPG signature.
 
 ## Background: where the code stands
 
@@ -521,7 +555,7 @@ session's column ».
 | Light and dark theme | Follows Windows | Same (portal) | Same | Same | |
 | Reduced motion | Follows « Animation effects » | Same where the desktop exposes it | Same | Same | |
 | Screen reader | Narrator | Orca, same names (to validate, T127) | Same | Same | |
-| Usage signal | 3 fields | Same fields, channel `appimage` (Q3 may add two) | Same | Same | Channel `flatpak` |
+| Usage signal | 3 fields | Same fields, channel `appimage`, plus `desktop` and `session` (Q3) | Same | Same | Channel `flatpak` |
 | Demo mode, `--data-dir`, safe mode | Yes | Same | Same | Same | |
 | Architectures | x64 | x86_64, aarch64 | Same | Same | Same |
 
@@ -562,8 +596,9 @@ session's column ».
 
 ## Assumptions
 
-- The owner can test on at least one real Linux machine, or accepts
-  virtual machines for Tier 1 (Q8).
+- Tier 1 is validated in virtual machines on the owner's PC (Q8). Suspend
+  and two monitors are simulated there; a defect that only real hardware
+  shows is found by users, and the matrix says what was not seen.
 - The project keeps the domain `bientot.dev`, which fixes the Flatpak app
   id (Q2).
 - Flathub accepts the permissions of `contracts/packaging.md`; if it
