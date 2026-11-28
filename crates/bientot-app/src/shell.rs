@@ -673,8 +673,21 @@ pub fn fit_window(window: &mut Window, content: Size<Pixels>, room: Pixels, cx: 
     *LAST_PANEL.lock().unwrap() = Some(content);
     if room > px(0.) {
         // A click on the shadow reaches what lies behind it, and closes the flyout as any click
-        // outside it does. Only GPUI's Wayland backend takes an input region.
+        // outside it does. Only GPUI's Wayland backend takes an input region; the platform shapes
+        // the window's input on X11.
         window.set_input_region(Some(&[Bounds::new(point(room, room), content)]));
+        let scale = window.scale_factor();
+        let inset = physical(room, scale);
+        platform::take_input_within(
+            window,
+            Bounds::new(
+                point(inset, inset),
+                size(
+                    physical(content.width, scale),
+                    physical(content.height, scale),
+                ),
+            ),
+        );
     }
     match placement(cx) {
         FlyoutPlacement::At { work_area, corner } => {

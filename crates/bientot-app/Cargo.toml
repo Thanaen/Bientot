@@ -103,6 +103,7 @@ tempfile = "3.27.0"
 [target.'cfg(not(windows))'.dev-dependencies]
 rustls = { version = "0.23", default-features = false }
 
-# The desktop harness reads where the flyout opens on X11 (tests/desktop_harness_flyout.rs).
+# The desktop harness reads where the flyout opens on X11, and which part of it takes clicks
+# (tests/desktop_harness_flyout.rs).
 [target.'cfg(target_os = "linux")'.dev-dependencies]
-x11rb = "0.13.2"
+x11rb = { version = "0.13.2", features = ["shape"] }

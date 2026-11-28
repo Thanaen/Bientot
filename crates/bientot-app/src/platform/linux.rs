@@ -432,6 +432,17 @@ pub fn activate_window(window: &mut Window) {
     with_x11_window(window, |x11, id| x11.focus(id));
 }
 
+/// On X11, shapes the window's input to `panel`: GPUI's input region is Wayland's only.
+pub fn take_input_within(window: &Window, panel: Bounds<i32>) {
+    let panel = bientot_platform::placement::Rect {
+        x: panel.origin.x,
+        y: panel.origin.y,
+        width: panel.size.width,
+        height: panel.size.height,
+    };
+    with_x11_window(window, |x11, id| x11.take_input_within(id, panel));
+}
+
 /// Runs `act` on the X server and the X11 id of `window`, when the session is X11.
 fn with_x11_window(
     window: &Window,

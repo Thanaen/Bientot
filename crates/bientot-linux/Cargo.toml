@@ -26,7 +26,7 @@ ksni = { version = "0.3.7", default-features = false, features = ["async-io", "b
 # The version GPUI builds. `randr` names the monitors for the flyout's work area,
 # `resource_manager` reads `Xft.dpi` as GPUI does for its scale, `screensaver` reads the idle time
 # on X11.
-x11rb = { version = "0.13.2", features = ["randr", "resource_manager", "screensaver"] }
+x11rb = { version = "0.13.2", features = ["randr", "resource_manager", "screensaver", "shape"] }
 # The idle time on Wayland (`ext_idle_notifier_v1`, in `staging`), the outputs' logical size
 # (`xdg_output`, in `unstable`), the monotonic clock and the pidfd of the restart after an import:
 # the versions and features async-io and GPUI already build.
